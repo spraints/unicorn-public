@@ -1,0 +1,140 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.7 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups:
+ gmane.comp.lang.ruby.unicorn.general,gmane.comp.lang.ruby.general,gmane.comp.lang.ruby.mongrel.devel
+Subject: [ANN] unicorn 0.9.0 (experimental release)
+Date: Wed, 1 Jul 2009 15:58:44 -0700
+Message-ID: <20090701225843.GA7475@dcvr.yhbt.net>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: ger.gmane.org 1246489144 18111 80.91.229.12 (1 Jul 2009 22:59:04
+ GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Wed, 1 Jul 2009 22:59:04 +0000 (UTC)
+Cc: mongrel-development@rubyforge.org
+To: mongrel-unicorn@rubyforge.org, ruby-talk@ruby-lang.org,
+ rack-devel@googlegroups.com
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Thu Jul 02 00:58:50
+ 2009
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:1
+ gmane.comp.lang.ruby.general:297810 gmane.comp.lang.ruby.mongrel.devel:125
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.50) id 1MM8lN-0004Zc-LD for gclrug-mongrel-unicorn@m.gmane.org; Thu,
+ 02 Jul 2009 00:58:49 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id AEB5F18581DF; Wed,  1 Jul 2009 18:58:48 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 173B31858125 for <mongrel-unicorn@rubyforge.org>;
+ Wed,  1 Jul 2009 18:58:45 -0400 (EDT)
+Received: from localhost (user-118bg3p.cable.mindspring.com [66.133.192.121])
+ (using TLSv1 with cipher DHE-RSA-AES128-SHA (128/128 bits)) (No client
+ certificate requested) by dcvr.yhbt.net (Postfix) with ESMTPSA id D5E481F79A;
+ Wed,  1 Jul 2009 22:58:44 +0000 (UTC)
+
+Unicorn is a Rack HTTP server for Unix, fast clients and nothing else[1]
+
+We now have support for "Transfer-Encoding: chunked" bodies in
+requests.  Not only that, Rack applications reading input bodies
+get that data streamed off to the client socket on an as-needed
+basis.  This allows the application to do things like upload
+progress notification and even tunneling of arbitrary stream
+protocols via bidirectional chunked encoding.
+
+See Unicorn::App::Inetd and examples/git.ru (including the
+comments) for an example of tunneling the git:// protocol over
+HTTP.
+
+This release also gives applications the ability to respond
+positively to "Expect: 100-continue" headers before being rerun
+without closing the socket connection.  See Unicorn::App::Inetd
+for an example of how this is used.
+
+This release is NOT recommended for production use.
+
+Eric Wong (43):
+      http_request: no need to reset the request
+      http_request: StringIO is binary for empty bodies (1.9)
+      http_request: fix typo for 1.9
+      Transfer-Encoding: chunked streaming input support
+      Unicorn::App::Inetd: reinventing Unix, poorly :)
+      README: update with mailing list info
+      local.mk.sample: publish_doc gzips all html, js, css
+      Put copyright text in new files, include GPL2 text
+      examples/cat-chunk-proxy: link to proposed curl(1) patch
+      Update TODO
+      Avoid duplicating the "Z" constant
+      Optimize body-less GET/HEAD requests (again)
+      tee_input: Don't expose the @rd object as a return value
+      exec_cgi: small cleanups
+      README: another note about older Sinatra
+      tee_input: avoid defining a @rd.size method
+      Make TeeInput easier to use
+      test_upload: add tests for chunked encoding
+      GNUmakefile: more stringent error checking in tests
+      test_upload: fix ECONNRESET with 1.9
+      GNUmakefile: allow TRACER= to be specified for tests
+      test_rails: workaround long-standing 1.9 bug
+      tee_input: avoid rereading fresh data
+      "Fix" tests that break with stream_input=false
+      inetd: fix broken constant references
+      configurator: provide stream_input (true|false) option
+      chunked_reader: simpler interface
+      http_request: force BUFFER to be Encoding::BINARY
+      ACK clients on "Expect: 100-continue" header
+      Only send "100 Continue" when no body has been sent
+      http_request: tighter Transfer-Encoding: "chunked" check
+      Add trailer_parser for parsing trailers
+      chunked_reader: Add test for chunk parse failure
+      TeeInput: use only one IO for tempfile
+      trailer_parser: set keys with "HTTP_" prefix
+      TrailerParser integration into ChunkedReader
+      Unbind listeners as before stopping workers
+      Retry listen() on EADDRINUSE 5 times ever 500ms
+      Re-add support for non-portable socket options
+      Move "Expect: 100-continue" handling to the app
+      tee_input: avoid ignoring initial body blob
+      Force streaming input onto apps by default
+      unicorn 0.9.0
+
+* site: http://unicorn.bogomips.org/
+* git: git://git.bogomips.org/unicorn.git
+* http+git: http://git.bogomips.org:8080/unicorn.git [1]
+* cgit: http://git.bogomips.org/cgit/unicorn.git/
+* list: mongrel-unicorn@rubyforge.org
+
+[1] - Actually, most of the new features in this release should in fact
+work on non-Unix OSes so they can be adapted for other servers with
+wider audiences.
+
+[2] - This is the git:// protocol tunneled inside a bidirectional
+"Transfer-Encoding: chunked" request/response using this latest
+release of Unicorn.
+
+-- 
+Eric Wong
