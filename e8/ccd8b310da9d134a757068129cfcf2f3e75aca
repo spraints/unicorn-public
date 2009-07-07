@@ -1,0 +1,120 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.7 required=5.0 tests=MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: Unicorn
+Date: Tue, 7 Jul 2009 13:48:39 -0700
+Message-ID: <20090707204839.GA2650@dcvr.yhbt.net>
+References: <218F5913-4D49-4F6C-B334-CF264120D61A@sponagl.de>
+ <20090706231646.GA22306@dcvr.yhbt.net>
+ <D6447D3F-F17A-4DDC-B79E-524418594095@sponagl.de>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: ger.gmane.org 1246999745 17358 80.91.229.12 (7 Jul 2009 20:49:05
+ GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Tue, 7 Jul 2009 20:49:05 +0000 (UTC)
+Cc: mongrel-unicorn@rubyforge.org
+To: Paul Sponagl <paul@sponagl.de>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Tue Jul 07 22:48:58
+ 2009
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <D6447D3F-F17A-4DDC-B79E-524418594095@sponagl.de>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:5
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/5>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.50) id 1MOHay-00079Y-DZ for gclrug-mongrel-unicorn@m.gmane.org; Tue,
+ 07 Jul 2009 22:48:56 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 9FEBE1858117; Tue,  7 Jul 2009 16:48:55 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 78E6E1858111 for <mongrel-unicorn@rubyforge.org>;
+ Tue,  7 Jul 2009 16:48:40 -0400 (EDT)
+Received: from localhost (unknown [12.186.229.34]) (using TLSv1 with cipher
+ DHE-RSA-AES128-SHA (128/128 bits)) (No client certificate requested) by
+ dcvr.yhbt.net (Postfix) with ESMTPSA id 7FEEF1F4EA; Tue,  7 Jul 2009 20:48:39
+ +0000 (UTC)
+
+Paul Sponagl <paul@sponagl.de> wrote:
+> Hi Eric,
+>
+> unicorn does not close the connection on osx after sending the content.
+> (It acts as the client would send a Connection: Keep-Alive)
+> The connection will be aborted by nginx after about 60
+> secs and the content will be send out.
+>
+> Macintosh:~> telnet 127.0.0.1 3001
+> Trying 127.0.0.1...
+> Connected to localhost.
+> Escape character is '^]'.
+> GET / HTTP/1.1
+>
+> HTTP/1.1 200 OK
+> Date: Tue, 07 Jul 2009 08:11:17 GMT
+> Status: 200 OK
+> Connection: close
+> X-Runtime: 293
+> ETag: "2659d611050f70fc65c6c052687e5a13"
+> Content-Type: text/html; charset=utf-8
+> Cache-Control: private, max-age=0, must-revalidate
+> Content-Length: 24328
+> ...
+> the rest of the content
+
+Hi Paul,
+
+This is strange.  Can you tell that you're getting all 24328 bytes of
+the content?  And no exception is thrown to stderr, either?  Unicorn
+should've closed the socket even on an exception.  Which version of OSX
+and Ruby are you running?  Is there anything special/weird about the
+Rack response body you're sending?   Does Rack::Lint complain about
+anything?  Unicorn is fairly strict about Rack::Lint compatibility.
+
+Does the following patch help?
+
+diff --git a/lib/unicorn/http_response.rb b/lib/unicorn/http_response.rb
+index bfaa33d..acf4d04 100644
+--- a/lib/unicorn/http_response.rb
++++ b/lib/unicorn/http_response.rb
+@@ -60,6 +60,7 @@ module Unicorn
+                    "Connection: close\r\n" \
+                    "#{OUT.join(Z)}\r\n")
+       body.each { |chunk| socket.write(chunk) }
++      socket.flush
+       socket.close # flushes and uncorks the socket immediately
+       ensure
+         body.respond_to?(:close) and body.close rescue nil
+------------------------------------------------------------------------
+
+Or you can replace the "socket.close" with "exit!(0)" and really
+force it to close :)
+
+Thanks again for trying this!
+
+-- 
+Eric Wong
