@@ -1,0 +1,221 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups:
+ gmane.comp.lang.ruby.unicorn.general,gmane.comp.lang.ruby.mongrel.devel
+Subject: merging Unicorn HTTP parser back to Mongrel
+Date: Sat, 5 Sep 2009 14:50:45 -0700
+Message-ID: <20090905215045.GB28829@dcvr.yhbt.net>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: ger.gmane.org 1252187484 30332 80.91.229.12 (5 Sep 2009 21:51:24
+ GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Sat, 5 Sep 2009 21:51:24 +0000 (UTC)
+Cc: mongrel-unicorn@rubyforge.org
+To: mongrel-development@rubyforge.org
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Sat Sep 05 23:51:17
+ 2009
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:17
+ gmane.comp.lang.ruby.mongrel.devel:153
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/17>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.50) id 1Mk3AD-0001oG-9u for gclrug-mongrel-unicorn@m.gmane.org; Sat,
+ 05 Sep 2009 23:51:17 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id AE3E7167829F; Sat,  5 Sep 2009 17:51:16 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 9D6C71858121; Sat,  5 Sep 2009 17:50:46 -0400 (EDT)
+Received: from localhost (unknown [127.0.2.5]) by dcvr.yhbt.net (Postfix)
+ with ESMTP id C18441F793; Sat,  5 Sep 2009 21:50:45 +0000 (UTC)
+
+Hello,  (ok, this email got longer than expected, I now consider the
+most important parts the first and last paragraphs of the last
+footnote).
+
+The Unicorn HTTP parser is feature complete as far as I can tell and
+supports things the Mongrel one does not.  I would very much like to see
+it used in places that Unicorn isn't suited for[1].  In fact, a chunk of
+the new features are much better suited for a server with better slow
+client handling like Mongrel.
+
+The big roadblock to getting this back into Mongrel is the Java/JRuby
+version of the parser Mongrel uses.  Simply put, I don't do Java;
+somebody else will have to port it.  But I'll have to convince you
+that these features are worth going into Mongrel, too :)
+
+I could provide a standalone C parser that can be wrapped with FFI, but
+I'm not sure if the performance would be acceptable.  I'm fairly certain
+that a pure-Ruby version with Ragel-generated code would not provide
+acceptable performance anywhere; maybe a hand-coded one could, but I'm
+not particularly excited about doing that...
+
+The MRI-C parser should just work on Win32.
+
+Unlike the rest of Unicorn, the HTTP parser remains portable to non-UNIX
+platforms and thread-safe.  There are no system-calls made directly
+through it (only memory allocations through the Ruby C API).
+
+
+New features that aren't in Mongrel are:
+
+* HTTP/0.9 support - blame a network BOFH hell bent for hell on saving
+  bytes with a health-checker config for this :)
+
+  The HttpParser#headers?  method has been added to determine if headers
+  should be sent in the response (HTTP/0.9 didn't have response
+  headers).
+
+* "Transfer-Encoding: chunked" request decoding support
+  I've been told mobile devices[2] do uploads like this (since they
+  may lack the storage capacity to store large files).  This will be
+  useful to Mongrel since Mongrel can handle slow clients better
+  (mobile devices).
+
+  I also have a use case that goes like this:
+
+    tar zc $BIG_DIRECTORY | curl -T- http://unicorn/path/to/upload
+
+  This designed to be slurp-resistant so clients cannot control memory
+  usage of the server and DoS it even with huge chunk sizes.
+
+* Trailers support (with Transfer-Encoding: chunked).  I haven't
+  run across applications that use this yet (Amazon S3 maybe?) but one
+  use case that I can forsee is generating a Content-MD5 trailer with
+  the above "tar | curl" command.
+
+* Multiline continuation headers - Pound sends them, I don't care for
+  Pound but I figured I might as well do it just in case somebody else
+  starts doing it...
+
+* Absolute Request URI parsing - It was done with URI.parse
+  originally, I figured I might as well do it in Ragel since it's part
+  of rfc 2616.  I think client-side proxies use it so maybe one day
+  somebody can turn Mongrel or a derived server into a client-side
+  HTTP proxy...
+
+* Repeated headers handling - they're joined with commas now since Rack
+  doesn't accept arrays in HTTP_* entries .  I posted
+  a standlone patch for this in <20090810001022.GA17572@dcvr.yhbt.net>
+
+* HttpParser#keepalive? method - the parser can tell you if it's safe
+  to handle a keepalive request.  Not used with Unicorn at the moment.
+
+Chunk extensions is one thing that the parser currently just ignores,
+this is because I've yet to see any use of them anywhere and Rack
+does not mention them..
+
+Parser Limits:
+
+  Request body handling:
+
+    Maximum Content-Length is the maximum value of off_t.  I don't think
+    this should be a problem for anyone as Ruby defaults to
+    _FILE_OFFSET_BITS=64 on 32-bit arches.  Mongrel does not have this
+    limit in the parser, but since it buffers large uploads to a
+    Tempfile, the limit always existed anyways.
+
+    Maximum chunk size is also the maximum value of off_t, which is
+    usually a 64-bit long (since Ruby defaults to _FILE_OFFSET_BITS=64
+    on my 32-bit boxes).   I don't expect valid clients to send any
+    values close to this limit, but that's just what it is.
+
+  Headers:
+
+    Mostly the same as Mongrel, all headers must fit into the same
+    <=112K string object; which shouldn't be a problem for anything
+    capable of running Ruby.
+
+    Continuation lines can bypass the per-header size limit, but
+    everything still stays under 112K which is a pretty large limit.
+
+  Trailers:
+
+    These can fit into another <=112K string, space taken up during
+    header processing doesn't affect Trailer processing, so you could
+    end up with 224K of combined metadata.
+
+
+You can get a full changelog since I branched from fauna/mongrel via:
+
+  git log v0.0.0.. -- ext
+
+Finally, the new API is documented via RDoc here:
+
+  http://unicorn.bogomips.org/Unicorn/HttpParser.html
+
+  I don't consider the API set in stone, but I do consider the header
+  handling part a bit simpler/less error prone than the old one.
+
+Disclaimer:
+
+  Due to the large amounts of changes to the C/Ragel portions, another
+  security audit/pair-of-eyes would be nice.  All use of Unicorn so far
+  has been on LANs with trusted clients or with nginx in front.  While
+  I'm very comfortable with C and fairly comfortable with Ragel, I'm far
+  from infallible so close review from a second pair of eyes would be
+  greatly appreciated.
+
+Future:
+
+  I'm also planning on porting this to Rubinius, too. I haven't had a
+  chance to look at it yet but the Mongrel/C one has already been ported
+  so it shouldn't be too hard (I only know/can stomach a small amount of
+  C++, though I suspect I won't even need it ...)
+
+Footnotes:
+
+[1] - Comet/long-polling/reverse HTTP, and sites that rely heavily on
+      external services (including OpenID) are all badly suited for
+      Unicorn.
+
+[2] - As a side effect, Unicorn also uses a TeeInput class that allows
+      the request body to be read in real-time within the Rack
+      application (while "tee-ing" to a temporary file to provide
+      rewindability).  This also allows Mongrel Upload Progress to
+      be implemented in the future in a Rack::Lint-compliant manner.
+
+      The one weird thing about TeeInput is that:
+
+         env["rack.input"].read(NR_BYTES)
+
+      Is not guaranteed to return NR_BYTES, only NR_BYTES at most.  So
+      every #read can provide "last block" semantics.  Rack does not
+      enforce this behavior, so it should be fine. This should not be a
+      problem in practice since most read() and read()-like APIs provide
+      no such guarantee even if implied when reading from "fast" devices
+      like the filesystem.  CGI apps that get a socket as stdin also
+      got similar semantics as what apps under Unicorn get.
+
+      I imagine this feature to be hugely useful for slow mobile clients
+      that stream data slowly as it allows the server to start processing
+      data as it is being uploaded.
+
+-- 
+Eric Wong
