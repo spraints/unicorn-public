@@ -1,0 +1,119 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: Pidfiles and cwd?
+Date: Fri, 4 Sep 2009 21:28:06 -0700
+Message-ID: <20090905042806.GA9507@dcvr.yhbt.net>
+References: <8b73aaca0909042020w73fb03dfpf6c77c85c1c486ad@mail.gmail.com>
+ <8b73aaca0909042021v25d5f0eajd926250f71623042@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: ger.gmane.org 1252124900 17938 80.91.229.12 (5 Sep 2009 04:28:20
+ GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Sat, 5 Sep 2009 04:28:20 +0000 (UTC)
+Cc: mongrel-unicorn@rubyforge.org
+To: Chris Wanstrath <chris@ozmm.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Sat Sep 05 06:28:13
+ 2009
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <8b73aaca0909042021v25d5f0eajd926250f71623042@mail.gmail.com>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:15
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/15>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.50) id 1Mjmsm-0007jz-NC for gclrug-mongrel-unicorn@m.gmane.org; Sat,
+ 05 Sep 2009 06:28:12 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 0107218580E4; Sat,  5 Sep 2009 00:28:09 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 7EABF18580E4 for <mongrel-unicorn@rubyforge.org>;
+ Sat,  5 Sep 2009 00:28:07 -0400 (EDT)
+Received: from localhost (unknown [127.0.2.5]) by dcvr.yhbt.net (Postfix)
+ with ESMTP id A25881F585; Sat,  5 Sep 2009 04:28:06 +0000 (UTC)
+
+Chris Wanstrath <chris@ozmm.org> wrote:
+> Yikes. Let me try that again.
+> 
+> Hi,
+> 
+> Thanks for unicorn!
+
+Hi Chris, no problem!
+
+> Two questions:
+> 
+> A) Is there a reason `unicorn` allows you to specify the pidfile's
+> location but `unicorn_rails` does not?
+
+`unicorn` was designed to mimic `rackup` in terms of command line
+options and `unicorn_rails` was designed to mimic `script/server` in
+Rails.
+
+I really didn't know what I was doing with the command-line options for
+this, so I decided to steal from others :)
+
+For long-running servers, I'm not a fan of command-line options in
+general because they're easy to forget, so `unicorn` only supports it
+because `rackup` does it (so the embedded CLI options in config.ru can
+be shared).
+
+For `unicorn_rails`, --daemonize already sets a default PID path in
+RAILS_ROOT/tmp/pids/unicorn.pid whereas `script/server` chooses
+RAILS_ROOT/tmp/pids/server.pid.  Since Rails values "convention over
+configuration",  I figured I might as well hard code it...
+
+Additionally, the "-P" parameter used by unicorn_rails and script/server
+is used to set RAILS_RELATIVE_URL_ROOT so it conflicts with the short
+option used by rackup/unicorn.
+
+> B) Is there a reason `unicorn_rails` must start in the app root and
+> doesn't allow it as a config option?
+
+Since the config file is just Ruby, you can just Dir.chdir inside it.
+And since the chdir is done when the config file is evaluated, the
+chdir can be done across restarts/reloads (you can point it to a
+symlinked directory) to pick up new code/releases.
+
+If you do that, I would initially start Unicorn in "/" or some other
+directory that won't get deleted so you'll be safe for upgrades.
+
+If you managed to forget that, you can set the following in your
+Unicorn config:
+
+  Unicorn::HttpServer::START_CTX[:cwd] = "/"
+
+And then HUP the process before doing the USR2+QUIT to reexec.
+Subsequent Unicorns will always start in "/" and then you can
+Dir.chdir to wherever you run your app.
+
+Hopefully that makes sense, one thing I've been trying to avoid with the
+configuration is having too many ways to do the same thing.
+
+-- 
+Eric Wong
