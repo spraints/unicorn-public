@@ -1,0 +1,99 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.7 required=5.0 tests=MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Rainbows...
+Date: Wed, 16 Sep 2009 14:11:50 -0700
+Message-ID: <20090916211150.GA30500@dcvr.yhbt.net>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: ger.gmane.org 1253135525 28912 80.91.229.12 (16 Sep 2009 21:12:05
+ GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Wed, 16 Sep 2009 21:12:05 +0000 (UTC)
+To: mongrel-unicorn@rubyforge.org
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Wed Sep 16 23:11:58
+ 2009
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:22
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/22>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.50) id 1Mo1n9-0000rY-7r for gclrug-mongrel-unicorn@m.gmane.org; Wed,
+ 16 Sep 2009 23:11:55 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 2C17316782AA; Wed, 16 Sep 2009 17:11:53 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 9650B185824C for <mongrel-unicorn@rubyforge.org>;
+ Wed, 16 Sep 2009 17:11:51 -0400 (EDT)
+Received: from localhost (unknown [12.186.229.34]) (using TLSv1 with cipher
+ DHE-RSA-AES128-SHA (128/128 bits)) (No client certificate requested) by
+ dcvr.yhbt.net (Postfix) with ESMTPSA id C3D6F1F793; Wed, 16 Sep 2009 21:11:50
+ +0000 (UTC)
+
+Some of you may have noticed the "rainbows" branch of the git
+repository.  I may be changing that however and making a small group of
+gems (or even one gem) that can get loaded at runtime and monkey patch
+parts of Unicorn.
+
+Rainbows will primarily be to support things Unicorn sucks at:
+
+  1. apps that rely on out-of-datacenter network connections
+     (CAPTCHA services, OpenID, real-time feed aggregation, etc...)
+
+  2. Comet / long-polling / reverse HTTP
+
+Since the majority of Unicorn use cases (or even requests within an
+application) do not need these things, I'm hesitant to make Unicorn
+itself more complicated and more difficult to support for the majority
+of apps.  Instead, I'm leaning towards putting that burden on Rainbows
+for the applications that absolutely need it.
+
+For 1), the apps I've seen that rely on out-of-datacenter network
+connections don't use them for the large majority (>= 95%) of HTTP
+requests, so the overall application with a few poorly-performing
+application endpoints were fine and predictable even with basic Unicorn.
+
+Of course, some folks I know want to make a proxy with Unicorn and
+thats why I starting working on it.
+
+As far as concurrency models go, forked workers sharing listener sockets
+will continue to be used to better exploit CPU/memory concurrency[1].
+However, each worker process will also support Threads or Actors so
+there'll be a more flexible M:N mapping of processes:clients instead of
+the 1:1 mapping Unicorn uses.
+
+Rev and EventMachine are being considered, too, but mapping those
+programming models to TeeInput will be more work...
+
+[1] Even on Ruby implementations without a big global lock for threads,
+    forked workers that don't have to share large amounts of memory
+    on big SMP boxes, so they'll experience less memory/cache contention
+    and should experience better performance as a result.
+
+-- 
+Eric Wong
