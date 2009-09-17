@@ -1,0 +1,104 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.7 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: [PATCH] SIGHUP no longer drops lone, default listener
+Date: Wed, 16 Sep 2009 23:04:37 -0700
+Message-ID: <20090917060437.GB22961@dcvr.yhbt.net>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: ger.gmane.org 1253167490 4707 80.91.229.12 (17 Sep 2009 06:04:50
+ GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Thu, 17 Sep 2009 06:04:50 +0000 (UTC)
+To: mongrel-unicorn@rubyforge.org
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Thu Sep 17 08:04:43
+ 2009
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:23
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/23>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.50) id 1MoA6k-0008Ox-2x for gclrug-mongrel-unicorn@m.gmane.org; Thu,
+ 17 Sep 2009 08:04:42 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 614A4185824C; Thu, 17 Sep 2009 02:04:41 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id A780C18581EF for <mongrel-unicorn@rubyforge.org>;
+ Thu, 17 Sep 2009 02:04:38 -0400 (EDT)
+Received: from localhost (user-118bg0q.cable.mindspring.com [66.133.192.26])
+ (using TLSv1 with cipher DHE-RSA-AES128-SHA (128/128 bits)) (No client
+ certificate requested) by dcvr.yhbt.net (Postfix) with ESMTPSA id A5B091F7A1;
+ Thu, 17 Sep 2009 06:04:37 +0000 (UTC)
+
+The following patch (or something functionally equivalent) along with
+some sort of test case will be in the next release of Unicorn (due this
+week along with more documentation updates).
+
+Until then, if you're not explicitly specifying a listener anywhere,
+specify one, even if it's the default (preferably in the config file) if
+you plan on using SIGHUP to reload configs.
+
+Just add the following line to your config file:
+
+	listen 8080
+
+>From beefdb590c4cae9671bd96bf94962634ecbc6161 Mon Sep 17 00:00:00 2001
+From: Eric Wong <normalperson@yhbt.net>
+Date: Wed, 16 Sep 2009 22:31:20 -0700
+Subject: [PATCH] SIGHUP no longer drops lone, default listener
+
+When SIGHUP reloads the config, we didn't account for the case
+where the listen socket was completely unspecified.  Thus the
+default listener (TCP port 8080), did not get preserved and
+reinjected into the config properly.
+
+Note that relying on the default listen or specifying listeners
+on the command-line means it's practically impossible to unbind
+listeners with a configuration file reload.  We also need to
+preserve the (unspecified) default listener across upgrades that
+later result in SIGHUP, too; so we inject the default listener
+into the command-line for upgrades.
+---
+ lib/unicorn.rb |    2 ++
+ 1 files changed, 2 insertions(+), 0 deletions(-)
+
+diff --git a/lib/unicorn.rb b/lib/unicorn.rb
+index 4cc5c2d..0e46261 100644
+--- a/lib/unicorn.rb
++++ b/lib/unicorn.rb
+@@ -110,6 +110,8 @@ module Unicorn
+       config_listeners -= listener_names
+       if config_listeners.empty? && LISTENERS.empty?
+         config_listeners << Unicorn::Const::DEFAULT_LISTEN
++        init_listeners << Unicorn::Const::DEFAULT_LISTEN
++        START_CTX[:argv] << "-l#{Unicorn::Const::DEFAULT_LISTEN}"
+       end
+       config_listeners.each { |addr| listen(addr) }
+       raise ArgumentError, "no listeners" if LISTENERS.empty?
+-- 
+Eric Wong
