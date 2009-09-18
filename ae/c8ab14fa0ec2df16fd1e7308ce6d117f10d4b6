@@ -1,0 +1,154 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.7 required=5.0 tests=MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: [ANN] unicorn 0.92.0
+Date: Fri, 18 Sep 2009 15:16:00 -0700
+Message-ID: <20090918221600.GA9801@dcvr.yhbt.net>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: ger.gmane.org 1253312175 2408 80.91.229.12 (18 Sep 2009 22:16:15
+ GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Fri, 18 Sep 2009 22:16:15 +0000 (UTC)
+To: mongrel-unicorn@rubyforge.org
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Sat Sep 19 00:16:08
+ 2009
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:26
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/26>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.50) id 1MolkK-0003L3-VN for gclrug-mongrel-unicorn@m.gmane.org; Sat,
+ 19 Sep 2009 00:16:05 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 51EE8185826D; Fri, 18 Sep 2009 18:16:04 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 6234D185826C for <mongrel-unicorn@rubyforge.org>;
+ Fri, 18 Sep 2009 18:16:02 -0400 (EDT)
+Received: from localhost (unknown [12.186.229.34]) (using TLSv1 with cipher
+ DHE-RSA-AES128-SHA (128/128 bits)) (No client certificate requested) by
+ dcvr.yhbt.net (Postfix) with ESMTPSA id 45F281F449; Fri, 18 Sep 2009 22:16:01
+ +0000 (UTC)
+
+Unicorn is a Rack HTTP server for Unix and fast clients
+
+Small fixes and documentation are the focus of this release.
+
+James Golick reported and helped me track down a bug that caused
+SIGHUP to drop the default listener (0.0.0.0:8080) if and only
+if listeners were completely unspecified in both the
+command-line and Unicorn config file.  The Unicorn config file
+remains the recommended option for specifying listeners as it
+allows fine-tuning of the :backlog, :rcvbuf, :sndbuf,
+:tcp_nopush, and :tcp_nodelay options.
+
+There are some documentation (and resulting website)
+improvements.  setup.rb users will notice the new section 1
+manpages for `unicorn` and `unicorn_rails`, Rubygems users
+will have to install manpages manually or use the website.
+
+  Edit: That's not entirely true, I screwed up the package but
+  you can get them from http://unicorn.bogomips.org/unicorn.1
+  and http://unicorn.bogomips.org/unicorn_rails.1
+
+The HTTP parser got a 3rd-party code review which resulted in
+some cleanups and one insignificant bugfix as a result.
+
+Additionally, the HTTP parser compiles, runs and passes unit
+tests under Rubinius.  The pure-Ruby parts still do not work yet
+and we currently lack the resources/interest to pursue this
+further but help will be gladly accepted.
+
+The website now has an Atom feed for new release announcements.
+Those unfamiliar with Atom or HTTP may finger unicorn@bogomips.org
+for the latest announcements.
+
+Eric Wong (53):
+      README: update with current version
+      http: cleanup and avoid potential signedness warning
+      http: clarify the setting of the actual header in the hash
+      http: switch to macros for bitflag handling
+      http: refactor keepalive tracking to functions
+      http: use explicit elses for readability
+      http: remove needless goto
+      http: extra assertion when advancing p manually
+      http: verbose assertions
+      http: NIL_P(var) instead of var == Qnil
+      http: rb_gc_mark already ignores immediates
+      http: ignore Host: continuation lines with absolute URIs
+      doc/SIGNALS: fix the no-longer-true bit about socket options
+      "encoding: binary" comments for all sources (1.9)
+      http_response: don't "rescue nil" for body.close
+      CONTRIBUTORS: fix capitalization for why
+      http: support Rubies without the OBJ_FROZEN macro
+      http: define OFFT2NUM macro on Rubies without it
+      http: no-op rb_str_modify() for Rubies without it
+      http: compile with -fPIC
+      http: use rb_str_{update,flush} if available
+      http: create a new string buffer on empty values
+      Update documentation for Rubinius support status
+      http: cleanup assertion for memoized header strings
+      http: add #endif comment labels where appropriate
+      Add .mailmap file for "git shortlog" and other tools
+      Update Manifest with mailmap
+      Fix comment about speculative accept()
+      SIGNALS: use "Unicorn" when referring to the web server
+      Add new Documentation section for manpages
+      test_exec: add extra tests for HUP and preload_app
+      socket_helper: (FreeBSD) don't freeze the accept filter constant
+      Avoid freezing objects that don't benefit from it
+      SIGHUP no longer drops lone, default listener
+      doc: generate ChangeLog and NEWS file for RDoc
+      Remove Echoe and roll our own packaging/release...
+      unicorn_rails: close parentheses in help message
+      launchers: deprecate ambiguous -P/--p* switches
+      man1/unicorn: avoid unnecessary emphasis
+      Add unicorn_rails(1) manpage
+      Documentation: don't force --rsyncable flag with gzip(1)
+      Simplify and standardize manpages build/install
+      GNUmakefile: package .tgz includes all generated files
+      doc: begin integration of HTML manpages into RDoc
+      Update TODO
+      html: add Atom feeds
+      doc: latest news is available through finger
+      NEWS.atom: file timestamp matches latest entry
+      pandoc needs the standalone switch for manpages
+      man1/unicorn: split out RACK ENVIRONMENT section
+      man1/unicorn_rails: fix unescaped underscore
+      NEWS.atom.xml only lists the first 10 entries
+      unicorn 0.92.0
+
+* site: http://unicorn.bogomips.org/
+* git: git://git.bogomips.org/unicorn.git
+* cgit: http://git.bogomips.org/cgit/unicorn.git/
+* list: mongrel-unicorn@rubyforge.org
+* nntp: nntp://news.gmane.org/gmane.comp.lang.ruby.unicorn.general
+* finger: unicorn@bogomips.org
+
+-- 
+Eric Wong
