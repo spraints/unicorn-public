@@ -1,0 +1,84 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.7 required=5.0 tests=MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Tom Preston-Werner <tom@github.com>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: 502s with Nginx, Unicorn, and Unix Domain Sockets
+Date: Thu, 17 Sep 2009 21:54:48 -0700
+Message-ID: <b97024a40909172154n1fff6a71sadd9a62e6cd6fb36@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: ger.gmane.org 1253249706 6403 80.91.229.12 (18 Sep 2009 04:55:06
+ GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Fri, 18 Sep 2009 04:55:06 +0000 (UTC)
+To: mongrel-unicorn@rubyforge.org
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Fri Sep 18 06:54:58
+ 2009
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:24
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/24>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.50) id 1MoVUn-0004vO-3U for gclrug-mongrel-unicorn@m.gmane.org; Fri,
+ 18 Sep 2009 06:54:57 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 87F0E16782A8; Fri, 18 Sep 2009 00:54:55 -0400 (EDT)
+Received: from mail-vw0-f195.google.com (mail-vw0-f195.google.com
+ [209.85.212.195]) by rubyforge.org (Postfix) with ESMTP id 87B6C16782A8 for
+ <mongrel-unicorn@rubyforge.org>; Fri, 18 Sep 2009 00:54:49 -0400 (EDT)
+Received: by vws33 with SMTP id 33so738277vws.33 for
+ <mongrel-unicorn@rubyforge.org>; Thu, 17 Sep 2009 21:54:48 -0700 (PDT)
+Received: by 10.220.108.164 with SMTP id f36mr601117vcp.25.1253249688714;
+ Thu,  17 Sep 2009 21:54:48 -0700 (PDT)
+
+I'm doing some benchmarking on our new Rackspace frontend machines (8
+core, 16GB) and running into some problems with the Unix domain socket
+setup. At high request rates (on simple pages) I'm getting a lot of
+HTTP 502 errors from Nginx. Nothing shows up in the Unicorn error log,
+but Nginx has the following in its error log:
+
+2009/09/17 19:36:52 [error] 28277#0: *524824 connect() to
+unix:/data/github/current/tmp/sockets/unicorn.sock failed (11:
+Resource temporarily unavailable) while connecting to upstream,
+client: 172.17.1.5, server: github.com, request: "GET /site/junk
+HTTP/1.1", upstream:
+"http://unix:/data/github/current/tmp/sockets/unic
+orn.sock:/site/junk", host: "github.com"
+
+This problem does not exist with the nginx -> haproxy -> unicorn
+setup. Thinking this might be a file descriptor problem, I upped the
+fd limit to 32768 with no luck. Then I tried upping net.core.somaxconn
+to 262144 which also had no effect. I thought I'd ask about the
+problem here to see if anyone knows a simple solution that I'm
+missing. Perhaps there is an Nginx configuration directive I need?
+Thanks. Unicorn rocks!
+
+Tom
+
+--
+Tom Preston-Werner
+GitHub Cofounder
+http://tom.preston-werner.com
+github.com/mojombo
