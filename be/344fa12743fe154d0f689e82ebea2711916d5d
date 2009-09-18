@@ -1,0 +1,131 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.7 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: 502s with Nginx, Unicorn, and Unix Domain Sockets
+Date: Thu, 17 Sep 2009 23:48:31 -0700
+Message-ID: <20090918064831.GA5285@dcvr.yhbt.net>
+References: <b97024a40909172154n1fff6a71sadd9a62e6cd6fb36@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: ger.gmane.org 1253256526 21172 80.91.229.12 (18 Sep 2009 06:48:46
+ GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Fri, 18 Sep 2009 06:48:46 +0000 (UTC)
+Cc: mongrel-unicorn@rubyforge.org
+To: Tom Preston-Werner <tom@github.com>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Fri Sep 18 08:48:39
+ 2009
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <b97024a40909172154n1fff6a71sadd9a62e6cd6fb36@mail.gmail.com>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:25
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/25>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.50) id 1MoXGp-0003C6-E4 for gclrug-mongrel-unicorn@m.gmane.org; Fri,
+ 18 Sep 2009 08:48:39 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 9F07D16782AF; Fri, 18 Sep 2009 02:48:38 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 35B7D1779935 for <mongrel-unicorn@rubyforge.org>;
+ Fri, 18 Sep 2009 02:48:33 -0400 (EDT)
+Received: from localhost (user-118bg0q.cable.mindspring.com [66.133.192.26])
+ (using TLSv1 with cipher DHE-RSA-AES128-SHA (128/128 bits)) (No client
+ certificate requested) by dcvr.yhbt.net (Postfix) with ESMTPSA id E66461F605;
+ Fri, 18 Sep 2009 06:48:32 +0000 (UTC)
+
+Tom Preston-Werner <tom@github.com> wrote:
+> I'm doing some benchmarking on our new Rackspace frontend machines (8
+> core, 16GB) and running into some problems with the Unix domain socket
+> setup. At high request rates (on simple pages) I'm getting a lot of
+> HTTP 502 errors from Nginx. Nothing shows up in the Unicorn error log,
+> but Nginx has the following in its error log:
+
+Hi Tom,
+
+At what request rates were you running into this?  Also how large are
+your responses?  It could be the listen() backlog overflowing if Unicorn
+isn't logging anything.  Anything in the system/kernel logs (doubtful,
+actually)?
+
+Does increasing the listen :backlog parameter work?  Default is 1024
+(which is pretty high already), maybe try a higher number along with the
+net.core.netdev_max_backlog sysctl.
+
+Is there a large discrepancy between the times your benchmark client
+logs, the request time nginx logs, and whatever Rails/Rack logs for
+request times for any particular request?
+
+If the Rails/Rack logging times all seem consistently low but your
+nginx/benchmark has some weird spikes/outliers, then some are stuck in
+the kernel listen backlog.
+
+How much of the 8 cores are being used on those boxes when this
+starts happening?
+
+> 2009/09/17 19:36:52 [error] 28277#0: *524824 connect() to
+> unix:/data/github/current/tmp/sockets/unicorn.sock failed (11:
+> Resource temporarily unavailable) while connecting to upstream,
+> client: 172.17.1.5, server: github.com, request: "GET /site/junk
+> HTTP/1.1", upstream:
+> "http://unix:/data/github/current/tmp/sockets/unic
+> orn.sock:/site/junk", host: "github.com"
+
+Raising proxy_connect_timeout in nginx may be a work around, what is it
+set to now?  On the other hand, keeping it (and :backlog in Unicorn) low
+would give better indications for failover to other hosts.
+
+> This problem does not exist with the nginx -> haproxy -> unicorn
+> setup. Thinking this might be a file descriptor problem, I upped the
+> fd limit to 32768 with no luck. Then I tried upping net.core.somaxconn
+> to 262144 which also had no effect. I thought I'd ask about the
+> problem here to see if anyone knows a simple solution that I'm
+> missing. Perhaps there is an Nginx configuration directive I need?
+> Thanks. Unicorn rocks!
+
+Definitely not a file descriptor problem (at least not inside Unicorn).
+
+Also, I'm not sure there's a reason to keep haproxy between nginx
+and Unicorn...  Maybe haproxy in front of the entire cluster of servers.
+
+Are you already hitting higher request rates (and more consistent
+times logged by client/nginx) with:
+
+  nginx -> unicorn/unix
+
+vs
+
+  nginx -> unicorn/tcp(localhost)
+
+?
+
+Under extremely high loads, 502s may actually be wanted since it allows
+failover to a less loaded box if there's uneven balancing; but we really
+need to have numbers on the request rates.
+
+-- 
+Eric Wong
