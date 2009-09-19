@@ -1,0 +1,105 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.7 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: 502s with Nginx, Unicorn, and Unix Domain Sockets
+Date: Sat, 19 Sep 2009 15:08:56 -0700
+Message-ID: <20090919220850.GA6650@dcvr.yhbt.net>
+References: <b97024a40909172154n1fff6a71sadd9a62e6cd6fb36@mail.gmail.com>
+ <20090918064831.GA5285@dcvr.yhbt.net>
+ <b97024a40909191323wa51d0b1g8ee84bd837298ee8@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: ger.gmane.org 1253398152 27089 80.91.229.12 (19 Sep 2009 22:09:12
+ GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Sat, 19 Sep 2009 22:09:12 +0000 (UTC)
+Cc: mongrel-unicorn@rubyforge.org
+To: Tom Preston-Werner <tom@github.com>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Sun Sep 20 00:09:05
+ 2009
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <b97024a40909191323wa51d0b1g8ee84bd837298ee8@mail.gmail.com>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:29
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/29>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.50) id 1Mp873-0002Np-8n for gclrug-mongrel-unicorn@m.gmane.org; Sun,
+ 20 Sep 2009 00:09:01 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 8322D18581EF; Sat, 19 Sep 2009 18:09:00 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 1A9BF18581EF for <mongrel-unicorn@rubyforge.org>;
+ Sat, 19 Sep 2009 18:08:58 -0400 (EDT)
+Received: from localhost (user-118bg0q.cable.mindspring.com [66.133.192.26])
+ (using TLSv1 with cipher DHE-RSA-AES128-SHA (128/128 bits)) (No client
+ certificate requested) by dcvr.yhbt.net (Postfix) with ESMTPSA id 1A53B1F78F;
+ Sat, 19 Sep 2009 22:08:58 +0000 (UTC)
+
+Tom Preston-Werner <tom@github.com> wrote:
+> On Thu, Sep 17, 2009 at 11:48 PM, Eric Wong <normalperson@yhbt.net> wrote:
+> > At what request rates were you running into this? ??Also how large are
+> > your responses? ??It could be the listen() backlog overflowing if Unicorn
+> > isn't logging anything.
+> 
+> I was hitting the 502s at about 1300 req/sec and 80% CPU utilization.
+> Response size was only a few bytes + headers. I was just testing a
+> very simple string response from our Rails app to make sure our setup
+> could tolerate very high request rates.
+
+Yup, as I suspected: your UNIX socket setup was maxing out right around
+where your TCP setup was maxing out.  TCP is just better at
+handling/recovering from errors.
+
+> > Does increasing the listen :backlog parameter work? ??Default is 1024
+> > (which is pretty high already), maybe try a higher number along with the
+> > net.core.netdev_max_backlog sysctl.
+> 
+> This was the first thing I tried after getting your response, and it
+> seems that upping the :backlog to 2048 solves the 502 problem! I'm now
+> able to get 1500 req/sec out of Unicorn/UNIX (as opposed to 1350
+> req/sec with the TCP/HAProxy setup). I'm quite satisfied with this
+> result, and I think this is how we'll end up deploying the app.
+
+Good to know it worked!
+
+However, I do hesitate to recommend a large listen() backlog for
+production.  It can impede with monitoring/failover/load-balancing in
+multi-server setups even if it looks good on benchmarks.
+
+I'll make a separate call-for-testing mailing list related to
+this subject in a bit...
+
+> Thanks for your help, and I'll try to keep you updated on how our
+> installation performs and if I see any strange behavior under normal
+> traffic.
+
+No problem, thanks for the feedback!  It's great to know people
+actually use it.
+
+-- 
+Eric Wong
