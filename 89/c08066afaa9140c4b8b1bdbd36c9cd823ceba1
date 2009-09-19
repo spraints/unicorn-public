@@ -1,0 +1,164 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.7 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: [CFT] multi server failover setup
+Date: Sat, 19 Sep 2009 16:23:45 -0700
+Message-ID: <20090919232345.GA14498@dcvr.yhbt.net>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: ger.gmane.org 1253402637 3747 80.91.229.12 (19 Sep 2009 23:23:57
+ GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Sat, 19 Sep 2009 23:23:57 +0000 (UTC)
+To: mongrel-unicorn@rubyforge.org
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Sun Sep 20 01:23:50
+ 2009
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:31
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/31>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.50) id 1Mp9HS-0000Qv-Gb for gclrug-mongrel-unicorn@m.gmane.org; Sun,
+ 20 Sep 2009 01:23:50 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id EA24C18581F3; Sat, 19 Sep 2009 19:23:49 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 9085A18581F3 for <mongrel-unicorn@rubyforge.org>;
+ Sat, 19 Sep 2009 19:23:47 -0400 (EDT)
+Received: from localhost (user-118bg0q.cable.mindspring.com [66.133.192.26])
+ (using TLSv1 with cipher DHE-RSA-AES128-SHA (128/128 bits)) (No client
+ certificate requested) by dcvr.yhbt.net (Postfix) with ESMTPSA id AC2F71F78F;
+ Sat, 19 Sep 2009 23:23:46 +0000 (UTC)
+
+I've been meaning to test this setup somewhere for a while, but never
+got the right app/(real) traffic/hardware to do it with.  So maybe
+somebody can try it out and let us know if this works...
+
+It's for applications running the same code/data on a cluster of
+machines, so this doesn't apply to the majority of low-traffic sites
+out there.
+
+The goal is to avoid having to run a dedicated load
+balancer/proxy/virtual IP in front of the application servers
+by using round-robin DNS for the general load-balancing case.
+
+The immediate downside to this approach is that if one host goes
+completely dead (or just the nginx instance), your clients will
+have the burden of doing failover.  I know curl will failover if
+DNS resolves multiple addresses but I'm not sure about other
+HTTP clients...
+
+This setup requires that nginx + unicorn run on all application
+boxes.
+
+The request flow for a 3 machine cluster would look like this:
+
+             /--> host1(nginx --> unicorn)
+            /
+           /
+    client ----> host2(nginx --> unicorn)
+           \
+            \
+             \--> host3(nginx --> unicorn)
+
+
+Now in the unicorn configs:
+
+    # We configure unicorn to listen on both a UNIX socket and TCP:
+
+    # First the UNIX socket socket
+    listen "/tmp/sock", :backlog => 5 # fails quickly if overloaded
+
+    # use a internal IP here since Unicorn should not talk to the
+    # public...
+    listen "#{internal_ip}:8080", :backlog => 1024 # fail slowly
+
+    # the exact numbers for the :backlog values are flexible
+    # the idea here is just to have a very low :backlog for the
+    # UNIX domain socket and big one as a fallback for the
+    # TCP socket
+
+
+And the nginx configs:
+
+    upstream unicorn_failover {
+      # primary connection, "fail_timeout=0" is to ensure that
+      # we always *try* to use the UNIX socket on every request
+      # that comes in:
+      server unix:/tmp/sock fail_timeout=0;
+
+      # failover connections, "backup" ensures these will not
+      # be used unless connections to unix:/tmp/sock are failing
+      # it may be advisable to reorder these on a per-host basis
+      # so "host1" does not connect to "host1_private" as its
+      # first choice...
+      server host1_private:8080 fail_timeout=0 backup;
+      server host2_private:8080 fail_timeout=0 backup;
+      server host3_private:8080 fail_timeout=0 backup;
+    }
+
+
+The idea is to have the majority of requests will use the UNIX
+socket which is a bit faster than the TCP one.  However, if
+_some_ of your machines start getting overloaded, nginx can
+failover to using TCP, likely on a different host which may be
+less loaded.
+
+So under heavy load, you may end up with requests flowing like
+this:
+
+                              /------>-----\
+                             /              \
+             /--> host1(nginx --> unicorn)<--+-<-\
+            /                \___/           |   |
+           /                 /   \           |   |
+    client ----> host2(nginx --> unicorn)    V   ^
+           \                 \___/           |   |
+            \                /   \           |   |
+             \--> host3(nginx --> unicorn)<--/   |
+                             \                   |
+                              `------>----------'
+
+All the extra lines from this diagram are the "backup" flows.
+
+This should help address the problem of certain (rare) actions
+being extremely slow while the majority of the actions still run
+quickly.  It would help smooth out pathological cases where all
+the slow actions somehow end up clustering on a small subset of
+machines in the cluster while the rest of the machines are still
+in the comfort zone.
+
+This setup will not help under extreme load when the entire
+cluster is at capacity, only the case where an unbalanced subset
+of the cluster is maxed out.
+
+Let me know if you have any questions/comments and especially
+any results if you're brave enough to try this :)
+
+-- 
+Eric Wong
