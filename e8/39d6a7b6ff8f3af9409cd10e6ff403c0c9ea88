@@ -1,0 +1,121 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.7 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: GitHub on Unicorn
+Date: Sat, 19 Sep 2009 17:00:02 -0700
+Message-ID: <20090920000002.GB6650@dcvr.yhbt.net>
+References: <8b73aaca0909191607r63fd3987w552728c799fb0f0a@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: ger.gmane.org 1253404822 8139 80.91.229.12 (20 Sep 2009 00:00:22
+ GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Sun, 20 Sep 2009 00:00:22 +0000 (UTC)
+Cc: mongrel-unicorn@rubyforge.org
+To: Chris Wanstrath <chris@ozmm.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Sun Sep 20 02:00:15
+ 2009
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <8b73aaca0909191607r63fd3987w552728c799fb0f0a@mail.gmail.com>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:32
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/32>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.50) id 1Mp9qh-0007eb-C7 for gclrug-mongrel-unicorn@m.gmane.org; Sun,
+ 20 Sep 2009 02:00:15 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 3A1A51858202; Sat, 19 Sep 2009 20:00:11 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 27F9F1858205 for <mongrel-unicorn@rubyforge.org>;
+ Sat, 19 Sep 2009 20:00:05 -0400 (EDT)
+Received: from localhost (user-118bg0q.cable.mindspring.com [66.133.192.26])
+ (using TLSv1 with cipher DHE-RSA-AES128-SHA (128/128 bits)) (No client
+ certificate requested) by dcvr.yhbt.net (Postfix) with ESMTPSA id 7CFD01F92A;
+ Sun, 20 Sep 2009 00:00:03 +0000 (UTC)
+
+Chris Wanstrath <chris@ozmm.org> wrote:
+> Just wanted to say that GitHub has been running on Unicorn for about
+> two weeks now. In that time it's successfully served millions of pages
+> and has survived two separate DDoS attacks.
+
+Wow, this is wonderful news!
+
+> Here's the config file we currently use (complete with a fun hack to
+> gracefully kill the old master when a new worker pool is ready):
+> 
+> http://gist.github.com/189623
+
+Great use of the before/after_fork hooks
+
+One possible issue is a race condition in the before_fork hook,
+so I'd put a rescue to protect the File.read in the before_fork:
+
+old master                    new master
+-----------------------------------------------------------------------
+                              before_fork for worker=0
+                              File.exist?(old_pid) => true
+                              Process.kill :QUIT, File.read(old_pid).to_i
+
+                              before_fork for worker=1
+                              File.exist?(old_pid) => true
+processes :QUIT
+unlinks old_pid
+                              # the File.read will raise Errno::ENOENT:
+                              Process.kill :QUIT, File.read(old_pid).to_i
+
+> (Tom's thread with the `backlog` fix concerns our new servers, which
+> aren't yet in production.)
+> 
+> I plan to do a writeup on our transition from mongrel_cluster to
+> Unicorn in the near future, in case others are interested. I'll post
+> the link here when it's available.
+
+Looking forward to it!
+
+> Also: I'm keeping a mirror of the project at
+> http://github.com/defunkt/unicorn for any other GH users who want to
+> watch updates in their generalized feed. I update it semi-regularly.
+
+Cool, more exposure's always good.
+
+Small nit: "Eric Wong's Unicorn" doesn't sound quite right...
+While I am the benevolent dictator for now, I do welcome contributions.
+
+I could not have have built it without standing on the shoulders of
+Mongrel and the existence of Rack and nginx.
+
+Personally, I try to keep a low public profile and it's always been an
+weird balancing act trying to get people to use my work at the same
+time...
+
+> Long live fork(2)! And thanks again for the project.
+
+:)
+
+-- 
+Eric Wong
