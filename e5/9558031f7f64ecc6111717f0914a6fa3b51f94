@@ -1,0 +1,133 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.7 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: draft release notes (so far) for upcoming 0.93.0
+Date: Thu, 1 Oct 2009 01:13:58 -0700
+Message-ID: <20091001081358.GA13562@dcvr.yhbt.net>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: ger.gmane.org 1254384852 3533 80.91.229.12 (1 Oct 2009 08:14:12 GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Thu, 1 Oct 2009 08:14:12 +0000 (UTC)
+To: mongrel-unicorn@rubyforge.org
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Thu Oct 01 10:14:05
+ 2009
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:34
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/34>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.50) id 1MtGnc-00079D-TV for gclrug-mongrel-unicorn@m.gmane.org; Thu,
+ 01 Oct 2009 10:14:05 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 51EB11858203; Thu,  1 Oct 2009 04:14:04 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 3F5531858258 for <mongrel-unicorn@rubyforge.org>;
+ Thu,  1 Oct 2009 04:14:02 -0400 (EDT)
+Received: from localhost (user-118bg0q.cable.mindspring.com [66.133.192.26])
+ (using TLSv1 with cipher DHE-RSA-AES128-SHA (128/128 bits)) (No client
+ certificate requested) by dcvr.yhbt.net (Postfix) with ESMTPSA id 4C6B61F4E5;
+ Thu,  1 Oct 2009 08:13:59 +0000 (UTC)
+
+The one minor bugfix is only for users who set RAILS_RELATIVE_URL_ROOT
+in a config file.  Users of the "--path" switch or those who set the
+environment variable in the shell were unaffected by this bug.  Note
+that we still don't have relative URL root support for Rails < 2.3, and
+are unlikely to bother with it unless there is visible demand for it.  I
+didn't even know people used/cared for relative URL roots before today
+(it was a Rails 2.3.4 user).
+
+New features (so far) includes support for :tries and :delay when
+specifying a "listen" in an after_fork hook.  This was inspired by Chris
+Wanstrath's example of binding per-worker listen sockets in a loop while
+migrating (or upgrading) Unicorn.  Setting a negative value for :tries
+means we'll retry the listen indefinitely until the socket becomes
+available.
+
+So you can do something like this in an after_fork hook:
+
+    after_fork do |server,worker|
+      addr = "127.0.0.1:#{9293 + worker.nr}"
+      server.listen(addr, :tries => -1, :delay => 5)
+    end
+
+There's also the usual round of added documentation, packaging fixes,
+code cleanups and minor performance improvements that are viewable
+in the git log....
+
+Shortlog since v0.92.0 (so far) below:
+
+Eric Wong (45):
+      build: hardcode the canonical git URL
+      build: manifest dropped manpages
+      build: smaller ChangeLog
+      doc/LATEST: remove trailing newline
+      http: don't force -fPIC if it can't be used
+      .gitignore on *.rbc files Rubinius generates
+      README/gemspec: a better description, hopefully
+      GNUmakefile: add missing .manifest dep on test installs
+      Add HACKING document
+      configurator: fix user switch example in RDoc
+      local.mk.sample: time and perms enforcement
+      unicorn_rails: show "RAILS_ENV" in help message
+      gemspec: compatibility with older Rubygems
+      Split out KNOWN_ISSUES document
+      KNOWN_ISSUES: add notes about the "isolate" gem
+      gemspec: fix test_files regexp match
+      gemspec: remove tests that fork from test_files
+      test_signals: ensure we can parse pids in response
+      GNUmakefile: cleanup test/manifest generation
+      util: remove APPEND_FLAGS constant
+      http_request: simplify and remove handle_body method
+      http_response: simplify and remove const dependencies
+      local.mk.sample: fix .js times
+      TUNING: notes about benchmarking a high :backlog
+      HttpServer#listen accepts :tries and :delay parameters
+      "make install" avoids installing multiple .so objects
+      Use Configurator#expand_addr in HttpServer#listen
+      configurator: move initialization stuff to #initialize
+      Remove "Z" constant for binary strings
+      cgi_wrapper: don't warn about stdoutput usage
+      cgi_wrapper: simplify status handling in response
+      cgi_wrapper: use Array#concat instead of +=
+      server: correctly unset reexec_pid on child death
+      configurator: update and modernize examples
+      configurator: add colons in front of listen() options
+      configurator: remove DEFAULT_LOGGER constant
+      gemspec: clarify commented-out licenses section
+      Add makefile targets for non-release installs
+      cleanup: use question mark op for 1-byte comparisons
+      RDoc for Unicorn::HttpServer::Worker
+      small cleanup to pid file handling + documentation
+      rails: RAILS_RELATIVE_URL_ROOT may be set in Unicorn config
+      unicorn_rails: undeprecate --path switch
+      manpages: document environment variables
+      README: remove reference to different versions
+
+-- 
+Eric Wong
