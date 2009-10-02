@@ -1,0 +1,120 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: [PATCH] configurator: update some migration examples
+Date: Fri, 2 Oct 2009 01:11:02 -0700
+Message-ID: <20091002081102.GA11179@dcvr.yhbt.net>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: ger.gmane.org 1254471189 31215 80.91.229.12 (2 Oct 2009 08:13:09
+ GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Fri, 2 Oct 2009 08:13:09 +0000 (UTC)
+To: mongrel-unicorn@rubyforge.org
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Fri Oct 02 10:13:02
+ 2009
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:39
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/39>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.50) id 1MtdG9-0004Ta-Hq for gclrug-mongrel-unicorn@m.gmane.org; Fri,
+ 02 Oct 2009 10:13:01 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id CB36D185824A; Fri,  2 Oct 2009 04:13:00 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 922761858279 for <mongrel-unicorn@rubyforge.org>;
+ Fri,  2 Oct 2009 04:11:04 -0400 (EDT)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) (using TLSv1 with cipher
+ DHE-RSA-AES128-SHA (128/128 bits)) (No client certificate requested) by
+ dcvr.yhbt.net (Postfix) with ESMTPSA id 7086B1F92B; Fri,  2 Oct 2009 08:11:03
+ +0000 (UTC)
+
+We now give an example of how a before_fork hook can be used
+to incrementally migrate off the old code base without hitting
+a thundering herd (especially in the "preload_app false") case.
+
+Also comment on the per-worker listen usage in the RDoc, not
+just a hidden comment.
+---
+
+ I just pushed this out earlier, this example was inspired by Chris
+ Wanstrath's before_fork hook but modified to use SIGTTOU instead of
+ SIGQUIT for all but the last worker to minimize memory explosions
+ during upgrades.
+
+ The :tries and :delay options were also inspired by Chris and will be
+ in v0.93.0 which will probably be released.
+
+ lib/unicorn/configurator.rb |   21 +++++++++++++++++----
+ 1 files changed, 17 insertions(+), 4 deletions(-)
+
+diff --git a/lib/unicorn/configurator.rb b/lib/unicorn/configurator.rb
+index 7e66f60..bff8f7e 100644
+--- a/lib/unicorn/configurator.rb
++++ b/lib/unicorn/configurator.rb
+@@ -25,9 +25,26 @@ module Unicorn
+   #     # as there's no need for the master process to hold a connection
+   #     defined?(ActiveRecord::Base) and
+   #       ActiveRecord::Base.connection.disconnect!
++  #
++  #     # the following allows a new master process to incrementally
++  #     # phase out the old master process with SIGTTOU to avoid a
++  #     # thundering herd (especially in the "preload_app false" case)
++  #     # when doing a transparent upgrade.  The last worker spawned
++  #     # will then kill off the old master process with a SIGQUIT.
++  #     old_pid = "#{server.config[:pid]}.oldbin"
++  #     if old_pid != server.pid
++  #     begin
++  #       sig = (worker.nr + 1) >= server.worker_processes ? :QUIT : :TTOU
++  #       Process.kill(sig, File.read(old_pid).to_i)
++  #     rescue Errno::ENOENT, Errno::ESRCH
++  #     end
++  #
++  #     # optionally throttle the master from forking too quickly by sleeping
++  #     sleep 1
+   #   end
+   #
+   #   after_fork do |server, worker|
++  #     # per-process listener ports for debugging/admin/migrations
+   #     addr = "127.0.0.1:#{9293 + worker.nr}"
+   #     server.listen(addr, :tries => -1, :delay => 5, :tcp_nopush => true)
+   #
+@@ -50,10 +67,6 @@ module Unicorn
+       :worker_processes => 1,
+       :after_fork => lambda { |server, worker|
+           server.logger.info("worker=#{worker.nr} spawned pid=#{$$}")
+-
+-          # per-process listener ports for debugging/admin:
+-          # addr = "127.0.0.1:#{8081 + worker.nr}"
+-          # server.listen(addr, :tries => -1, :delay => 5)
+         },
+       :before_fork => lambda { |server, worker|
+           server.logger.info("worker=#{worker.nr} spawning...")
+-- 
+Eric Wong
