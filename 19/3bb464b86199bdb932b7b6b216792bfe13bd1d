@@ -1,0 +1,105 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.7 required=5.0 tests=MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: TERM vs QUIT
+Date: Thu, 1 Oct 2009 18:53:01 -0700
+Message-ID: <20091002015301.GA7353@dcvr.yhbt.net>
+References: <8b73aaca0910011652y68ea41cai8685abfe1b1ec735@mail.gmail.com>
+ <8b73aaca0910011656k4740f079v1f3f8def2b196ca1@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: ger.gmane.org 1254448486 15548 80.91.229.12 (2 Oct 2009 01:54:46
+ GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Fri, 2 Oct 2009 01:54:46 +0000 (UTC)
+Cc: mongrel-unicorn@rubyforge.org
+To: Chris Wanstrath <chris@ozmm.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Fri Oct 02 03:54:39
+ 2009
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <8b73aaca0910011656k4740f079v1f3f8def2b196ca1@mail.gmail.com>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:38
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/38>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.50) id 1MtXLy-0005cs-O6 for gclrug-mongrel-unicorn@m.gmane.org; Fri,
+ 02 Oct 2009 03:54:39 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id C87D616782AC; Thu,  1 Oct 2009 21:54:37 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 4906D16782AC for <mongrel-unicorn@rubyforge.org>;
+ Thu,  1 Oct 2009 21:53:03 -0400 (EDT)
+Received: from localhost (unknown [12.186.229.34]) (using TLSv1 with cipher
+ DHE-RSA-AES128-SHA (128/128 bits)) (No client certificate requested) by
+ dcvr.yhbt.net (Postfix) with ESMTPSA id 7D4291F92A; Fri,  2 Oct 2009 01:53:02
+ +0000 (UTC)
+
+Chris Wanstrath <chris@ozmm.org> wrote:
+> On Thu, Oct 1, 2009 at 4:52 PM, Chris Wanstrath <chris@ozmm.org> wrote:
+> 
+> > According to http://en.wikipedia.org/wiki/SIGTERM, SIGTERM should be
+> > used for graceful termination.
+> >
+> > According to http://www.cons.org/cracauer/sigint.html, SIGQUIT should
+> > be used for immediate termination.
+> >
+> > Is there any reason Unicorn seems to flip these two and use TERM for
+> > immediate termination and QUIT for graceful termination?
+> 
+> Looks like nginx flips them, too, and Unicorn's signal handling is
+> based on nginx's.
+> 
+> We will defer to the Russians and make our stuff consistent with nginx!
+
+Yup, I based the current user interface around the one in nginx to
+capitalize on some of my target users' existing familiarity with nginx
+and also to (hopefully) lower the barrier of entry for folks new to
+both.
+
+Of course I'm not happy with some of the choices nginx made. Using "pid"
+instead of "pid_file" in the configuration language really bothers me,
+and I completely agree TERM is more logical for graceful shutdowns. But
+in the end the nginx UI was "good enough" and consistency won me over.
+
+So things like the init script in examples/init.sh can be adapted to
+work for both unicorn and nginx without changing anything other than
+path names and some (hopefully few) command-line arguments.
+
+
+Making user interface choices for for other people isn't something I'm
+comfortable with, so I just try to take advantage of what people
+already know/expect as much as possible.  I'm lazy in that way :)
+
+
+For a few weeks (or months now?) I've been debating/avoiding the
+"--kill" switch item I have in the TODO (it was requested by a user in
+Real-Life(TM)).  I'm still not sure where/how/if it would fit, and
+maybe it just doesn't fit.  /me goes on to ponder it a bit more ...
+
+-- 
+Eric Wong
