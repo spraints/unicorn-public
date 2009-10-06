@@ -1,0 +1,114 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.7 required=5.0 tests=MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: POST Body Truncated
+Date: Tue, 6 Oct 2009 15:52:19 -0700
+Message-ID: <20091006225219.GA7831@dcvr.yhbt.net>
+References: <8b73aaca0910061413y51145254s8def0904080562a5@mail.gmail.com>
+ <20091006212204.GA13411@dcvr.yhbt.net>
+ <8b73aaca0910061426p1d949db2ga1d0241a0d5192c8@mail.gmail.com>
+ <20091006213012.GA31036@dcvr.yhbt.net>
+ <8b73aaca0910061446ud7e7ff8ia2cc1a711766dc3b@mail.gmail.com>
+ <20091006215014.GA5460@dcvr.yhbt.net>
+ <8b73aaca0910061458x3b70ef51hd166fb03b7e5bba@mail.gmail.com>
+ <20091006223259.GB5460@dcvr.yhbt.net>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="iso-8859-1"
+Content-Transfer-Encoding: quoted-printable
+X-Trace: ger.gmane.org 1254869731 25310 80.91.229.12 (6 Oct 2009 22:55:31
+ GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Tue, 6 Oct 2009 22:55:31 +0000 (UTC)
+Cc: mongrel-unicorn@rubyforge.org
+To: Chris Wanstrath <chris@ozmm.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Wed Oct 07 00:55:21
+ 2009
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <20091006223259.GB5460@dcvr.yhbt.net>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:54
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/54>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.50) id 1MvIwC-0005M0-SM for gclrug-mongrel-unicorn@m.gmane.org; Wed,
+ 07 Oct 2009 00:55:20 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 6541A1D7881A; Tue,  6 Oct 2009 18:55:20 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id A7B0E1978277 for <mongrel-unicorn@rubyforge.org>;
+ Tue,  6 Oct 2009 18:52:20 -0400 (EDT)
+Received: from localhost (unknown [12.186.229.34]) (using TLSv1 with cipher
+ DHE-RSA-AES128-SHA (128/128 bits)) (No client certificate requested) by
+ dcvr.yhbt.net (Postfix) with ESMTPSA id 262DB1F509; Tue,  6 Oct 2009 22:52:20
+ +0000 (UTC)
+
+Eric Wong <normalperson@yhbt.net> wrote:
+> Chris Wanstrath <chris@ozmm.org> wrote:
+> > On Tue, Oct 6, 2009 at 2:50 PM, Eric Wong <normalperson@yhbt.net> wrote:
+> > =
+
+> > > No worries, I'm working on a a reproducible test case. =A0Can you try
+> > > and see if you're using curl's -F to POST, you _don't_ hit it?
+> > =
+
+> > `curl -F` does NOT trigger POST body truncation.
+> =
+
+> Still trying to reproduce this, I think you're hitting a buffer boundary
+> in nginx and triggering a bug in Unicorn::TeeInput somewhere.   You may
+> be able to increase some userspace buffer sizes in nginx to
+> workaround it until I (or somebody else) can fix it (hopefully very soon
+> now).
+
+OK, here's a workaround that should work for now.  I have to hit the
+road in a few minutes but will be back on a computer in a few hours.
+
+This only affects older Rails (and I'm supposed to still be supporting
+1.2.x!) and its interaction with a wrapped CGI.stdinput somewhere is
+going bad...
+
+diff --git a/lib/unicorn/app/old_rails.rb b/lib/unicorn/app/old_rails.rb
+index ba1260a..51bda52 100644
+--- a/lib/unicorn/app/old_rails.rb
++++ b/lib/unicorn/app/old_rails.rb
+@@ -14,6 +14,8 @@ module Unicorn; module App; end; end
+ class Unicorn::App::OldRails
+ =
+
+   def call(env)
++    env['rack.input'].each { |x| }
++    env['rack.input'].rewind
+     cgi =3D Unicorn::CGIWrapper.new(env)
+     begin
+       Dispatcher.dispatch(cgi,
+---
+
+I'll have a better diagnosis+fix+test when I return.
+Sorry for the bug :x
+
+-- =
+
+Eric Wong
