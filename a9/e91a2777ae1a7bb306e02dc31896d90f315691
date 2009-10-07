@@ -1,0 +1,188 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.7 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: POST Body Truncated
+Date: Tue, 6 Oct 2009 20:04:51 -0700
+Message-ID: <20091007030451.GA20541@dcvr.yhbt.net>
+References: <8b73aaca0910061413y51145254s8def0904080562a5@mail.gmail.com>
+ <20091006212204.GA13411@dcvr.yhbt.net>
+ <8b73aaca0910061426p1d949db2ga1d0241a0d5192c8@mail.gmail.com>
+ <20091006213012.GA31036@dcvr.yhbt.net>
+ <8b73aaca0910061446ud7e7ff8ia2cc1a711766dc3b@mail.gmail.com>
+ <20091006215014.GA5460@dcvr.yhbt.net>
+ <8b73aaca0910061458x3b70ef51hd166fb03b7e5bba@mail.gmail.com>
+ <20091006223259.GB5460@dcvr.yhbt.net> <20091006225219.GA7831@dcvr.yhbt.net>
+ <8b73aaca0910061557l7bed19cu1c122e1f1b5a68d9@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="iso-8859-1"
+Content-Transfer-Encoding: quoted-printable
+X-Trace: ger.gmane.org 1254885278 27383 80.91.229.12 (7 Oct 2009 03:14:38
+ GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Wed, 7 Oct 2009 03:14:38 +0000 (UTC)
+Cc: mongrel-unicorn@rubyforge.org
+To: Chris Wanstrath <chris@ozmm.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Wed Oct 07 05:14:28
+ 2009
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <8b73aaca0910061557l7bed19cu1c122e1f1b5a68d9@mail.gmail.com>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:56
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/56>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.50) id 1MvMyx-0003YH-P1 for gclrug-mongrel-unicorn@m.gmane.org; Wed,
+ 07 Oct 2009 05:14:27 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 87F221D7882F; Tue,  6 Oct 2009 23:14:26 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 4B4DE1D7882F for <mongrel-unicorn@rubyforge.org>;
+ Tue,  6 Oct 2009 23:04:53 -0400 (EDT)
+Received: from localhost (user-118bg0q.cable.mindspring.com [66.133.192.26])
+ (using TLSv1 with cipher DHE-RSA-AES128-SHA (128/128 bits)) (No client
+ certificate requested) by dcvr.yhbt.net (Postfix) with ESMTPSA id B94CF1F791;
+ Wed,  7 Oct 2009 03:04:52 +0000 (UTC)
+
+Chris Wanstrath <chris@ozmm.org> wrote:
+> On Tue, Oct 6, 2009 at 3:52 PM, Eric Wong <normalperson@yhbt.net> wrote:
+> =
+
+> > OK, here's a workaround that should work for now. =A0I have to hit the
+> > road in a few minutes but will be back on a computer in a few hours.
+> >
+> > This only affects older Rails (and I'm supposed to still be supporting
+> > 1.2.x!) and its interaction with a wrapped CGI.stdinput somewhere is
+> > going bad...
+> =
+
+> This works!
+> =
+
+> I suppose we should upgrade to a newer Rails :)
+> =
+
+> As usual, thanks a million.
+
+Here's a real patch with lots of documentation I just pushed out, still
+working on automated test cases.  Can you let me know how it works?
+Thanks.
+
+>From 438c99aec2d74489fa89b3a6c60d1fb41bb2f7e6 Mon Sep 17 00:00:00 2001
+From: Eric Wong <normalperson@yhbt.net>
+Date: Tue, 6 Oct 2009 19:45:05 -0700
+Subject: [PATCH] more-compatible TeeInput#read for POSTs with Content-Length
+
+There are existing applications and libraries that don't check
+the return value of env['rack.input'].read(length) (like Rails
+:x).  Those applications became broken under the IO#readpartial
+semantics of TeeInput#read when handling larger request bodies.
+
+We'll preserve the IO#readpartial semantics _only_ when handling
+chunked requests (as long as Rack allows it, it's useful for
+real-time processing of audio/video streaming uploads,
+especially with Rainbows! and mobile clients) but use
+read-in-full semantics for TeeInput#read on requests with a
+known Content-Length.
+---
+ lib/unicorn/tee_input.rb |   43 +++++++++++++++++++++++++++++++++++++++++--
+ 1 files changed, 41 insertions(+), 2 deletions(-)
+
+diff --git a/lib/unicorn/tee_input.rb b/lib/unicorn/tee_input.rb
+index 96a053a..188e2ea 100644
+--- a/lib/unicorn/tee_input.rb
++++ b/lib/unicorn/tee_input.rb
+@@ -41,6 +41,26 @@ module Unicorn
+       @size =3D tmp_size
+     end
+ =
+
++    # call-seq:
++    #   ios =3D env['rack.input']
++    #   ios.read([length [, buffer ]]) =3D> string, buffer, or nil
++    #
++    # Reads at most length bytes from the I/O stream, or to the end of
++    # file if length is omitted or is nil. length must be a non-negative
++    # integer or nil. If the optional buffer argument is present, it
++    # must reference a String, which will receive the data.
++    #
++    # At end of file, it returns nil or "" depend on length.
++    # ios.read() and ios.read(nil) returns "".
++    # ios.read(length [, buffer]) returns nil.
++    #
++    # If the Content-Length of the HTTP request is known (as is the common
++    # case for POST requests), then ios.read(length [, buffer]) will block
++    # until the specified length is read (or it is the last chunk).
++    # Otherwise, for uncommon "Transfer-Encoding: chunked" requests,
++    # ios.read(length [, buffer]) will return immediately if there is
++    # any data and only block when nothing is available (providing
++    # IO#readpartial semantics).
+     def read(*args)
+       socket or return @tmp.read(*args)
+ =
+
+@@ -55,9 +75,9 @@ module Unicorn
+         rv =3D args.shift || @buf2.dup
+         diff =3D tmp_size - @tmp.pos
+         if 0 =3D=3D diff
+-          tee(length, rv)
++          ensure_length(tee(length, rv), length)
+         else
+-          @tmp.read(diff > length ? length : diff, rv)
++          ensure_length(@tmp.read(diff > length ? length : diff, rv), leng=
+th)
+         end
+       end
+     end
+@@ -130,5 +150,24 @@ module Unicorn
+       StringIO =3D=3D=3D @tmp ? @tmp.size : @tmp.stat.size
+     end
+ =
+
++    # tee()s into +buf+ until it is of +length+ bytes (or until
++    # we've reached the Content-Length of the request body).
++    # Returns +buf+ (the exact object, not a duplicate)
++    # To continue supporting applications that need near-real-time
++    # streaming input bodies, this is a no-op for
++    # "Transfer-Encoding: chunked" requests.
++    def ensure_length(buf, length)
++      # @size is nil for chunked bodies, so we can't ensure length for tho=
+se
++      # since they could be streaming bidirectionally and we don't want to
++      # block the caller in that case.
++      return buf if buf.nil? || @size.nil?
++
++      while buf.size < length && @size !=3D @tmp.pos
++        buf << tee(length - buf.size, @buf2)
++      end
++
++      buf
++    end
++
+   end
+ end
+-- =
+
+Eric Wong
