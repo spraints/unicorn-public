@@ -1,0 +1,121 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.7 required=5.0 tests=MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: [PATCH] doc: expand on the SELF_PIPE description
+Date: Wed, 7 Oct 2009 15:05:48 -0700
+Message-ID: <20091007220548.GA30473@dcvr.yhbt.net>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: ger.gmane.org 1254953376 15678 80.91.229.12 (7 Oct 2009 22:09:36
+ GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Wed, 7 Oct 2009 22:09:36 +0000 (UTC)
+Cc: mongrel-unicorn@rubyforge.org
+To: Ryan Tomayko <r@tomayko.com>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Thu Oct 08 00:09:25
+ 2009
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:59
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/59>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.50) id 1MvehI-000705-7z for gclrug-mongrel-unicorn@m.gmane.org; Thu,
+ 08 Oct 2009 00:09:24 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 8A0E81858204; Wed,  7 Oct 2009 18:09:23 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id D823A1858204 for <mongrel-unicorn@rubyforge.org>;
+ Wed,  7 Oct 2009 18:05:49 -0400 (EDT)
+Received: from localhost (unknown [12.186.229.34]) (using TLSv1 with cipher
+ DHE-RSA-AES128-SHA (128/128 bits)) (No client certificate requested) by
+ dcvr.yhbt.net (Postfix) with ESMTPSA id D5B371F5D0; Wed,  7 Oct 2009 22:05:48
+ +0000 (UTC)
+
+There seems to be a small amount of confusion regarding how it's
+used (and some of the code is not very obvious).  So explain our
+usage of it and distinguish its use in the master vs worker(s).
+---
+
+  Hi Ryan,
+
+  Great article[1] on Unicorn!  I just noticed a small misunderstanding
+  in how SELF_PIPE is used by the workers, so I just updated the RDoc to
+  hopefully better describe it.  I believe Unicorn is a great way to
+  introduce Unix systems programming and you writing a great article is
+  helping a lot :>
+
+  As far as workers going down quickly in case the master dies
+  unexpectedly: this is usually handled by checking the parent PID in
+  the worker loop (which has a normal[2] upper bound of
+  timeout(=default=60)/2.0 seconds per iteration on an idle server).
+  Needing to get the workers to go down more quickly than that wasn't
+  too important to us, so I made the decision to not get fancier.
+
+  [1] - for those on the mailing list who haven't seen it:
+        http://tomayko.com/writings/unicorn-is-unix
+
+  [2] - for the case where speculative accept() is constantly
+        successful, then this could be infinity as long as requests
+        keep flowing in faster than they can be processed.
+	      Not that I expect anybody to care or hit this case
+        (unexpectedly dead masters are very uncommon already :>).
+
+ lib/unicorn.rb |   18 +++++++++++++++++-
+ 1 files changed, 17 insertions(+), 1 deletions(-)
+
+diff --git a/lib/unicorn.rb b/lib/unicorn.rb
+index ddec8e9..d63567f 100644
+--- a/lib/unicorn.rb
++++ b/lib/unicorn.rb
+@@ -42,7 +42,23 @@ module Unicorn
+     # This hash maps PIDs to Workers
+     WORKERS = {}
+ 
+-    # See: http://cr.yp.to/docs/selfpipe.html
++    # We use SELF_PIPE differently in the master and worker processes:
++    #
++    # * The master process never closes or reinitializes this once
++    # initialized.  Signal handlers in the master process will write to
++    # it to wake up the master from IO.select in exactly the same manner
++    # djb describes in http://cr.yp.to/docs/selfpipe.html
++    #
++    # * The workers immediately close the pipe they inherit from the
++    # master and replace it with a new pipe after forking.  This new
++    # pipe is also used to wakeup from IO.select from inside (worker)
++    # signal handlers.  However, workers *close* the pipe descriptors in
++    # the signal handlers to raise EBADF in IO.select instead of writing
++    # like we do in the master.  We cannot easily use the reader set for
++    # IO.select because LISTENERS is already that set, and it's extra
++    # work (and cycles) to distinguish the pipe FD from the reader set
++    # once IO.select returns.  So we're lazy and just close the pipe when
++    # a (rare) signal arrives in the worker and reinitialize the pipe later.
+     SELF_PIPE = []
+ 
+     # signal queue used for self-piping
+-- 
+Eric Wong
