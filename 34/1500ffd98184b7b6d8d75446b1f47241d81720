@@ -1,0 +1,99 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.7 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: [ANN] unicorn 0.93.2 - more compatible with Rails
+Date: Wed, 7 Oct 2009 01:58:38 -0700
+Message-ID: <20091007085838.GC20541@dcvr.yhbt.net>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: ger.gmane.org 1254905938 12070 80.91.229.12 (7 Oct 2009 08:58:58
+ GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Wed, 7 Oct 2009 08:58:58 +0000 (UTC)
+To: mongrel-unicorn@rubyforge.org
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Wed Oct 07 10:58:48
+ 2009
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:57
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/57>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.50) id 1MvSMB-0005h3-66 for gclrug-mongrel-unicorn@m.gmane.org; Wed,
+ 07 Oct 2009 10:58:47 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 560DC1858203; Wed,  7 Oct 2009 04:58:44 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id ADCC118581F0 for <mongrel-unicorn@rubyforge.org>;
+ Wed,  7 Oct 2009 04:58:39 -0400 (EDT)
+Received: from localhost (user-118bg0q.cable.mindspring.com [66.133.192.26])
+ (using TLSv1 with cipher DHE-RSA-AES128-SHA (128/128 bits)) (No client
+ certificate requested) by dcvr.yhbt.net (Postfix) with ESMTPSA id C99111F605;
+ Wed,  7 Oct 2009 08:58:38 +0000 (UTC)
+
+Unicorn is a HTTP server for Rack applications designed to take
+advantage of features in Unix/Unix-like kernels and only serve fast
+clients on low-latency, high-bandwidth connections.  Slow clients should
+only be served by placing a reverse proxy capable of fully-buffering
+both the the request and response in between Unicorn and slow clients.
+
+* http://unicorn.bogomips.org/
+* mongrel-unicorn@rubyforge.org
+* git://git.bogomips.org/unicorn.git
+
+Thanks to Chris Wanstrath for reporting issues with large
+POST bodies and for helping me test.
+
+Changes:
+
+Avoid truncated POST bodies with URL-encoded forms in Rails
+by switching TeeInput to use read-in-full semantics (only) when
+a Content-Length: header exists.  Chunked request bodies
+continue to exhibit readpartial semantics to support
+simultaneous bidirectional chunking.
+
+The lack of return value checking in Rails to protect against a
+short ios.read(length) is entirely reasonable even if not
+pedantically correct.  Most ios.read(length) implementations
+return the full amount requested except right before EOF.
+
+A ticket has been opened here to track the issue:
+  https://rails.lighthouseapp.com/projects/8994/tickets/3343
+
+Also there are some minor documentation improvements.
+
+Eric Wong (8):
+      Fix NEWS generation on single-paragraph tag messages
+      Include GPLv2 in docs
+      doc: make it clear contributors retain copyrights
+      TODO: removed Rainbows! (see rainbows.rubyforge.org)
+      Document the START_CTX hash contents
+      more-compatible TeeInput#read for POSTs with Content-Length
+      tests for read-in-full vs readpartial semantics
+      unicorn 0.93.2
+-- 
+Eric Wong
