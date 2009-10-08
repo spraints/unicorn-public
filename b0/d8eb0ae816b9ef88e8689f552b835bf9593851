@@ -1,0 +1,101 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups:
+ gmane.comp.lang.ruby.unicorn.general,gmane.comp.lang.ruby.rainbows.general
+Subject: why Unicorn doesn't do slow clients
+Date: Wed, 7 Oct 2009 17:09:42 -0700
+Message-ID: <20091008000942.GA25054@dcvr.yhbt.net>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: ger.gmane.org 1254960597 1360 80.91.229.12 (8 Oct 2009 00:09:57 GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Thu, 8 Oct 2009 00:09:57 +0000 (UTC)
+Cc: rainbows-talk@rubyforge.org
+To: mongrel-unicorn@rubyforge.org
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Thu Oct 08 02:09:48
+ 2009
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:60
+ gmane.comp.lang.ruby.rainbows.general:5
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/60>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.50) id 1MvgZm-0006NC-Mw for gclrug-mongrel-unicorn@m.gmane.org; Thu,
+ 08 Oct 2009 02:09:47 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 9464A18581F7; Wed,  7 Oct 2009 20:09:45 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 0D4411858277; Wed,  7 Oct 2009 20:09:43 -0400 (EDT)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) (using TLSv1 with cipher
+ DHE-RSA-AES128-SHA (128/128 bits)) (No client certificate requested) by
+ dcvr.yhbt.net (Postfix) with ESMTPSA id EF8B51F92F; Thu,  8 Oct 2009 00:09:42
+ +0000 (UTC)
+
+You may have heard of Slowloris and Nkiller2 (if not check them out),
+but there is also david:
+
+  http://git.bogomips.org/cgit/david.git
+
+I wasn't comfortable with announcing this two years ago when I wrote it.
+I'm OK now since Slowloris and Nkiller2 are similar (ok, Nkiller2 is
+lower-level and meaner) and attacks of this type should be well-known by
+now.  I'm sure some folks have known about these types of attack since
+the 1990s, even.
+
+I haven't touched david in over two years and don't have any desire to
+maintain or support it.  Feel free to take and hack on it for your own
+testing or even make it into a real project, but please be nice and
+don't hurt people with it.
+
+This is different from Slowloris in that it throttles the entire request
+including the POST/PUT body.  Most proxies (including haproxy) don't
+buffer bodies before sending them on whereas nginx will buffer large
+ones to temporary files.
+
+
+I originally wrote david to convince some friends to stick nginx in
+front of anything that wasn't nginx; including Apache +
+mod_perl|mod_php|mongrel and Tomcat setups.
+
+And it was quite convincing at the time :>
+
+
+Implementation details:
+
+  * david combines fork() with select() to multiplex file descriptors
+    and get around select() and non-priviledged process FD limits.
+
+  * The defaults at the top of the davic.c file are all pretty tame,
+    but they're all commented on and you can tweak them.
+
+  * david mmaps a raw file that is an HTTP request, some small
+    samples are provided but you can/should generate your own large
+    POST/PUT requests to really stress request body handling.
+
+-- 
+Eric Wong
