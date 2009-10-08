@@ -1,0 +1,134 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.7 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: Unicorn - "Still a couple bugs to knock out."
+Date: Wed, 7 Oct 2009 21:47:33 -0700
+Message-ID: <20091008044733.GA2112@dcvr.yhbt.net>
+References: <20091008003144.GB31036@dcvr.yhbt.net>
+ <b89b94f00910072029m5c7265ban2f98e4346265e534@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: ger.gmane.org 1254977303 2140 80.91.229.12 (8 Oct 2009 04:48:23 GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Thu, 8 Oct 2009 04:48:23 +0000 (UTC)
+Cc: mongrel-unicorn@rubyforge.org, labs@revelationglobal.com
+To: Dan Herrera <dan@revelationglobal.com>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Thu Oct 08 06:48:13
+ 2009
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <b89b94f00910072029m5c7265ban2f98e4346265e534@mail.gmail.com>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:63
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/63>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.50) id 1MvkvE-00049w-4g for gclrug-mongrel-unicorn@m.gmane.org; Thu,
+ 08 Oct 2009 06:48:12 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 63A03185824A; Thu,  8 Oct 2009 00:48:11 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 2A5D7185824A for <mongrel-unicorn@rubyforge.org>;
+ Thu,  8 Oct 2009 00:47:35 -0400 (EDT)
+Received: from localhost (user-118bg0q.cable.mindspring.com [66.133.192.26])
+ (using TLSv1 with cipher DHE-RSA-AES128-SHA (128/128 bits)) (No client
+ certificate requested) by dcvr.yhbt.net (Postfix) with ESMTPSA id E7BD11F92F;
+ Thu,  8 Oct 2009 04:47:34 +0000 (UTC)
+
+Dan Herrera <dan@revelationglobal.com> wrote:
+> Hi Eric,
+> 
+> Thanks for getting in touch.  We were also pleasantly surprised by the
+> performance of unicorn!
+> 
+> As to the blog post, we misspoke and will revise our language on the post to
+> reflect that what we encountered weren't bugs, but issues with our own
+> setup.
+
+Thanks for the clarification, I was worried :x
+
+> Our app has a memory leak, and we haven't yet settled on a monit recipe to
+> restart unicorn when the sub processes that are started run over a certain
+> memory threshold.  There were also some changes we needed to make with our
+> nginx configuration, but again, they didn't reflect any problems with
+> unicorn.
+
+You can probably have monit just SIGQUIT the workers that run over the
+memory threshold and just let the unicorn master restart them (note: I'm
+not a monit user).
+
+If your OS supports it, you can try setrlimit in your after_fork hook.
+Modern Linux 2.6 doesn't support Process::RLIMIT_RSS, but you can still
+do Process::RLIMIT_AS which is still somewhat useful[1].
+
+  after_fork do |server, worker|
+    Process.setrlimit(Process::RLIMIT_AS, size_in_kilobytes)
+  end
+
+Then have a simple Rack middleware that traps NoMemoryError:
+
+  # XXX totally untested!, I'm not sure what to do if Process.kill
+  # here hits NoMemoryError, either...
+  class ExitOnOOM < Struct.new(:app)
+    def call(env)
+      begin
+        app.call(env)
+      rescue NoMemoryError
+        Process.kill(:QUIT, 0) # graceful exit signal
+        # or maybe just: exit!
+      end
+    end
+  end
+
+[1] On modern GNU/Linux systems that don't have RLIMIT_RSS, the VM size
+    taken by the mmap()'ed shared libraries usually doesn't change over the
+    lifetime of the process, so you can use that as a baseline and figure
+    out how far you want to go from there....  Of course, your Unicorns
+    shouldn't be swapping so swap usage won't have to be accounted for.
+
+Of course the proper solution to all this is to fix your memory leaks :)
+
+I posted some notes here a few months back on the Mongrel list:
+
+  http://thread.gmane.org/gmane.comp.lang.ruby.mongrel.general/5760/focus=5766
+
+> Engine Yard doesn't currently support unicorn on their slices, but once we
+> have a satisfactory monit recipe and no other issues with our setup, we plan
+> to work with them so that they'll hopefully change their mind.  I think
+> this, and the monit recipe is what James meant when he said we wouldn't be
+> using unicorn in the near future.
+
+Ah, didn't know that.  I guess github was a special case where they
+thought: "oh well, these guys are leaving us for another host anyways,
+they can be our guinea pig!" :)
+
+> Anyway, we are all great fans, and would like to thank all of you for all of
+> your hard work.
+
+No problem :)
+
+-- 
+Eric Wong
