@@ -1,0 +1,153 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: Our Unicorn Setup
+Date: Fri, 9 Oct 2009 15:01:10 -0700
+Message-ID: <20091009220110.GB14137@dcvr.yhbt.net>
+References: <8b73aaca0910091242u78ac787aj48fb1b63b5bf55bc@mail.gmail.com>
+ <e9e3ad7b0910091403wdbb6971q8ddbd4473f32a2c5@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: ger.gmane.org 1255125685 28584 80.91.229.12 (9 Oct 2009 22:01:25
+ GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Fri, 9 Oct 2009 22:01:25 +0000 (UTC)
+Cc: Chris Wanstrath <chris@ozmm.org>, mongrel-unicorn@rubyforge.org
+To: Dusty Doris <unicorn@dusty.name>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Sat Oct 10 00:01:14
+ 2009
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <e9e3ad7b0910091403wdbb6971q8ddbd4473f32a2c5@mail.gmail.com>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:70
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/70>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.50) id 1MwNWT-0002Zh-TC for gclrug-mongrel-unicorn@m.gmane.org; Sat,
+ 10 Oct 2009 00:01:14 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 5DC5118581F7; Fri,  9 Oct 2009 18:01:13 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id E24BB18581F7 for <mongrel-unicorn@rubyforge.org>;
+ Fri,  9 Oct 2009 18:01:10 -0400 (EDT)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) (using TLSv1 with cipher
+ DHE-RSA-AES128-SHA (128/128 bits)) (No client certificate requested) by
+ dcvr.yhbt.net (Postfix) with ESMTPSA id 699BD1F794; Fri,  9 Oct 2009 22:01:10
+ +0000 (UTC)
+
+Dusty Doris <unicorn@dusty.name> wrote:
+> Thanks for this post Chris, it was very informative and has answered a
+> few questions that I've had in my head over the last couple of days.
+> I've been testing unicorn with a few apps for a couple days and
+> actually already moved one over to it.
+> 
+> I have a question for list.
+
+First off, please don't top post, thanks :)
+
+> We are currently setup with a load balancer that runs nginx and
+> haproxy.  Nginx, simply proxies to haproxy, which then balances that
+> across multiple mongrel or thin instances that span several servers.
+> We simply include the public directory on our load balancer so nginx
+> can serve static files right there.  We don't have nginx running on
+> the app servers, they are just mongrel or thin.
+> 
+> So, my question.  How would you do a Unicorn deployment when you have
+> multiple app servers?
+
+For me, it depends on the amount of static files you serve with nginx
+and also the traffic you hit.
+
+Can I assume you're running Linux 2.6 (with epoll + awesome VFS layer)?
+
+May I also assume your load balancer box is not very stressed right now?
+
+> 1.  Simply use mongrels upstream and let it round-robin between all
+> the unicorn instances on the different servers?  Or, perhaps use the
+> fair-upstream plugin?
+> 
+> nginx -> [unicorns]
+
+Based on your description of your current setup, this would be the best
+way to go.  I would configure a lowish listen() :backlog for the
+Unicorns, fail_timeout=0 in nginx for every server  This setup means
+round-robin by default, but if one machine gets a :backlog overflow,
+then nginx will automatically retry on a different backend.
+
+> 2.  Keep haproxy in the middle?
+> 
+> nginx -> haproxy -> [unicorns]
+
+This is probably not necessary, but it can't hurt a whole lot either.
+
+Also an option for balancing.  If you're uncomfortable with the first
+approach you can also configure haproxy as a backup server:
+
+  upstream unicorn_failover {
+    # round-robin between unicorn app servers on the LAN:
+    server 192.168.0.1:8080 fail_timeout=0;
+    server 192.168.0.2:8080 fail_timeout=0;
+    server 192.168.0.3:8080 fail_timeout=0;
+
+    # haproxy, configured the same way as you do now
+    # the "backup" parameter means nginx won't hit haproxy unless
+    # all the direct unicorn connections have backlog overflows
+    # or other issues
+    server 127.0.0.1:8080 fail_timeout=0 backup; # haproxy backup
+  }
+
+So your traffic flow may look like the first for the common case, but
+you may have a slightly more balanced/queueing solution in case you're
+completely overloaded.
+
+> 3.  Stick haproxy in front and have it balance between the app servers
+> that run their own nginx?
+> 
+> haproxy -> [nginxs] -> unicorn # could use socket instead of tcp in this case
+
+This is probably only necessary if:
+
+  1) you have a lot of static files that don't all fit in the VFS caches
+
+  2) you handle a lot of large uploads/responses and nginx buffering will
+     thrash one box
+
+I know some sites that run this (or similar) config, but it's mainly
+because this is what they've had for 5-10 years and don't have
+time/resources to test new setups.
+
+> I would love to hear any opinions.
+
+You can also try the following, which is similar to what I describe in:
+
+  http://article.gmane.org/gmane.comp.lang.ruby.unicorn.general/31
+
+Pretty much all the above setups are valid.  The important part is that
+nginx must sit *somewhere* in between Unicorn and the rest of the world.
+
+-- 
+Eric Wong
