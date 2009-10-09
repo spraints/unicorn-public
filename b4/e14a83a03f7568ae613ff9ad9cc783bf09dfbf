@@ -1,0 +1,175 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.7 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: alive.chmod(Time.now.to_i) raises Errno::EINVAL on OpenBSD
+Date: Thu, 8 Oct 2009 20:22:39 -0700
+Message-ID: <20091009032239.GA2695@dcvr.yhbt.net>
+References: <5c548e460910081657t7df3403du98f2f479b52536e9@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: ger.gmane.org 1255058716 20981 80.91.229.12 (9 Oct 2009 03:25:16
+ GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Fri, 9 Oct 2009 03:25:16 +0000 (UTC)
+Cc: mongrel-unicorn@rubyforge.org
+To: Jeremy Evans <jeremyevans0@gmail.com>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Fri Oct 09 05:25:06
+ 2009
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <5c548e460910081657t7df3403du98f2f479b52536e9@mail.gmail.com>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:65
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/65>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.50) id 1Mw66L-0000k4-Up for gclrug-mongrel-unicorn@m.gmane.org; Fri,
+ 09 Oct 2009 05:25:06 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id A1E2D185828D; Thu,  8 Oct 2009 23:25:02 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 7F8A3185828D for <mongrel-unicorn@rubyforge.org>;
+ Thu,  8 Oct 2009 23:22:41 -0400 (EDT)
+Received: from localhost (user-118bg0q.cable.mindspring.com [66.133.192.26])
+ (using TLSv1 with cipher DHE-RSA-AES128-SHA (128/128 bits)) (No client
+ certificate requested) by dcvr.yhbt.net (Postfix) with ESMTPSA id 807E51F605;
+ Fri,  9 Oct 2009 03:22:40 +0000 (UTC)
+
+Jeremy Evans <jeremyevans0@gmail.com> wrote:
+> On OpenBSD:
+> 
+> $ ruby -e "File.new('TODO').chmod(Time.now.to_i)"
+> -e:1:in `chmod': Invalid argument - TODO (Errno::EINVAL)
+>         from -e:1
+> 
+> This is explained in the man page:
+> 
+>      int
+>      fchmod(int fd, mode_t mode);
+> 
+>     ...
+> 
+>      [EINVAL]      mode contains bits other than the file type and those de-
+>                    scribed above.
+> 
+> I think 04777 is the highest allowed mode on OpenBSD.  Time.now.to_i
+> is obviously higher than that.
+
+Yikes.  I was worried about the portability of this.  I actually redid
+this in the Revactor model of Rainbows! to flip between 0 and 1, I'll do
+that in Unicorn, too.
+
+> Here's a diff that should fix the problem.  At the very least it
+> allows the workers to start without crashing:
+> 
+> diff --git a/lib/unicorn.rb b/lib/unicorn.rb
+> index ddec8e9..092f500 100644
+> --- a/lib/unicorn.rb
+> +++ b/lib/unicorn.rb
+> @@ -579,13 +579,13 @@ module Unicorn
+>          # changes with chmod doesn't update ctime on all filesystems; so
+>          # we change our counter each and every time (after process_client
+>          # and before IO.select).
+> -        t == (ti = Time.now.to_i) or alive.chmod(t = ti)
+> +        t == (ti = Time.now.to_i) or (t = ti;
+> alive.chmod(alive.stat.mode ^ 0100))
+
+I think the Time.now.to_i bit is overkill (and probably detrimental to
+performance on non-x86_64, non-VDSO-enabled, non-GNU/Linux machines).
+
+> There are definitely other ways that will work, as long as the mode is
+> kept between 0 and 04777.
+
+Here's what I committed and pushed out, it should work for all *nix
+now since it only alternates between 0 and 1, but be sure to let
+me know if it doesn't for some reason.  Thanks!
+
+>From 24a1b4c6b5fcb948e4fdee04e286c044d6d45f98 Mon Sep 17 00:00:00 2001
+From: Eric Wong <normalperson@yhbt.net>
+Date: Thu, 8 Oct 2009 19:56:29 -0700
+Subject: [PATCH] fchmod heartbeat flips between 0/1 for compatibility
+
+This removes the Time.now.to_i comparison that was used to avoid
+multiple, no-op fchmod() syscalls[1] within the same second.
+
+This should allow us to run on OpenBSD where it can raise EINVAL
+when Time.now.to_i is passed to it.
+
+Reported-by: Jeremy Evans <jeremyevans0@gmail.com>
+
+[1] - gettimeofday() from Time.now is not a real syscall on
+VDSO-enabled x86_64 GNU/Linux systems where Unicorn is primarily
+developed.
+---
+ lib/unicorn.rb |    8 ++++----
+ 1 files changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/lib/unicorn.rb b/lib/unicorn.rb
+index d63567f..13c203a 100644
+--- a/lib/unicorn.rb
++++ b/lib/unicorn.rb
+@@ -575,13 +575,13 @@ module Unicorn
+       nr = 0 # this becomes negative if we need to reopen logs
+       alive = worker.tmp # tmp is our lifeline to the master process
+       ready = LISTENERS
+-      t = ti = 0
+ 
+       # closing anything we IO.select on will raise EBADF
+       trap(:USR1) { nr = -65536; SELF_PIPE.first.close rescue nil }
+       trap(:QUIT) { alive = nil; LISTENERS.each { |s| s.close rescue nil } }
+       [:TERM, :INT].each { |sig| trap(sig) { exit!(0) } } # instant shutdown
+       logger.info "worker=#{worker.nr} ready"
++      m = 0
+ 
+       begin
+         nr < 0 and reopen_worker_logs(worker.nr)
+@@ -595,13 +595,13 @@ module Unicorn
+         # changes with chmod doesn't update ctime on all filesystems; so
+         # we change our counter each and every time (after process_client
+         # and before IO.select).
+-        t == (ti = Time.now.to_i) or alive.chmod(t = ti)
++        alive.chmod(m = 0 == m ? 1 : 0)
+ 
+         ready.each do |sock|
+           begin
+             process_client(sock.accept_nonblock)
+             nr += 1
+-            t == (ti = Time.now.to_i) or alive.chmod(t = ti)
++            alive.chmod(m = 0 == m ? 1 : 0)
+           rescue Errno::EAGAIN, Errno::ECONNABORTED
+           end
+           break if nr < 0
+@@ -614,7 +614,7 @@ module Unicorn
+         redo unless nr == 0 # (nr < 0) => reopen logs
+ 
+         ppid == Process.ppid or return
+-        alive.chmod(t = 0)
++        alive.chmod(m = 0 == m ? 1 : 0)
+         begin
+           # timeout used so we can detect parent death:
+           ret = IO.select(LISTENERS, nil, SELF_PIPE, timeout) or redo
+-- 
+Eric Wong
