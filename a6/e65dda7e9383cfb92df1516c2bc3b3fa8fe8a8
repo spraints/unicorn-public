@@ -1,0 +1,147 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: Our Unicorn Setup
+Date: Fri, 9 Oct 2009 16:11:34 -0700
+Message-ID: <20091009231133.GC14137@dcvr.yhbt.net>
+References: <8b73aaca0910091242u78ac787aj48fb1b63b5bf55bc@mail.gmail.com>
+ <e9e3ad7b0910091403wdbb6971q8ddbd4473f32a2c5@mail.gmail.com>
+ <20091009220110.GB14137@dcvr.yhbt.net>
+ <e9e3ad7b0910091544x4bcd1b66x4e20c708038ef2cd@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="iso-8859-1"
+Content-Transfer-Encoding: quoted-printable
+X-Trace: ger.gmane.org 1255129909 7328 80.91.229.12 (9 Oct 2009 23:11:49 GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Fri, 9 Oct 2009 23:11:49 +0000 (UTC)
+Cc: mongrel-unicorn@rubyforge.org
+To: Dusty Doris <unicorn@dusty.name>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Sat Oct 10 01:11:39
+ 2009
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <e9e3ad7b0910091544x4bcd1b66x4e20c708038ef2cd@mail.gmail.com>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:73
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/73>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.50) id 1MwOcb-0004H6-Tg for gclrug-mongrel-unicorn@m.gmane.org; Sat,
+ 10 Oct 2009 01:11:38 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 5F52818581F7; Fri,  9 Oct 2009 19:11:37 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 62ECB18581F7 for <mongrel-unicorn@rubyforge.org>;
+ Fri,  9 Oct 2009 19:11:35 -0400 (EDT)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) (using TLSv1 with cipher
+ DHE-RSA-AES128-SHA (128/128 bits)) (No client certificate requested) by
+ dcvr.yhbt.net (Postfix) with ESMTPSA id 8F0AA1F794; Fri,  9 Oct 2009 23:11:34
+ +0000 (UTC)
+
+Dusty Doris <unicorn@dusty.name> wrote:
+> On Fri, Oct 9, 2009 at 6:01 PM, Eric Wong <normalperson@yhbt.net> wrote:
+> > Dusty Doris <unicorn@dusty.name> wrote:
+> >> 1. =A0Simply use mongrels upstream and let it round-robin between all
+> >> the unicorn instances on the different servers? =A0Or, perhaps use the
+> >> fair-upstream plugin?
+> >>
+> >> nginx -> [unicorns]
+> >
+> > Based on your description of your current setup, this would be the best
+> > way to go. =A0I would configure a lowish listen() :backlog for the
+> > Unicorns, fail_timeout=3D0 in nginx for every server =A0This setup means
+> > round-robin by default, but if one machine gets a :backlog overflow,
+> > then nginx will automatically retry on a different backend.
+> =
+
+> Thanks for the recommendation.  I was going to give that a shot first
+> to see how it went, as it would also be the easiest to manage.
+> =
+
+> When you say a lowish backlog?  What kind of numbers are you talking
+> about?  Say, we had 8 workers running that stayed pretty active.  They
+> are usually quick to respond, with an occasional 2 second response
+> (say 1/100) due to a bad sql query that we need to fix.  Would lowish
+> be 16, 32, 64, 128, 1024?
+
+1024 is the default in Mongrel and Unicorn which is very generous.  5 is
+the default value that Ruby initializes the sockets at, so picking
+something in between is recommended.  It really depends on your app and
+comfort level.  You can also tune and refine it over time safely
+without worrying too much about dropping connections by configuring
+multiple listeners per-instance (see below).
+
+Keep in mind the backlog is rarely an exact setting, it's more of a
+recommendation to the kernel (and the actual value is often higher
+than specified).
+
+> Oh and thanks for the tip on the fail_timeout.
+
+No problem, I somehow thought it was widely-known by now...
+
+> > You can also try the following, which is similar to what I describe in:
+> >
+> > =A0http://article.gmane.org/gmane.comp.lang.ruby.unicorn.general/31
+> >
+> =
+
+> Thats an interesting idea, thanks for sharing it.  I like how the
+> individual server also acts as a load balancer, but only if its having
+> trouble itself.  Otherwise, it just handles the requests through the
+> socket connection.
+> I appreciate your reply and especially for Unicorn.
+
+You can also try a combination of (1) above and my proposed idea in
+$gmane/31 by configuring two listeners per-Unicorn instance:
+
+   # primary
+   listen 8080, :backlog =3D> 10, :tcp_nopush =3D> true
+
+   # only when all servers overflow the backlog=3D10 above
+   listen 8081, :backlog =3D> 1024, :tcp_nopush =3D> true
+
+And then putting the 8081s as a backup in nginx like this:
+
+ =A0upstream unicorn_failover {
+ =A0 =A0# round-robin between unicorns with small backlogs
+    # as the primary option
+ =A0 =A0server 192.168.0.1:8080 fail_timeout=3D0;
+ =A0 =A0server 192.168.0.2:8080 fail_timeout=3D0;
+ =A0 =A0server 192.168.0.3:8080 fail_timeout=3D0;
+
+ =A0 =A0# the "backup" parameter means nginx won't ever try these
+    # unless the set of listeners above fail.
+ =A0 =A0server 192.168.0.1:8081 fail_timeout=3D0 backup;
+ =A0 =A0server 192.168.0.2:8081 fail_timeout=3D0 backup;
+ =A0 =A0server 192.168.0.3:8081 fail_timeout=3D0 backup;
+ =A0}
+
+You can monitor the nginx error logs and see how often it fails on the
+low backlog listener, and then increment/decrement the backlog of
+the primary listeners as needed to get better load-balancing.
+
+-- =
+
+Eric Wong
