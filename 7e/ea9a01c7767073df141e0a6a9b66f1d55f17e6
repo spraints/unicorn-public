@@ -1,0 +1,97 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: While we're on the topic
+Date: Fri, 9 Oct 2009 16:26:32 -0700
+Message-ID: <20091009232632.GD14137@dcvr.yhbt.net>
+References: <54A2628C-A2FE-43A6-B35A-B124275CC959@gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: ger.gmane.org 1255130942 9520 80.91.229.12 (9 Oct 2009 23:29:02 GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Fri, 9 Oct 2009 23:29:02 +0000 (UTC)
+Cc: mongrel-unicorn@rubyforge.org
+To: Brian Ketelsen <bketelsen@gmail.com>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Sat Oct 10 01:28:52
+ 2009
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <54A2628C-A2FE-43A6-B35A-B124275CC959@gmail.com>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:76
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/76>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.50) id 1MwOtH-0001O0-Is for gclrug-mongrel-unicorn@m.gmane.org; Sat,
+ 10 Oct 2009 01:28:51 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 1718A1D7882B; Fri,  9 Oct 2009 19:28:51 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 5AC0D1D7882B for <mongrel-unicorn@rubyforge.org>;
+ Fri,  9 Oct 2009 19:26:33 -0400 (EDT)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) (using TLSv1 with cipher
+ DHE-RSA-AES128-SHA (128/128 bits)) (No client certificate requested) by
+ dcvr.yhbt.net (Postfix) with ESMTPSA id B02201F9B3; Fri,  9 Oct 2009 23:26:32
+ +0000 (UTC)
+
+Brian Ketelsen <bketelsen@gmail.com> wrote:
+> First - Thanks!   We're loving Unicorn.
+
+Hi Brian, thanks for the feedback!
+
+> I'm serving about 200K API requests a day on a few linux servers running 
+> Unicorn.  We have the API calls, and also some admin stuff that has a UI. 
+>  I have a pair of F5 load balancers in front of the setup with two pools. 
+>  The API pool passes directly to the unicorns, while the UI pool passes 
+> to nginx which passes to unicorn.  At the time it seemed to make sense 
+> that the API calls were stateless and waiting only on our backend 
+> services to process.  The UI was a more complex story with web browsers 
+> and persistence.
+>
+> I'm curious -- is the F5 straight to unicorn plan a good one?  We've had 
+> no complaints from our customers and great performance, so it's more of a 
+> rhetorical question, my average API response time is a tenth of a second. 
+>  Are there any traps here?
+
+It depends heavily on several factors:
+
+* Responses sizes, are they smaller than the outgoing network buffers?
+  As long as Unicorn can write to their outgoing network buffers
+  without the receiving end (the F5) blocking it, the response should
+  be fine since it's basically fire-and-forget.
+
+* Do you handle large requests?  This is the troublesome part with
+  non-nginx frontends...  I think the F5 can buffer headers entirely
+  before sending them on if it's told to do layer 7, but it never
+  buffers request bodies.  That said I've never been able to study
+  F5s (or any non-Free frontends) in depth...
+
+* Do your clients want/need/benefit from HTTP keepalive and pipelining?
+  I'm not sure if the F5 is capable of mapping keepalive/pipelining
+  from the client to the non-keepalive Unicorn backends.
+
+-- 
+Eric Wong
