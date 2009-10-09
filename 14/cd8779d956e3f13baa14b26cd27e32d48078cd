@@ -1,0 +1,110 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.7 required=5.0 tests=MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Chris Wanstrath <chris@ozmm.org>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: Our Unicorn Setup
+Date: Fri, 9 Oct 2009 14:25:15 -0700
+Message-ID: <8b73aaca0910091425y6d688b5raa9fec7c45d6c88c@mail.gmail.com>
+References: <8b73aaca0910091242u78ac787aj48fb1b63b5bf55bc@mail.gmail.com>
+ <20091009203025.GA23205@dcvr.yhbt.net>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="iso-8859-1"
+Content-Transfer-Encoding: quoted-printable
+X-Trace: ger.gmane.org 1255123528 22216 80.91.229.12 (9 Oct 2009 21:25:28
+ GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Fri, 9 Oct 2009 21:25:28 +0000 (UTC)
+Cc: mongrel-unicorn@rubyforge.org
+To: Eric Wong <normalperson@yhbt.net>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Fri Oct 09 23:25:18
+ 2009
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+In-Reply-To: <20091009203025.GA23205@dcvr.yhbt.net>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:69
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/69>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.50) id 1MwMxh-0004qx-Rf for gclrug-mongrel-unicorn@m.gmane.org; Fri,
+ 09 Oct 2009 23:25:17 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 60F521D78828; Fri,  9 Oct 2009 17:25:17 -0400 (EDT)
+Received: from mail-yx0-f187.google.com (mail-yx0-f187.google.com
+ [209.85.210.187]) by rubyforge.org (Postfix) with ESMTP id A01FE1D78828 for
+ <mongrel-unicorn@rubyforge.org>; Fri,  9 Oct 2009 17:25:15 -0400 (EDT)
+Received: by yxe17 with SMTP id 17so953973yxe.33 for
+ <mongrel-unicorn@rubyforge.org>; Fri, 09 Oct 2009 14:25:15 -0700 (PDT)
+Received: by 10.150.238.18 with SMTP id l18mr5652341ybh.14.1255123515326;
+ Fri,  09 Oct 2009 14:25:15 -0700 (PDT)
+
+On Fri, Oct 9, 2009 at 1:30 PM, Eric Wong <normalperson@yhbt.net> wrote:
+
+> "The Unicorn master manages the workers and balancing"
+>
+> Actually, the master never manages balancing, just the workers. =A0The
+> diagram is a little inaccurate as it looks like the master sees the
+> requests, it never does.
+>
+> The request flow is like this:
+>
+> =A0 =A0 =A0 =A0 =A0 requests
+> =A0 =A0 =A0 =A0 =A0 =A0 =A0|
+> =A0 =A0 =A0 =A0 =A0 =A0 =A0|
+> =A0 =A0 =A0 =A0 =A0 =A0 =A0|
+> =A0 =A0 =A0 =A0shared socket(s)
+> =A0 =A0 =A0 =A0 =A0 =A0 /|\
+> =A0 =A0 =A0 =A0 =A0 =A0/ | \
+> =A0 =A0 =A0 =A0 =A0 | =A0| =A0|
+> =A0 =A0 =A0 =A0 =A0 | =A0| =A0|
+> =A0 =A0 =A0 =A0 worker pool
+>
+> While the shared socket is opened and configured by the master, but the
+> master does nothing else with the sockets. =A0You're completely right
+> about the pull balancing, it's one of the most distinctive differences
+> between Unicorn and other setups.
+
+Thanks! I've updated the diagram and some of the language to be accurate.
+
+> Also, for the 502s, do you get more 502s after the initial worker times
+> out? =A0I think nginx may (still)[1] mark a backend as completely dead/do=
+wn
+> when a backend dies. =A0That may cause nginx to stop forwarding to that
+> backend entirely and throw more 502s for a few seconds until nginx
+> decides to actually try that backend again.
+>
+> Setting fail_timeout=3D0 causes nginx to never mark backends as down and
+> always try to send a request to them:
+>
+> =A0upstream github {
+> =A0 =A0server unix:/data/github/current/tmp/sockets/unicorn.sock fail_tim=
+eout=3D0;
+> =A0}
+
+We'll try this out, thanks for letting us know about it.
+
+Cheers,
+
+-- =
+
+Chris Wanstrath
+http://github.com/defunkt
