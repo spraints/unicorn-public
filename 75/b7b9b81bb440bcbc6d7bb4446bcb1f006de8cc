@@ -1,0 +1,119 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.6 required=5.0 tests=AWL,FREEMAIL_FROM,
+ MSGID_FROM_MTA_HEADER,RP_MATCHES_RCVD,T_DKIM_INVALID shortcircuit=no
+ autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Jeremy Evans <jeremyevans0@gmail.com>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: Worker restarts even when idle
+Date: Sun, 11 Oct 2009 19:50:36 -0700
+Message-ID: <5c548e460910111950u53b3d61ayd6eceeca7ad02e36@mail.gmail.com>
+References: <5c548e460910111755k4904ae7ei2672221c8519b38b@mail.gmail.com>
+ <20091012013231.GA17768@dcvr.yhbt.net>
+ <5c548e460910111911j3864b6b4pdc4a7d811c9c1e01@mail.gmail.com>
+ <20091012023150.GA5509@dcvr.yhbt.net>
+ <5c548e460910111946l4269750kb252044abbb10bd3@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="iso-8859-1"
+Content-Transfer-Encoding: quoted-printable
+X-Trace: ger.gmane.org 1255315931 12497 80.91.229.12 (12 Oct 2009 02:52:11
+ GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Mon, 12 Oct 2009 02:52:11 +0000 (UTC)
+To: mongrel-unicorn@rubyforge.org
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Mon Oct 12 04:52:01
+ 2009
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com; s=gamma;
+ h=domainkey-signature:mime-version:received:in-reply-to:references
+ :date:message-id:subject:from:to:content-type :content-transfer-encoding;
+ bh=aTMm5h8dHEZJmg63Th7Eu88XipglaXUqo67xfJQzFCs=;
+ b=ZGH7PBHLkpWuhwu67+zEXtByzcQvJWB74O2oA0q1lZ/zw16gRgT3yJOK4u0/sz0R6E
+ Lo4IDqeDGtV9WK9QJswX5s8NvAO19XMm2iDhYnb4KjNGNtpRtgQoTcQFO0ZLjgXNpDKM
+ 4ETNOAV8Tsc5iJHL1GHZz+/O92gSnzgqJsoHw=
+DomainKey-Signature: a=rsa-sha1; c=nofws; d=gmail.com; s=gamma;
+ h=mime-version:in-reply-to:references:date:message-id:subject:from:to
+ :content-type:content-transfer-encoding;
+ b=wTEOq6DFJcBV+ZdQMVjOiHIflg1D2PXMTlHnqTtQj+r3AGMGmcsSAPsdCiA/RYINNf
+ fObIb4TAYeuAz131nkqswLudmIH3kVHXNUScm/ME+x5UG4h8rmhtBc/ZgP9a83dtE3k+
+ LYJmy5keBSEo4q2A2aUfEI16NV0LZZrweNzbc=
+In-Reply-To: <5c548e460910111946l4269750kb252044abbb10bd3@mail.gmail.com>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:80
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/80>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.50) id 1MxB0z-0001sC-HV for gclrug-mongrel-unicorn@m.gmane.org; Mon,
+ 12 Oct 2009 04:52:01 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id C633818581EF; Sun, 11 Oct 2009 22:52:00 -0400 (EDT)
+Received: from mail-gx0-f227.google.com (mail-gx0-f227.google.com
+ [209.85.217.227]) by rubyforge.org (Postfix) with ESMTP id 52D2718581EF for
+ <mongrel-unicorn@rubyforge.org>; Sun, 11 Oct 2009 22:50:37 -0400 (EDT)
+Received: by gxk27 with SMTP id 27so8572392gxk.7 for
+ <mongrel-unicorn@rubyforge.org>; Sun, 11 Oct 2009 19:50:37 -0700 (PDT)
+Received: by 10.101.52.13 with SMTP id e13mr5093568ank.0.1255315836968; Sun, 
+ 11 Oct 2009 19:50:36 -0700 (PDT)
+
+On Sun, Oct 11, 2009 at 7:46 PM, Jeremy Evans <jeremyevans0@gmail.com> wrot=
+e:
+> On Sun, Oct 11, 2009 at 7:31 PM, Eric Wong <normalperson@yhbt.net> wrote:
+>> Jeremy Evans <jeremyevans0@gmail.com> wrote:
+>>> On Sun, Oct 11, 2009 at 6:32 PM, Eric Wong <normalperson@yhbt.net> wrot=
+e:
+>>> > Jeremy Evans <jeremyevans0@gmail.com> wrote:
+>>> > Can you try playing the following on OpenBSD and seeing if
+>>> > the ctimes match for before and after?
+>> <snip>
+>>> The times are different:
+>>>
+>>> =A0 [Sun Oct 11 19:08:42 -0700 2009, Sun Oct 11 19:08:43 -0700 2009]
+>>
+>> OK.
+>>
+>> Is this only on a certain app/library that might use IO.select in a
+>> different thread? =A0Can you reproduce it on a dead simple "Hello World"
+>> app that you're certain is single-threaded? =A0It could be related to th=
+is
+>> bug someone off list hit the other day:
+>
+> This is completely my fault. =A0I wasn't using a config.ru file
+> previously, so when I first ran unicorn, it asked me to create one. =A0I
+> added one that did:
+>
+> =A0require 'start' # start.rb being the file that started the application
+>
+> Near the end of start.rb:
+>
+> =A0Rack::Handler.get('mongrel').run ...
+>
+> Things are working fine now that I've fixed my code. =A0Sorry for the noi=
+se.
+>
+> Jeremy
+>
+
+Eric,
+
+This and earlier replies were meant for the list.  Is it possible for
+the list's reply-to address to be the list address itself?
+
+Jeremy
