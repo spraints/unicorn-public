@@ -1,0 +1,78 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.6 required=5.0 tests=AWL,FREEMAIL_FROM,
+ MSGID_FROM_MTA_HEADER,RP_MATCHES_RCVD,T_DKIM_INVALID shortcircuit=no
+ autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Jeremy Evans <jeremyevans0@gmail.com>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Worker restarts even when idle
+Date: Sun, 11 Oct 2009 17:55:48 -0700
+Message-ID: <5c548e460910111755k4904ae7ei2672221c8519b38b@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: ger.gmane.org 1255308963 31125 80.91.229.12 (12 Oct 2009 00:56:03
+ GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Mon, 12 Oct 2009 00:56:03 +0000 (UTC)
+To: mongrel-unicorn@rubyforge.org
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Mon Oct 12 02:55:53
+ 2009
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com; s=gamma;
+ h=domainkey-signature:mime-version:received:date:message-id:subject
+ :from:to:content-type; bh=alaoYDCM0C/wYHr7h/tool/Dv+ufbrwY7DBXV4fK5EQ=;
+ b=A4UJ3orXRD24OZC3d4Ppi7WJPXb/QZxYpSXus7o3TiKaC/tivIrpkqmiy3ZhRectjj
+ J0kCAOfWUSSQC/HFfNWz92hvgtcuwRtCY30aJVnBcC21D5yvM7cq4LttWtvkcLGKsN7F
+ AK4tarQhXxKMbKfFoHD0NuwueOrlUBInqmVEg=
+DomainKey-Signature: a=rsa-sha1; c=nofws; d=gmail.com; s=gamma;
+ h=mime-version:date:message-id:subject:from:to:content-type;
+ b=nFM39RhZ5FbLadoJBaGcwY0CXXcu5+SRuW/QN+cdQz3y5n83lCKVS/8FTaNHu8a/Xt
+ wOls5vVBu2fJc7XnkDqBpW5qXF+h/DU6amB+Bf3Y+fQJ/X9PZyqjO15/5AEOMjzFnyOK
+ 1kEAxYtUFjkJNFw0TYbXhb+DXZvE7VUxFjkR0=
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:77
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/77>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.50) id 1Mx9Ca-0003d7-Au for gclrug-mongrel-unicorn@m.gmane.org; Mon,
+ 12 Oct 2009 02:55:52 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id BBEAE18581F3; Sun, 11 Oct 2009 20:55:51 -0400 (EDT)
+Received: from mail-yw0-f183.google.com (mail-yw0-f183.google.com
+ [209.85.211.183]) by rubyforge.org (Postfix) with ESMTP id 69A2318581F3 for
+ <mongrel-unicorn@rubyforge.org>; Sun, 11 Oct 2009 20:55:49 -0400 (EDT)
+Received: by ywh13 with SMTP id 13so4345471ywh.29 for
+ <mongrel-unicorn@rubyforge.org>; Sun, 11 Oct 2009 17:55:49 -0700 (PDT)
+Received: by 10.101.98.9 with SMTP id a9mr4951832anm.160.1255308949053; Sun, 
+ 11 Oct 2009 17:55:49 -0700 (PDT)
+
+Eric,
+
+Thanks for the 0.93.3 release.  I'm now able to test my apps with unicorn.
+
+If I have an idle application, the master program restarts the workers
+every timeout seconds.  Is this the expected behavior, and if so, is
+there a reason for it?  Would you be opposed to changing it so that
+the master doesn't restart workers that haven't had any activity in
+the last timeout seconds?
+
+Jeremy
