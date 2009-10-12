@@ -1,0 +1,125 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: Worker restarts even when idle
+Date: Sun, 11 Oct 2009 18:32:31 -0700
+Message-ID: <20091012013231.GA17768@dcvr.yhbt.net>
+References: <5c548e460910111755k4904ae7ei2672221c8519b38b@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: ger.gmane.org 1255311169 3207 80.91.229.12 (12 Oct 2009 01:32:49
+ GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Mon, 12 Oct 2009 01:32:49 +0000 (UTC)
+Cc: mongrel-unicorn@rubyforge.org
+To: Jeremy Evans <jeremyevans0@gmail.com>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Mon Oct 12 03:32:39
+ 2009
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <5c548e460910111755k4904ae7ei2672221c8519b38b@mail.gmail.com>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:78
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/78>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.50) id 1Mx9mA-0004pq-Cv for gclrug-mongrel-unicorn@m.gmane.org; Mon,
+ 12 Oct 2009 03:32:38 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 7A6651779933; Sun, 11 Oct 2009 21:32:35 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id D8BE51779933 for <mongrel-unicorn@rubyforge.org>;
+ Sun, 11 Oct 2009 21:32:32 -0400 (EDT)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) (using TLSv1 with cipher
+ DHE-RSA-AES128-SHA (128/128 bits)) (No client certificate requested) by
+ dcvr.yhbt.net (Postfix) with ESMTPSA id 44C2C1F9AD; Mon, 12 Oct 2009 01:32:32
+ +0000 (UTC)
+
+Jeremy Evans <jeremyevans0@gmail.com> wrote:
+> Eric,
+> 
+> Thanks for the 0.93.3 release.  I'm now able to test my apps with unicorn.
+> 
+> If I have an idle application, the master program restarts the workers
+> every timeout seconds.  Is this the expected behavior, and if so, is
+> there a reason for it?  Would you be opposed to changing it so that
+> the master doesn't restart workers that haven't had any activity in
+> the last timeout seconds?
+
+Idle as in no clients connected (and not long-poll/Comet idle)?
+Definitely not expected behavior...
+
+Can you try playing the following on OpenBSD and seeing if
+the ctimes match for before and after?
+
+  require 'tempfile'
+  foo = Tempfile.new nil
+  before = foo.stat
+  foo.chmod 1
+  sleep 1
+  foo.chmod 0
+  after = foo.stat
+
+  p [ before.ctime, after.ctime ]
+
+If they're the same, can you also try syswrite(".") instead of chmod and
+see if that does anything?
+
+I wonder if OpenBSD is not implementing st_ctime changes properly,
+I understanding is that st_ctime should change for any FS-related
+operations, from the Linux stat(2) manpage:
+
+  http://linux.die.net/man/2/stat
+
+  The field st_ctime is changed by writing or by setting inode
+  information (i.e., owner, group, link count, mode, etc.).
+
+Likewise, the OpenBSD manpage:
+
+  http://www.openbsd.org/cgi-bin/man.cgi?query=stat&apropos=0&sektion=2&manpath=OpenBSD+Current&arch=i386&format=html
+
+  st_ctime    Time when file status was last changed (inode data
+              modification).  Changed by the chmod(2), chown(2),
+              link(2), rename(2), unlink(2), utimes(2), and write(2)
+              system calls.
+
+Note that the OpenBSD manpage doesn't explicitly say fchmod(2), just
+chmod(2), so if the above didn't work, maybe the following does?
+
+  require 'tempfile'
+  foo = Tempfile.new nil
+  before = foo.stat
+  File.chmod(1, foo.path)
+  sleep 1
+  File.chmod(0, foo.path)
+  after = foo.stat
+
+  p [ before.ctime, after.ctime ]
+
+This might be a bug in OpenBSD, but I'd be willing to make a workaround
+
+-- 
+Eric Wong
