@@ -1,0 +1,93 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.7 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: Worker restarts even when idle
+Date: Sun, 11 Oct 2009 19:31:50 -0700
+Message-ID: <20091012023150.GA5509@dcvr.yhbt.net>
+References: <5c548e460910111755k4904ae7ei2672221c8519b38b@mail.gmail.com>
+ <20091012013231.GA17768@dcvr.yhbt.net>
+ <5c548e460910111911j3864b6b4pdc4a7d811c9c1e01@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: ger.gmane.org 1255314725 10340 80.91.229.12 (12 Oct 2009 02:32:05
+ GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Mon, 12 Oct 2009 02:32:05 +0000 (UTC)
+Cc: mongrel-unicorn@rubyforge.org
+To: Jeremy Evans <jeremyevans0@gmail.com>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Mon Oct 12 04:31:56
+ 2009
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <5c548e460910111911j3864b6b4pdc4a7d811c9c1e01@mail.gmail.com>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:79
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/79>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.50) id 1MxAhX-0004Oh-OL for gclrug-mongrel-unicorn@m.gmane.org; Mon,
+ 12 Oct 2009 04:31:55 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id EC56C18581EF; Sun, 11 Oct 2009 22:31:54 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 8050618581EF for <mongrel-unicorn@rubyforge.org>;
+ Sun, 11 Oct 2009 22:31:52 -0400 (EDT)
+Received: from localhost (user-118bg0q.cable.mindspring.com [66.133.192.26])
+ (using TLSv1 with cipher DHE-RSA-AES128-SHA (128/128 bits)) (No client
+ certificate requested) by dcvr.yhbt.net (Postfix) with ESMTPSA id B6BC11F9AD;
+ Mon, 12 Oct 2009 02:31:51 +0000 (UTC)
+
+Jeremy Evans <jeremyevans0@gmail.com> wrote:
+> On Sun, Oct 11, 2009 at 6:32 PM, Eric Wong <normalperson@yhbt.net> wrote:
+> > Jeremy Evans <jeremyevans0@gmail.com> wrote:
+> > Can you try playing the following on OpenBSD and seeing if
+> > the ctimes match for before and after?
+<snip>
+> The times are different:
+> 
+>   [Sun Oct 11 19:08:42 -0700 2009, Sun Oct 11 19:08:43 -0700 2009]
+
+OK.
+
+Is this only on a certain app/library that might use IO.select in a
+different thread?  Can you reproduce it on a dead simple "Hello World"
+app that you're certain is single-threaded?  It could be related to this
+bug someone off list hit the other day:
+
+  http://net-ssh.lighthouseapp.com/projects/36253/tickets/1
+
+  (redmine.ruby-lang.org is dead right now :<)
+  http://redmine.ruby-lang.org/issues/show/2039
+  http://redmine.ruby-lang.org/issues/show/1993
+
+Can you ktrace(? (or any other) syscall tracer) the worker immediately
+after spawning and see what it's doing up until the master kills it?
+
+The other possible culprit is that the accept_nonblock is blocking,
+somehow...
+
+-- 
+Eric Wong
