@@ -1,0 +1,124 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.7 required=5.0 tests=MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: Unicorn Nginx Issue
+Date: Tue, 13 Oct 2009 12:43:24 -0700
+Message-ID: <20091013194324.GA1676@dcvr.yhbt.net>
+References: <91d915350910130957w6a5412f9w8e13ef1d0167ee40@mail.gmail.com>
+ <0AFCBD06-4CB0-42FE-B3D8-0A6AFCF89962@gmail.com>
+ <91d915350910131027g6a3e9704r5becf0d2e7402e39@mail.gmail.com>
+ <91d915350910131034t5dabb51eo5cde67397612f9f4@mail.gmail.com>
+ <20091013185314.GA15026@dcvr.yhbt.net>
+ <91d915350910131203w2b67ddbcjba9189c2eac303d2@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: ger.gmane.org 1255463018 2926 80.91.229.12 (13 Oct 2009 19:43:38
+ GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Tue, 13 Oct 2009 19:43:38 +0000 (UTC)
+To: unicorn general mailing list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Tue Oct 13 21:43:28
+ 2009
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <91d915350910131203w2b67ddbcjba9189c2eac303d2@mail.gmail.com>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:90
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/90>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.50) id 1MxnHL-0007ui-Tk for gclrug-mongrel-unicorn@m.gmane.org; Tue,
+ 13 Oct 2009 21:43:28 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id F2F2B3C8038; Tue, 13 Oct 2009 15:43:26 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 3995E13C896A for <mongrel-unicorn@rubyforge.org>;
+ Tue, 13 Oct 2009 15:43:25 -0400 (EDT)
+Received: from localhost (unknown [12.186.229.34]) (using TLSv1 with cipher
+ DHE-RSA-AES128-SHA (128/128 bits)) (No client certificate requested) by
+ dcvr.yhbt.net (Postfix) with ESMTPSA id B8BB01F9AD; Tue, 13 Oct 2009 19:43:24
+ +0000 (UTC)
+
+Matt Mongeau <halogenandtoast@gmail.com> wrote:
+> sudo gem check -t unicorn
+
+Again, please don't top post on this mailing list (nor on other technical
+mailing lists in general).
+
+> fails
+> 
+> Failure:
+> test_rack_lint_big_put(RequestTest) [./test/unit/test_request.rb:178]:
+> <nil> expected but was
+> <"
+> 
+> followed by lots whitespace
+> 
+> ">.
+
+Unrelated to the problem we were having, but this really should be
+working, especially with 0.93.2 or later.  Is anybody else out there
+hitting this?
+
+> Error:
+> test_expand_addr(TestConfigurator):
+> SocketError: getaddrinfo: nodename nor servname provided, or not known
+>     /opt/local/lib/ruby/gems/1.8/gems/unicorn-0.93.2/lib/unicorn/configurator.rb:346:in
+> `pack_sockaddr_in'
+>     /opt/local/lib/ruby/gems/1.8/gems/unicorn-0.93.2/lib/unicorn/configurator.rb:346:in
+> `expand_addr'
+>     ./test/unit/test_configurator.rb:35:in `call'
+>     ./test/unit/test_configurator.rb:35:in `test_expand_addr'
+
+This looks like a portability issue.  I'll probably rip those tests out
+since a good chunk of systems don't addresses like this.
+
+But above this test failure, the other test_expand_addr assertions
+manage to pass which is strange, namely the following:
+
+    meth = Unicorn::Configurator.new.method(:expand_addr)
+
+    assert_equal "/var/run/unicorn.sock", meth.call("/var/run/unicorn.sock")
+    assert_equal "#{Dir.pwd}/foo/bar.sock", meth.call("unix:foo/bar.sock")
+
+Your original paths were under 104 bytes, too[1]
+
+> >> I had
+> >> listen '/Users/mattmongeau/projects/test/unicorn/tmp/sockets/unicorn.sock',
+> >> :backlog => 1024
+> >> I guess I needed
+> >> listen 'unix:/Users/mattmongeau/projects/test/unicorn/tmp/sockets/unicorn.sock',
+> >> :backlog => 1024
+
+Does using a shorter path help at all?
+
+Shorter (and shallower) paths are even a small bit faster because the
+filesystem has to do less work to resolve it for every connection :)
+
+[1] - http://portabilityblog.com/blog/archives/4-UNIX-domain-sockets.html
+
+-- 
+Eric Wong
