@@ -1,0 +1,98 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.6 required=5.0 tests=FREEMAIL_FROM,
+ MSGID_FROM_MTA_HEADER,RP_MATCHES_RCVD,T_DKIM_INVALID shortcircuit=no
+ autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Matt Mongeau <halogenandtoast@gmail.com>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Unicorn Nginx Issue
+Date: Tue, 13 Oct 2009 12:57:21 -0400
+Message-ID: <91d915350910130957w6a5412f9w8e13ef1d0167ee40@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: ger.gmane.org 1255453070 24680 80.91.229.12 (13 Oct 2009 16:57:50
+ GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Tue, 13 Oct 2009 16:57:50 +0000 (UTC)
+To: mongrel-unicorn@rubyforge.org
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Tue Oct 13 18:57:40
+ 2009
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com; s=gamma;
+ h=domainkey-signature:mime-version:received:date:message-id:subject
+ :from:to:content-type; bh=rXymtQbxbjDMxIFCbT6gk/ZCQQ/oNudJIBHXMGGHDiQ=;
+ b=l9g4sG24M7svlN1OLu7oG1HVumin5h2MzZ2d5gFPrLXXe1/ksRQZUxlTIXZ/WIWhxC
+ aYNFdhaesOYYByqI79pG8CbPZRIgFfwGxhcFThKj3/oFniyrJlhUpMXxqdWPWoihWPgb
+ BJp7KJfZYzx25YeRNlT7DKAU5+JkE2DdswNSc=
+DomainKey-Signature: a=rsa-sha1; c=nofws; d=gmail.com; s=gamma;
+ h=mime-version:date:message-id:subject:from:to:content-type;
+ b=RYibMd3ibNE/NLBVCslavqnPCJk7QL74HLVDLUW4Olvl64wGht+Z5kIGIoJOjZnY31
+ g8AC6tVii2Zrv66a9jTVMzUFbhhtC9GVtgkR3PwO+2A0dV6ox9m0jtGwYLCBWccxx5cs
+ U3g0SlQTSntDwIc2kyQpjs/ts5aDEmhNUmT9g=
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:84
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/84>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.50) id 1Mxkgi-0007ng-BX for gclrug-mongrel-unicorn@m.gmane.org; Tue,
+ 13 Oct 2009 18:57:28 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 711AC3C8037; Tue, 13 Oct 2009 12:57:27 -0400 (EDT)
+Received: from mail-ew0-f215.google.com (mail-ew0-f215.google.com
+ [209.85.219.215]) by rubyforge.org (Postfix) with ESMTP id 13D353C8037 for
+ <mongrel-unicorn@rubyforge.org>; Tue, 13 Oct 2009 12:57:21 -0400 (EDT)
+Received: by ewy11 with SMTP id 11so10014384ewy.35 for
+ <mongrel-unicorn@rubyforge.org>; Tue, 13 Oct 2009 09:57:21 -0700 (PDT)
+Received: by 10.216.90.81 with SMTP id d59mr2520059wef.29.1255453041103; Tue,
+ 13 Oct 2009 09:57:21 -0700 (PDT)
+
+I've setup nginx with this
+server {
+  listen 80;
+  server_name unicorn.local;
+  location / {
+    proxy_pass http://unicorn;
+  }
+}
+upstream unicorn {
+  server unix:/Users/mattmongeau/projects/test/unicorn/tmp/sockets/unicorn.sock;
+}
+
+When I run unicorn_rails -c config/unicorn.rb -E development I can
+access the application just fine on unicorn.local
+
+When I run unicorn_rails -c config/unicorn.rb -E development -D I get this issue
+
+2009/10/13 12:34:22 [error] 1007#0: *62 connect() to
+unix:/Users/user/projects/test/unicorn/tmp/sockets/unicorn.sock failed
+(61: Connection refused) while connecting to upstream, client:
+127.0.0.1, server: unicorn.local, request: "GET / HTTP/1.1", upstream:
+"http://unix:/Users/user/projects/test/unicorn/tmp/sockets/unicorn.sock:/",
+host: "unicorn.local"
+
+ps -aux shows that the workers are created
+and ls -la show srwxrwxrwx  1 mattmongeau  staff    0 Oct 13 12:51 unicorn.sock=
+
+Any suggestions on what I am doing wrong. I running OSX 10.6.1, with
+nginx installed from passenger (nginx version: nginx/0.6.37)
+
+Thanks, Matt
