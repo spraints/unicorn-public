@@ -1,0 +1,111 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.7 required=5.0 tests=MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: weird unicorn_rails issue...
+Date: Wed, 14 Oct 2009 15:15:52 -0700
+Message-ID: <20091014221552.GA30624@dcvr.yhbt.net>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: ger.gmane.org 1255558573 5189 80.91.229.12 (14 Oct 2009 22:16:13
+ GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Wed, 14 Oct 2009 22:16:13 +0000 (UTC)
+To: mongrel-unicorn@rubyforge.org
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Thu Oct 15 00:16:02
+ 2009
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:95
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/95>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.50) id 1MyC8T-0003kG-GQ for gclrug-mongrel-unicorn@m.gmane.org; Thu,
+ 15 Oct 2009 00:15:57 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 7624018582C2; Wed, 14 Oct 2009 18:15:56 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id C983518582C2 for <mongrel-unicorn@rubyforge.org>;
+ Wed, 14 Oct 2009 18:15:53 -0400 (EDT)
+Received: from localhost (unknown [12.186.229.34]) (using TLSv1 with cipher
+ DHE-RSA-AES128-SHA (128/128 bits)) (No client certificate requested) by
+ dcvr.yhbt.net (Postfix) with ESMTPSA id 2F4331F92E; Wed, 14 Oct 2009 22:15:53
+ +0000 (UTC)
+
+Hi all,
+
+I just had a user on Rails v2.3.2 that had trouble[1] with the
+out-of-the-box unicorn_rails, but was worked around by using the
+following RAILS_ROOT/config.ru file with plain "unicorn" and
+manually setting RAILS_ENV in the shell environment
+
+  require 'config/environment'
+  use Rails::Rack::LogTailer
+  map("/") do
+    use Rails::Rack::Static
+    run ActionController::Dispatcher.new
+  end
+
+script/server + WEBrick worked out-of-the-box, as well.
+
+Oddly, the same config.ru file does not work with "unicorn_rails",
+either (even when the "config.ru" file is explicitly specified);
+only with "unicorn".
+
+So I'm a bit perplexed...
+
+
+[1] - by "trouble", I mean the app became very subtly broken.  Query
+parameters (it was a GET request) appeared to be handled correctly, but
+the app was not returning the same results.  I looked briefly at the
+app and noticed *something* was a bit suspicious:
+
+    -------------- app/controllers/foo_controller.rb -------------
+    class FooController < ApplicationController
+      def index
+        all_params = some_weird_params_generated
+        results = BarController.new.action(all_params)
+      end
+    end
+    -------------- app/controllers/bar_controller.rb -------------
+    class BarController < ApplicationController
+      def action(all_params)
+        do_something
+      end
+    end
+    --------------------------------------------------------------
+
+That is, it creates a new controller from within one controller inside
+one action.  Note that I'm not 100% certain this responsible for the
+breakage we were seeing, but it certainly does look like suspicious
+Rails code to me.
+
+
+I haven't decided if I'll spend time to fix/debug this, but at least
+I'll document it here if somebody wants to look into it further.
+
+-- 
+Eric Wong
