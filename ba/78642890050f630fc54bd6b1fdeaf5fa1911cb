@@ -1,0 +1,160 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.7 required=5.0 tests=MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: [PATCH] KNOWN_ISSUES: document Rack gem issue w/Rails 2.3.2
+Date: Fri, 16 Oct 2009 13:57:21 -0700
+Message-ID: <20091016205720.GA13223@dcvr.yhbt.net>
+References: <20091014221552.GA30624@dcvr.yhbt.net>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: ger.gmane.org 1255726673 31654 80.91.229.12 (16 Oct 2009 20:57:53
+ GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Fri, 16 Oct 2009 20:57:53 +0000 (UTC)
+To: mongrel-unicorn@rubyforge.org
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Fri Oct 16 22:57:31
+ 2009
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <20091014221552.GA30624@dcvr.yhbt.net>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:96
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.50) id 1Mytra-0006PQ-9K for gclrug-mongrel-unicorn@m.gmane.org; Fri,
+ 16 Oct 2009 22:57:26 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 9525818582BC; Fri, 16 Oct 2009 16:57:25 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 6E70B18582BC for <mongrel-unicorn@rubyforge.org>;
+ Fri, 16 Oct 2009 16:57:22 -0400 (EDT)
+Received: from localhost (unknown [12.186.229.34]) (using TLSv1 with cipher
+ DHE-RSA-AES128-SHA (128/128 bits)) (No client certificate requested) by
+ dcvr.yhbt.net (Postfix) with ESMTPSA id D539E1F5F3; Fri, 16 Oct 2009 20:57:21
+ +0000 (UTC)
+
+In short: upgrade to Rails 2.3.4 (or later)
+
+ref: http://mid.gmane.org/20091014221552.GA30624@dcvr.yhbt.net
+Note: the workaround described in the article above only made
+the issue more subtle and we didn't notice them immediately.
+---
+
+  Eric Wong <normalperson@yhbt.net> wrote:
+  > Hi all,
+  > 
+  > I just had a user on Rails v2.3.2 that had trouble[1] with the
+  > out-of-the-box unicorn_rails, but was worked around by using the
+  > following RAILS_ROOT/config.ru file with plain "unicorn" and
+  > manually setting RAILS_ENV in the shell environment
+  > 
+  >   require 'config/environment'
+  >   use Rails::Rack::LogTailer
+  >   map("/") do
+  >     use Rails::Rack::Static
+  >     run ActionController::Dispatcher.new
+  >   end
+  > 
+  > script/server + WEBrick worked out-of-the-box, as well.
+  > 
+  > Oddly, the same config.ru file does not work with "unicorn_rails",
+  > either (even when the "config.ru" file is explicitly specified);
+  > only with "unicorn".
+  > 
+  > So I'm a bit perplexed...
+  > 
+  > 
+  > [1] - by "trouble", I mean the app became very subtly broken.  Query
+  > parameters (it was a GET request) appeared to be handled correctly, but
+  > the app was not returning the same results.  I looked briefly at the
+  > app and noticed *something* was a bit suspicious:
+  > 
+  >     -------------- app/controllers/foo_controller.rb -------------
+  >     class FooController < ApplicationController
+  >       def index
+  >         all_params = some_weird_params_generated
+  >         results = BarController.new.action(all_params)
+  >       end
+  >     end
+  >     -------------- app/controllers/bar_controller.rb -------------
+  >     class BarController < ApplicationController
+  >       def action(all_params)
+  >         do_something
+  >       end
+  >     end
+  >     --------------------------------------------------------------
+  > 
+  > That is, it creates a new controller from within one controller inside
+  > one action.  Note that I'm not 100% certain this responsible for the
+  > breakage we were seeing, but it certainly does look like suspicious
+  > Rails code to me.
+  > 
+  > 
+  > I haven't decided if I'll spend time to fix/debug this, but at least
+  > I'll document it here if somebody wants to look into it further.
+ KNOWN_ISSUES    |   13 +++++++++++++
+ unicorn.gemspec |    4 ++++
+ 2 files changed, 17 insertions(+), 0 deletions(-)
+
+diff --git a/KNOWN_ISSUES b/KNOWN_ISSUES
+index 436997d..979ac9d 100644
+--- a/KNOWN_ISSUES
++++ b/KNOWN_ISSUES
+@@ -1,5 +1,18 @@
+ = Known Issues
+ 
++* Rails 2.3.2 bundles its own version of Rack.  This may cause subtle
++  bugs when simultaneously loaded with the system-wide Rack Rubygem
++  which Unicorn depends on.  Upgrading to Rails 2.3.4 (or later) is
++  strongly recommended for all Rails 2.3.x users for this (and security
++  reasons).  Rails 2.2.x series (or before) did not bundle Rack and are
++  should be unnaffected.  If there is any reason which forces your
++  application to use Rails 2.3.2 and you have no other choice, then
++  you may edit your Unicorn gemspec and remove the Rack dependency.
++
++  ref: http://mid.gmane.org/20091014221552.GA30624@dcvr.yhbt.net
++  Note: the workaround described in the article above only made
++  the issue more subtle and we didn't notice them immediately.
++
+ * Installing "unicorn" as a system-wide Rubygem and using the
+   {isolate}[http://github.com/jbarnette/isolate] gem may cause issues if
+   you're using any of the bundled application-level libraries in
+diff --git a/unicorn.gemspec b/unicorn.gemspec
+index c5b4422..063b313 100644
+--- a/unicorn.gemspec
++++ b/unicorn.gemspec
+@@ -43,6 +43,10 @@ Gem::Specification.new do |s|
+ 
+   s.test_files = test_files
+ 
++  # for people that are absolutely stuck on Rails 2.3.2 and can't
++  # up/downgrade to any other version, the Rack dependency may be
++  # commented out.  Nevertheless, upgrading to Rails 2.3.4 or later is
++  # *strongly* recommended for security reasons.
+   s.add_dependency(%q<rack>)
+ 
+   # s.licenses = %w(GPLv2 Ruby) # licenses= method is not in older Rubygems
+-- 
+Eric Wong
