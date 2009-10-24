@@ -1,0 +1,103 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: Fwd: Doc Examples
+Date: Sat, 24 Oct 2009 09:40:19 -0700
+Message-ID: <20091024164018.GB21242@dcvr.yhbt.net>
+References: <mailman.10.1256366057.12137.mongrel-unicorn@rubyforge.org>
+ <5976e8970910240835i760a0736xe6ae9c832868a57@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: ger.gmane.org 1256402435 21690 80.91.229.12 (24 Oct 2009 16:40:35
+ GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Sat, 24 Oct 2009 16:40:35 +0000 (UTC)
+Cc: mongrel-unicorn@rubyforge.org
+To: Greg Melton <gmelton@gmail.com>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Sat Oct 24 18:40:28
+ 2009
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <5976e8970910240835i760a0736xe6ae9c832868a57@mail.gmail.com>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:102
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/102>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.50) id 1N1jfF-0001On-QZ for gclrug-mongrel-unicorn@m.gmane.org; Sat,
+ 24 Oct 2009 18:40:26 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id B21C118580F5; Sat, 24 Oct 2009 12:40:22 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 24CBB18580F5 for <mongrel-unicorn@rubyforge.org>;
+ Sat, 24 Oct 2009 12:40:21 -0400 (EDT)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) (using TLSv1 with cipher
+ DHE-RSA-AES128-SHA (128/128 bits)) (No client certificate requested) by
+ dcvr.yhbt.net (Postfix) with ESMTPSA id 6429D1F4E5; Sat, 24 Oct 2009 16:40:20
+ +0000 (UTC)
+
+Greg Melton <gmelton@gmail.com> wrote:
+> Eric, tried sending this one to the Unicorn list last night. I forgot to
+> subscribe to the list before sending and it bounced...
+
+Hi Greg, that's because HTML mail is not allowed on the list.
+
+> ---------- Forwarded message ----------
+> From: Greg Melton <gmelton@gmail.com>
+> To: mongrel-unicorn@rubyforge.org
+> Date: Fri, 23 Oct 2009 23:11:05 -0700
+> Subject: Doc Examples
+> I'm in the process of adding support for Unicorn to a Rack MVC framework
+> I've been noodling with => http://github.com/grippy/doozer.
+> 
+> I copied the example conf from
+> http://unicorn.bogomips.org/Unicorn/Configurator.html and it's missing an
+> 'end'.
+> 
+> No biggie, though.
+
+Thanks, updated and pushed out to the site.
+
+> One thing I was wondering: is there anyway Unicorn could come with some sort
+> init.d file (similar to nginx) to make starts/stops/restarts easier?
+
+There's examples/init.sh in the source tree:
+
+  http://git.bogomips.org/cgit/unicorn.git/tree/examples/init.sh
+
+It should work with nginx, too since nginx and Unicorn accept the same
+sets of signals.
+
+> Here's the update for the DOCS file.
+> 
+> if old_pid != server.pid
+>  begin
+>    sig = (worker.nr + 1) >= server.worker_processes ? :QUIT : :TTOU
+>       Process.kill(sig, File.read(old_pid).to_i)
+>    rescue Errno::ENOENT, Errno::ESRCH
+> 
+>   end
+> end
