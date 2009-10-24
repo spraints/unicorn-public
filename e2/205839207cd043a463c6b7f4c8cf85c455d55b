@@ -1,0 +1,122 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.7 required=5.0 tests=MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Vadim Spivak <vadim@spivak.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: Truncated request bodies
+Date: Sat, 24 Oct 2009 15:05:47 -0700
+Message-ID: <d779a0c60910241505r8d403fne2b6221a9e073af8@mail.gmail.com>
+References: <d779a0c60910230001r5f7ecea3l4904d48a08d2130f@mail.gmail.com>
+ <d779a0c60910230738q72065211qb4462bf0d86b768d@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: ger.gmane.org 1256423479 10573 80.91.229.12 (24 Oct 2009 22:31:19
+ GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Sat, 24 Oct 2009 22:31:19 +0000 (UTC)
+To: mongrel-unicorn <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Sun Oct 25 00:31:12
+ 2009
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+X-Greylist: delayed 1132 seconds by postgrey-1.31 at rubycentral.org; Sat, 24
+ Oct 2009 18:31:05 EDT
+X-Originating-IP: [98.210.152.130]
+In-Reply-To: <d779a0c60910230738q72065211qb4462bf0d86b768d@mail.gmail.com>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:103
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/103>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.50) id 1N1p8f-0006bl-V0 for gclrug-mongrel-unicorn@m.gmane.org; Sun,
+ 25 Oct 2009 00:31:10 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 9AA681858277; Sat, 24 Oct 2009 18:31:08 -0400 (EDT)
+Received: from mail-px0-f201.google.com (mail-px0-f201.google.com
+ [209.85.216.201]) by rubyforge.org (Postfix) with ESMTP id 0AB271858267 for
+ <mongrel-unicorn@rubyforge.org>; Sat, 24 Oct 2009 18:31:06 -0400 (EDT)
+Received: by pxi39 with SMTP id 39so1800879pxi.30 for
+ <mongrel-unicorn@rubyforge.org>; Sat, 24 Oct 2009 15:31:06 -0700 (PDT)
+Received: by 10.140.136.13 with SMTP id j13mr2023007rvd.70.1256421947886;
+ Sat,  24 Oct 2009 15:05:47 -0700 (PDT)
+
+> Hi Vadim,
+>
+> What's the output of that standalone ruby example for you?  Is there a
+> bug filed with ruby-core I could look at?
+
+"Should be 5: 0"
+
+I haven't had a chance to file a bug yet and couldn't find
+
+Also, if you don't set sync to true, then you get the expected output
+5 instead of 0.
+
+>
+> Also, does using f << or f.syswrite change things?
+> f.sync = true should really make it unnecessary...
+
+I tried both and they didn't make a difference
+
+>
+>        f = File.open("bar", File::RDWR|File::CREAT, 0600)
+>        f.sync=true
+>        f.read  # why is this here?
+>        f << "Hello"  # or f.syswrite
+>
+>        # would an explicit f.flush here work? shouldn't be needed
+>        # with f.sync = true
+>        puts "Should be 5: #{f.pos}"
+>        f.close
+>
+> > I couldn't reproduce this on 1.9.1 on OS X or 1.8.7 on Linux.
+>
+> I'll definitely need help with testing this then since I only have
+> Linux.
+>
+> Which 1.8.7 patchlevel is your OS X Ruby at?  Do you know if the
+> OS X packagers apply any vendor patches on top of the stock Ruby distro
+> that could be causing it?  Are those patches downloadable anywhere?
+> Thanks!
+
+I've tested both on 1.8.7 patch level 72.  Also, just to make sure it
+wasn't a vendor patch, I just downloaded and compiled the source for
+1.8.7 p72 and saw the same issue.
+
+# ships with OS X
+ruby 1.8.7 (2008-08-11 patchlevel 72) [universal-darwin10.0]
+
+# compiled from source on OS X
+ruby 1.8.7 (2008-08-11 patchlevel 72) [i686-darwin10.0.0]
+
+# linux install
+ruby 1.8.7 (2008-08-11 patchlevel 72) [x86_64-linux]
+
+Also, I just tried it on a FreeBSD 7.2 VM and saw the same results as
+on OS X.  (VM downloaded from http://www.thoughtpolice.co.uk/vmware/)
+
+Thanks,
+Vadim
+
+>
+> --
+> Eric Wong
