@@ -1,0 +1,85 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.7 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: Truncated request bodies
+Date: Sat, 24 Oct 2009 20:49:37 -0700
+Message-ID: <20091025034936.GA25264@dcvr.yhbt.net>
+References: <d779a0c60910230001r5f7ecea3l4904d48a08d2130f@mail.gmail.com>
+ <d779a0c60910230738q72065211qb4462bf0d86b768d@mail.gmail.com>
+ <d779a0c60910241505r8d403fne2b6221a9e073af8@mail.gmail.com>
+ <20091025000435.GA4130@dcvr.yhbt.net>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: ger.gmane.org 1256442775 13492 80.91.229.12 (25 Oct 2009 03:52:55
+ GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Sun, 25 Oct 2009 03:52:55 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Sun Oct 25 04:52:49
+ 2009
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <20091025000435.GA4130@dcvr.yhbt.net>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:105
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/105>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.50) id 1N1u9u-00049L-Sy for gclrug-mongrel-unicorn@m.gmane.org; Sun,
+ 25 Oct 2009 04:52:47 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 29FEE1858282; Sat, 24 Oct 2009 23:52:44 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id BD46E185827F for <mongrel-unicorn@rubyforge.org>;
+ Sat, 24 Oct 2009 23:49:38 -0400 (EDT)
+Received: from localhost (user-118bg0q.cable.mindspring.com [66.133.192.26])
+ (using TLSv1 with cipher DHE-RSA-AES128-SHA (128/128 bits)) (No client
+ certificate requested) by dcvr.yhbt.net (Postfix) with ESMTPSA id 1E1C11F790;
+ Sun, 25 Oct 2009 03:49:38 +0000 (UTC)
+
+Eric Wong <normalperson@yhbt.net> wrote:
+> 
+> Does the following patch fix things for you?
+> 
+> diff --git a/lib/unicorn/util.rb b/lib/unicorn/util.rb
+> index 6b35426..0f517e9 100644
+> --- a/lib/unicorn/util.rb
+> +++ b/lib/unicorn/util.rb
+> @@ -54,7 +54,6 @@ module Unicorn
+>          end
+>          File.unlink(fp.path)
+>          fp.binmode
+> -        fp.sync = true
+>          fp
+>        end
+> ---
+
+Actually, that may not work since I need to call IO#stat.size,
+in TeeInput, and if I explicitly call IO#flush then bad things
+still end up happening :/
+
+-- 
+Eric Wong
