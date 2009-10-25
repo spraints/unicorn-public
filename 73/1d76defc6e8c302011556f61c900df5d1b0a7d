@@ -1,0 +1,136 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.7 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: Truncated request bodies
+Date: Sat, 24 Oct 2009 17:04:35 -0700
+Message-ID: <20091025000435.GA4130@dcvr.yhbt.net>
+References: <d779a0c60910230001r5f7ecea3l4904d48a08d2130f@mail.gmail.com>
+ <d779a0c60910230738q72065211qb4462bf0d86b768d@mail.gmail.com>
+ <d779a0c60910241505r8d403fne2b6221a9e073af8@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: ger.gmane.org 1256429310 22289 80.91.229.12 (25 Oct 2009 00:08:30
+ GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Sun, 25 Oct 2009 00:08:30 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Sun Oct 25 02:08:23
+ 2009
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <d779a0c60910241505r8d403fne2b6221a9e073af8@mail.gmail.com>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:104
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/104>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.50) id 1N1qei-0005dh-DL for gclrug-mongrel-unicorn@m.gmane.org; Sun,
+ 25 Oct 2009 02:08:20 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 769141858277; Sat, 24 Oct 2009 20:08:17 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 04BE61858267 for <mongrel-unicorn@rubyforge.org>;
+ Sat, 24 Oct 2009 20:04:38 -0400 (EDT)
+Received: from localhost (user-118bg0q.cable.mindspring.com [66.133.192.26])
+ (using TLSv1 with cipher DHE-RSA-AES128-SHA (128/128 bits)) (No client
+ certificate requested) by dcvr.yhbt.net (Postfix) with ESMTPSA id 89E681F790;
+ Sun, 25 Oct 2009 00:04:37 +0000 (UTC)
+
+Vadim Spivak <vadim@spivak.net> wrote:
+> > Hi Vadim,
+> >
+> > What's the output of that standalone ruby example for you?  Is there a
+> > bug filed with ruby-core I could look at?
+> 
+> "Should be 5: 0"
+> 
+> I haven't had a chance to file a bug yet and couldn't find
+> 
+> Also, if you don't set sync to true, then you get the expected output
+> 5 instead of 0.
+
+Interesting....
+
+I bet it doesn't fail if you skip the f.read in there.
+
+> > Also, does using f << or f.syswrite change things?
+> > f.sync = true should really make it unnecessary...
+> 
+> I tried both and they didn't make a difference
+
+sysread (instead of read) + syswrite() would've made a difference,
+I very much hope, at least.
+
+> >        f = File.open("bar", File::RDWR|File::CREAT, 0600)
+
+                                ^-- btw, I would put File::TRUNC
+				    there just in case because I
+				    got 10 the 2nd time running it :x
+
+> >        f.sync=true
+> >        f.read  # why is this here?
+> >        f << "Hello"  # or f.syswrite
+> >
+> >        # would an explicit f.flush here work? shouldn't be needed
+> >        # with f.sync = true
+> >        puts "Should be 5: #{f.pos}"
+> >        f.close
+> >
+> > > I couldn't reproduce this on 1.9.1 on OS X or 1.8.7 on Linux.
+
+This could be a stdio bug...  1.9.1 uses only the saner unistd.h
+functions so it's immune to stdio bugs, but 1.8.7 uses stdio with
+explicit fflush() when sync=true instead of calling
+setvbuf(..._IONBF...) to disable buffering like a normal app would.
+
+Looking at io.c in 1.8.7-p72, it even seems to call
+setvbuf(..._IOFBF...) for full buffering on FreeBSD regardless
+of sync mode (!)
+
+> > I'll definitely need help with testing this then since I only have
+> > Linux.
+
+Does the following patch fix things for you?
+
+diff --git a/lib/unicorn/util.rb b/lib/unicorn/util.rb
+index 6b35426..0f517e9 100644
+--- a/lib/unicorn/util.rb
++++ b/lib/unicorn/util.rb
+@@ -54,7 +54,6 @@ module Unicorn
+         end
+         File.unlink(fp.path)
+         fp.binmode
+-        fp.sync = true
+         fp
+       end
+---
+
+On the flip side, I'm once again tempted to use sysread/sysseek/syswrite
+because I have a very intense and long-standing distrust of luserspace
+IO buffering libraries.
+
+-- 
+Eric Wong
