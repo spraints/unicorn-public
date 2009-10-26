@@ -1,0 +1,101 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: RAILS_ROOT and USR2 restarts
+Date: Mon, 26 Oct 2009 09:01:58 -0700
+Message-ID: <20091026160158.GA16220@dcvr.yhbt.net>
+References: <d7a220010910260804n4f403vb1cdc526db6d3aea@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="iso-8859-1"
+Content-Transfer-Encoding: quoted-printable
+X-Trace: ger.gmane.org 1256572935 3271 80.91.229.12 (26 Oct 2009 16:02:15
+ GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Mon, 26 Oct 2009 16:02:15 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Mon Oct 26 17:02:08
+ 2009
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <d7a220010910260804n4f403vb1cdc526db6d3aea@mail.gmail.com>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:108
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/108>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.50) id 1N2S1C-0001Si-I0 for gclrug-mongrel-unicorn@m.gmane.org; Mon,
+ 26 Oct 2009 17:02:02 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 0D01A159803F; Mon, 26 Oct 2009 12:02:02 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id C5E6B1588061 for <mongrel-unicorn@rubyforge.org>;
+ Mon, 26 Oct 2009 12:01:59 -0400 (EDT)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) (using TLSv1 with cipher
+ DHE-RSA-AES128-SHA (128/128 bits)) (No client certificate requested) by
+ dcvr.yhbt.net (Postfix) with ESMTPSA id 256821F606; Mon, 26 Oct 2009 16:01:59
+ +0000 (UTC)
+
+Ian Leitch <port001@gmail.com> wrote:
+> Hi,
+> =
+
+> I've just started using Unicorn in production behind Nginx with a
+> Rails app, for the most part its been a smooth transition apart from
+> this one issue.
+> When I do an=A0in place=A0restart (USR2), the restart process works but
+> the workers load my old Rails release, not the new one. I'm guessing
+> that because the master process is currently in the old release
+> directory, when I signal USR2 it's just reloading inside the current
+> directory. I'm deploying with Capistrano, so app/current is a symlink
+> to a specific release. I've tried changing to the new release
+> directory in before_work but that made no difference. Is there a
+> callback that fires before the master preloads the app?
+
+Hi Ian,
+
+Unicorn chdirs to the directory returned by `/bin/sh -c pwd` when it was
+originally started.  The output of `pwd` *should* be symlink-aware, but
+then Solaris /bin/sh is weird.  Can you confirm that it's broken?
+
+You can put the following in your config (outside of the hooks):
+
+  app_root =3D "/var/www/apps/systino_production/current"
+  Dir.chdir(Unicorn::HttpServer::START_CTX[:cwd] =3D app_root)
+
+I've been pondering adding a "working_directory" directive to
+Configurator, too.  However the START_CTX hash is considered a stable
+interface and I recently documented it in
+http://unicorn.bogomips.org/Unicorn.html
+
+START_CTX even allows you to switch between different installation paths
+for Unicorn[1] and alter command line options that were originally
+passed.  Lots of rope there :>
+
+[1] for different Ruby installs/versions,
+    or even swap in Rainbows! or vice versa
+
+-- =
+
+Eric Wong
