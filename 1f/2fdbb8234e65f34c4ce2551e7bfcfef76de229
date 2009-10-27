@@ -1,0 +1,104 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.7 required=5.0 tests=MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Vadim Spivak <vadim@spivak.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: Truncated request bodies
+Date: Mon, 26 Oct 2009 19:48:35 -0700
+Message-ID: <d779a0c60910261948x33201598t1f7791729d58245e@mail.gmail.com>
+References: <d779a0c60910230001r5f7ecea3l4904d48a08d2130f@mail.gmail.com>
+ <d779a0c60910230738q72065211qb4462bf0d86b768d@mail.gmail.com>
+ <d779a0c60910241505r8d403fne2b6221a9e073af8@mail.gmail.com>
+ <20091025000435.GA4130@dcvr.yhbt.net> <20091025034936.GA25264@dcvr.yhbt.net>
+ <20091025213131.GB2505@dcvr.yhbt.net>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="iso-8859-1"
+Content-Transfer-Encoding: quoted-printable
+X-Trace: ger.gmane.org 1256612070 6392 80.91.229.12 (27 Oct 2009 02:54:30
+ GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Tue, 27 Oct 2009 02:54:30 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Tue Oct 27 03:54:23
+ 2009
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+X-Originating-IP: [98.210.152.130]
+In-Reply-To: <20091025213131.GB2505@dcvr.yhbt.net>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:114
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/114>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.50) id 1N2cCV-00016D-Be for gclrug-mongrel-unicorn@m.gmane.org; Tue,
+ 27 Oct 2009 03:54:23 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id E4C291D7885A; Mon, 26 Oct 2009 22:54:20 -0400 (EDT)
+Received: from mail-gx0-f209.google.com (mail-gx0-f209.google.com
+ [209.85.217.209]) by rubyforge.org (Postfix) with ESMTP id 07C2518582BC for
+ <mongrel-unicorn@rubyforge.org>; Mon, 26 Oct 2009 22:48:35 -0400 (EDT)
+Received: by gxk1 with SMTP id 1so401728gxk.19 for
+ <mongrel-unicorn@rubyforge.org>; Mon, 26 Oct 2009 19:48:35 -0700 (PDT)
+Received: by 10.101.131.17 with SMTP id i17mr1392513ann.30.1256611715512;
+ Mon,  26 Oct 2009 19:48:35 -0700 (PDT)
+
+Thanks Eric, I verified that it's working now.
+
+On Sun, Oct 25, 2009 at 2:31 PM, Eric Wong <normalperson@yhbt.net> wrote:
+> Eric Wong <normalperson@yhbt.net> wrote:
+>> Eric Wong <normalperson@yhbt.net> wrote:
+>> >
+>> > Does the following patch fix things for you?
+>
+> Hi Vadim, I actually just got a better patch offlist that
+> looks more reasonable than mine:
+>
+> diff --git a/lib/unicorn/tee_input.rb b/lib/unicorn/tee_input.rb
+> index 188e2ea..7e77cdf 100644
+> --- a/lib/unicorn/tee_input.rb
+> +++ b/lib/unicorn/tee_input.rb
+> @@ -131,6 +131,7 @@ module Unicorn
+> =A0 =A0 =A0 =A0 begin
+> =A0 =A0 =A0 =A0 =A0 if parser.filter_body(dst, socket.readpartial(length,=
+ buf)).nil?
+> =A0 =A0 =A0 =A0 =A0 =A0 @tmp.write(dst)
+> + =A0 =A0 =A0 =A0 =A0 =A0@tmp.seek(0, IO::SEEK_END) # workaround FreeBSD/=
+OSX + MRI 1.8.x bug
+> =A0 =A0 =A0 =A0 =A0 =A0 return dst
+> =A0 =A0 =A0 =A0 =A0 end
+> =A0 =A0 =A0 =A0 rescue EOFError
+> ---
+>
+> Also pushed out to git://git.bogomips.org/unicorn
+>
+> Upon further inspection of the Ruby 1.8.7 source, I'm surprised it
+> worked anywhere, glibc + Linux included :x
+>
+> I've managed to open a ticket on the issue for ruby-core:
+> =A0http://redmine.ruby-lang.org/issues/show/2267
+>
+> --
+> Eric Wong
+> _______________________________________________
+> mongrel-unicorn mailing list
+> mongrel-unicorn@rubyforge.org
+> http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+>
