@@ -1,0 +1,99 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.7 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: [ANN] unicorn 0.93.4 - *BSD stdio compatibility
+Date: Tue, 27 Oct 2009 01:56:13 -0700
+Message-ID: <20091027085612.GA29122@dcvr.yhbt.net>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: ger.gmane.org 1256633790 20649 80.91.229.12 (27 Oct 2009 08:56:30
+ GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Tue, 27 Oct 2009 08:56:30 +0000 (UTC)
+To: mongrel-unicorn@rubyforge.org
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Tue Oct 27 09:56:23
+ 2009
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:115
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/115>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.50) id 1N2hql-0005nf-1C for gclrug-mongrel-unicorn@m.gmane.org; Tue,
+ 27 Oct 2009 09:56:19 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id E347F1588060; Tue, 27 Oct 2009 04:56:17 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 2B8D61858289 for <mongrel-unicorn@rubyforge.org>;
+ Tue, 27 Oct 2009 04:56:14 -0400 (EDT)
+Received: from localhost (user-118bg0q.cable.mindspring.com [66.133.192.26])
+ (using TLSv1 with cipher DHE-RSA-AES128-SHA (128/128 bits)) (No client
+ certificate requested) by dcvr.yhbt.net (Postfix) with ESMTPSA id 0F73E1F509;
+ Tue, 27 Oct 2009 08:56:14 +0000 (UTC)
+
+Unicorn is a HTTP server for Rack applications designed to only serve
+fast clients on low-latency, high-bandwidth connections and take
+advantage of features in Unix/Unix-like kernels.  Slow clients should
+only be served by placing a reverse proxy capable of fully buffering
+both the the request and response in between Unicorn and slow clients.
+
+* http://unicorn.bogomips.org/
+* mongrel-unicorn@rubyforge.org
+* git://git.bogomips.org/unicorn.git
+
+Changes:
+
+This release mainly works around BSD stdio compatibility issues
+that affect at least FreeBSD and OS X.  While this issues was
+documented and fixed in [ruby-core:26300][1], no production
+release of MRI 1.8 has it, and users typically upgrade MRI more
+slowly than gems.  This issue does NOT affect 1.9 users.  Thanks
+to Vadim Spivak for reporting and testing this issue and Andrey
+Stikheev for the fix.
+
+Additionally there are small documentation bits, one error
+handling improvement, and one minor change that should improve
+reliability of signal delivery.
+
+Andrey Stikheev (1):
+      workaround FreeBSD/OSX IO bug for large uploads
+
+Eric Wong (7):
+      DESIGN: address concerns about on-demand and thundering herd
+      README: alter reply conventions for the mailing list
+      configurator: stop testing for non-portable listens
+      KNOWN_ISSUES: document Rack gem issue w/Rails 2.3.2
+      stop continually resends signals during shutdowns
+      add news bodies to site NEWS.atom.xml
+      configurator: fix broken example in RDoc
+
+Suraj N. Kurapati (1):
+      show configuration file path in errors instead of '(eval)'
+
+[1] http://redmine.ruby-lang.org/issues/show/2267
+-- 
+Eric Wong
