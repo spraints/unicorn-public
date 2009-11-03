@@ -1,0 +1,125 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: workers does not seems to exit when served one client
+Date: Tue, 3 Nov 2009 16:56:27 +0000
+Message-ID: <20091103165627.GA28983@dcvr.yhbt.net>
+References: <43f51f830911030144o62cdce0agb593cc25d35edf@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: ger.gmane.org 1257267527 20087 80.91.229.12 (3 Nov 2009 16:58:47
+ GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Tue, 3 Nov 2009 16:58:47 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Tue Nov 03 17:58:40
+ 2009
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <43f51f830911030144o62cdce0agb593cc25d35edf@mail.gmail.com>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:122
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/122>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.50) id 1N5Mhc-0000wQ-Cb for gclrug-mongrel-unicorn@m.gmane.org; Tue,
+ 03 Nov 2009 17:57:52 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 6BEF41588067; Tue,  3 Nov 2009 11:57:51 -0500 (EST)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 473A418582C1 for <mongrel-unicorn@rubyforge.org>;
+ Tue,  3 Nov 2009 11:56:28 -0500 (EST)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) (using TLSv1 with cipher
+ DHE-RSA-AES128-SHA (128/128 bits)) (No client certificate requested) by
+ dcvr.yhbt.net (Postfix) with ESMTPSA id B7CB61F5FC; Tue,  3 Nov 2009 16:56:27
+ +0000 (UTC)
+
+HaiMing Yin <epaulin@gmail.com> wrote:
+> quote from http://unicorn.bogomips.org/:
+> 
+> {{{
+> workers all run within their own isolated address space and only serve
+> one client at a time for maximum robustness.
+> }}}
+> 
+> top shows:
+> 
+> {{{
+> 25398 www-data  20   0  268m 137m 3364 S    0  1.7  27:49.41
+> unicorn_rails
+> 25400 www-data  20   0  266m 135m 3364 S    0  1.7  25:24.31
+> unicorn_rails
+> 25397 www-data  20   0  265m 134m 3364 S    0  1.7  31:50.72 unicorn_rails
+> }}}
+> 
+> pid are the same since unicorn_rails worker started, and the RES and
+> TIME+ column clearly shows that unicorn_rails did not exit after
+> served one client.
+> 
+> What I'm doing wrong?
+
+Hi HaiMing,
+
+You're doing nothing wrong except misunderstanding that phrase.
+
+"one client at a time" means it's not possible to be servicing more
+clients than there are worker_processes (the kernel will buffer them).
+
+Basically your workers <=> clients mapping will look like this with
+Unicorn:
+
+     unicorn master
+     \_ unicorn worker[0]
+     |  \_ client[0]
+     \_ unicorn worker[1]
+     |  \_ client[1]
+     \_ unicorn worker[2]
+     |  \_ client[2]
+     ...
+     \_ unicorn worker[M]
+        \_ client[M]
+
+
+Where in other servers (such as Rainbows!) it'll look like this
+with multiple clients running under one worker:
+
+     rainbows master
+     \_ rainbows worker[0]
+     |  \_ client[0,0]
+     |  \_ client[0,1]
+     |  \_ client[0,2]
+     |  ...
+     |  \_ client[0,N]
+     ...
+     \_ rainbows worker[M]
+        \_ client[M,0]
+        \_ client[M,1]
+        \_ client[M,2]
+        ...
+        \_ client[M,N]
+
+-- 
+Eric Wong
