@@ -1,0 +1,115 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: Sysadmin Setup question for Unicorn
+Date: Tue, 3 Nov 2009 17:07:35 +0000
+Message-ID: <20091103170735.GB28983@dcvr.yhbt.net>
+References: <1257250747.10247.135.camel@hbartels-laptop>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: ger.gmane.org 1257268413 23913 80.91.229.12 (3 Nov 2009 17:13:33
+ GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Tue, 3 Nov 2009 17:13:33 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Tue Nov 03 18:13:27
+ 2009
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <1257250747.10247.135.camel@hbartels-laptop>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:124
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/124>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.50) id 1N5Mwg-0002Qv-0C for gclrug-mongrel-unicorn@m.gmane.org; Tue,
+ 03 Nov 2009 18:13:26 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 889B018582CA; Tue,  3 Nov 2009 12:13:25 -0500 (EST)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id EFB7D3C803F for <mongrel-unicorn@rubyforge.org>; Tue,
+ 3 Nov 2009 12:07:35 -0500 (EST)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) (using TLSv1 with cipher
+ DHE-RSA-AES128-SHA (128/128 bits)) (No client certificate requested) by
+ dcvr.yhbt.net (Postfix) with ESMTPSA id 4A19C1F5FC; Tue,  3 Nov 2009 17:07:35
+ +0000 (UTC)
+
+huet bartels <hbartels@i-neda.com> wrote:
+> Dear List,
+> 
+> I am very new to ruby and this list.
+> 
+> I am trying to setup unicorn to run on ubuntu 8.10.  When I try to run
+> unicorn I am getting the following error.
+> 
+> with the following command I get the following error.  Is this because I
+> dont have a ruby rails app installed yet?
+
+Hi Huet,
+
+Yes, you need a Ruby on Rails app to run `unicorn_rails' and you should
+be able to run any Rack application with `unicorn'.
+
+> unicorn@install01:/app/unicorn/config$ unicorn_rails -c config.ru 
+> I, [2009-11-03T13:05:47.609036 #30824]  INFO -- : unlinking existing
+> socket=/app/unicorn/tmp/sockets/unicorn.sock
+> I, [2009-11-03T13:05:47.609458 #30824]  INFO -- : listening on
+> addr=/app/unicorn/tmp/sockets/unicorn.sock fd=3
+> I, [2009-11-03T13:05:47.609541 #30824]  INFO -- : Refreshing Gem list
+> /app/ruby/bin/unicorn_rails must be run inside RAILS_ROOT: #<LoadError:
+> no such file to load -- config/boot>
+
+Also, your config.ru is the rackup config file, not the Unicorn config
+file which you would specify with the "-c" option.  You only need a
+config.ru if you're using a non-Rails Rack application (but you can
+use one with Rails, too).  You don't need to pass any switches for
+the config.ru, either, if it's in ./config.ru it'll automatically
+be detected and otherwise you can just pass it as the first non-option
+argument:
+
+   unicorn production.ru
+
+Here, you're specifying Unicorn config directives in your config.ru:
+
+> I, [2009-11-03T13:03:53.555596 #30820]  INFO -- : Refreshing Gem list
+> Exception `NoMethodError' at config.ru:6 - undefined method
+> `worker_processes' for #<Rack::Builder:0xb7a107b8 @ins=[]>
+> Exception `NoMethodError'
+> at /app/ruby.1.8.7-p174/lib/ruby/gems/1.8/gems/unicorn-0.93.4/bin/unicorn:130 - undefined method `worker_processes' for #<Rack::Builder:0xb7a107b8 @ins=[]>
+> config.ru:6: undefined method `worker_processes' for
+> #<Rack::Builder:0xb7a107b8 @ins=[]> (NoMethodError)
+
+config.ru is meant to be used with all Rack-able servers (Mongrel, Thin,
+Passenger, Unicorn) whereas the Unicorn config file is only meant for
+Unicorn.
+
+> I am happy to be pointed to a website that will help me learn what is
+> required if such a thing exists.
+
+http://rack.rubyforge.org/ has some good links on how to setup config.ru
+
+-- 
+Eric Wong
