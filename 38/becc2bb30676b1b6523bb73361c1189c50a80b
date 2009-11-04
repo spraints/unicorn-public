@@ -1,0 +1,122 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: [PATCH] set RACK_ENV on startup
+Date: Wed, 4 Nov 2009 17:13:55 +0000
+Message-ID: <20091104171355.GC28983@dcvr.yhbt.net>
+References: <C4216E7A-A91B-4712-93EF-0687668E9ABE@larsen.st>
+ <20091104030635.GA5282@dcvr.yhbt.net>
+ <C7A9411D-CD40-4DA4-9CB3-6AA959D2D127@larsen.st>
+ <20091104052908.GA10096@dcvr.yhbt.net>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: ger.gmane.org 1257354853 30602 80.91.229.12 (4 Nov 2009 17:14:13
+ GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Wed, 4 Nov 2009 17:14:13 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Wed Nov 04 18:14:06
+ 2009
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <20091104052908.GA10096@dcvr.yhbt.net>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:132
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/132>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.50) id 1N5jQl-00027F-MW for gclrug-mongrel-unicorn@m.gmane.org; Wed,
+ 04 Nov 2009 18:13:59 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 1DF0D18582C1; Wed,  4 Nov 2009 12:13:59 -0500 (EST)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id D86AE18582BE for <mongrel-unicorn@rubyforge.org>;
+ Wed,  4 Nov 2009 12:13:56 -0500 (EST)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) (using TLSv1 with cipher
+ DHE-RSA-AES128-SHA (128/128 bits)) (No client certificate requested) by
+ dcvr.yhbt.net (Postfix) with ESMTPSA id 5BC751F4E5; Wed,  4 Nov 2009 17:13:56
+ +0000 (UTC)
+
+Eric Wong <normalperson@yhbt.net> wrote:
+> I've pushed out the following change:
+
+Actually, I think I'll go with this:
+
+>From ae2afbcc7dbac0af3256aa8b46afebf6e309bac0 Mon Sep 17 00:00:00 2001
+From: Eric Wong <normalperson@yhbt.net>
+Date: Wed, 4 Nov 2009 17:09:26 +0000
+Subject: [PATCH] bin/unicorn: allow RACK_ENV to be passed from parent
+
+This makes our RACK_ENV handling like our RAILS_ENV
+handling for unicorn_rails, removing the redundant
+local variable.
+---
+ bin/unicorn |    8 +++-----
+ 1 files changed, 3 insertions(+), 5 deletions(-)
+
+diff --git a/bin/unicorn b/bin/unicorn
+index 1916098..225e819 100755
+--- a/bin/unicorn
++++ b/bin/unicorn
+@@ -3,7 +3,7 @@
+ require 'unicorn/launcher'
+ require 'optparse'
+ 
+-env = "development"
++ENV["RACK_ENV"] ||= "development"
+ daemonize = false
+ listeners = []
+ options = { :listeners => listeners }
+@@ -58,7 +58,7 @@ opts = OptionParser.new("", 24, '  ') do |opts|
+ 
+   opts.on("-E", "--env ENVIRONMENT",
+           "use ENVIRONMENT for defaults (default: development)") do |e|
+-    env = e
++    ENV["RACK_ENV"] = e
+   end
+ 
+   opts.on("-D", "--daemonize", "run daemonized in the background") do |d|
+@@ -118,8 +118,6 @@ if config =~ /\.ru$/
+   end
+ end
+ 
+-ENV['RACK_ENV'] = env
+-
+ require 'pp' if $DEBUG
+ 
+ app = lambda do ||
+@@ -135,7 +133,7 @@ app = lambda do ||
+     Object.const_get(File.basename(config, '.rb').capitalize)
+   end
+   pp({ :inner_app => inner_app }) if $DEBUG
+-  case env
++  case ENV["RACK_ENV"]
+   when "development"
+     Rack::Builder.new do
+       use Rack::CommonLogger, $stderr
+-- 
+-- 
+Eric Wong
