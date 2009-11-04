@@ -1,0 +1,109 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.7 required=5.0 tests=MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Wayne Larsen <wayne@larsen.st>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: [PATCH] set RACK_ENV on startup
+Date: Tue, 3 Nov 2009 21:51:12 -0600
+Message-ID: <C7A9411D-CD40-4DA4-9CB3-6AA959D2D127@larsen.st>
+References: <C4216E7A-A91B-4712-93EF-0687668E9ABE@larsen.st>
+ <20091104030635.GA5282@dcvr.yhbt.net>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0 (Apple Message framework v1076)
+Content-Type: text/plain; charset="us-ascii"; Format="flowed"; DelSp="yes"
+Content-Transfer-Encoding: 7bit
+X-Trace: ger.gmane.org 1257307170 14105 80.91.229.12 (4 Nov 2009 03:59:30
+ GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Wed, 4 Nov 2009 03:59:30 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Wed Nov 04 04:59:23
+ 2009
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+In-Reply-To: <20091104030635.GA5282@dcvr.yhbt.net>
+X-Mailer: Apple Mail (2.1076)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:127
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/127>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.50) id 1N5X1n-0003oG-4z for gclrug-mongrel-unicorn@m.gmane.org; Wed,
+ 04 Nov 2009 04:59:23 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id B249918582C1; Tue,  3 Nov 2009 22:59:22 -0500 (EST)
+Received: from mail-yx0-f187.google.com (mail-yx0-f187.google.com
+ [209.85.210.187]) by rubyforge.org (Postfix) with ESMTP id 00B1D18582BF for
+ <mongrel-unicorn@rubyforge.org>; Tue,  3 Nov 2009 22:59:20 -0500 (EST)
+Received: by yxe17 with SMTP id 17so6055278yxe.33 for
+ <mongrel-unicorn@rubyforge.org>; Tue, 03 Nov 2009 19:59:20 -0800 (PST)
+Received: by 10.150.102.5 with SMTP id z5mr1726064ybb.160.1257306676631; Tue,
+ 03 Nov 2009 19:51:16 -0800 (PST)
+Received: from ?192.168.0.11? (71-17-13-49.regn.hsdb.sasknet.sk.ca
+ [71.17.13.49]) by mx.google.com with ESMTPS id
+ 16sm319208gxk.3.2009.11.03.19.51.14 (version=TLSv1/SSLv3 cipher=RC4-MD5);
+ Tue, 03 Nov 2009 19:51:15 -0800 (PST)
+
+On 2009-11-03, at 9:06 PM, Eric Wong wrote:
+
+> Wayne Larsen <wayne@larsen.st> wrote:
+>> Most stupid patch ever, but is there a reason not to set RACK_ENV on
+>> startup with `unicorn`, as RAILS_ENV is set with `unicorn_rails`?
+>
+> Hi Wayne,
+>
+> Does anything use/depend on it?  `unicorn' is modeled after `rackup'  
+> and
+> I don't think it's a good idea to expose things if nothing uses it
+> (rackup does not set it, either).
+>
+Passenger passes the RACK_ENV value to apps:
+http://www.modrails.com/documentation/Users%20guide%20Nginx.html#RackEnv
+
+As does thin:
+http://github.com/macournoyer/thin/blob/master/lib/thin/controllers/controller.rb#L169
+
+Sinatra uses it to set its environment:
+http://github.com/sinatra/sinatra/blob/master/lib/sinatra/base.rb#L1013
+
+As does Merb:
+http://github.com/merb/merb/blob/master/merb-gen/lib/generators/templates/application/merb_stack/config.ru
+
+
+> RAILS_ENV is an accepted standard for Rails applications and there are
+> plenty of things that already depend on it.
+>
+
+It seems to me that RACK_ENV is a semi-standard. From a search of the  
+rack group, this has come up before (unanswered):
+http://groups.google.com/group/rack-devel/browse_frm/thread/109241d9246f91ab/4a0d2f61a7851a6c?lnk=gst&q=RACK_ENV#4a0d2f61a7851a6c
+
+or  http://tinyurl.com/yl9re66
+
+And this discussion:
+http://groups.google.com/group/rack-devel/browse_frm/thread/822ce0551fbefa27/d52ea85fcb4e5a51?lnk=gst&q=RACK_ENV#d52ea85fcb4e5a51
+also at http://tinyurl.com/yhssua2
+
+where some suggested that it should be available in the rack  
+environment instead of as a global ENV variable.
+
+It seems like the pragmatic answer would be to set it.
+
+Wayne
