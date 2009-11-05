@@ -1,0 +1,73 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: Logging
+Date: Thu, 5 Nov 2009 15:49:45 -0800
+Message-ID: <20091105234945.GC7131@dcvr.yhbt.net>
+References: <149C8E09-664C-45D8-8CB9-AA970C298770@elctech.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: ger.gmane.org 1257464996 23506 80.91.229.12 (5 Nov 2009 23:49:56
+ GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Thu, 5 Nov 2009 23:49:56 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Fri Nov 06 00:49:49
+ 2009
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <149C8E09-664C-45D8-8CB9-AA970C298770@elctech.com>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:141
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/141>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.50) id 1N6C5M-0001jY-1J for gclrug-mongrel-unicorn@m.gmane.org; Fri,
+ 06 Nov 2009 00:49:48 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 760BF18582AC; Thu,  5 Nov 2009 18:49:47 -0500 (EST)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 5A0301858249 for <mongrel-unicorn@rubyforge.org>;
+ Thu,  5 Nov 2009 18:49:46 -0500 (EST)
+Received: from localhost (unknown [127.0.2.5]) by dcvr.yhbt.net (Postfix)
+ with ESMTP id D5A091F4EA; Thu,  5 Nov 2009 23:49:45 +0000 (UTC)
+
+Dylan Stamat <dstamat@elctech.com> wrote:
+> Is there a standard approach for logging when using unicorn_rails?
+> Is it just a matter of specifying std_err/std_out, or setting the logger 
+> in a unicorn.rb?
+
+Both work, I think most folks just set their stderr/stdout_paths and
+leave logger as-is unless they're logging to syslog or a network device.
+Unicorn itself doesn't log a lot, but you can use Rack::CommonLogger or
+Clogger into your Rails/Rack middleware stack to do request logging.
+
+Any File objects with sync=true and opened with the append flag will get
+reopened with the USR1 signal including the log files Rails sets up
+by default.
+
+-- 
+Eric Wong
