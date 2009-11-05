@@ -1,0 +1,138 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: [ANN] unicorn 0.94.0 - small fixes and new features
+Date: Thu, 5 Nov 2009 02:06:37 -0800
+Message-ID: <20091105100637.GA9992@dcvr.yhbt.net>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: ger.gmane.org 1257415680 13869 80.91.229.12 (5 Nov 2009 10:08:00
+ GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Thu, 5 Nov 2009 10:08:00 +0000 (UTC)
+To: mongrel-unicorn@rubyforge.org
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Thu Nov 05 11:07:53
+ 2009
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:137
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/137>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.50) id 1N5zFw-0001OZ-D5 for gclrug-mongrel-unicorn@m.gmane.org; Thu,
+ 05 Nov 2009 11:07:52 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id E06CA16782B1; Thu,  5 Nov 2009 05:07:51 -0500 (EST)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id D7B761588064 for <mongrel-unicorn@rubyforge.org>;
+ Thu,  5 Nov 2009 05:06:37 -0500 (EST)
+Received: from localhost (unknown [127.0.2.5]) by dcvr.yhbt.net (Postfix)
+ with ESMTP id 597D91F585; Thu,  5 Nov 2009 10:06:37 +0000 (UTC)
+
+Unicorn is a HTTP server for Rack applications designed to only serve
+fast clients on low-latency, high-bandwidth connections and take
+advantage of features in Unix/Unix-like kernels.  Slow clients should
+only be served by placing a reverse proxy capable of fully buffering
+both the the request and response in between Unicorn and slow clients.
+
+* http://unicorn.bogomips.org/
+* mongrel-unicorn@rubyforge.org
+* git://git.bogomips.org/unicorn.git
+
+Changes:
+
+The HTTP parser is fix for oddly-aligned reads of trailers (this
+technically affects headers, too, but is highly unlikely due to
+our non-support of slow clients).  This allows our HTTP parser
+to better support very slow clients when used by other servers
+(like Rainbows!).  Fortunately this bug does not appear to lead
+to any invalid memory accesses (and potential arbitrary code
+execution).
+
+FreeBSD (and possibly other *BSDs) support is improved and and
+all the test cases pass under FreeBSD 7.2.  Various flavors of
+GNU/Linux remains our primary platform for development and
+production.
+
+New features added include the "working_directory" directive in
+the configurator .  Even without specifying a
+"working_directory", symlink-aware detection of the current path
+no longer depends on /bin/sh so it should work out-of-the-box on
+FreeBSD and Solaris and not just systems where /bin/sh is dash,
+ksh93 or bash.
+
+User-switching support is finally supported but only intended
+for use in the after_fork hook of worker processes.  Putting it
+in the after_fork hook allows allows users to set things like
+CPU affinity[1] on a per-worker basis before dropping
+privileges.  The master process retains all privileges it
+started with.
+
+The ENV["RACK_ENV"] (process-wide) environment variable is now
+both read and set for `unicorn' in the same way RAILS_ENV is
+used by `unicorn_rails'.  This allows the Merb launcher to read
+ENV["RACK_ENV"] in config.ru.  Other web servers already set
+this and there may be applications or libraries that already
+rely on this de facto standard.
+
+Eric Wong (26):
+      cleanup: avoid redundant error checks for fstat
+      test_helper: connect(2) may fail with EINVAL
+      GNUmakefile: fix non-portable tar(1) usage
+      tests: provide a pure Ruby setsid(8) equivalent
+      more portable symlink awareness for START_CTX[:cwd]
+      test_signals: avoid portability issues with fchmod(2)
+      cleanup error handling and make it less noisy
+      Do not override Dir.chdir in config files
+      configurator: add "working_directory" directive
+      configurator: working_directory is expanded
+      configurator: set ENV["PWD"] with working_directory, too
+      configurator: working_directory affects pid, std{err,out}_paths
+      configurator: update documentation for working_directory
+      TODO: remove working_directory bit, done
+      Util.reopen_logs: remove needless Range
+      worker: user/group switching for after_fork hooks
+      Fix autoload of Etc in Worker for Ruby 1.9
+      bin/unicorn: allow RACK_ENV to be passed from parent
+      tests for RACK_ENV preservation
+      http: allow headers/trailers to be written byte-wise
+      http: extra test for bytewise chunked bodies
+      tee_input: do not clobber trailer buffer on partial uploads
+      test_exec: ensure master is killed after test
+      Util::tmpio returns a TmpIO that responds to #size
+      TODO: remove user-switching bit, done
+      unicorn 0.94.0
+
+Wayne Larsen (1):
+      bin/unicorn: set ENV["RACK_ENV"] on startup
+
+[1] - Unicorn does not support CPU affinity directly, but it is
+      possible to load code that allows it inside after_fork hooks,
+      or even just call sched_tool(8).
+
+-- 
+Eric Wong
