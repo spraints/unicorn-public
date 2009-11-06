@@ -1,0 +1,90 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.6 required=5.0 tests=FREEMAIL_FROM,
+ MSGID_FROM_MTA_HEADER,RP_MATCHES_RCVD,T_DKIM_INVALID shortcircuit=no
+ autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Lee Bankewitz <leebankewitz@gmail.com>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Log line formatting
+Date: Fri, 6 Nov 2009 16:19:33 -0500
+Message-ID: <b32c81260911061319p3a834b69m3f76a432ced3eabc@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="iso-8859-1"
+Content-Transfer-Encoding: quoted-printable
+X-Trace: ger.gmane.org 1257542663 21613 80.91.229.12 (6 Nov 2009 21:24:23
+ GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Fri, 6 Nov 2009 21:24:23 +0000 (UTC)
+To: mongrel-unicorn <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Fri Nov 06 22:24:16
+ 2009
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com; s=gamma;
+ h=domainkey-signature:mime-version:received:date:message-id:subject
+ :from:to:content-type:content-transfer-encoding;
+ bh=apoBQodU4nq0uO5CXyXakSF8ElW9PYXwyr950mjdfi4=;
+ b=rdqBDnaR3Xov/pnKPPBzleQFTPNAFvp/9ZruRgPZJN5v9zAK/0UPxiJ+1dN7c4zDOe
+ h2em8g4wUV5rSG9aYonRZAocpcaAPwkbYalftO9Zy7fUI2mTti4S+QJtNFAPfRy1yjbx
+ /C3FZKK3NdDVuPqJteVzceVPHiJkrniUBYlP4=
+DomainKey-Signature: a=rsa-sha1; c=nofws; d=gmail.com; s=gamma;
+ h=mime-version:date:message-id:subject:from:to:content-type
+ :content-transfer-encoding;
+ b=RRGEf5jDUHaw4GUIdbhbo0ljmD9FK5O3AEtHy3zFiCBZiMNxye1Zg65Ai3DvJML2QJ
+ +fClPwYgKkKE4GYWzSDEKTfbE/r8OUhB8V6AYDRucl525iwVS9xhFEBdYjBbmtcsiTdg
+ j5Q5+lSH+lt5RAuIq5JyjFq2E7vRRgNUvSjGE=
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:142
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/142>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.50) id 1N6WI4-0000hw-6Q for gclrug-mongrel-unicorn@m.gmane.org; Fri,
+ 06 Nov 2009 22:24:16 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 51E7C1588065; Fri,  6 Nov 2009 16:24:15 -0500 (EST)
+Received: from mail-ew0-f215.google.com (mail-ew0-f215.google.com
+ [209.85.219.215]) by rubyforge.org (Postfix) with ESMTP id 49D6B18582D3 for
+ <mongrel-unicorn@rubyforge.org>; Fri,  6 Nov 2009 16:19:34 -0500 (EST)
+Received: by ewy11 with SMTP id 11so1585617ewy.35 for
+ <mongrel-unicorn@rubyforge.org>; Fri, 06 Nov 2009 13:19:33 -0800 (PST)
+Received: by 10.213.61.73 with SMTP id s9mr1395842ebh.41.1257542373336; Fri, 
+ 06 Nov 2009 13:19:33 -0800 (PST)
+
+Howdy.
+
+I'm running Unicorn 0.94 in production (its working wonderfully). =A0One
+question about the log line formats in the unicorn log.
+
+In my unicorn config file, I have:
+logger Logger.new("log/unicorn.log")
+
+I see timestamps on the the initial log lines when unicorn first starts, i.=
+e.:
+"I, [2009-11-06T12:25:13.812367 #2437] =A0INFO -- : listening on
+addr=3D0.0.0.0:3000 fd=3D5"
+
+But the format of the log line changes soon thereafter:
+"master process ready"
+"worker=3D0 ready"
+
+any ideas why this is happening? I'd prefer to have the initial format
+for every line.
+
+thx, -lee
