@@ -1,0 +1,137 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: Running the tests - on FreeBSD
+Date: Mon, 9 Nov 2009 10:27:04 -0800
+Message-ID: <20091109182704.GB816@dcvr.yhbt.net>
+References: <B8E84A26-BBF3-4046-814D-FFFAC750DAD5@berlin.ccc.de>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: ger.gmane.org 1257791237 28409 80.91.229.12 (9 Nov 2009 18:27:17
+ GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Mon, 9 Nov 2009 18:27:17 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Mon Nov 09 19:27:10
+ 2009
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <B8E84A26-BBF3-4046-814D-FFFAC750DAD5@berlin.ccc.de>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:148
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/148>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.50) id 1N7YxI-0007Ok-PJ for gclrug-mongrel-unicorn@m.gmane.org; Mon,
+ 09 Nov 2009 19:27:09 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 109D318582CB; Mon,  9 Nov 2009 13:27:07 -0500 (EST)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 2160B18582C7 for <mongrel-unicorn@rubyforge.org>;
+ Mon,  9 Nov 2009 13:27:04 -0500 (EST)
+Received: from localhost (unknown [127.0.2.5]) by dcvr.yhbt.net (Postfix)
+ with ESMTP id 0EB001F606; Mon,  9 Nov 2009 18:27:04 +0000 (UTC)
+
+John-Paul Bader <hukl@berlin.ccc.de> wrote:
+> Hi,
+>
+> I just read that the FreeBSD support was improved which is great news  
+> for me as I am deploying almost exclusively on unicorn and made already 
+> good experiences with it on 7.2
+>
+> Now I'd love to run the tests by myself but somehow fail to do so.
+>
+> I cloned the git repo and adjusted my local.mk, then i ran make test in 
+> the unicorn directory but I'm just getting a "`test' is up to date."
+>
+> Is there something obvious missing or is the process different on  
+> FreeBSD.
+
+Hi John,
+
+You need GNU make, which should be gmake on FreeBSD systems.  I just
+pushed this out:
+
+>From d5908cae3da3b2fac66407ed1b34fb8e3f6551bb Mon Sep 17 00:00:00 2001
+From: Eric Wong <normalperson@yhbt.net>
+Date: Mon, 9 Nov 2009 10:20:25 -0800
+Subject: [PATCH] HACKING: update with "gmake" in examples
+
+Most GNU users already know their "make" is GNU make but it may
+not be obvious to non-GNU users.
+---
+ HACKING |   13 ++++++++-----
+ 1 files changed, 8 insertions(+), 5 deletions(-)
+
+diff --git a/HACKING b/HACKING
+index 08aa76d..119b6b7 100644
+--- a/HACKING
++++ b/HACKING
+@@ -16,6 +16,9 @@ Tests are good, but slow tests make development slow, so we make tests
+ faster (in parallel) with GNU make (instead of Rake) and avoiding
+ Rubygems.
+ 
++Users of GNU-based systems (such as GNU/Linux) usually have GNU make installed
++as "make" instead of "gmake".
++
+ Since we don't load RubyGems by default, loading Rack properly requires
+ setting up RUBYLIB to point to where Rack is located.  Not loading
+ Rubygems drastically lowers the time to run the full test suite.  You
+@@ -25,15 +28,15 @@ file is provided for reference.
+ 
+ Running the entire test suite with 4 tests in parallel:
+ 
+-  make -j4 test
++  gmake -j4 test
+ 
+ Running just one unit test:
+ 
+-  make test/unit/test_http_parser.rb
++  gmake test/unit/test_http_parser.rb
+ 
+ Running just one test case in a unit test:
+ 
+-  make test/unit/test_http_parser.rb--test_parse_simple.n
++  gmake test/unit/test_http_parser.rb--test_parse_simple.n
+ 
+ === HttpServer
+ 
+@@ -103,11 +106,11 @@ It is easy to install the contents of your git working directory:
+ 
+ Via RubyGems (RubyGems 1.3.5+ recommended for prerelease versions):
+ 
+-  make install-gem
++  gmake install-gem
+ 
+ Without RubyGems (via setup.rb):
+ 
+-  make install
++  gmake install
+ 
+ It is not at all recommended to mix a RubyGems installation with an
+ installation done without RubyGems, however.
+-- 
+Eric Wong
