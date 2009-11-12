@@ -1,0 +1,260 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.6 required=5.0 tests=FREEMAIL_FROM,
+ MSGID_FROM_MTA_HEADER,RP_MATCHES_RCVD,T_DKIM_INVALID shortcircuit=no
+ autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Clifford Heath <clifford.heath@gmail.com>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: [PATCH (geoip)] use IO.pread from the io-extra lib if possible
+Date: Thu, 12 Nov 2009 20:50:05 +0000
+Message-ID: <78ECBB6C-EB6E-46EF-AF70-7C5F72470BBD@gmail.com>
+References: <20091107052452.GA31584@dcvr.yhbt.net>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0 (Apple Message framework v936)
+Content-Type: text/plain; charset="us-ascii"; Format="flowed"; DelSp="yes"
+Content-Transfer-Encoding: 7bit
+X-Trace: ger.gmane.org 1258059349 30217 80.91.229.12 (12 Nov 2009 20:55:49
+ GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Thu, 12 Nov 2009 20:55:49 +0000 (UTC)
+Cc: mongrel-unicorn@rubyforge.org
+To: Eric Wong <normalperson@yhbt.net>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Thu Nov 12 21:55:42
+ 2009
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com; s=gamma;
+ h=domainkey-signature:received:received:cc:message-id:from:to
+ :in-reply-to:content-type:content-transfer-encoding:mime-version
+ :subject:date:references:x-mailer;
+ bh=G3xYFjE41XDemFW9VEPXXO38BlAbymCEA7VXYKFVlYc=;
+ b=Z/zBaeYlZTP6KVh1pe8VV3QtZOFvEL+zXQ7bU8RH1OxzaZSTTPScbNXL6ftksNxVRU
+ r52gq4gj9ZN87q6OdYihO6OC5zaZjeoUTih1HFC0K4NBoPxwTTYxYOVplqG7tlr00jJi
+ Md5b0ztyVBnOTJ0y+KaZL7cd36rlnUfCnuqYU=
+DomainKey-Signature: a=rsa-sha1; c=nofws; d=gmail.com; s=gamma;
+ h=cc:message-id:from:to:in-reply-to:content-type
+ :content-transfer-encoding:mime-version:subject:date:references :x-mailer;
+ b=aUiUpNHD9uusXY/ZQxKAV/XcqASdv53wwBPkkXYPQt/jPs7ul4fOPzN4bfDSLmGb6J
+ GftSrNL2BEiTiYdPtdH0PzyD58s2RXoEzaGmdX4eOPj6lDtPmgOAtU+SWanSw32AzPfT
+ 0wDUTrKU4IOKzoYwMSCXqnpqaaqSf3P9jWhN4=
+In-Reply-To: <20091107052452.GA31584@dcvr.yhbt.net>
+X-Mailer: Apple Mail (2.936)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:150
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/150>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.50) id 1N8ghf-0006uK-3H for gclrug-mongrel-unicorn@m.gmane.org; Thu,
+ 12 Nov 2009 21:55:39 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 6EBFE1D7885A; Thu, 12 Nov 2009 15:55:38 -0500 (EST)
+Received: from ey-out-2122.google.com (ey-out-2122.google.com [74.125.78.25])
+ by rubyforge.org (Postfix) with ESMTP id 8B5CE16782B4 for
+ <mongrel-unicorn@rubyforge.org>; Thu, 12 Nov 2009 15:55:35 -0500 (EST)
+Received: by ey-out-2122.google.com with SMTP id 25so712837eya.3 for
+ <mongrel-unicorn@rubyforge.org>; Thu, 12 Nov 2009 12:55:34 -0800 (PST)
+Received: by 10.213.23.75 with SMTP id q11mr2871704ebb.43.1258059011061; Thu,
+ 12 Nov 2009 12:50:11 -0800 (PST)
+Received: from Eos.home (host86-161-116-103.range86-161.btcentralplus.com
+ [86.161.116.103]) by mx.google.com with ESMTPS id
+ 24sm154398eyx.13.2009.11.12.12.50.07 (version=TLSv1/SSLv3 cipher=RC4-MD5);
+ Thu, 12 Nov 2009 12:50:08 -0800 (PST)
+
+Patch applied and pushed as 0.8.6, available on gemcutter.org
+
+Clifford Heath.
+
+On 07/11/2009, at 5:24 AM, Eric Wong wrote:
+
+> I sent this to the author of geoip a few days ago and haven't heard
+> back, yet.  Since he may be on vacation or busy, somebody may also hit
+> this problem in the mean time, I figured I'd post the patch + git
+> repo I sent him here.
+>
+> Unicorn users:
+>
+>  The pread(2)/pwrite(2) syscalls are very useful for making libraries
+>  like this one (that rely on an on-disk database) compatible with
+>  preload_app.  TokyoCabinet is a great example of a library that's
+>  already compatible with Unicorn+preload_app out-of-the-box.
+>
+> ----- Forwarded message from Eric Wong <normalperson@yhbt.net> -----
+>
+> From: Eric Wong <normalperson@yhbt.net>
+> To: Clifford Heath <clifford.heath@gmail.com>
+> Subject: [PATCH (geoip)] use IO.pread from the io-extra lib if  
+> possible
+>
+> Hi Clifford,
+>
+> One user of Unicorn[1] with the "preload_app" feature ran into  
+> problems
+> with the open file descriptor being shared across multiple processes.
+>
+> I've only lightly tested this, but it seems to work.  Of course
+> I'll send you updates in case I notice anything broken.
+>
+> I've also pushed the below patch up to git://yhbt.net/geoip.git
+> in case you'd rather "git pull" than "git am".
+>
+>
+> Full disclosure: I'm also a contributor to io-extra, but I've kept
+> the dependency optional in case folks can't install or use io-extra
+> because of an unsupported OS.
+>
+>
+> PS: btw, might want to update the http://geoip.rubyforge.org
+>    site to point to the up-to-date repository :)
+>
+> [1] - http://unicorn.bogomips.org/
+>
+> From ec75c0fc83e22a4c8c90a896b51291ef01773d79 Mon Sep 17 00:00:00 2001
+> From: Eric Wong <normalperson@yhbt.net>
+> Date: Tue, 3 Nov 2009 13:06:06 -0800
+> Subject: [PATCH] use IO.pread from the io-extra lib if possible
+>
+> This allows the objects created in one process to be used
+> concurrently with forked child processes in addition to multiple
+> threads, as the pread(2) system calls are designed for
+> concurrent operations across the board on POSIX systems).  This
+> is useful in cases when a master process forks off several child
+> processes to serve queries.  In case io-extra is not available
+> or not installable, then we'll fall back on using a Mutex and at
+> least still get thread-safety.
+> ---
+> lib/geoip.rb |   51 ++++++++++++++++++++++++++++++ 
+> +--------------------
+> 1 files changed, 31 insertions(+), 20 deletions(-)
+>
+> diff --git a/lib/geoip.rb b/lib/geoip.rb
+> index 4a9b4c2..6fce6dd 100644
+> --- a/lib/geoip.rb
+> +++ b/lib/geoip.rb
+> @@ -43,6 +43,11 @@ $:.unshift File.dirname(__FILE__)
+> #=end
+> require 'thread'  # Needed for Mutex
+> require 'socket'
+> +begin
+> +    require 'io/extra' # for IO.pread
+> +rescue LoadError
+> +    # oh well, hope they're not forking after initializing
+> +end
+>
+> class GeoIP
+>     VERSION = "0.8.4"
+> @@ -429,7 +434,7 @@ class GeoIP
+>     # +filename+ is a String holding the path to the GeoIP.dat file
+>     # +options+ is an integer holding caching flags (unimplemented)
+>     def initialize(filename, flags = 0)
+> -        @mutex = Mutex.new
+> +        @mutex = IO.respond_to?(:pread) ? false : Mutex.new
+>         @flags = flags
+>         @databaseType = GEOIP_COUNTRY_EDITION
+>         @record_length = STANDARD_RECORD_LENGTH
+> @@ -530,11 +535,9 @@ class GeoIP
+>     private
+>
+>     def read_city(pos, hostname = '', ip = '')
+> -        record = ""
+> -        @mutex.synchronize {
+> -            @file.seek(pos + (2*@record_length-1) *  
+> @databaseSegments[0])
+> -            return nil unless record = @file.read(FULL_RECORD_LENGTH)
+> -        }
+> +        off = pos + (2*@record_length-1) * @databaseSegments[0]
+> +        record = atomic_read(FULL_RECORD_LENGTH, off)
+> +        return nil unless record && record.size == FULL_RECORD_LENGTH
+>
+>         # The country code is the first byte:
+>         code = record[0]
+> @@ -655,11 +658,8 @@ class GeoIP
+>             throw "Invalid GeoIP database type, can't look up  
+> Organization/ISP by IP"
+>         end
+>         pos = seek_record(ipnum);
+> -        record = ""
+> -        @mutex.synchronize {
+> -            @file.seek(pos + (2*@record_length-1) *  
+> @databaseSegments[0])
+> -            record = @file.read(MAX_ORG_RECORD_LENGTH)
+> -        }
+> +        off = pos + (2*@record_length-1) * @databaseSegments[0]
+> +        record = atomic_read(MAX_ORG_RECORD_LENGTH, off)
+>         record = record.sub(/\000.*/n, '')
+>         record
+>     end
+> @@ -686,11 +686,8 @@ class GeoIP
+>             throw "Invalid GeoIP database type, can't look up ASN by  
+> IP"
+>         end
+>         pos = seek_record(ipnum);
+> -        record = ""
+> -        @mutex.synchronize {
+> -          @file.seek(pos + (2*@record_length-1) *  
+> @databaseSegments[0])
+> -          record = @file.read(MAX_ASN_RECORD_LENGTH)
+> -        }
+> +        off = pos + (2*@record_length-1) * @databaseSegments[0]
+> +        record = atomic_read(MAX_ASN_RECORD_LENGTH, off)
+>         record = record.sub(/\000.*/n, '')
+>
+>         if record =~ /^(AS\d+)\s(.*)$/
+> @@ -739,10 +736,8 @@ class GeoIP
+>         offset = 0
+>         mask = 0x80000000
+>         31.downto(0) { |depth|
+> -            buf = @mutex.synchronize {
+> -                @file.seek(@record_length * 2 * offset);
+> -                @file.read(@record_length * 2);
+> -            }
+> +            off = @record_length * 2 * offset
+> +            buf = atomic_read(@record_length * 2, off)
+>             buf.slice!(0...@record_length) if ((ipnum & mask) != 0)
+>             offset = le_to_ui(buf[0...@record_length].unpack("C*"))
+>             return offset if (offset >= @databaseSegments[0])
+> @@ -761,6 +756,22 @@ class GeoIP
+>     def le_to_ui(s)
+>         be_to_ui(s.reverse)
+>     end
+> +
+> +    # reads +length+ bytes from +offset+ as atomically as possible
+> +    # if IO.pread is available, it'll use that (making it both  
+> multithread
+> +    # and multiprocess-safe).  Otherwise we'll use a mutex to  
+> synchronize
+> +    # access (only providing protection against multiple threads,  
+> but not
+> +    # file descriptors shared across multiple processes).
+> +    def atomic_read(length, offset)
+> +        if @mutex
+> +            @mutex.synchronize {
+> +                @file.seek(offset)
+> +                @file.read(length)
+> +            }
+> +        else
+> +            IO.pread(@file.fileno, length, offset)
+> +        end
+> +    end
+> end
+>
+> if $0 == __FILE__
+> -- 
+> Eric Wong
+>
+> ----- End forwarded message -----
