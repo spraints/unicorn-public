@@ -1,0 +1,107 @@
+From ew@dcvr.yhbt.net  Mon May  5 07: 07:28 2014
+Return-Path: <ew@dcvr.yhbt.net>
+X-Original-To: pi+piham
+Delivered-To: pi+piham@dcvr.yhbt.net
+Received: by dcvr.yhbt.net (Postfix, from userid 1000) id 97EFA210AC; Mon,  5
+ May 2014 07:00:42 +0000 (UTC)
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: *
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=1.0 required=3.0 tests=AWL,HK_RANDOM_FROM,
+ MSGID_FROM_MTA_HEADER shortcircuit=no autolearn=no version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson-rMlxZR9MS24@public.gmane.org>
+Newsgroups:
+ gmane.comp.lang.ruby.rainbows.general,gmane.comp.lang.ruby.unicorn.general
+Subject: dealing with client disconnects with TeeInput
+Date: Thu, 12 Nov 2009 02:04:49 -0800
+Message-ID: <20091112100449.GA1929@dcvr.yhbt.net>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: ger.gmane.org 1258020911 27788 80.91.229.12 (12 Nov 2009 10:15:11
+ GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Thu, 12 Nov 2009 10:15:11 +0000 (UTC)
+To: mongrel-unicorn-GrnCvJ7WPxnNLxjTenLetw@public.gmane.org,
+ rainbows-talk-GrnCvJ7WPxnNLxjTenLetw@public.gmane.org
+Original-X-From:
+ rainbows-talk-bounces-GrnCvJ7WPxnNLxjTenLetw@public.gmane.org Thu Nov 12
+ 11:15:04 2009
+Envelope-to: gclrrg-rainbows-talk@m.gmane.org
+X-Original-To: rainbows-talk-GrnCvJ7WPxnNLxjTenLetw@public.gmane.org
+Delivered-To: rainbows-talk-GrnCvJ7WPxnNLxjTenLetw@public.gmane.org
+X-Greylist: delayed 611 seconds by postgrey-1.31 at rubyforge.org; Thu, 12
+ Nov 2009 05:15:02 EST
+Content-Disposition: inline
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: rainbows-talk-GrnCvJ7WPxnNLxjTenLetw@public.gmane.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <rainbows-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/rainbows-talk>,
+ <mailto:rainbows-talk-request-GrnCvJ7WPxnNLxjTenLetw@public.gmane.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/rainbows-talk>
+List-Post: <rainbows-public@bogomips.org>
+List-Help:
+ <mailto:rainbows-talk-request-GrnCvJ7WPxnNLxjTenLetw@public.gmane.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/rainbows-talk>,
+ <mailto:rainbows-talk-request-GrnCvJ7WPxnNLxjTenLetw@public.gmane.org?subject=subscribe>
+Original-Sender:
+ rainbows-talk-bounces-GrnCvJ7WPxnNLxjTenLetw@public.gmane.org
+Errors-To: rainbows-talk-bounces-GrnCvJ7WPxnNLxjTenLetw@public.gmane.org
+Xref: news.gmane.org gmane.comp.lang.ruby.rainbows.general:24
+ gmane.comp.lang.ruby.unicorn.general:149
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.rainbows.general/24>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.50) id 1N8Whk-0004ko-Mf for gclrrg-rainbows-talk@m.gmane.org; Thu, 12
+ Nov 2009 11:15:04 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id ECBA718582FC; Thu, 12 Nov 2009 05:15:03 -0500 (EST)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 2D1F318582BC; Thu, 12 Nov 2009 05:15:01 -0500 (EST)
+Received: from localhost (unknown [127.0.2.5]) by dcvr.yhbt.net (Postfix)
+ with ESMTP id 979981F67A; Thu, 12 Nov 2009 10:04:49 +0000 (UTC)
+
+Foreword: this probably doesn't affect nginx+Unicorn users, which is the
+recommended configuration for the vast majority of sites.  It probably
+affects Rainbows! users using Thread* or Revactor the most, and probably
+some Unicorn users serving Intranet clients directly.
+
+When clients are uploading large files, there's always a good
+possibility of them disconnecting before the upload ends.  For other web
+app servers it's not much of a problem: they read the entire upload
+before attempting to process things; so the app never sees a prematurely
+disconnected client.
+
+However Rainbows! and Unicorn have the TeeInput class which allows
+real-time processing of uploads as they occur.  Now, we _want_ the
+exception to be thrown and application to stop processing the dead
+client request immediately.  I've made changes in unicorn.git and
+rainbows.git to ensure no EOFError exceptions from the socket are
+silenced, not just ones from reading trailers.
+
+However, this means (many more) socket errors will be seen within the
+application and any global exception trappers they use will see them as
+well.  For Rails (and possibly other frameworks), this can mean very
+messy log files with large backtraces.
+
+So, would making a Unicorn::Disconnect < EOFError exception class and
+raising it with a short/empty backtrace on EOFErrors be the best way to
+go?  That way those global exception trappers can distinguish between
+EOFError exceptions raised by Unicorn/Rainbows! itself and other code
+that Unicorn/Rainbows does not care about, and log appropriately...
+
+The other option we have is catch/throw.  We can avoid worrying about
+the stack trace entirely, and middlewares that opt-in can still capture
+and log the disconnect if they want to.  More maintenance overhead for
+Rainbows! with all its concurrency models, but this is a situation
+where I think catch/throw is appropriate for given the current
+middleware/application stacks these days.
+
+Thanks for reading.
+
+-- 
+Eric Wong
