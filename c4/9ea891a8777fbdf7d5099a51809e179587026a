@@ -1,0 +1,89 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.6 required=5.0 tests=FREEMAIL_FROM,
+ MSGID_FROM_MTA_HEADER,RP_MATCHES_RCVD,T_DKIM_INVALID shortcircuit=no
+ autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Suraj Kurapati <sunaku@gmail.com>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: where to chmod socket file?
+Date: Thu, 12 Nov 2009 15:36:37 -0800
+Message-ID: <cfbcd2f00911121536rd0582b8u961f7f2a8c6e546a@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: ger.gmane.org 1258070370 32422 80.91.229.12 (12 Nov 2009 23:59:30
+ GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Thu, 12 Nov 2009 23:59:30 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Fri Nov 13 00:59:23
+ 2009
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+X-Greylist: delayed 936 seconds by postgrey-1.31 at rubyforge.org; Thu, 12
+ Nov 2009 18:59:18 EST
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com; s=gamma;
+ h=domainkey-signature:mime-version:received:date:message-id:subject
+ :from:to:content-type; bh=L28jViBq9++810P2qssMrE5e+fSWn8mkzwEJHDESZws=;
+ b=OzBI8zaHWAi5RWO4uUDRy7APwXhTaVEEb7yXUQfiXDY27J5JFCdRE9QONXSLwBrLWb
+ v0nK8LizO+x+pLZh6QGPbMPWV46qiidq7A2mYgNqxf255TmF1pxdJtrEkj6HOS2Lka2s
+ bCgYgQwF0urDAZ8qfpexy/2nEuCESqU6F/buQ=
+DomainKey-Signature: a=rsa-sha1; c=nofws; d=gmail.com; s=gamma;
+ h=mime-version:date:message-id:subject:from:to:content-type;
+ b=Ejf2wcHShbwAfZiGiyQmHiF6sA1ny9WZ/6TIfEgNKx5Fs93klzPNf7e/o8GJQRPIAb
+ +kXpeSJl5PNeRz0Ybn4JETXx1vSNNHuRENVtDejl480vBmCxCwpIu/ueL+1OrWg97HL3
+ WoI3waH++MpOgbjNR/Y5pr6D5HeNnlUOf4/bo=
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:151
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/151>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.50) id 1N8jZR-0002Ur-9r for gclrug-mongrel-unicorn@m.gmane.org; Fri,
+ 13 Nov 2009 00:59:21 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id D78C71858292; Thu, 12 Nov 2009 18:59:20 -0500 (EST)
+Received: from mail-pw0-f60.google.com (mail-pw0-f60.google.com
+ [209.85.160.60]) by rubyforge.org (Postfix) with ESMTP id D1CA918580F5 for
+ <mongrel-unicorn@rubyforge.org>; Thu, 12 Nov 2009 18:59:18 -0500 (EST)
+Received: by pwi17 with SMTP id 17so94982pwi.19 for
+ <mongrel-unicorn@rubyforge.org>; Thu, 12 Nov 2009 15:59:17 -0800 (PST)
+Received: by 10.142.60.8 with SMTP id i8mr387037wfa.310.1258068997721; Thu,
+ 12  Nov 2009 15:36:37 -0800 (PST)
+
+Hello,
+
+I set the socket for my app to reside in /tmp/ because my app's
+Capistrano deploy directory is NFS-mounted:
+
+  listen '/tmp/my_app.sock'
+
+That socket file is being created with mode 0777 + sticky bit.  I
+don't want others to accidentally delete or write to this socket file,
+so I added the following line to my before_fork() block:
+
+  before_fork do |server, worker|
+    File.chmod 0600, '/tmp/my_app.sock'
+    # ...
+  end
+
+Is there a better place to put this chmod?  Or maybe tell unicorn to
+create the socket with mode 0600?
+
+Thanks for your consideration.
