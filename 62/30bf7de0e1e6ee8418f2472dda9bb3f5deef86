@@ -1,0 +1,90 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.6 required=5.0 tests=FREEMAIL_FROM,
+ MSGID_FROM_MTA_HEADER,RP_MATCHES_RCVD,T_DKIM_INVALID shortcircuit=no
+ autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Suraj Kurapati <sunaku@gmail.com>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: zero downtime deploys
+Date: Fri, 13 Nov 2009 14:54:05 -0800
+Message-ID: <cfbcd2f00911131454sf4e572ap2847067a59b8dc8c@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: ger.gmane.org 1258153113 8940 80.91.229.12 (13 Nov 2009 22:58:33
+ GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Fri, 13 Nov 2009 22:58:33 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Fri Nov 13 23:58:26
+ 2009
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+X-Greylist: delayed 83848 seconds by postgrey-1.31 at rubyforge.org; Fri, 13
+ Nov 2009 17:54:06 EST
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com; s=gamma;
+ h=domainkey-signature:mime-version:received:date:message-id:subject
+ :from:to:content-type; bh=yMwxjN64XXyicVQV6HCg+n1fqqnTiUzJ6quq+baXc7M=;
+ b=iE1+J0n7f4h7vbuarzGwPhwe5bUpA0cnqORKzJLaWoviX/wd2vlgKaFeN8MONEz+Px
+ BAfjHM4D1S52Hn0MdlBVxi18qOy/zybG95mZvUg0aidK1b1HFyqjlgk+KKoShNn9J9U2
+ eFSMwI8eqpMXKUvp0OJyI5yf0SMl2FiVkmMQs=
+DomainKey-Signature: a=rsa-sha1; c=nofws; d=gmail.com; s=gamma;
+ h=mime-version:date:message-id:subject:from:to:content-type;
+ b=ALAQtl9e1f1XWz9dGIuo6ib6XXcEJGakjqGnbWDQR+mJyCuiQkfPHo0pGQqk+lyRH0
+ roumVB9mmNI4Yo7cAgvMxDDKllUiUl2TCkrOVYf5b0rdmOjmn/jXHDlvRcbNz0n6dC2o
+ o7uyG1d589SzD8w5zm1GqbaMwgNEccDfPL6Hs=
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:153
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/153>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.50) id 1N9562-00032g-Du for gclrug-mongrel-unicorn@m.gmane.org; Fri,
+ 13 Nov 2009 23:58:26 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 95E5A18582CB; Fri, 13 Nov 2009 17:58:25 -0500 (EST)
+Received: from mail-px0-f180.google.com (mail-px0-f180.google.com
+ [209.85.216.180]) by rubyforge.org (Postfix) with ESMTP id 8A0621858320 for
+ <mongrel-unicorn@rubyforge.org>; Fri, 13 Nov 2009 17:54:06 -0500 (EST)
+Received: by pxi10 with SMTP id 10so2762306pxi.33 for
+ <mongrel-unicorn@rubyforge.org>; Fri, 13 Nov 2009 14:54:05 -0800 (PST)
+Received: by 10.142.5.21 with SMTP id 21mr536809wfe.63.1258152845745; Fri, 13
+ Nov 2009 14:54:05 -0800 (PST)
+
+Hello,
+
+I tried using preload_app with the "zero downtime deploys" trick of
+sending SIGQUIT to the old master in before_fork(), as described in:
+
+  http://unicorn.bogomips.org/Unicorn/Configurator.html
+  http://github.com/blog/517-unicorn
+
+This significantly reduced, but did not eliminate, the transition time
+when the new workers take over (step #2 below):
+
+1. old master (and its workers) is killed in before_fork()
+2. workers re-establish DB connections in after_fork()
+3. workers are ready to work, at the bottom of after_fork()
+
+Why do we kill the old master in before_fork() when the new workers
+are really ready to work much later?  Shouldn't we kill the old master
+at the *bottom* of after_fork() --- when the new workers are really
+ready to work?
+
+Thanks for your consideration.
