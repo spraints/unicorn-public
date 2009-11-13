@@ -1,0 +1,100 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: where to chmod socket file?
+Date: Thu, 12 Nov 2009 18:03:52 -0800
+Message-ID: <20091113020351.GA5577@dcvr.yhbt.net>
+References: <cfbcd2f00911121536rd0582b8u961f7f2a8c6e546a@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: ger.gmane.org 1258077844 16546 80.91.229.12 (13 Nov 2009 02:04:04
+ GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Fri, 13 Nov 2009 02:04:04 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Fri Nov 13 03:03:57
+ 2009
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <cfbcd2f00911121536rd0582b8u961f7f2a8c6e546a@mail.gmail.com>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:152
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/152>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.50) id 1N8lVz-0002j5-Tb for gclrug-mongrel-unicorn@m.gmane.org; Fri,
+ 13 Nov 2009 03:03:56 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 388DD18582D0; Thu, 12 Nov 2009 21:03:55 -0500 (EST)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 512F618582D0 for <mongrel-unicorn@rubyforge.org>;
+ Thu, 12 Nov 2009 21:03:53 -0500 (EST)
+Received: from localhost (unknown [127.0.2.5]) by dcvr.yhbt.net (Postfix)
+ with ESMTP id 927031F67A; Fri, 13 Nov 2009 02:03:52 +0000 (UTC)
+
+Suraj Kurapati <sunaku@gmail.com> wrote:
+> Hello,
+> 
+> I set the socket for my app to reside in /tmp/ because my app's
+> Capistrano deploy directory is NFS-mounted:
+> 
+>   listen '/tmp/my_app.sock'
+> 
+> That socket file is being created with mode 0777 + sticky bit.  I
+> don't want others to accidentally delete or write to this socket file,
+> so I added the following line to my before_fork() block:
+> 
+>   before_fork do |server, worker|
+>     File.chmod 0600, '/tmp/my_app.sock'
+>     # ...
+>   end
+> 
+> Is there a better place to put this chmod?  Or maybe tell unicorn to
+> create the socket with mode 0600?
+
+Hi Suraj,
+
+That's probably the best place to put chmod for now... I could be
+persuaded to add a :umask option for listen.  E.g.:
+
+    listen '/tmp/my_app.sock', :umask => 0077
+
+On the other hand, I don't think it's even possible for others to
+accidentally delete the socket if it's in /tmp (the directory itself
+should be sticky, not the socket file).
+
+I don't think world-read/writability is a problem for deployed apps.
+Making sockets world-read/writable fits the model of localhost-bound TCP
+sockets better: it's one step easier for people to port/change existing
+testing/monitoring tools from the TCP ones.
+
+Also, in my experience with FastCGI deployments, a less permissive umask
+was often a source of breakage/confusion for FastCGI apps.  TCP sockets
+don't have this problem, and I've seen people prefer it for that reason
+alone.
+
+-- 
+Eric Wong
