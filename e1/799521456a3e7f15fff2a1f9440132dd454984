@@ -1,0 +1,95 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: zero downtime deploys
+Date: Fri, 13 Nov 2009 23:12:31 +0000
+Message-ID: <20091113231231.GB27461@dcvr.yhbt.net>
+References: <cfbcd2f00911131454sf4e572ap2847067a59b8dc8c@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: ger.gmane.org 1258153963 11413 80.91.229.12 (13 Nov 2009 23:12:43
+ GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Fri, 13 Nov 2009 23:12:43 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Sat Nov 14 00:12:36
+ 2009
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <cfbcd2f00911131454sf4e572ap2847067a59b8dc8c@mail.gmail.com>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:154
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/154>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.50) id 1N95Jj-0008Oy-Pu for gclrug-mongrel-unicorn@m.gmane.org; Sat,
+ 14 Nov 2009 00:12:36 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id D635E1598076; Fri, 13 Nov 2009 18:12:34 -0500 (EST)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id EC3831598074 for <mongrel-unicorn@rubyforge.org>;
+ Fri, 13 Nov 2009 18:12:32 -0500 (EST)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) (using TLSv1 with cipher
+ DHE-RSA-AES128-SHA (128/128 bits)) (No client certificate requested) by
+ dcvr.yhbt.net (Postfix) with ESMTPSA id 5102A1F602; Fri, 13 Nov 2009 23:12:32
+ +0000 (UTC)
+
+Suraj Kurapati <sunaku@gmail.com> wrote:
+> Hello,
+> 
+> I tried using preload_app with the "zero downtime deploys" trick of
+> sending SIGQUIT to the old master in before_fork(), as described in:
+> 
+>   http://unicorn.bogomips.org/Unicorn/Configurator.html
+>   http://github.com/blog/517-unicorn
+> 
+> This significantly reduced, but did not eliminate, the transition time
+> when the new workers take over (step #2 below):
+> 
+> 1. old master (and its workers) is killed in before_fork()
+> 2. workers re-establish DB connections in after_fork()
+> 3. workers are ready to work, at the bottom of after_fork()
+> 
+> Why do we kill the old master in before_fork() when the new workers
+> are really ready to work much later?  Shouldn't we kill the old master
+> at the *bottom* of after_fork() --- when the new workers are really
+> ready to work?
+
+Hi Suraj,
+
+It depends on your setup, mainly memory constraints.  I know some
+deployments run very close to the memory limit of the box and those
+examples are geared for that.  We should clarify that in the
+documentation.  I also know some setups that always startup with
+worker_processes=1 and then SIGTTIN through an external script
+gradually.
+
+Obviously I would always try to avoid maintenance during peak traffic
+because performance inevitably suffers somewhat (and human error is
+always possible :)
+
+-- 
+Eric Wong
