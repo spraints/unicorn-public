@@ -1,0 +1,217 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups:
+ gmane.comp.lang.ruby.unicorn.general,gmane.comp.lang.ruby.rainbows.general
+Subject: Re: dealing with client disconnects with TeeInput
+Date: Fri, 13 Nov 2009 17:16:58 -0800
+Message-ID: <20091114011658.GA18151@dcvr.yhbt.net>
+References: <20091112100449.GA1929@dcvr.yhbt.net>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: ger.gmane.org 1258161428 28498 80.91.229.12 (14 Nov 2009 01:17:08
+ GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Sat, 14 Nov 2009 01:17:08 +0000 (UTC)
+To: mongrel-unicorn@rubyforge.org, rainbows-talk@rubyforge.org
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Sat Nov 14 02:17:01
+ 2009
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <20091112100449.GA1929@dcvr.yhbt.net>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:156
+ gmane.comp.lang.ruby.rainbows.general:25
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/156>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.50) id 1N97G9-0006gq-0f for gclrug-mongrel-unicorn@m.gmane.org; Sat,
+ 14 Nov 2009 02:17:01 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 82ACC185831D; Fri, 13 Nov 2009 20:17:00 -0500 (EST)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 35A7A185831B; Fri, 13 Nov 2009 20:16:59 -0500 (EST)
+Received: from localhost (unknown [127.0.2.5]) by dcvr.yhbt.net (Postfix)
+ with ESMTP id 8AC641F679; Sat, 14 Nov 2009 01:16:58 +0000 (UTC)
+
+Eric Wong <normalperson@yhbt.net> wrote:
+> So, would making a Unicorn::Disconnect < EOFError exception class and
+> raising it with a short/empty backtrace on EOFErrors be the best way to
+> go?  That way those global exception trappers can distinguish between
+> EOFError exceptions raised by Unicorn/Rainbows! itself and other code
+> that Unicorn/Rainbows does not care about, and log appropriately...
+
+I actually named it Unicorn::ClientShutdown since I figured the
+name would be more descriptive.  Here's what I've pushed out
+to unicorn.git:
+
+>From e4256da292f9626d7dfca60e08f65651a0a9139a Mon Sep 17 00:00:00 2001
+From: Eric Wong <normalperson@yhbt.net>
+Date: Sat, 14 Nov 2009 00:23:19 +0000
+Subject: [PATCH] raise Unicorn::ClientShutdown if client aborts in TeeInput
+
+Leaving the EOFError exception as-is bad because most
+applications/frameworks run an application-wide exception
+handler to pretty-print and/or log the exception with a huge
+backtrace.
+
+Since there's absolutely nothing we can do in the server-side
+app to deal with clients prematurely shutting down, having a
+backtrace does not make sense.  Having a backtrace can even be
+harmful since it creates unnecessary noise for application
+engineers monitoring or tracking down real bugs.
+---
+ lib/unicorn.rb           |    6 ++++
+ lib/unicorn/tee_input.rb |   11 ++++++++
+ test/unit/test_server.rb |   61 ++++++++++++++++++++++++++++++++++++++++++++-
+ 3 files changed, 76 insertions(+), 2 deletions(-)
+
+diff --git a/lib/unicorn.rb b/lib/unicorn.rb
+index a696402..c6c311e 100644
+--- a/lib/unicorn.rb
++++ b/lib/unicorn.rb
+@@ -8,6 +8,12 @@ autoload :Rack, 'rack'
+ # a Unicorn web server.  It contains a minimalist HTTP server with just enough
+ # functionality to service web application requests fast as possible.
+ module Unicorn
++
++  # raise this inside TeeInput when a client disconnects inside the
++  # application dispatch
++  class ClientShutdown < EOFError
++  end
++
+   autoload :Const, 'unicorn/const'
+   autoload :HttpRequest, 'unicorn/http_request'
+   autoload :HttpResponse, 'unicorn/http_response'
+diff --git a/lib/unicorn/tee_input.rb b/lib/unicorn/tee_input.rb
+index 69397c0..50ddb5b 100644
+--- a/lib/unicorn/tee_input.rb
++++ b/lib/unicorn/tee_input.rb
+@@ -135,10 +135,21 @@ module Unicorn
+         end
+       end
+       finalize_input
++      rescue EOFError
++        # in case client only did a premature shutdown(SHUT_WR)
++        # we do support clients that shutdown(SHUT_WR) after the
++        # _entire_ request has been sent, and those will not have
++        # raised EOFError on us.
++        socket.close if socket
++        raise ClientShutdown, "bytes_read=#{@tmp.size}", []
+     end
+ 
+     def finalize_input
+       while parser.trailers(req, buf).nil?
++        # Don't worry about throw-ing :http_499 here on EOFError, tee()
++        # will catch EOFError when app is processing it, otherwise in
++        # initialize we never get any chance to enter the app so the
++        # EOFError will just get trapped by Unicorn and not the Rack app
+         buf << socket.readpartial(Const::CHUNK_SIZE)
+       end
+       self.socket = nil
+diff --git a/test/unit/test_server.rb b/test/unit/test_server.rb
+index bbb06da..a7f6a35 100644
+--- a/test/unit/test_server.rb
++++ b/test/unit/test_server.rb
+@@ -12,11 +12,12 @@ include Unicorn
+ 
+ class TestHandler 
+ 
+-  def call(env) 
+-  #   response.socket.write("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nhello!\n")
++  def call(env)
+     while env['rack.input'].read(4096)
+     end
+     [200, { 'Content-Type' => 'text/plain' }, ['hello!\n']]
++    rescue Unicorn::ClientShutdown => e
++      $stderr.syswrite("#{e.class}: #{e.message} #{e.backtrace.empty?}\n")
+    end
+ end
+ 
+@@ -103,6 +104,62 @@ class WebServerTest < Test::Unit::TestCase
+     assert_equal 'hello!\n', results[0], "Handler didn't really run"
+   end
+ 
++  def test_client_shutdown_writes
++    sock = nil
++    buf = nil
++    bs = 15609315 * rand
++    assert_nothing_raised do
++      sock = TCPSocket.new('127.0.0.1', @port)
++      sock.syswrite("PUT /hello HTTP/1.1\r\n")
++      sock.syswrite("Host: example.com\r\n")
++      sock.syswrite("Transfer-Encoding: chunked\r\n")
++      sock.syswrite("Trailer: X-Foo\r\n")
++      sock.syswrite("\r\n")
++      sock.syswrite("%x\r\n" % [ bs ])
++      sock.syswrite("F" * bs)
++      sock.syswrite("\r\n0\r\nX-")
++      "Foo: bar\r\n\r\n".each_byte do |x|
++        sock.syswrite x.chr
++        sleep 0.05
++      end
++      # we wrote the entire request before shutting down, server should
++      # continue to process our request and never hit EOFError on our sock
++      sock.shutdown(Socket::SHUT_WR)
++      buf = sock.read
++    end
++    assert_equal 'hello!\n', buf.split(/\r\n\r\n/).last
++    lines = File.readlines("test_stderr.#$$.log")
++    assert lines.grep(/^Unicorn::ClientShutdown: /).empty?
++    assert_nothing_raised { sock.close }
++  end
++
++  def test_client_shutdown_write_truncates
++    sock = nil
++    buf = nil
++    bs = 15609315 * rand
++    assert_nothing_raised do
++      sock = TCPSocket.new('127.0.0.1', @port)
++      sock.syswrite("PUT /hello HTTP/1.1\r\n")
++      sock.syswrite("Host: example.com\r\n")
++      sock.syswrite("Transfer-Encoding: chunked\r\n")
++      sock.syswrite("Trailer: X-Foo\r\n")
++      sock.syswrite("\r\n")
++      sock.syswrite("%x\r\n" % [ bs ])
++      sock.syswrite("F" * (bs / 2.0))
++
++      # shutdown prematurely, this will force the server to abort
++      # processing on us even during app dispatch
++      sock.shutdown(Socket::SHUT_WR)
++      IO.select([sock], nil, nil, 60) or raise "Timed out"
++      buf = sock.read
++    end
++    assert_equal "", buf
++    lines = File.readlines("test_stderr.#$$.log")
++    lines = lines.grep(/^Unicorn::ClientShutdown: bytes_read=\d+/)
++    assert_equal 1, lines.size
++    assert_match %r{\AUnicorn::ClientShutdown: bytes_read=\d+ true$}, lines[0]
++    assert_nothing_raised { sock.close }
++  end
+ 
+   def do_test(string, chunk, close_after=nil, shutdown_delay=0)
+     # Do not use instance variables here, because it needs to be thread safe
+-- 
+Eric Wong
