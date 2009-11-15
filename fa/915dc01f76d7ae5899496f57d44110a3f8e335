@@ -1,0 +1,177 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: where to chmod socket file?
+Date: Sat, 14 Nov 2009 16:24:34 -0800
+Message-ID: <20091115002433.GA29378@dcvr.yhbt.net>
+References: <cfbcd2f00911121536rd0582b8u961f7f2a8c6e546a@mail.gmail.com>
+ <20091113020351.GA5577@dcvr.yhbt.net>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: ger.gmane.org 1258244696 30138 80.91.229.12 (15 Nov 2009 00:24:56
+ GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Sun, 15 Nov 2009 00:24:56 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Sun Nov 15 01:24:49
+ 2009
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <20091113020351.GA5577@dcvr.yhbt.net>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:157
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/157>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.50) id 1N9Sv9-0006PX-Js for gclrug-mongrel-unicorn@m.gmane.org; Sun,
+ 15 Nov 2009 01:24:47 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 9980718582AC; Sat, 14 Nov 2009 19:24:46 -0500 (EST)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 72D6E18582AC for <mongrel-unicorn@rubyforge.org>;
+ Sat, 14 Nov 2009 19:24:35 -0500 (EST)
+Received: from localhost (unknown [127.0.2.5]) by dcvr.yhbt.net (Postfix)
+ with ESMTP id 7F04D1F679; Sun, 15 Nov 2009 00:24:34 +0000 (UTC)
+
+Eric Wong <normalperson@yhbt.net> wrote:
+> Suraj Kurapati <sunaku@gmail.com> wrote:
+> > Hello,
+> > 
+> > I set the socket for my app to reside in /tmp/ because my app's
+> > Capistrano deploy directory is NFS-mounted:
+> > 
+> >   listen '/tmp/my_app.sock'
+> > 
+> > That socket file is being created with mode 0777 + sticky bit.  I
+> > don't want others to accidentally delete or write to this socket file,
+> > so I added the following line to my before_fork() block:
+> > 
+> >   before_fork do |server, worker|
+> >     File.chmod 0600, '/tmp/my_app.sock'
+> >     # ...
+> >   end
+> > 
+> > Is there a better place to put this chmod?  Or maybe tell unicorn to
+> > create the socket with mode 0600?
+> 
+> Hi Suraj,
+> 
+> That's probably the best place to put chmod for now... I could be
+> persuaded to add a :umask option for listen.  E.g.:
+> 
+>     listen '/tmp/my_app.sock', :umask => 0077
+
+Hi Suraj, just pushed this out:
+
+>From 07767ea2733ed5276ec638fa50102dccb0b2991e Mon Sep 17 00:00:00 2001
+From: Eric Wong <normalperson@yhbt.net>
+Date: Sat, 14 Nov 2009 15:28:37 -0800
+Subject: [PATCH] configurator: listen :umask parameter for UNIX sockets
+
+Typically UNIX domain sockets are created with more liberal
+file permissions than the rest of the application.  By default,
+we create UNIX domain sockets to be readable and writable by
+all local users to give them the same accessibility as
+locally-bound TCP listeners.
+
+This only has an effect on UNIX domain sockets.
+
+This was inspired by Suraj Kurapati in
+cfbcd2f00911121536rd0582b8u961f7f2a8c6e546a@mail.gmail.com
+---
+ lib/unicorn/configurator.rb     |   14 +++++++++++++-
+ lib/unicorn/socket_helper.rb    |    2 +-
+ test/unit/test_socket_helper.rb |   14 ++++++++++++++
+ 3 files changed, 28 insertions(+), 2 deletions(-)
+
+diff --git a/lib/unicorn/configurator.rb b/lib/unicorn/configurator.rb
+index d68897b..2d92aa3 100644
+--- a/lib/unicorn/configurator.rb
++++ b/lib/unicorn/configurator.rb
+@@ -291,10 +291,22 @@ module Unicorn
+     # +:delay+: seconds to wait between successive +tries+
+     #
+     # Default: 0.5 seconds
++    #
++    # +:umask+: sets the file mode creation mask for UNIX sockets
++    #
++    # Typically UNIX domain sockets are created with more liberal
++    # file permissions than the rest of the application.  By default,
++    # we create UNIX domain sockets to be readable and writable by
++    # all local users to give them the same accessibility as
++    # locally-bound TCP listeners.
++    #
++    # This has no effect on TCP listeners.
++    #
++    # Default: 0 (world read/writable)
+     def listen(address, opt = {})
+       address = expand_addr(address)
+       if String === address
+-        [ :backlog, :sndbuf, :rcvbuf, :tries ].each do |key|
++        [ :umask, :backlog, :sndbuf, :rcvbuf, :tries ].each do |key|
+           value = opt[key] or next
+           Integer === value or
+             raise ArgumentError, "not an integer: #{key}=#{value.inspect}"
+diff --git a/lib/unicorn/socket_helper.rb b/lib/unicorn/socket_helper.rb
+index f792562..1c56be2 100644
+--- a/lib/unicorn/socket_helper.rb
++++ b/lib/unicorn/socket_helper.rb
+@@ -88,7 +88,7 @@ module Unicorn
+                   "socket=#{address} specified but it is not a socket!"
+           end
+         end
+-        old_umask = File.umask(0)
++        old_umask = File.umask(opt[:umask] || 0)
+         begin
+           UNIXServer.new(address)
+         ensure
+diff --git a/test/unit/test_socket_helper.rb b/test/unit/test_socket_helper.rb
+index dbca69b..c35b0c2 100644
+--- a/test/unit/test_socket_helper.rb
++++ b/test/unit/test_socket_helper.rb
+@@ -63,6 +63,20 @@ class TestSocketHelper < Test::Unit::TestCase
+       File.umask(old_umask)
+   end
+ 
++  def test_bind_listen_unix_umask
++    old_umask = File.umask(0777)
++    tmp = Tempfile.new 'unix.sock'
++    @unix_listener_path = tmp.path
++    File.unlink(@unix_listener_path)
++    @unix_listener = bind_listen(@unix_listener_path, :umask => 077)
++    assert UNIXServer === @unix_listener
++    assert_equal @unix_listener_path, sock_name(@unix_listener)
++    assert_equal 0140700, File.stat(@unix_listener_path).mode
++    assert_equal 0777, File.umask
++    ensure
++      File.umask(old_umask)
++  end
++
+   def test_bind_listen_unix_idempotent
+     test_bind_listen_unix
+     a = bind_listen(@unix_listener)
+-- 
+Eric Wong
