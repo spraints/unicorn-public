@@ -1,0 +1,184 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.7 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: James Turnbull <james@lovedthanlost.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Exception `Errno::EAGAIN'
+Date: Mon, 16 Nov 2009 10:21:34 +1100
+Message-ID: <4B008CFE.6020206@lovedthanlost.net>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: ger.gmane.org 1258327770 31915 80.91.229.12 (15 Nov 2009 23:29:30
+ GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Sun, 15 Nov 2009 23:29:30 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Mon Nov 16 00:29:23
+ 2009
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+X-Greylist: delayed 456 seconds by postgrey-1.31 at rubyforge.org; Sun, 15
+ Nov 2009 18:29:20 EST
+User-Agent: Thunderbird 2.0.0.23 (Macintosh/20090812)
+X-Enigmail-Version: 0.96.0
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:161
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/161>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.50) id 1N9oX4-0004ck-Lt for gclrug-mongrel-unicorn@m.gmane.org; Mon,
+ 16 Nov 2009 00:29:22 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 278F21858313; Sun, 15 Nov 2009 18:29:22 -0500 (EST)
+Received: from na3sys009aog101.obsmtp.com (na3sys009aog101.obsmtp.com
+ [74.125.149.67]) by rubyforge.org (Postfix) with SMTP id 9476F1858312 for
+ <mongrel-unicorn@rubyforge.org>; Sun, 15 Nov 2009 18:29:20 -0500 (EST)
+Received: from source ([209.85.160.58]) by na3sys009aob101.postini.com
+ ([74.125.148.12]) with SMTP ID
+ DSNKSwCO0PzKcX5FiKNtr7nI/CZGSQsq2007@postini.com; Sun, 15 Nov 2009 15:29:20
+ PST
+Received: by pwi21 with SMTP id 21so4069387pwi.37 for
+ <mongrel-unicorn@rubyforge.org>; Sun, 15 Nov 2009 15:29:19 -0800 (PST)
+Received: by 10.114.2.19 with SMTP id 19mr3775060wab.26.1258327298573; Sun,
+ 15 Nov 2009 15:21:38 -0800 (PST)
+Received: from rhizome-lovedthanlost-net.local
+ (124-168-59-19.dyn.iinet.net.au [124.168.59.19]) by mx.google.com with ESMTPS
+ id 21sm849064pzk.11.2009.11.15.15.21.36 (version=TLSv1/SSLv3 cipher=RC4-MD5);
+ Sun, 15 Nov 2009 15:21:37 -0800 (PST)
+
+-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA1
+
+I get this repeated error - about once a second:
+
+Exception `Errno::EAGAIN' at
+/usr/lib/ruby/gems/1.8/gems/unicorn-0.95.0/lib/unicorn.rb:643 -
+Resource temporarily unavailable - accept(2)
+Exception `Errno::EAGAIN' at
+/usr/lib/ruby/gems/1.8/gems/unicorn-0.95.0/lib/unicorn.rb:643 -
+Resource temporarily unavailable - accept(2)
+Exception `Errno::EAGAIN' at
+/usr/lib/ruby/gems/1.8/gems/unicorn-0.95.0/lib/unicorn.rb:643 -
+Resource temporarily unavailable - accept(2)
+
+Which seems to be related to:
+
+        ready.each do |sock|
+          begin
+            process_client(sock.accept_nonblock)
+            nr += 1
+            alive.chmod(m = 0 == m ? 1 : 0)
+          rescue Errno::EAGAIN, Errno::ECONNABORTED
+          end
+          break if nr < 0
+        end
+
+My unicorn.conf is:
+
+worker_processes 4
+working_directory "/etc/puppet"
+listen '/tmp/puppet.sock', :backlog => 1
+listen 8140, :tcp_nopush => true
+timeout 10
+pid "/tmp/puppet.pid"
+
+  preload_app true
+  GC.respond_to?(:copy_on_write_friendly=) and
+  GC.copy_on_write_friendly = true
+
+  before_fork do |server, worker|
+    # the following is recomended for Rails + "preload_app true"
+    # as there's no need for the master process to hold a connection
+#    defined?(ActiveRecord::Base) and
+#      ActiveRecord::Base.connection.disconnect!
+
+    # the following allows a new master process to incrementally
+    # phase out the old master process with SIGTTOU to avoid a
+    # thundering herd (especially in the "preload_app false" case)
+    # when doing a transparent upgrade.  The last worker spawned
+    # will then kill off the old master process with a SIGQUIT.
+    old_pid = "#{server.config[:pid]}.oldbin"
+    if old_pid != server.pid
+      begin
+        sig = (worker.nr + 1) >= server.worker_processes ? :QUIT : :TTOU
+        Process.kill(sig, File.read(old_pid).to_i)
+      rescue Errno::ENOENT, Errno::ESRCH
+      end
+    end
+
+    # optionally throttle the master from forking too quickly by
+sleeping
+    sleep 1
+  end
+
+The platform is Fedora 10, Ruby 1.8.6.
+
+Oddly, if I comment out the preload I get:
+
+Exception `Errno::EPERM' at
+/usr/lib/ruby/gems/1.8/gems/unicorn-0.95.0/lib/unicorn.rb:639 -
+Operation not permitted - /tmp/0.520680132392046
+Unhandled listen loop exception #<Errno::EPERM: Operation not
+permitted - /tmp/0.520680132392046>.
+/usr/lib/ruby/gems/1.8/gems/unicorn-0.95.0/lib/unicorn.rb:639:in `chmod'
+/usr/lib/ruby/gems/1.8/gems/unicorn-0.95.0/lib/unicorn.rb:639:in
+`worker_loop'
+/usr/lib/ruby/gems/1.8/gems/unicorn-0.95.0/lib/unicorn.rb:534:in
+`spawn_missing_workers'
+/usr/lib/ruby/gems/1.8/gems/unicorn-0.95.0/lib/unicorn.rb:534:in `fork'
+/usr/lib/ruby/gems/1.8/gems/unicorn-0.95.0/lib/unicorn.rb:534:in
+`spawn_missing_workers'
+/usr/lib/ruby/gems/1.8/gems/unicorn-0.95.0/lib/unicorn.rb:530:in `each'
+/usr/lib/ruby/gems/1.8/gems/unicorn-0.95.0/lib/unicorn.rb:530:in
+`spawn_missing_workers'
+/usr/lib/ruby/gems/1.8/gems/unicorn-0.95.0/lib/unicorn.rb:540:in
+`maintain_worker_count'
+/usr/lib/ruby/gems/1.8/gems/unicorn-0.95.0/lib/unicorn.rb:215:in `start'
+/usr/lib/ruby/gems/1.8/gems/unicorn-0.95.0/lib/unicorn.rb:28:in `run'
+/usr/lib/ruby/gems/1.8/gems/unicorn-0.95.0/bin/unicorn:165
+/usr/bin/unicorn:19:in `load'
+/usr/bin/unicorn:19
+
+Repeatedly.
+
+Regards
+
+James Turnbull
+
+- --
+Author of:
+* Pro Linux System Administration (http://tinyurl.com/linuxadmin)
+* Pulling Strings with Puppet (http://tinyurl.com/pupbook)
+* Pro Nagios 2.0 (http://tinyurl.com/pronagios)
+* Hardening Linux (http://tinyurl.com/hardeninglinux)
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.4.7 (Darwin)
+Comment: Using GnuPG with Mozilla - http://enigmail.mozdev.org/
+
+iQEVAwUBSwCM/iFa/lDkFHAyAQIiSggA5r3rFPGiY5AeratLgxPvUDE1OjnrhRGn
+HxoRAcM901BNvXT5i7fX5fMTayW7vPXiKd0IazottCDgd40TYlFTQZNpU9hUDx+g
+LRAKQ5M5gHTkFX6nqxFlys8WIA3xseDBBUBNxGnZ4YGbqUMg7tQ258b41hiU+4pW
+fxQgzYN7JjRQ7/u1Px+86aEEdSGHFYNAOSwG15b+iE/7hQbiWrlFIL7p7XcZqT8M
+UxDm6eTkhP1kry7zJ4wTxVsreXgCi75AaCJBfIIoKs0NMParJ/rBWB+42ZA+1t5/
+aEaKXBOi47Kw3CmbsSh6Bi4zbTyuavCX6/tfOMNXx6jXygvykUzpgw==
+=pJbE
+-----END PGP SIGNATURE-----
