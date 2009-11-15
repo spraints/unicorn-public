@@ -1,0 +1,162 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: Exception `Errno::EAGAIN'
+Date: Sun, 15 Nov 2009 15:47:39 -0800
+Message-ID: <20091115234739.GA26275@dcvr.yhbt.net>
+References: <4B008CFE.6020206@lovedthanlost.net>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: ger.gmane.org 1258329460 4810 80.91.229.12 (15 Nov 2009 23:57:40
+ GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Sun, 15 Nov 2009 23:57:40 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Mon Nov 16 00:57:33
+ 2009
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <4B008CFE.6020206@lovedthanlost.net>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:162
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/162>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.50) id 1N9oyK-0006Ep-5S for gclrug-mongrel-unicorn@m.gmane.org; Mon,
+ 16 Nov 2009 00:57:32 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id AA60C185830C; Sun, 15 Nov 2009 18:57:31 -0500 (EST)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 369A918582CC for <mongrel-unicorn@rubyforge.org>;
+ Sun, 15 Nov 2009 18:47:41 -0500 (EST)
+Received: from localhost (unknown [127.0.2.5]) by dcvr.yhbt.net (Postfix)
+ with ESMTP id A08B41F4EA; Sun, 15 Nov 2009 23:47:40 +0000 (UTC)
+
+James Turnbull <james@lovedthanlost.net> wrote:
+> I get this repeated error - about once a second:
+> 
+> Exception `Errno::EAGAIN' at
+> /usr/lib/ruby/gems/1.8/gems/unicorn-0.95.0/lib/unicorn.rb:643 -
+> Resource temporarily unavailable - accept(2)
+> Exception `Errno::EAGAIN' at
+> /usr/lib/ruby/gems/1.8/gems/unicorn-0.95.0/lib/unicorn.rb:643 -
+> Resource temporarily unavailable - accept(2)
+> Exception `Errno::EAGAIN' at
+> /usr/lib/ruby/gems/1.8/gems/unicorn-0.95.0/lib/unicorn.rb:643 -
+> Resource temporarily unavailable - accept(2)
+> 
+> Which seems to be related to:
+> 
+>         ready.each do |sock|
+>           begin
+>             process_client(sock.accept_nonblock)
+>             nr += 1
+>             alive.chmod(m = 0 == m ? 1 : 0)
+>           rescue Errno::EAGAIN, Errno::ECONNABORTED
+>           end
+>           break if nr < 0
+>         end
+
+Hi James,
+
+This is expected.  The kernel wakes up all the workers when there's
+_one_ connection and they all race to accept() one client connection.
+One wins and accepts the connection, 3 lose and go back to sleep.  With
+lots of worker processes, this can be a thundering herd problem but
+that's why we encourage Unicorn as a backend server, not as a frontend
+server.
+
+If we only have one listener, we could do a blocking accept() call to
+avoid thundering herds under Linux, but testing on a 16-core box, I
+don't remember being able to measure a performance improvement.  But
+otherwise we have to use select() with multiple listeners.  nginx uses a
+variety of non-portable locking mechanisms to implement its accept
+mutex, but that's too much work under Ruby for little/no benefit.  In
+the nginx case, sometimes even disabling the accept mutex entirely gives
+better performance.
+
+> My unicorn.conf is:
+> 
+> worker_processes 4
+> working_directory "/etc/puppet"
+> listen '/tmp/puppet.sock', :backlog => 1
+> listen 8140, :tcp_nopush => true
+> timeout 10
+> pid "/tmp/puppet.pid"
+> 
+>   preload_app true
+>   GC.respond_to?(:copy_on_write_friendly=) and
+>   GC.copy_on_write_friendly = true
+> 
+>   before_fork do |server, worker|
+>     # the following is recomended for Rails + "preload_app true"
+>     # as there's no need for the master process to hold a connection
+> #    defined?(ActiveRecord::Base) and
+> #      ActiveRecord::Base.connection.disconnect!
+> 
+>     # the following allows a new master process to incrementally
+>     # phase out the old master process with SIGTTOU to avoid a
+>     # thundering herd (especially in the "preload_app false" case)
+>     # when doing a transparent upgrade.  The last worker spawned
+>     # will then kill off the old master process with a SIGQUIT.
+>     old_pid = "#{server.config[:pid]}.oldbin"
+>     if old_pid != server.pid
+>       begin
+>         sig = (worker.nr + 1) >= server.worker_processes ? :QUIT : :TTOU
+>         Process.kill(sig, File.read(old_pid).to_i)
+>       rescue Errno::ENOENT, Errno::ESRCH
+>       end
+>     end
+> 
+>     # optionally throttle the master from forking too quickly by
+> sleeping
+>     sleep 1
+>   end
+> 
+> The platform is Fedora 10, Ruby 1.8.6.
+> 
+> Oddly, if I comment out the preload I get:
+> 
+> Exception `Errno::EPERM' at
+> /usr/lib/ruby/gems/1.8/gems/unicorn-0.95.0/lib/unicorn.rb:639 -
+> Operation not permitted - /tmp/0.520680132392046
+
+Do you by any chance do user switching in your application
+or config.ru?
+
+Instead, since 0.94.0, I would do this:
+
+	after_fork do |server, worker|
+	  worker.user('user', 'group') if Process.euid == 0
+	end
+
+That way only the worker process drops permissions.  The master really
+doesn't do anything interesting.   Of course *I* would just start
+Unicorn as a regular user and forget the complexity of user switching
+entirely...
+
+-- 
+Eric Wong
