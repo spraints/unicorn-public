@@ -1,0 +1,118 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS4713 221.184.0.0/13
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.general,gmane.comp.lang.ruby.unicorn.general
+Subject: [ANN] unicorn 0.95.0 - we <3 Rainbows! and ponies too
+Date: Mon, 16 Nov 2009 07:34:07 +0900
+Message-ID: <20091115223404.GA26852@dcvr.yhbt.net>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+X-Trace: ger.gmane.org 1258324508 23922 80.91.229.12 (15 Nov 2009 22:35:08
+ GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Sun, 15 Nov 2009 22:35:08 +0000 (UTC)
+Cc: ruby-talk <ruby-talk@ruby-lang.org>
+To: ruby-talk@ruby-lang.org (ruby-talk ML) ,mongrel-unicorn@rubyforge.org
+Original-X-From: ruby-talk-admin@ruby-lang.org Sun Nov 15 23:35:01 2009
+Return-path: <ruby-talk-admin@ruby-lang.org>
+Envelope-to: gclrg-ruby-talk@m.gmane.org
+Delivered-To: ruby-talk@ruby-lang.org
+Original-Posted: Sun, 15 Nov 2009 14:34:04 -0800
+X-ML-Name: ruby-talk
+X-Mail-Count: 350520
+X-MLServer: fml [fml 4.0.3 release (20011202/4.0.3)]; post only (only members
+ can post)
+X-ML-Info: If you have a question, send e-mail with the body "help" (without
+ quotes) to the address ruby-talk-ctl@ruby-lang.org;
+ help=<mailto:ruby-talk-ctl@ruby-lang.org?body=help>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+Content-Disposition: inline
+Precedence: bulk
+Original-Lines: 58
+List-Id: <unicorn-public@bogomips.org>
+List-Software: fml [fml 4.0.3 release (20011202/4.0.3)]
+List-Post: <unicorn-public@bogomips.org>
+List-Owner: <mailto:ruby-talk-admin@ruby-lang.org>
+List-Help: <mailto:ruby-talk-ctl@ruby-lang.org?body=help>
+List-Unsubscribe: <mailto:ruby-talk-ctl@ruby-lang.org?body=unsubscribe>
+Xref: news.gmane.org gmane.comp.lang.ruby.general:307659
+ gmane.comp.lang.ruby.unicorn.general:160
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/160>
+Received: from carbon.ruby-lang.org ([221.186.184.68]) by lo.gmane.org with
+ esmtp (Exim 4.50) id 1N9ngP-0003lK-4F for gclrg-ruby-talk@m.gmane.org; Sun,
+ 15 Nov 2009 23:34:58 +0100
+Received: from carbon.ruby-lang.org (beryllium.ruby-lang.org [127.0.0.1]) by
+ carbon.ruby-lang.org (Postfix) with ESMTP id D87063C229444; Mon, 16 Nov 2009
+ 07:34:14 +0900 (JST)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by
+ carbon.ruby-lang.org (Postfix) with ESMTP id 691043C21664B for
+ <ruby-talk@ruby-lang.org>; Mon, 16 Nov 2009 07:34:06 +0900 (JST)
+Received: from localhost (unknown [127.0.2.5]) by dcvr.yhbt.net (Postfix)
+ with ESMTP id 2755C1F4EA; Sun, 15 Nov 2009 22:34:05 +0000 (UTC)
+
+Unicorn is a HTTP server for Rack applications designed to only serve
+fast clients on low-latency, high-bandwidth connections and take
+advantage of features in Unix/Unix-like kernels.  Slow clients should
+only be served by placing a reverse proxy capable of fully buffering
+both the the request and response in between Unicorn and slow clients.
+
+* http://unicorn.bogomips.org/
+* mongrel-unicorn@rubyforge.org
+* git://git.bogomips.org/unicorn.git
+
+Changes:
+
+Mostly internal cleanups and documentation updates.  Irrelevant
+stacktraces from client disconnects/errors while reading
+"rack.input" are now cleared to avoid unnecessary noise.  If
+user switching in workers is used, ownership of logs is now
+preserved when reopening worker logs (send USR1 only to the the
+master in this case).  The timeout config no longer affects long
+after_fork hooks or application startups.
+
+New features include the addition of the :umask option for the
+"listen" config directive and error reporting for non-portable
+socket options.
+
+No ponies have ever been harmed in our development.
+
+Eric Wong (28):
+      unicorn.1: document RACK_ENV changes in 0.94.0
+      HACKING: update with "gmake" in examples
+      don't nuke children for long after_fork and app loads
+      local.mk.sample: steal some updates from Rainbows!
+      Load Unicorn constants when building app
+      tee_input: fix RDoc argument definition for tee
+      Add FAQ
+      FAQ: fix links to Configurator docs
+      tee_input: better premature disconnect handling
+      tee_input: don't shadow struct members
+      raise Unicorn::ClientShutdown if client aborts in TeeInput
+      tee_input: fix comment from an intermediate commit
+      FAQ: additional notes on getting HTTPS redirects right
+      configurator: update RDoc and comments in examples
+      bump version to 0.95.0pre
+      configurator: listen :umask parameter for UNIX sockets
+      preserve user/group ownership when reopening logs
+      old_rails/static: avoid freezing strings
+      old_rails: autoload Static
+      const: no need to freeze HTTP_EXPECT
+      test_server: ensure stderr is written to before reading
+      tee_input: expand client error handling
+      replace "rescue => e" with "rescue Object => e"
+      socket_helper: do not hide errors when setting socket options
+      socket_helper: RDoc for constants
+      ClientShutdown: RDoc
+      Rakefile: add raa_update task
+      tee_input: client_error always raises
+
+-- 
+Eric Wong
+
+
