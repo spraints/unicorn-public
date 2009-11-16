@@ -1,0 +1,121 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.7 required=5.0 tests=MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: James Turnbull <james@lovedthanlost.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: Exception `Errno::EAGAIN'
+Date: Mon, 16 Nov 2009 11:08:56 +1100
+Message-ID: <4B009818.1020102@lovedthanlost.net>
+References: <4B008CFE.6020206@lovedthanlost.net>
+ <20091115234739.GA26275@dcvr.yhbt.net>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: ger.gmane.org 1258330153 7034 80.91.229.12 (16 Nov 2009 00:09:13
+ GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Mon, 16 Nov 2009 00:09:13 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Mon Nov 16 01:09:06
+ 2009
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+User-Agent: Thunderbird 2.0.0.23 (Macintosh/20090812)
+In-Reply-To: <20091115234739.GA26275@dcvr.yhbt.net>
+X-Enigmail-Version: 0.96.0
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:163
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/163>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.50) id 1N9p9W-0001gJ-BT for gclrug-mongrel-unicorn@m.gmane.org; Mon,
+ 16 Nov 2009 01:09:06 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id DEDF3185830C; Sun, 15 Nov 2009 19:09:05 -0500 (EST)
+Received: from na3sys009aog113.obsmtp.com (na3sys009aog113.obsmtp.com
+ [74.125.149.209]) by rubyforge.org (Postfix) with SMTP id 84D4F18582C9 for
+ <mongrel-unicorn@rubyforge.org>; Sun, 15 Nov 2009 19:09:03 -0500 (EST)
+Received: from source ([209.85.216.185]) by na3sys009aob113.postini.com
+ ([74.125.148.12]) with SMTP ID
+ DSNKSwCYHm6fR4FLpKrVNbiOCc+gP9k129L+@postini.com; Sun, 15 Nov 2009 16:09:03
+ PST
+Received: by mail-px0-f185.google.com with SMTP id 15so3246267pxi.23 for
+ <mongrel-unicorn@rubyforge.org>; Sun, 15 Nov 2009 16:09:02 -0800 (PST)
+Received: by 10.114.215.36 with SMTP id n36mr6687140wag.110.1258330142636;
+ Sun, 15 Nov 2009 16:09:02 -0800 (PST)
+Received: from rhizome-lovedthanlost-net.local
+ (124-168-59-19.dyn.iinet.net.au [124.168.59.19]) by mx.google.com with ESMTPS
+ id 23sm1212119pzk.12.2009.11.15.16.09.00 (version=TLSv1/SSLv3
+ cipher=RC4-MD5); Sun, 15 Nov 2009 16:09:01 -0800 (PST)
+
+-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA1
+
+Eric Wong wrote:
+> This is expected.  The kernel wakes up all the workers when there's
+> _one_ connection and they all race to accept() one client connection.
+> One wins and accepts the connection, 3 lose and go back to sleep.  With
+> lots of worker processes, this can be a thundering herd problem but
+> that's why we encourage Unicorn as a backend server, not as a frontend
+> server.
+
+Ah okay - makes sense.
+
+> Do you by any chance do user switching in your application
+> or config.ru?
+
+In the application we do.
+
+> Instead, since 0.94.0, I would do this:
+> 
+> 	after_fork do |server, worker|
+> 	  worker.user('user', 'group') if Process.euid == 0
+> 	end
+> 
+> That way only the worker process drops permissions.  The master really
+> doesn't do anything interesting.   Of course *I* would just start
+> Unicorn as a regular user and forget the complexity of user switching
+> entirely...
+
+Okay thanks - will give that a shot.
+
+Regards
+
+James Turnbull
+
+- --
+Author of:
+* Pro Linux System Administration (http://tinyurl.com/linuxadmin)
+* Pulling Strings with Puppet (http://tinyurl.com/pupbook)
+* Pro Nagios 2.0 (http://tinyurl.com/pronagios)
+* Hardening Linux (http://tinyurl.com/hardeninglinux)
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.4.7 (Darwin)
+Comment: Using GnuPG with Mozilla - http://enigmail.mozdev.org/
+
+iQEVAwUBSwCYGCFa/lDkFHAyAQIyPggA5XPzSOYgf4ekdBGoRcs4wp885eC8C/wY
+BIjzdxilCEhA8mqBw4Hrjo5sOebglOukACFla7QaDqyk2t1velQEpxj8sR2StNEe
+HHTbng/Jq3ryt4BxNucQWdKvdPTI3WJ3I9APqtGxNyh72FpY08uvAlUv02S8b/Aj
+mtFqbqi2gu+tkbOoqW1AeJEabjJHd7HyPhf2YlHowBaHG61bzrFRnuhvqN8R6SAq
+j3LI1kRpnTYdwKYEy3sLfR0OUSVmUuDkWjRkYt2tR2fAwCKkq2oupmcDUrvaT2Y2
+fbQ8YJzoGjwVVvD1On/u6iNiTHZcOReYiHRsAhmtbaS+eHldSukHQw==
+=EyRA
+-----END PGP SIGNATURE-----
