@@ -1,0 +1,91 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: unicorn, rails, and symlinked deployment
+Date: Tue, 17 Nov 2009 22:20:24 +0000
+Message-ID: <20091117222023.GA24006@dcvr.yhbt.net>
+References: <944a03770911170950i4fe79deay5f29b9904af58677@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: ger.gmane.org 1258496437 14299 80.91.229.12 (17 Nov 2009 22:20:37
+ GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Tue, 17 Nov 2009 22:20:37 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Tue Nov 17 23:20:30
+ 2009
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <944a03770911170950i4fe79deay5f29b9904af58677@mail.gmail.com>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:167
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/167>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.50) id 1NAWPU-0005es-Cy for gclrug-mongrel-unicorn@m.gmane.org; Tue,
+ 17 Nov 2009 23:20:28 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 85AC61858324; Tue, 17 Nov 2009 17:20:27 -0500 (EST)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 142DA1858322 for <mongrel-unicorn@rubyforge.org>;
+ Tue, 17 Nov 2009 17:20:25 -0500 (EST)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) (using TLSv1 with cipher
+ DHE-RSA-AES128-SHA (128/128 bits)) (No client certificate requested) by
+ dcvr.yhbt.net (Postfix) with ESMTPSA id 3BEEA1F67C; Tue, 17 Nov 2009 22:20:25
+ +0000 (UTC)
+
+Michael Guterl <mguterl@gmail.com> wrote:
+> First let me say thanks for Unicorn, it has helped us fill a gap that
+> Passenger could not fill.
+> 
+> Like many using Rails, we use capistrano for deployment.  At the end
+> of each deployment we use the standard capistrano deploy:cleanup task
+> to remove old releases.  Everything is fine until we cleanup the
+> release directory from which unicorn_rails was originally launched.
+> When this happens we get an error in our unicorn error log.
+> 
+> reloading config_file=/home/deploy/public_html/rm/releases/20091116213921/config/unicorn.rb
+> error reloading
+> config_file=/home/deploy/public_html/rm/releases/20091116213921/config/unicorn.rb:
+> Errno::ENOENT No such file or directory -
+> /home/deploy/public_html/rm/releases/20091116213921/config/unicorn.rb
+> 
+> I'm sure I'm not the only who has experienced this.  Does anyone have
+> any recommendations for handling this situation?
+
+Hi Michael,
+
+Unicorn was definitely implemented with Cap in mind.  Which version of
+Unicorn are you running?  0.94.0 got better symlink detection for
+non-GNU/Linux systems, so if you start in
+/home/deploy/public_html/rm/current, then it should detect it and use
+/home/deploy/public_html/rm/current/config/unicorn.rb.
+
+If you don't start in your "current" symlink dir, 0.94.0 also got
+support for "working_directory" in your config file.
+
+-- 
+Eric Wong
