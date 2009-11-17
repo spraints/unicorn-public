@@ -1,0 +1,87 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.6 required=5.0 tests=AWL,FREEMAIL_FROM,
+ MSGID_FROM_MTA_HEADER,RP_MATCHES_RCVD,T_DKIM_INVALID shortcircuit=no
+ autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Michael Guterl <mguterl@gmail.com>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: unicorn, rails, and symlinked deployment
+Date: Tue, 17 Nov 2009 12:50:16 -0500
+Message-ID: <944a03770911170950i4fe79deay5f29b9904af58677@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: ger.gmane.org 1258480507 21688 80.91.229.12 (17 Nov 2009 17:55:07
+ GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Tue, 17 Nov 2009 17:55:07 +0000 (UTC)
+To: mongrel-unicorn@rubyforge.org
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Tue Nov 17 18:55:00
+ 2009
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com; s=gamma;
+ h=domainkey-signature:mime-version:received:date:message-id:subject
+ :from:to:content-type; bh=d/E1qSYTJHnOO2Hb+4QWcAf9ZTfi/+b+Gs7lRXEGdwg=;
+ b=RNyjI0HyTyTssQC+rGk6LqsNwFKfCiu0+NJQGY74W/oC/UVB21QnBBf4wA+vgBWVvG
+ p6AkMWbvGDJHG62EoAMDbpLXenLXm3szIlSCqi0KZuBWULCOBboIrRmldEUbhFhAD04R
+ HHfhz1x49FZRB3II7+ahEcTmoJC72959z4bxo=
+DomainKey-Signature: a=rsa-sha1; c=nofws; d=gmail.com; s=gamma;
+ h=mime-version:date:message-id:subject:from:to:content-type;
+ b=VLLLkgW3APrax9w2GSIRVZIqXdM+tfUs5O77cNZF9caCWvmVgbWgC+EcxIqUdN5B5O
+ 1peeiCv0PttA8pnT7ptET2qWW6FZsyrNyqdEauLAk3JXOtcbRTU0/5v2Namo0w9FYA07
+ 6pHJiGfNtWgNBVs/muffvlO2WcVUzS6PggHNo=
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:166
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/166>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.50) id 1NASGT-00076W-Hc for gclrug-mongrel-unicorn@m.gmane.org; Tue,
+ 17 Nov 2009 18:54:53 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id BB560185831D; Tue, 17 Nov 2009 12:54:52 -0500 (EST)
+Received: from mail-pw0-f60.google.com (mail-pw0-f60.google.com
+ [209.85.160.60]) by rubyforge.org (Postfix) with ESMTP id 6BD6B18582FD for
+ <mongrel-unicorn@rubyforge.org>; Tue, 17 Nov 2009 12:50:16 -0500 (EST)
+Received: by pwi17 with SMTP id 17so131784pwi.19 for
+ <mongrel-unicorn@rubyforge.org>; Tue, 17 Nov 2009 09:50:16 -0800 (PST)
+Received: by 10.114.33.14 with SMTP id g14mr4481208wag.124.1258480216087;
+ Tue,  17 Nov 2009 09:50:16 -0800 (PST)
+
+First let me say thanks for Unicorn, it has helped us fill a gap that
+Passenger could not fill.
+
+Like many using Rails, we use capistrano for deployment.  At the end
+of each deployment we use the standard capistrano deploy:cleanup task
+to remove old releases.  Everything is fine until we cleanup the
+release directory from which unicorn_rails was originally launched.
+When this happens we get an error in our unicorn error log.
+
+reloading config_file=/home/deploy/public_html/rm/releases/20091116213921/config/unicorn.rb
+error reloading
+config_file=/home/deploy/public_html/rm/releases/20091116213921/config/unicorn.rb:
+Errno::ENOENT No such file or directory -
+/home/deploy/public_html/rm/releases/20091116213921/config/unicorn.rb
+
+I'm sure I'm not the only who has experienced this.  Does anyone have
+any recommendations for handling this situation?
+
+Best regards,
+Michael Guterl
