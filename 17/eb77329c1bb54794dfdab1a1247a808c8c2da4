@@ -1,0 +1,168 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: unicorn, rails, and symlinked deployment
+Date: Wed, 18 Nov 2009 17:51:26 -0800
+Message-ID: <20091119015126.GB1935@dcvr.yhbt.net>
+References: <944a03770911170950i4fe79deay5f29b9904af58677@mail.gmail.com>
+ <20091117222023.GA24006@dcvr.yhbt.net>
+ <944a03770911180734m635549c9ua2efe5ef5b881b36@mail.gmail.com>
+ <20091118172118.GA17288@dcvr.yhbt.net>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: ger.gmane.org 1258596054 13277 80.91.229.12 (19 Nov 2009 02:00:54
+ GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Thu, 19 Nov 2009 02:00:54 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Thu Nov 19 03:00:47
+ 2009
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <20091118172118.GA17288@dcvr.yhbt.net>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:178
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/178>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.50) id 1NAwJl-00019S-2V for gclrug-mongrel-unicorn@m.gmane.org; Thu,
+ 19 Nov 2009 03:00:17 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id ADE5118582D4; Wed, 18 Nov 2009 21:00:15 -0500 (EST)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 896EC18582FC for <mongrel-unicorn@rubyforge.org>;
+ Wed, 18 Nov 2009 20:51:27 -0500 (EST)
+Received: from localhost (unknown [127.0.2.5]) by dcvr.yhbt.net (Postfix)
+ with ESMTP id 19A681F67D; Thu, 19 Nov 2009 01:51:27 +0000 (UTC)
+
+Eric Wong <normalperson@yhbt.net> wrote:
+> Michael Guterl <mguterl@gmail.com> wrote:
+> > cd ~/public_html/rm/current
+> > unicorn_rails -D -E production -c config/unicorn.rb
+> > 
+> > I determined the -c config/unicorn.rb was the problem.  If I change it to:
+> > 
+> > unicorn_rails -D -E production -c ~/public_html/rm/current/config/unicorn.rb
+> > 
+> > everything works fine.
+> 
+> Hmm, maybe the config file path shouldn't be expanded then.  Especially
+> since it's only specified in the command-line.  /me ponders a bit...
+
+Hi Michael,
+
+Just pushed this out, too.  This should work better for you with:
+
+  unicorn_rails -D -E production -c config/unicorn.rb
+
+Oddly, this has been a problem since the beginning of time and probably
+confused a good amount of people.
+
+Thanks Michael for finally bringing it to my attention.  Most folks I
+know favor absolute ones (including myself), and don't hit this
+problem...  Of course let me know if I broke something for anyone,
+I hope not...
+
+>From 15217fe1162a400fa1cd2216e395d9f17be8083e Mon Sep 17 00:00:00 2001
+From: Eric Wong <normalperson@yhbt.net>
+Date: Wed, 18 Nov 2009 17:28:12 -0800
+Subject: [PATCH] Do not expand paths given on the shell
+
+Shells already expand '~' before the executables see it, and
+relative paths inside symlinks can get set incorrectly to the
+actual directory name, and not the (usually desired) symlink
+name for things like Capistrano.
+
+Since our paths are now unexpanded, we must now check the
+"working_directory" directive and raise an error if the user
+specifies the config file in a way that makes the config file
+unreloadable.
+---
+ bin/unicorn                 |    4 +-
+ bin/unicorn_rails           |    2 +-
+ lib/unicorn/configurator.rb |    7 ++++++
+ test/exec/test_exec.rb      |   51 +++++++++++++++++++++++++++++++++++++++++++
+ 4 files changed, 61 insertions(+), 3 deletions(-)
+
+diff --git a/bin/unicorn b/bin/unicorn
+index 225e819..325afb3 100755
+--- a/bin/unicorn
++++ b/bin/unicorn
+@@ -68,7 +68,7 @@ opts = OptionParser.new("", 24, '  ') do |opts|
+   opts.on("-P", "--pid FILE", "DEPRECATED") do |f|
+     warn %q{Use of --pid/-P is strongly discouraged}
+     warn %q{Use the 'pid' directive in the Unicorn config file instead}
+-    options[:pid] = File.expand_path(f)
++    options[:pid] = f
+   end
+ 
+   opts.on("-s", "--server SERVER",
+@@ -85,7 +85,7 @@ opts = OptionParser.new("", 24, '  ') do |opts|
+   end
+ 
+   opts.on("-c", "--config-file FILE", "Unicorn-specific config file") do |f|
+-    options[:config_file] = File.expand_path(f)
++    options[:config_file] = f
+   end
+ 
+   # I'm avoiding Unicorn-specific config options on the command-line.
+diff --git a/bin/unicorn_rails b/bin/unicorn_rails
+index 36ed660..e46de70 100755
+--- a/bin/unicorn_rails
++++ b/bin/unicorn_rails
+@@ -75,7 +75,7 @@ opts = OptionParser.new("", 24, '  ') do |opts|
+   end
+ 
+   opts.on("-c", "--config-file FILE", "Unicorn-specific config file") do |f|
+-    options[:config_file] = File.expand_path(f)
++    options[:config_file] = f
+   end
+ 
+   opts.on("-P PATH", "DEPRECATED") do |v|
+diff --git a/lib/unicorn/configurator.rb b/lib/unicorn/configurator.rb
+index 2d92aa3..e809b22 100644
+--- a/lib/unicorn/configurator.rb
++++ b/lib/unicorn/configurator.rb
+@@ -372,6 +372,13 @@ module Unicorn
+     def working_directory(path)
+       # just let chdir raise errors
+       path = File.expand_path(path)
++      if config_file &&
++         config_file[0] != ?/ &&
++         ! test(?r, "#{path}/#{config_file}")
++        raise ArgumentError,
++              "config_file=#{config_file} would not be accessible in" \
++              " working_directory=#{path}"
++      end
+       Dir.chdir(path)
+       HttpServer::START_CTX[:cwd] = ENV["PWD"] = path
+     end
+diff --git a/test/exec/test_exec.rb b/test/exec/test_exec.rb
+index f6dfd6a..49762c0 100644
+
+<snip ridiculously verbose test case>
+-- 
+Eric Wong
