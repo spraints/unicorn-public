@@ -1,0 +1,100 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.7 required=5.0 tests=MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Dylan Stamat <dstamat@elctech.com>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: Log File Location
+Date: Wed, 18 Nov 2009 19:25:38 -0800
+Message-ID: <E9112133-7F93-4E68-8402-B57DD79926A9@elctech.com>
+References: <0F1B76E7-F7F5-4A3C-8C15-668A5FAF5798@synergyeoc.com>
+ <944a03770911181847i20d5e886s28bf583d47a1c251@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0 (Apple Message framework v1077)
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: ger.gmane.org 1258601153 23224 80.91.229.12 (19 Nov 2009 03:25:53
+ GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Thu, 19 Nov 2009 03:25:53 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Thu Nov 19 04:25:46
+ 2009
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+In-Reply-To: <944a03770911181847i20d5e886s28bf583d47a1c251@mail.gmail.com>
+X-Mailer: Apple Mail (2.1077)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:183
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/183>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.50) id 1NAxeS-0004xH-PM for gclrug-mongrel-unicorn@m.gmane.org; Thu,
+ 19 Nov 2009 04:25:45 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id CAEA61858310; Wed, 18 Nov 2009 22:25:43 -0500 (EST)
+Received: from mail-px0-f180.google.com (mail-px0-f180.google.com
+ [209.85.216.180]) by rubyforge.org (Postfix) with ESMTP id 5FFE9185830E for
+ <mongrel-unicorn@rubyforge.org>; Wed, 18 Nov 2009 22:25:42 -0500 (EST)
+Received: by pxi10 with SMTP id 10so1305454pxi.33 for
+ <mongrel-unicorn@rubyforge.org>; Wed, 18 Nov 2009 19:25:41 -0800 (PST)
+Received: by 10.115.80.7 with SMTP id h7mr5219729wal.60.1258601141449; Wed,
+ 18 Nov 2009 19:25:41 -0800 (PST)
+Received: from ?192.168.0.3? (71-217-12-200.tukw.qwest.net [71.217.12.200])
+ by mx.google.com with ESMTPS id 21sm108565pxi.0.2009.11.18.19.25.39
+ (version=TLSv1/SSLv3 cipher=RC4-MD5); Wed, 18 Nov 2009 19:25:40 -0800 (PST)
+
+
+
+On Nov 18, 2009, at 6:47 PM, Michael Guterl wrote:
+
+> On Wed, Nov 18, 2009 at 9:06 PM, Preston Marshall
+> <preston@synergyeoc.com> wrote:
+>> This may be a dumb question, but where can I see the error logs that are
+>> usually displayed when unicorn is not daemonized?  The production.log file
+>> is empty in my app.  Everything is currently running as root.
+> 
+> I'm not sure where the logs are directed by default, but I set their
+> location in my unicorn config like so:
+> 
+> stdout_path '/home/deploy/public_html/rm/current/log/unicorn.log'
+> stderr_path '/home/deploy/public_html/rm/current/log/unicorn-error.log'
+> 
+> More information here: http://unicorn.bogomips.org/Unicorn/Configurator.html
+> 
+> Best,
+> Michael Guterl
+> _______________________________________________
+> mongrel-unicorn mailing list
+> mongrel-unicorn@rubyforge.org
+> http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+
+I ended up doing something like:
+
+unicorn_logger = Logger.new("/home/xxxxxx/current/log/unicorn.log")                                                                                                                                                           
+unicorn_logger.formatter = Logger::Formatter.new                                                                                                                                                                                     
+logger unicorn_logger
+
+... but, I think you can do this as well:
+Configurator::DEFAULTS[:logger].formatter = Logger::Formatter.new
+
+See:  http://rubyforge.org/pipermail/mongrel-unicorn/2009-November/000147.html
+
+==
+Dylan
