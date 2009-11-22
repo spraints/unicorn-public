@@ -1,0 +1,101 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: Nginx Conf
+Date: Sun, 22 Nov 2009 22:53:50 +0000
+Message-ID: <20091122225350.GC29926@dcvr.yhbt.net>
+References: <1258616971.7438.1.camel@hbartels-laptop>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: ger.gmane.org 1258930636 15455 80.91.229.12 (22 Nov 2009 22:57:16
+ GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Sun, 22 Nov 2009 22:57:16 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Sun Nov 22 23:57:09
+ 2009
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <1258616971.7438.1.camel@hbartels-laptop>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:188
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/188>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.50) id 1NCLMi-0006Ei-K0 for gclrug-mongrel-unicorn@m.gmane.org; Sun,
+ 22 Nov 2009 23:57:08 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id CD92818582BF; Sun, 22 Nov 2009 17:57:07 -0500 (EST)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 0BC6D1598078 for <mongrel-unicorn@rubyforge.org>;
+ Sun, 22 Nov 2009 17:53:52 -0500 (EST)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) (using TLSv1 with cipher
+ DHE-RSA-AES128-SHA (128/128 bits)) (No client certificate requested) by
+ dcvr.yhbt.net (Postfix) with ESMTPSA id 4A0101F605; Sun, 22 Nov 2009 22:53:52
+ +0000 (UTC)
+
+huet bartels <hbartels@i-neda.com> wrote:
+> Thank you all very much for you time.  
+> 
+> I will have a look at the configuration  examples today.
+
+Sorry for the late reply, I forgot about this thread (and I'm lazy
+about following links).
+
+One general thing about the nginx configs I've seen is that they're
+missing the fail_timeout=0 directive in the "server" lines.
+
+I highly recommend setting it since it's a low cost to try an upstream
+for nginx, and you can avoid 502 errors in case there's a bug in your
+app that causes a Unicorn worker to not send a valid HTTP response
+(including hitting the app timeout).
+
+I actually have this in the Configurator documentation[1]:
+
+    #    # See http://wiki.nginx.org/NginxHttpUpstreamModule for more details
+    #    # on nginx upstream configuration:
+    #    upstream unicorn_backend {
+    #      # for UNIX domain socket setups:
+    #      server unix:/path/to/unicorn.sock fail_timeout=0;
+    #
+    #      # for TCP setups
+    #      server 192.168.0.7:8080 fail_timeout=0;
+    #      server 192.168.0.8:8080 fail_timeout=0;
+    #      server 192.168.0.9:8080 fail_timeout=0;
+    #    }
+
+[1] - http://unicorn.bogomips.org/Unicorn/Configurator.html
+
+We've had fail_timeout=0 deployed to several places (many non-Unicorn
+servers) here and there and have experienced no negative effects
+(we're pretty good about keeping our backends up :)
+
+If anybody can recommend a better place in the Unicorn docs to put this,
+that'd be great, too...  Maybe I'll drop something in the examples/
+directory.
+
+-- 
+Eric Wong
