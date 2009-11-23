@@ -1,0 +1,142 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.7 required=5.0 tests=MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Dylan Stamat <dstamat@elctech.com>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: Nginx Conf
+Date: Sun, 22 Nov 2009 19:57:02 -0800
+Message-ID: <38731B72-8842-4F85-8A77-C0459052CC3D@elctech.com>
+References: <1258616971.7438.1.camel@hbartels-laptop>
+ <20091122225350.GC29926@dcvr.yhbt.net>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0 (Apple Message framework v1077)
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: ger.gmane.org 1258948639 21335 80.91.229.12 (23 Nov 2009 03:57:19
+ GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Mon, 23 Nov 2009 03:57:19 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Mon Nov 23 04:57:12
+ 2009
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+In-Reply-To: <20091122225350.GC29926@dcvr.yhbt.net>
+X-Mailer: Apple Mail (2.1077)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:189
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/189>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.50) id 1NCQ35-0005LD-Ay for gclrug-mongrel-unicorn@m.gmane.org; Mon,
+ 23 Nov 2009 04:57:11 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 617061858292; Sun, 22 Nov 2009 22:57:08 -0500 (EST)
+Received: from mail-pw0-f60.google.com (mail-pw0-f60.google.com
+ [209.85.160.60]) by rubyforge.org (Postfix) with ESMTP id B35031858289 for
+ <mongrel-unicorn@rubyforge.org>; Sun, 22 Nov 2009 22:57:06 -0500 (EST)
+Received: by pwi17 with SMTP id 17so3646099pwi.19 for
+ <mongrel-unicorn@rubyforge.org>; Sun, 22 Nov 2009 19:57:06 -0800 (PST)
+Received: by 10.114.83.17 with SMTP id g17mr7788784wab.38.1258948625546; Sun,
+ 22 Nov 2009 19:57:05 -0800 (PST)
+Received: from ?192.168.0.3? (71-217-12-200.tukw.qwest.net [71.217.12.200])
+ by mx.google.com with ESMTPS id 20sm2574094pxi.11.2009.11.22.19.57.03
+ (version=TLSv1/SSLv3 cipher=RC4-MD5); Sun, 22 Nov 2009 19:57:04 -0800 (PST)
+
+
+On Nov 22, 2009, at 2:53 PM, Eric Wong wrote:
+
+> huet bartels <hbartels@i-neda.com> wrote:
+>> Thank you all very much for you time.  
+>> 
+>> I will have a look at the configuration  examples today.
+> 
+> Sorry for the late reply, I forgot about this thread (and I'm lazy
+> about following links).
+> 
+> One general thing about the nginx configs I've seen is that they're
+> missing the fail_timeout=0 directive in the "server" lines.
+> 
+> I highly recommend setting it since it's a low cost to try an upstream
+> for nginx, and you can avoid 502 errors in case there's a bug in your
+> app that causes a Unicorn worker to not send a valid HTTP response
+> (including hitting the app timeout).
+> 
+> I actually have this in the Configurator documentation[1]:
+> 
+>    #    # See http://wiki.nginx.org/NginxHttpUpstreamModule for more details
+>    #    # on nginx upstream configuration:
+>    #    upstream unicorn_backend {
+>    #      # for UNIX domain socket setups:
+>    #      server unix:/path/to/unicorn.sock fail_timeout=0;
+>    #
+>    #      # for TCP setups
+>    #      server 192.168.0.7:8080 fail_timeout=0;
+>    #      server 192.168.0.8:8080 fail_timeout=0;
+>    #      server 192.168.0.9:8080 fail_timeout=0;
+>    #    }
+> 
+> [1] - http://unicorn.bogomips.org/Unicorn/Configurator.html
+> 
+> We've had fail_timeout=0 deployed to several places (many non-Unicorn
+> servers) here and there and have experienced no negative effects
+> (we're pretty good about keeping our backends up :)
+> 
+> If anybody can recommend a better place in the Unicorn docs to put this,
+> that'd be great, too...  Maybe I'll drop something in the examples/
+> directory.
+> 
+> -- 
+> Eric Wong
+> _______________________________________________
+> mongrel-unicorn mailing list
+> mongrel-unicorn@rubyforge.org
+> http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+
+Hey Eric,
+
+Yeah, an nginx.conf in examples/ would be great.
+It's probably going to be the most widely used front for Unicorn/Rainbows!, so
+a sample config with some explanations here and there would be awesome.
+It was great setting up Unicorn and being able to just grab the init.sh out of there!
+
+In terms of the fail_timeout, I haven't seen a nginx.conf with that entry yet!
+Maybe I'm looking at configuration files on the wrong projects ;)
+So, since the upstream attempts are cheap, the combination of a max_fail of 1
+and fail_timeout of 0 is ideal?  If the fail_timeout was at 10, and all the
+upstreams timed out, wouldn't it restart at the beginning of the round-robin, and
+not block... or... would it actually not retry on any due to the inoperable state?
+
+Thanks!
+==
+Dylan Stamat
+
+ELC Technologies (TM)
+1921 State Street
+Santa Barbara, CA 93101
+dstamat@elctech.com
+
+(866)863-7365 Tel
+(866)893-1902 Fax
+
++44 (0)20 7504 1346 Tel - London Office
++44 (0)20 7504 1347 Fax - London Office
+
+http://www.elctech.com
