@@ -1,0 +1,103 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: Nginx Conf
+Date: Mon, 23 Nov 2009 23:19:17 -0800
+Message-ID: <20091124071917.GA8233@dcvr.yhbt.net>
+References: <1258616971.7438.1.camel@hbartels-laptop>
+ <20091122225350.GC29926@dcvr.yhbt.net>
+ <38731B72-8842-4F85-8A77-C0459052CC3D@elctech.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: ger.gmane.org 1259047191 3980 80.91.229.12 (24 Nov 2009 07:19:51
+ GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Tue, 24 Nov 2009 07:19:51 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Tue Nov 24 08:19:44
+ 2009
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <38731B72-8842-4F85-8A77-C0459052CC3D@elctech.com>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:190
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/190>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.50) id 1NCpge-0001E0-Ge for gclrug-mongrel-unicorn@m.gmane.org; Tue,
+ 24 Nov 2009 08:19:44 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id B006318582FD; Tue, 24 Nov 2009 02:19:43 -0500 (EST)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 38BA318582CC for <mongrel-unicorn@rubyforge.org>;
+ Tue, 24 Nov 2009 02:19:18 -0500 (EST)
+Received: from localhost (unknown [127.0.2.5]) by dcvr.yhbt.net (Postfix)
+ with ESMTP id 953811F4E5; Tue, 24 Nov 2009 07:19:17 +0000 (UTC)
+
+Dylan Stamat <dstamat@elctech.com> wrote:
+> On Nov 22, 2009, at 2:53 PM, Eric Wong wrote:
+> > One general thing about the nginx configs I've seen is that they're
+> > missing the fail_timeout=0 directive in the "server" lines.
+> > 
+> > I highly recommend setting it since it's a low cost to try an upstream
+> > for nginx, and you can avoid 502 errors in case there's a bug in your
+> > app that causes a Unicorn worker to not send a valid HTTP response
+> > (including hitting the app timeout).
+> 
+> Hey Eric,
+> 
+> Yeah, an nginx.conf in examples/ would be great.
+> It's probably going to be the most widely used front for
+> Unicorn/Rainbows!, so a sample config with some explanations here and
+> there would be awesome.  It was great setting up Unicorn and being
+> able to just grab the init.sh out of there!
+
+OK, I'll push out an nginx example in a bit, need to make sure things
+are adequately explained and linked.
+
+> In terms of the fail_timeout, I haven't seen a nginx.conf with that
+> entry yet!  Maybe I'm looking at configuration files on the wrong
+> projects ;) So, since the upstream attempts are cheap, the combination
+> of a max_fail of 1 and fail_timeout of 0 is ideal?  If the
+> fail_timeout was at 10, and all the upstreams timed out, wouldn't it
+> restart at the beginning of the round-robin, and not block... or...
+> would it actually not retry on any due to the inoperable state?
+
+max_fails doesn't seem to have any effect when fail_timeout=0.  Setting
+max_fails=0 means the same thing as fail_timeout=0 in nginx >=0.6.33
+(it would segfault before :x)  I've just been using fail_timeout=0
+since what seems like forever in nginx...
+
+Reading ngx_http_upstream_round_robin.c again, it appears seems that
+fail_timeout/max_fails is supposed to get ignored if *all* upstreams are
+failing.  So if you have a single upstream it looks like you're safe
+even if your Unicorn master nukes workers.  On the other hand I remember
+this not being the case at some point a while back; an entire cluster
+got effectively shut down because of it.  Just set fail_timeout=0
+and stop worrying about it :)
+
+-- 
+Eric Wong
