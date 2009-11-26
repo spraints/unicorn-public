@@ -1,0 +1,129 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: feature request - when_ready() hook
+Date: Wed, 25 Nov 2009 22:05:19 -0800
+Message-ID: <20091126060519.GC22762@dcvr.yhbt.net>
+References: <cfbcd2f00911252050y3f43f950y77123253e1284d90@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: ger.gmane.org 1259215538 7388 80.91.229.12 (26 Nov 2009 06:05:38
+ GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Thu, 26 Nov 2009 06:05:38 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Thu Nov 26 07:05:30
+ 2009
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <cfbcd2f00911252050y3f43f950y77123253e1284d90@mail.gmail.com>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:192
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/192>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.50) id 1NDXTp-0005Nc-P7 for gclrug-mongrel-unicorn@m.gmane.org; Thu,
+ 26 Nov 2009 07:05:25 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 16B0B3C8040; Thu, 26 Nov 2009 01:05:23 -0500 (EST)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 675813C803F for <mongrel-unicorn@rubyforge.org>; Thu,
+ 26 Nov 2009 01:05:20 -0500 (EST)
+Received: from localhost (unknown [127.0.2.5]) by dcvr.yhbt.net (Postfix)
+ with ESMTP id 878A229683D; Thu, 26 Nov 2009 06:05:19 +0000 (UTC)
+
+Suraj Kurapati <sunaku@gmail.com> wrote:
+> Hello,
+> 
+> I've been trying to achieve truly transparent zero downtime deploys
+> with Unicorn and Rails for some time now (using SIGUSR2 and SIGQUIT
+> strategy) and I've always hit the problem of my "last worker sends
+> SIGQUIT to the old master" logic being executed way too soon.
+> 
+> In particular, I tried killing the old master in:
+> 
+> * before_fork() -- approx. 2 minute downtime
+> * after_fork() -- approx. 2 minute downtime
+> * storing the old-master-killing logic inside a lambda in after_fork()
+> (for the last worker only) and later executing that lambda in Rails'
+> config.after_initialize() hook -- approx. 20 second downtime
+
+Hi Suraj,
+
+I'm looking at those times and can't help but wonder if there's
+something very weird/broken with your setup..  20 seconds is already an
+eternity (even with preload_app=false), but 2 minutes?(!).
+
+Are you doing per-process listeners and retrying?  The new ones could be
+fighting for a port held by the old workers...  Other than that...
+
+I have many questions, because those times look extremely scary to me
+and I wonder if such a hook would only be masking the symptoms of
+a bigger problem.
+
+What kind of software/hardware stack are you running?
+(please don't say NSLU2 :)
+
+How many workers?
+
+How heavy is traffic on the site when you're deploying?
+
+How long does it take for a single worker to get ready and start
+serving requests?
+
+Are you using preload_app?  It should be faster if you do, but there
+really appears to be something else wrong based on those times.
+
+Thanks in advance.
+
+> As you can see, the more I delayed the execution of that "killing the
+> old master" logic, the closer I got to zero downtime deploys.  In this
+> manner, I request the addition of a when_ready() hook which is
+> executed just after Unicorn prints "worker=# ready!" to its error log
+> inside Unicorn::HttpServer#worker_loop().
+
+At this stage, maybe even implementing something as middleware and
+making it hook into request processing (that way you really know the
+worker is really responding to requests) is the way to go...
+
+> I am happy to implement this (with tests) and submit a patch, but I
+> first wanted to know your opinion on this approach.  (I should note
+> that my unicorn setup does not run very close to the memory limit of
+> its host; instead, the amount of free memory is more than double of
+> the current unicorn memory footprint, so I can safely spawn a second
+> set of Unicorn master + workers (via SIGUSR2) without worrying about
+> the SIGTTOU before_fork() strategy shown in the Unicorn configuration
+> example.)
+
+Given your memory availability, I wouldn't even worry about the
+automated killing of the old workers.
+
+Automatically killing old workers means you need a redeploy to roll back
+changes, whereas if you SIGWINCH the old set away, you can HUP the old
+master to bring them back in case the new set is having problems.
+
+-- 
+Eric Wong
