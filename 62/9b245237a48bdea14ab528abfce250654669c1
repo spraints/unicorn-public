@@ -1,0 +1,98 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.6 required=5.0 tests=FREEMAIL_FROM,
+ MSGID_FROM_MTA_HEADER,RP_MATCHES_RCVD,T_DKIM_INVALID shortcircuit=no
+ autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Suraj Kurapati <sunaku@gmail.com>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: feature request - when_ready() hook
+Date: Wed, 25 Nov 2009 20:50:56 -0800
+Message-ID: <cfbcd2f00911252050y3f43f950y77123253e1284d90@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: ger.gmane.org 1259211424 32085 80.91.229.12 (26 Nov 2009 04:57:04
+ GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Thu, 26 Nov 2009 04:57:04 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Thu Nov 26 05:56:57
+ 2009
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com; s=gamma;
+ h=domainkey-signature:mime-version:received:date:message-id:subject
+ :from:to:content-type; bh=vftEPGvcbTHnrFy5VE1gUP2zfFaQSTQDawEhlS+G6jo=;
+ b=sU65L/J5KSFGwU4yrVybbMZwLvkQ4mEL/A7umFeht3tbwr0lQHOg7Ban3Fq6Seed7G
+ QoYhkwfjeCsyzVXdl/FlFlGyZzHCTAfYPtfxG64U2Ad+vGHrURNIBecKvY6CF9zNFo9m
+ qA+rISkAYcZaCV0hZcOfYhqp5S8hbmi0g6ges=
+DomainKey-Signature: a=rsa-sha1; c=nofws; d=gmail.com; s=gamma;
+ h=mime-version:date:message-id:subject:from:to:content-type;
+ b=A+zqqUzcLetYVFNcKuTHX6e5ZxDO+A0D26zCZgo5lmPady1s26EVAc4Vr+XkwFzfWC
+ Tlc7ZfzFMom15HnnCqQdj6mCMYdZgeFtfmx+7bNmLPl3tB9Rwe5jJZLsH51PCOLkWW11
+ pc//+DQp3mlMebI49zQUp446AoytF4r0+xzR4=
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:191
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/191>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.50) id 1NDWPY-0005Mq-Rl for gclrug-mongrel-unicorn@m.gmane.org; Thu,
+ 26 Nov 2009 05:56:57 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 4BC2B3C8040; Wed, 25 Nov 2009 23:56:56 -0500 (EST)
+Received: from mail-pw0-f60.google.com (mail-pw0-f60.google.com
+ [209.85.160.60]) by rubyforge.org (Postfix) with ESMTP id 423BB3C8040 for
+ <mongrel-unicorn@rubyforge.org>; Wed, 25 Nov 2009 23:50:57 -0500 (EST)
+Received: by pwi17 with SMTP id 17so303142pwi.19 for
+ <mongrel-unicorn@rubyforge.org>; Wed, 25 Nov 2009 20:50:56 -0800 (PST)
+Received: by 10.142.6.11 with SMTP id 11mr934249wff.79.1259211056377; Wed, 25
+ Nov 2009 20:50:56 -0800 (PST)
+
+Hello,
+
+I've been trying to achieve truly transparent zero downtime deploys
+with Unicorn and Rails for some time now (using SIGUSR2 and SIGQUIT
+strategy) and I've always hit the problem of my "last worker sends
+SIGQUIT to the old master" logic being executed way too soon.
+
+In particular, I tried killing the old master in:
+
+* before_fork() -- approx. 2 minute downtime
+* after_fork() -- approx. 2 minute downtime
+* storing the old-master-killing logic inside a lambda in after_fork()
+(for the last worker only) and later executing that lambda in Rails'
+config.after_initialize() hook -- approx. 20 second downtime
+
+As you can see, the more I delayed the execution of that "killing the
+old master" logic, the closer I got to zero downtime deploys.  In this
+manner, I request the addition of a when_ready() hook which is
+executed just after Unicorn prints "worker=# ready!" to its error log
+inside Unicorn::HttpServer#worker_loop().
+
+I am happy to implement this (with tests) and submit a patch, but I
+first wanted to know your opinion on this approach.  (I should note
+that my unicorn setup does not run very close to the memory limit of
+its host; instead, the amount of free memory is more than double of
+the current unicorn memory footprint, so I can safely spawn a second
+set of Unicorn master + workers (via SIGUSR2) without worrying about
+the SIGTTOU before_fork() strategy shown in the Unicorn configuration
+example.)
+
+Thanks for your consideration.
