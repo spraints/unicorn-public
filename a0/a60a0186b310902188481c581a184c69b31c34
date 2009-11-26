@@ -1,0 +1,114 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=0.4 required=5.0 tests=FREEMAIL_FROM,HK_RANDOM_FROM,
+ MSGID_FROM_MTA_HEADER,RP_MATCHES_RCVD,T_DKIM_INVALID shortcircuit=no
+ autolearn=no version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: David Palm <dvdplm@gmail.com>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: GC settings for unicorn?
+Date: Thu, 26 Nov 2009 15:39:32 +0100
+Message-ID: <20091126153932341234.878b7f4e@gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: ger.gmane.org 1259246389 30382 80.91.229.12 (26 Nov 2009 14:39:49
+ GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Thu, 26 Nov 2009 14:39:49 +0000 (UTC)
+To: mongrel-unicorn@rubyforge.org
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Thu Nov 26 15:39:42
+ 2009
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com; s=gamma;
+ h=domainkey-signature:received:received:date:from:to:message-id
+ :subject:mime-version:content-type:content-transfer-encoding :x-mailer;
+ bh=vnuStZ8IiOej8TeRxjPcabZCplYfg3DUZhwJySZTZVY=;
+ b=CXVpy8Gx0umT94YcFHdh3I68qidHRgusfRZD9JzBg1LhtZJrFPTw/ToE6kwKmNLt05
+ gr1qVBmB4g//+i1hnDnhYmXWqk5r1YeRjNC4itPv3WlO10N7zBTrPzvuhVJmjlnEW/yf
+ McWPJTxHYYSAKjKOax2zNNd4j5zSMPvgliWYA=
+DomainKey-Signature: a=rsa-sha1; c=nofws; d=gmail.com; s=gamma;
+ h=date:from:to:message-id:subject:mime-version:content-type
+ :content-transfer-encoding:x-mailer;
+ b=ajNYyYJ9/++OFqCi3K3telkIO1hugGiEfCui6+4WBUAhUHyaWdg5sHQTPtjsNNInyy
+ TRs9VezGL4Ciyya0QKXVyonMOhEHBha702Csr9TzvJT1bim6OLr/3eZHCzMgCULcy0rj
+ yy8vDazUWkJ9bkZFH83d/3l+9M6KRmdJN0f5I=
+X-Mailer: GyazMail version 1.5.8 
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:193
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/193>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.50) id 1NDfVW-0003lX-40 for gclrug-mongrel-unicorn@m.gmane.org; Thu,
+ 26 Nov 2009 15:39:42 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 15FAA18582C1; Thu, 26 Nov 2009 09:39:40 -0500 (EST)
+Received: from mail-bw0-f216.google.com (mail-bw0-f216.google.com
+ [209.85.218.216]) by rubyforge.org (Postfix) with ESMTP id AC6C71858292 for
+ <mongrel-unicorn@rubyforge.org>; Thu, 26 Nov 2009 09:39:35 -0500 (EST)
+Received: by bwz8 with SMTP id 8so645025bwz.19 for
+ <mongrel-unicorn@rubyforge.org>; Thu, 26 Nov 2009 06:39:34 -0800 (PST)
+Received: by 10.204.157.26 with SMTP id z26mr190186bkw.124.1259246374472;
+ Thu, 26 Nov 2009 06:39:34 -0800 (PST)
+Received: from ?192.168.0.3? ([151.61.5.122]) by mx.google.com with ESMTPS id
+ 13sm187379bwz.6.2009.11.26.06.39.33 (version=TLSv1/SSLv3 cipher=RC4-MD5);
+ Thu, 26 Nov 2009 06:39:34 -0800 (PST)
+
+Hi all,
+we have a batch of unicorn workers running behind nginx in production since a week now. Works awesomely.
+
+We're using REE 1.8.7 and I'd like to tune the GC settings to something like:
+	RUBY_HEAP_FREE_MIN=10000
+	RUBY_HEAP_MIN_SLOTS=40000
+	RUBY_HEAP_SLOTS_INCREMENT=20000
+	RUBY_GC_MALLOC_LIMIT=40000000
+	RUBY_HEAP_SLOTS_GROWTH_FACTOR=1.1
+
+Now, how should I go about getting unicorn to pick that up the ENV? I tried sticking the above exports into /etc/profile.d/ree_gc_tuning.sh but when unicorn spawns workers they don't get the environment from the spawning user (root).
+
+Our unicorn.rb config file has this in the after_fork section:
+
+  # Unicorn master is started as root, which is fine, but let's
+  # drop the workers to mongrel:mongrel
+  begin
+    uid, gid = Process.euid, Process.egid
+    user, group = 'mongrel', 'mongrel'
+    target_uid = Etc.getpwnam(user).uid
+    target_gid = Etc.getgrnam(group).gid
+    worker.tmp.chown(target_uid, target_gid)
+    if uid != target_uid || gid != target_gid
+      Process.initgroups(user, target_gid)
+      Process::GID.change_privilege(target_gid)
+      Process::UID.change_privilege(target_uid)
+    end
+  rescue => e
+    raise e
+  end
+
+To verify the contents of the env at this stage of the init I inserted a:
+	File.open('/tmp/unicorn_init.log','w'){|f| f << "Who am I? #{`whoami`}\n#{`env`}"}
+
+The user is really "mongrel" at this stage and the env does not contain any of the GC tunings.
+
+Is there a best practise regarding this? Where should env var setting go? Is tuning the GC something we'd want to be able to do in the unicorn config file directly (feature request...)?
+
+Thanks for any pointers!
+
+David
