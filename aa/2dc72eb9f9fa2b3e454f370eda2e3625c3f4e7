@@ -1,0 +1,167 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: feature request - when_ready() hook
+Date: Thu, 26 Nov 2009 19:53:48 +0000
+Message-ID: <20091126195348.GB26561@dcvr.yhbt.net>
+References: <cfbcd2f00911252050y3f43f950y77123253e1284d90@mail.gmail.com>
+ <20091126060519.GC22762@dcvr.yhbt.net>
+ <cfbcd2f00911261105y58d176d7p40f9ad2c81712b21@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="iso-8859-1"
+Content-Transfer-Encoding: quoted-printable
+X-Trace: ger.gmane.org 1259265431 26334 80.91.229.12 (26 Nov 2009 19:57:11
+ GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Thu, 26 Nov 2009 19:57:11 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Thu Nov 26 20:57:04
+ 2009
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <cfbcd2f00911261105y58d176d7p40f9ad2c81712b21@mail.gmail.com>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:196
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/196>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.50) id 1NDkSe-000877-3s for gclrug-mongrel-unicorn@m.gmane.org; Thu,
+ 26 Nov 2009 20:57:04 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 68CD018582C1; Thu, 26 Nov 2009 14:57:03 -0500 (EST)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 8C1DE18582BF for <mongrel-unicorn@rubyforge.org>;
+ Thu, 26 Nov 2009 14:53:49 -0500 (EST)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) (using TLSv1 with cipher
+ DHE-RSA-AES128-SHA (128/128 bits)) (No client certificate requested) by
+ dcvr.yhbt.net (Postfix) with ESMTPSA id A3BE31F679; Thu, 26 Nov 2009 19:53:48
+ +0000 (UTC)
+
+Suraj Kurapati <sunaku@gmail.com> wrote:
+> On Wed, Nov 25, 2009 at 10:05 PM, Eric Wong <normalperson@yhbt.net> wrote:
+> > Suraj Kurapati <sunaku@gmail.com> wrote:
+> >> * before_fork() -- approx. 2 minute downtime
+> >> * after_fork() -- approx. 2 minute downtime
+> >> * storing the old-master-killing logic inside a lambda in after_fork()
+> >> (for the last worker only) and later executing that lambda in Rails'
+> >> config.after_initialize() hook -- approx. 20 second downtime
+> >
+> > I'm looking at those times and can't help but wonder if there's
+> > something very weird/broken with your setup.. =A020 seconds is already =
+an
+> > eternity (even with preload_app=3Dfalse), but 2 minutes?(!).
+> =
+
+> Yes, I am using preload_app=3Dfalse.  These delays mainly come from
+> establishing DB connections and loading XML datasets into the Rails
+> app.  Our production DBs are pretty slow to give out new connections.
+> The startup time is much faster in development, where I use SQLite.
+
+Yikes.  Is there some sort of misconfiguration in the DBs?  Perhaps
+they're trying to do reverse DNS on every client connection, that
+can really ruin your day if your app servers don't have reverse DNS.
+
+> Please note that the reported downtimes are shocking only because they
+> were *visible* downtimes, where the last worker of the new Unicorn
+> master killed the old Unicorn master too soon.  IMHO, it doesn't
+> matter how long it takes for the Rails app to become ready, so long as
+> the old Unicorn master + workers continue to exist & service requests
+> until the new Unicorn master + workers take over.
+
+<snip>
+
+> > Are you using preload_app? =A0It should be faster if you do, but there
+> > really appears to be something else wrong based on those times.
+> =
+
+> I was for a few weeks, but I stopped because the XML dataset loading
+> (see above) kept increasing the master's (and the new set of workers')
+> memory footprint by 1.5x every time Unicorn was restarted via SIGUSR2.
+
+Side problem, but another thing that makes me go "Huh?"
+
+Did the new master's footprint increase?  Are you mmap()-ing the XML
+dataset?  Is RSS increasing or just VmSize?  Unicorn sets FD_CLOEXEC on
+the first 1024 (non-listener) file descriptors, so combined with exec(),
+that should give the new master (and subsequent workers) a clean memory
+footprint.
+
+> >> As you can see, the more I delayed the execution of that "killing the
+> >> old master" logic, the closer I got to zero downtime deploys. =A0In th=
+is
+> >> manner, I request the addition of a when_ready() hook which is
+> >> executed just after Unicorn prints "worker=3D# ready!" to its error log
+> >> inside Unicorn::HttpServer#worker_loop().
+> >
+> > At this stage, maybe even implementing something as middleware and
+> > making it hook into request processing (that way you really know the
+> > worker is really responding to requests) is the way to go...
+> =
+
+> Hmm, but that would incur a penalty on each request (check if I've
+> already killed the old master and do it if necessary).  I'm pretty
+> confident that killing the old master in the when_ready() hook will be
+> Good Enough for my setup (at most I expect to see 1-2 second
+> "down"time).  Let me try this out and I'll tell you the results &
+> submit a patch.
+
+I don't think a runtime condition would be any more expensive than all
+the routing/filters/checks that any Rails app already does and you can
+cache the result into a global variable.
+
+As you may have noticed, I'm quite hesitant to add new features,
+especially for uncommon/rare cases.  Things like supporting the
+"working_directory" directive and user-switching took *months* of
+debating with myself before they were finally added.
+
+> >> my unicorn setup does not run very close to the memory limit of
+> >> its host; instead, the amount of free memory is more than double of
+> >> the current unicorn memory footprint, so I can safely spawn a second
+> >> set of Unicorn master + workers (via SIGUSR2) without worrying about
+> >> the SIGTTOU before_fork() strategy shown in the Unicorn configuration
+> >> example.)
+> >
+> > Given your memory availability, I wouldn't even worry about the
+> > automated killing of the old workers.
+> >
+> > Automatically killing old workers means you need a redeploy to roll back
+> > changes, whereas if you SIGWINCH the old set away, you can HUP the old
+> > master to bring them back in case the new set is having problems.
+> =
+
+> Wow this is cool.  Perhaps this strategy could be mentioned in the
+> documentation?
+
+It's already at the bottom of the SIGNALS
+(http://unicorn.bogomips.org/SIGNALS.html) document
+
+> Thanks for your consideration.
+
+No problem, let us know if it's the DB doing reverse DNS because
+I've seen that to be a problem in a lot of cases.
+
+-- =
+
+Eric Wong
