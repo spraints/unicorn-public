@@ -1,0 +1,115 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=0.4 required=5.0 tests=FREEMAIL_FROM,HK_RANDOM_FROM,
+ MSGID_FROM_MTA_HEADER,RP_MATCHES_RCVD,T_DKIM_INVALID shortcircuit=no
+ autolearn=no version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: David Palm <dvdplm@gmail.com>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Snow Leopard 32bit kernel gotcha
+Date: Mon, 30 Nov 2009 12:41:17 +0100
+Message-ID: <20091130124117149012.b5485116@gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="iso-8859-7"
+Content-Transfer-Encoding: base64
+X-Trace: ger.gmane.org 1259581291 2520 80.91.229.12 (30 Nov 2009 11:41:31
+ GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Mon, 30 Nov 2009 11:41:31 +0000 (UTC)
+To: mongrel-unicorn@rubyforge.org
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Mon Nov 30 12:41:24
+ 2009
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com; s=gamma;
+ h=domainkey-signature:received:received:date:from:to:message-id
+ :subject:mime-version:content-type:content-transfer-encoding :x-mailer;
+ bh=tpblKfrFetr3iuoMTfLa7UvN0vH6cEcMKrmXlCYGWu4=;
+ b=OQ7kuCB4Cgiq9AHQa9PGvJOgPb5gnQpCWczyWHE2x0m+F9nikkGYVpFHMMA802YI9u
+ 1nMRYZY9vrBaOtAJoTaTgH5nEP2FbKBeOcP4XwGeFIMkuecckJ5ojl/VpY/6dQhg0KIh
+ 4bzPcsuYteMsn7K7t5acCqRQLafYeqAof0xGY=
+DomainKey-Signature: a=rsa-sha1; c=nofws; d=gmail.com; s=gamma;
+ h=date:from:to:message-id:subject:mime-version:content-type
+ :content-transfer-encoding:x-mailer;
+ b=VCgdo15arIEpJPBKyUHQAyN3RnBeSv/f35DQNnX3+zzbuRrtdmt8imQNvFOtuVhXrY
+ +LCyVUTbN0jRLgFgMtL4hB06KALPQfEyZEZWOjlKOYcAgp3dDI6IkfUxYZmrRO9EiQ5H
+ 66NMZELQ+BIFg5TNVxkkP9yWkEdKMf2EVfe/8=
+X-Mailer: GyazMail version 1.5.8 
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:197
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/197>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.50) id 1NF4d8-0003xP-Tn for gclrug-mongrel-unicorn@m.gmane.org; Mon,
+ 30 Nov 2009 12:41:23 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 3FF9B185826F; Mon, 30 Nov 2009 06:41:22 -0500 (EST)
+Received: from mail-bw0-f216.google.com (mail-bw0-f216.google.com
+ [209.85.218.216]) by rubyforge.org (Postfix) with ESMTP id 59ACA185826F for
+ <mongrel-unicorn@rubyforge.org>; Mon, 30 Nov 2009 06:41:20 -0500 (EST)
+Received: by bwz8 with SMTP id 8so2747702bwz.19 for
+ <mongrel-unicorn@rubyforge.org>; Mon, 30 Nov 2009 03:41:19 -0800 (PST)
+Received: by 10.204.7.87 with SMTP id c23mr4404856bkc.97.1259581279386; Mon,
+ 30 Nov 2009 03:41:19 -0800 (PST)
+Received: from ?192.168.0.3? ([151.61.5.122]) by mx.google.com with ESMTPS id
+ 14sm1111580bwz.1.2009.11.30.03.41.18 (version=TLSv1/SSLv3 cipher=RC4-MD5);
+ Mon, 30 Nov 2009 03:41:18 -0800 (PST)
+
+SGksDQpqdXN0IHRob3VnaHQgSSdkIHNpZ25hbCBhbiBpc3N1ZSBJIGhhZCB0aGlzIG1vcm5pbmcg
+aW5zdGFsbGluZyB1bmljb3JuIHVuZGVyIFJ1YnkgMS45LjEuDQoNCkknbSB1c2luZyB0aGUgZXhl
+bGxlbnQgcnZtIHRvIGhhbmRsZSBteSBydWJpZXMgYW5kIG1hZGUgYSBtaXN0YWtlIHdoZW4gSSBm
+aXJzdCBpbnN0YWxsZWQgaXQgYWZ0ZXIgcGFzc2luZyB0byBTbm93IExlb3BhcmQuIEluIG9yZGVy
+IHRvIGJ1aWxkIGxpYnJhcmllcyB3aXRoIDY0Yml0IHN1cHBvcnQgeW91IGhhdmUgdG8gc3RpY2sg
+dGhlIGZvbGxvd2luZyBpbiB5b3VyIH4vLnJ2bXJjOg0KCXJ2bV9hcmNoZmxhZ3M9Ii1hcmNoIHg4
+Nl82NCINCg0KU28gbXkgbWlzdGFrZSB3YXMgSSBidWlsdCBteSBydWJ5IDEuOSBiZWZvcmUgcGFz
+c2luZyB0byBhIDY0Yml0IGtlcm5lbC4NCg0KSSBnb3QgYSBwcmV0dHkgd2VpcmQgZXJyb3IgZnJv
+bSB1bmljb3JuOg0KDQoJSW4gZmlsZSBpbmNsdWRlZCBmcm9tIHVuaWNvcm5faHR0cC5ybDo3Og0K
+CWV4dF9oZWxwLmg6IEluIGZ1bmN0aW9uIKFyYl8xOF9zdHJfc2V0X2xlbqI6DQoJZXh0X2hlbHAu
+aDoyMDogZXJyb3I6IKFzdHJ1Y3QgUlN0cmluZ6IgaGFzIG5vIG1lbWJlciBuYW1lZCChbGVuog0K
+CWV4dF9oZWxwLmg6MjE6IGVycm9yOiChc3RydWN0IFJTdHJpbmeiIGhhcyBubyBtZW1iZXIgbmFt
+ZWQgoXB0cqINCgltYWtlOiAqKiogW3VuaWNvcm5faHR0cC5vXSBFcnJvciAxDQoNClRoYXQgdGhy
+ZXcgbWUgb2ZmIGluIHRoZSB3cm9uZyBkaXJlY3Rpb24sIHRoaW5raW5nIGl0IHdhcyB5ZXQgYW5v
+dGhlciBleHRlbnNpb24gdGhhdCBkaWRuJ3QgZ2V0IHRoZSBSU1RSSU5HIHN0cnVjdCBjaGFuZ2Vz
+IHJpZ2h0LiBOb3Qgc28uDQoNCkxvb2tpbmcgbW9yZSBjYXJlZnVsbHkgYXQgbWttZi5sb2cgaXQg
+YWxsIGJlY2FtZSBvYnZpb3VzOg0KDQoJSW4gZmlsZSBpbmNsdWRlZCBmcm9tIC9Vc2Vycy9kYXZp
+ZC8ucnZtL3J1YnktMS45LjEtcDI0My9pbmNsdWRlL3J1YnktMS45LjEvcnVieS5oOjMyLA0KICAg
+ICAgICAgICAgICAgICBmcm9tIGNvbmZ0ZXN0LmM6MToNCgkvVXNlcnMvZGF2aWQvLnJ2bS9ydWJ5
+LTEuOS4xLXAyNDMvaW5jbHVkZS9ydWJ5LTEuOS4xL3J1YnkvcnVieS5oOiBJbiBmdW5jdGlvbiCh
+SU5UMk5VTaI6DQoJL1VzZXJzL2RhdmlkLy5ydm0vcnVieS0xLjkuMS1wMjQzL2luY2x1ZGUvcnVi
+eS0xLjkuMS9ydWJ5L3J1YnkuaDo0NjQ6IHdhcm5pbmc6IGNvbXBhcmlzb24gaXMgYWx3YXlzIHRy
+dWUgZHVlIHRvIGxpbWl0ZWQgCXJhbmdlIG9mIGRhdGEgdHlwZQ0KCS9Vc2Vycy9kYXZpZC8ucnZt
+L3J1YnktMS45LjEtcDI0My9pbmNsdWRlL3J1YnktMS45LjEvcnVieS9ydWJ5Lmg6NDY0OiB3YXJu
+aW5nOiBjb21wYXJpc29uIGlzIGFsd2F5cyB0cnVlIGR1ZSB0byBsaW1pdGVkIAlyYW5nZSBvZiBk
+YXRhIHR5cGUNCgkvVXNlcnMvZGF2aWQvLnJ2bS9ydWJ5LTEuOS4xLXAyNDMvaW5jbHVkZS9ydWJ5
+LTEuOS4xL3J1YnkvcnVieS5oOiBJbiBmdW5jdGlvbiChVUlOVDJOVU2iOg0KCS9Vc2Vycy9kYXZp
+ZC8ucnZtL3J1YnktMS45LjEtcDI0My9pbmNsdWRlL3J1YnktMS45LjEvcnVieS9ydWJ5Lmg6NDcy
+OiB3YXJuaW5nOiBjb21wYXJpc29uIGlzIGFsd2F5cyB0cnVlIGR1ZSB0byBsaW1pdGVkIAlyYW5n
+ZSBvZiBkYXRhIHR5cGUNCglsZDogd2FybmluZzogaW4gL1VzZXJzL2RhdmlkLy5ydm0vcnVieS0x
+LjkuMS1wMjQzL2xpYi9saWJydWJ5LXN0YXRpYy5hLCBmaWxlIGlzIG5vdCBvZiByZXF1aXJlZCBh
+cmNoaXRlY3R1cmUNCg0KTGlwbyB0byB0aGUgcmVzY3VlOg0KCWxpcG8gLWluZm8gfi8ucnZtL3J1
+YnktMS45LjEtcDI0My9saWIvbGlicnVieS1zdGF0aWMuYQ0KCWlucHV0IGZpbGUgL1VzZXJzL2Rh
+dmlkLy5ydm0vcnVieS0xLjkuMS1wMjQzL2xpYi9saWJydWJ5LXN0YXRpYy5hIGlzIG5vdCBhIGZh
+dCBmaWxlDQoJTm9uLWZhdCBmaWxlOiAvVXNlcnMvZGF2aWQvLnJ2bS9ydWJ5LTEuOS4xLXAyNDMv
+bGliL2xpYnJ1Ynktc3RhdGljLmEgaXMgYXJjaGl0ZWN0dXJlOiBpMzg2DQoNClNvbHV0aW9uPyBS
+ZW1vdmUgb2xkIDEuOSBpbnN0YWxsIGFuZCByZWluc3RhbGwgZXZlcnl0aGluZyAoYXQgbGVhc3Qg
+YWxsIEMgZXh0ZW5zaW9ucykuDQoNCjopCl9fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19f
+X19fX19fX19fX19fX19fCm1vbmdyZWwtdW5pY29ybiBtYWlsaW5nIGxpc3QKbW9uZ3JlbC11bmlj
+b3JuQHJ1Ynlmb3JnZS5vcmcKaHR0cDovL3J1Ynlmb3JnZS5vcmcvbWFpbG1hbi9saXN0aW5mby9t
+b25ncmVsLXVuaWNvcm4K
+
