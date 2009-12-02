@@ -1,0 +1,84 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: Restart with HUP signal can't bind listener
+Date: Wed, 2 Dec 2009 14:28:12 -0800
+Message-ID: <20091202222812.GA25556@dcvr.yhbt.net>
+References: <hf5u15$lkj$1@ger.gmane.org>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: ger.gmane.org 1259792907 26829 80.91.229.12 (2 Dec 2009 22:28:27
+ GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Wed, 2 Dec 2009 22:28:27 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Wed Dec 02 23:28:20
+ 2009
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <hf5u15$lkj$1@ger.gmane.org>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:205
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/205>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.50) id 1NFxgG-0007ru-5X for gclrug-mongrel-unicorn@m.gmane.org; Wed,
+ 02 Dec 2009 23:28:16 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 994BF1858282; Wed,  2 Dec 2009 17:28:15 -0500 (EST)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 8DA901858282 for <mongrel-unicorn@rubyforge.org>;
+ Wed,  2 Dec 2009 17:28:13 -0500 (EST)
+Received: from localhost (unknown [127.0.2.5]) by dcvr.yhbt.net (Postfix)
+ with ESMTP id A4E641FA8B; Wed,  2 Dec 2009 22:28:12 +0000 (UTC)
+
+Kamil Kukura <kamil.kukura@gmail.com> wrote:
+> I have "preload_app false" in my config, but when trying to restart  
+> workers with sending HUP to master process Im getting (4 times) the 
+> error:
+>
+> ERROR -- : retrying in 0.5 seconds (4 tries left)
+> ERROR -- : adding listener failed addr=0.0.0.0:8080 (in use)
+> ...
+> ...
+>
+> Complete config file to see here: http://gist.github.com/247235
+>
+>
+> Thanks in advance,
+
+Hi Kamil,
+
+I can't seem to reproduce this.  Is anything else taking up port
+8080 on your box?  Which version of Unicorn is this?
+
+Is there any chance you somehow got two Unicorn masters running?
+
+If you're on Linux, running "netstat -anp | grep :8080" can tell you
+what PID is hogging up port 8080.
+
+-- 
+Eric Wong
