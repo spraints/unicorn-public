@@ -1,0 +1,103 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: FreeBSD rc script
+Date: Mon, 7 Dec 2009 09:50:27 +0000
+Message-ID: <20091207095027.GA6725@dcvr.yhbt.net>
+References: <9D2B34EC-FDF7-435D-A9D9-26AAB5C037F8@berlin.ccc.de>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: ger.gmane.org 1260179438 17395 80.91.229.12 (7 Dec 2009 09:50:38
+ GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Mon, 7 Dec 2009 09:50:38 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Mon Dec 07 10:50:31
+ 2009
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <9D2B34EC-FDF7-435D-A9D9-26AAB5C037F8@berlin.ccc.de>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:207
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/207>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.50) id 1NHaEg-0008J2-Tq for gclrug-mongrel-unicorn@m.gmane.org; Mon,
+ 07 Dec 2009 10:50:31 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 3E75118582C2; Mon,  7 Dec 2009 04:50:30 -0500 (EST)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id C49341588061 for <mongrel-unicorn@rubyforge.org>;
+ Mon,  7 Dec 2009 04:50:28 -0500 (EST)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) (using TLSv1 with cipher
+ DHE-RSA-AES128-SHA (128/128 bits)) (No client certificate requested) by
+ dcvr.yhbt.net (Postfix) with ESMTPSA id EA15A1F67C; Mon,  7 Dec 2009 09:50:27
+ +0000 (UTC)
+
+John-Paul Bader <hukl@berlin.ccc.de> wrote:
+> Hey Eric,
+> 
+> would you be interested in including a FreeBSD rc.d script ? Here is
+> what my current one looks like:
+
+Hi Paul,
+
+Sure, a few comments below.
+
+> command=/usr/local/bin/unicorn_rails
+> command_args="-c /usr/local/etc/unicorn.rb -E production -D"
+
+<snip>
+
+> extra_commands=reload
+> sig_reload=USR2
+
+<snip>
+
+> This loads unicorn at startup, gives the usual start stop and restart
+> commands and has a reload command which sends USR2 to the master
+> process.
+
+Since it's using a Unicorn config file with USR2, wouldn't it have to
+use QUIT to complete the actual upgrade?
+
+Not too knowledgeable with FreeBSD init scripts on my end here,
+but I'm guessing at how it'd work:
+
+	extra_commands="reexec graceful reload"
+	sig_reexec=USR2
+	sig_graceful=QUIT
+	sig_reload=HUP
+
+	...
+
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
