@@ -1,0 +1,107 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.7 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Jan Dvorak <jan.dvorak@kraxnet.cz>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Expect 100-continue errors
+Date: Wed, 09 Dec 2009 22:05:21 +0100
+Message-ID: <4B201111.2030701@kraxnet.cz>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: ger.gmane.org 1260393770 17792 80.91.229.12 (9 Dec 2009 21:22:50
+ GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Wed, 9 Dec 2009 21:22:50 +0000 (UTC)
+To: mongrel-unicorn@rubyforge.org
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Wed Dec 09 22:22:43
+ 2009
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+X-Greylist: delayed 1033 seconds by postgrey-1.31 at rubyforge.org; Wed, 09
+ Dec 2009 16:22:39 EST
+User-Agent: Thunderbird 2.0.0.23 (X11/20090817)
+X-Enigmail-Version: 0.95.7
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:210
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/210>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.50) id 1NITze-0008Uw-QX for gclrug-mongrel-unicorn@m.gmane.org; Wed,
+ 09 Dec 2009 22:22:43 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 0A9821D7886A; Wed,  9 Dec 2009 16:22:42 -0500 (EST)
+Received: from smtp1.vol.cz (smtp1.vol.cz [195.250.128.78]) by rubyforge.org
+ (Postfix) with ESMTP id B7EA5185828E for <mongrel-unicorn@rubyforge.org>;
+ Wed,  9 Dec 2009 16:22:37 -0500 (EST)
+Received: from [192.168.1.4] (a40-prg1-27-240.static.adsl.vol.cz
+ [88.146.82.240]) by smtp.volny.cz (Postfix) with ESMTP id D2C0084F1A for
+ <mongrel-unicorn@rubyforge.org>; Wed,  9 Dec 2009 22:05:21 +0100 (CET)
+
+Hello,
+
+i'm trying to implement handling of http Expect: 100-continue with
+unicorn in my rails app, but when i return [100] as a response (which
+should force unicorn to return 100 status and rerun my app with the same
+connection) i get this error:
+
+Read error: #<ThreadError: stopping only thread
+    note: use sleep to stop forever>
+/var/lib/gems/1.8/gems/actionpack-2.3.5/lib/action_controller/reloader.rb:31:in
+`lock'
+/var/lib/gems/1.8/gems/actionpack-2.3.5/lib/action_controller/reloader.rb:31:in
+`run'
+/var/lib/gems/1.8/gems/actionpack-2.3.5/lib/action_controller/dispatcher.rb:108:in
+`call'
+/var/lib/gems/1.8/gems/rails-2.3.5/lib/rails/rack/static.rb:31:in `call'
+/var/lib/gems/1.8/gems/rack-1.0.1/lib/rack/urlmap.rb:46:in `call'
+/var/lib/gems/1.8/gems/rack-1.0.1/lib/rack/urlmap.rb:40:in `each'
+/var/lib/gems/1.8/gems/rack-1.0.1/lib/rack/urlmap.rb:40:in `call'
+/var/lib/gems/1.8/gems/rails-2.3.5/lib/rails/rack/log_tailer.rb:17:in `call'
+/var/lib/gems/1.8/gems/unicorn-0.95.1/lib/unicorn.rb:576:in `process_client'
+/var/lib/gems/1.8/gems/unicorn-0.95.1/lib/unicorn.rb:643:in `worker_loop'
+/var/lib/gems/1.8/gems/unicorn-0.95.1/lib/unicorn.rb:641:in `each'
+/var/lib/gems/1.8/gems/unicorn-0.95.1/lib/unicorn.rb:641:in `worker_loop'
+/var/lib/gems/1.8/gems/unicorn-0.95.1/lib/unicorn.rb:534:in
+`spawn_missing_workers'
+/var/lib/gems/1.8/gems/unicorn-0.95.1/lib/unicorn.rb:534:in `fork'
+/var/lib/gems/1.8/gems/unicorn-0.95.1/lib/unicorn.rb:534:in
+`spawn_missing_workers'
+/var/lib/gems/1.8/gems/unicorn-0.95.1/lib/unicorn.rb:530:in `each'
+/var/lib/gems/1.8/gems/unicorn-0.95.1/lib/unicorn.rb:530:in
+`spawn_missing_workers'
+/var/lib/gems/1.8/gems/unicorn-0.95.1/lib/unicorn.rb:540:in
+`maintain_worker_count'
+/var/lib/gems/1.8/gems/unicorn-0.95.1/lib/unicorn.rb:215:in `start'
+/var/lib/gems/1.8/gems/unicorn-0.95.1/lib/unicorn.rb:28:in `run'
+/var/lib/gems/1.8/gems/unicorn-0.95.1/bin/unicorn_rails:207
+/var/lib/gems/1.8/bin/unicorn_rails:19:in `load'
+/var/lib/gems/1.8/bin/unicorn_rails:19
+
+Any idea about what's wrong ?
+
+Thanks,
+Jan
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
