@@ -1,0 +1,94 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: Expect 100-continue errors
+Date: Wed, 9 Dec 2009 22:16:09 +0000
+Message-ID: <20091209221608.GA17364@dcvr.yhbt.net>
+References: <4B201111.2030701@kraxnet.cz>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: ger.gmane.org 1260396982 29527 80.91.229.12 (9 Dec 2009 22:16:22
+ GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Wed, 9 Dec 2009 22:16:22 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Wed Dec 09 23:16:15
+ 2009
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <4B201111.2030701@kraxnet.cz>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:212
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/212>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.50) id 1NIUpQ-0006jo-Ga for gclrug-mongrel-unicorn@m.gmane.org; Wed,
+ 09 Dec 2009 23:16:12 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 45F421D7887B; Wed,  9 Dec 2009 17:16:12 -0500 (EST)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 3E4D81D78876 for <mongrel-unicorn@rubyforge.org>;
+ Wed,  9 Dec 2009 17:16:10 -0500 (EST)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) (using TLSv1 with cipher
+ DHE-RSA-AES128-SHA (128/128 bits)) (No client certificate requested) by
+ dcvr.yhbt.net (Postfix) with ESMTPSA id A494A1FA93; Wed,  9 Dec 2009 22:16:09
+ +0000 (UTC)
+
+Jan Dvorak <jan.dvorak@kraxnet.cz> wrote:
+> Hello,
+> 
+> i'm trying to implement handling of http Expect: 100-continue with
+> unicorn in my rails app, but when i return [100] as a response (which
+> should force unicorn to return 100 status and rerun my app with the same
+> connection) i get this error:
+> 
+> Read error: #<ThreadError: stopping only thread
+>     note: use sleep to stop forever>
+> /var/lib/gems/1.8/gems/actionpack-2.3.5/lib/action_controller/reloader.rb:31:in
+> `lock'
+
+Hi Jan,
+
+Try disabling automatic code reloading under Rails development mode.
+
+Unicorn (and Rainbows!) are the only Ruby servers I know of that allow
+Rack applications to properly return and continue with 100 responses.
+
+Unicorn calls your Rack app twice in this case: it sees a 100 response,
+writes the 100-continue response and then does app.call(env) again after
+deleting the "Expect: 100-continue" header from env.
+
+I haven't tested this under Rails so I don't know how well it works with
+what Rails does under the covers, but I've done this heavily with bare
+Rack applications.
+
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
