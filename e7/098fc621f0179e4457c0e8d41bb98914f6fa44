@@ -1,0 +1,89 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.7 required=5.0 tests=MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Jan Dvorak <jan.dvorak@kraxnet.cz>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: Expect 100-continue errors
+Date: Thu, 10 Dec 2009 00:46:05 +0100
+Message-ID: <4B2036BD.60200@kraxnet.cz>
+References: <4B201111.2030701@kraxnet.cz>
+ <20091209221608.GA17364@dcvr.yhbt.net>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: ger.gmane.org 1260402379 14203 80.91.229.12 (9 Dec 2009 23:46:19
+ GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Wed, 9 Dec 2009 23:46:19 +0000 (UTC)
+To: mongrel-unicorn@rubyforge.org
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Thu Dec 10 00:46:12
+ 2009
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+User-Agent: Thunderbird 2.0.0.23 (X11/20090817)
+In-Reply-To: <20091209221608.GA17364@dcvr.yhbt.net>
+X-Enigmail-Version: 0.95.7
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:214
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/214>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.50) id 1NIWET-0005FM-Rd for gclrug-mongrel-unicorn@m.gmane.org; Thu,
+ 10 Dec 2009 00:46:09 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 709A11D7887A; Wed,  9 Dec 2009 18:46:09 -0500 (EST)
+Received: from smtp3.vol.cz (smtp3.vol.cz [195.250.128.83]) by rubyforge.org
+ (Postfix) with ESMTP id 860ED1D7887A for <mongrel-unicorn@rubyforge.org>;
+ Wed,  9 Dec 2009 18:46:06 -0500 (EST)
+Received: from [192.168.1.4] (a40-prg1-27-240.static.adsl.vol.cz
+ [88.146.82.240]) by smtp.volny.cz (Postfix) with ESMTP id D55891B57AA; Thu,
+ 10 Dec 2009 00:46:05 +0100 (CET)
+
+Eric Wong wrote:
+> Hi Jan,
+>
+> Try disabling automatic code reloading under Rails development mode.
+>
+>   
+Thanks, that worked.
+> Unicorn (and Rainbows!) are the only Ruby servers I know of that allow
+> Rack applications to properly return and continue with 100 responses.
+>
+> Unicorn calls your Rack app twice in this case: it sees a 100 response,
+> writes the 100-continue response and then does app.call(env) again after
+> deleting the "Expect: 100-continue" header from env.
+>
+> I haven't tested this under Rails so I don't know how well it works with
+> what Rails does under the covers, but I've done this heavily with bare
+> Rack applications.
+>
+>   
+After googling, it seems like rails error, it creates locks but never
+properly releases them, and deadlocks upon class reloading.
+
+
+Thanks,
+Jan
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
