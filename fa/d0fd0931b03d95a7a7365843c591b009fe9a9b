@@ -1,0 +1,119 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: PATH_INFO spec (with regard to ";")
+Date: Thu, 10 Dec 2009 22:30:37 +0000
+Message-ID: <20091210223037.GB22867@dcvr.yhbt.net>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: ger.gmane.org 1260484253 13491 80.91.229.12 (10 Dec 2009 22:30:53
+ GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Thu, 10 Dec 2009 22:30:53 +0000 (UTC)
+Cc: mongrel-unicorn@rubyforge.org, Marc-Andre Cournoyer
+ <macournoyer@gmail.com>
+To: rack-devel@googlegroups.com
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Thu Dec 10 23:30:46
+ 2009
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:215
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/215>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.50) id 1NIrX0-0008Ng-5Q for gclrug-mongrel-unicorn@m.gmane.org; Thu,
+ 10 Dec 2009 23:30:42 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 023C615B8027; Thu, 10 Dec 2009 17:30:40 -0500 (EST)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id B00C7185828E for <mongrel-unicorn@rubyforge.org>;
+ Thu, 10 Dec 2009 17:30:38 -0500 (EST)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) (using TLSv1 with cipher
+ DHE-RSA-AES128-SHA (128/128 bits)) (No client certificate requested) by
+ dcvr.yhbt.net (Postfix) with ESMTPSA id EF80B1FA98; Thu, 10 Dec 2009 22:30:37
+ +0000 (UTC)
+
+Hi all,
+
+I've been notified privately that my changes for PATH_INFO in Unicorn
+0.95.2 (which also got into Thin) may not be completely kosher, but I'm
+also asking for the Rack team to clarify PATH_INFO for HTTP parser
+implementers.
+
+
+Upon further reading (and also of the
+related-but-not-necessarily-true-for-Rack RFC 3875 section 4.1.5),
+I came across this:
+
+   Unlike a URI path, the PATH_INFO is not URL-encoded, and cannot
+   contain path-segment parameters.
+
+First off, Rack already directly contradicts the "the PATH_INFO is not
+URL-encoded" part, so Unicorn conforms to Rack specs over RFC 3875.
+
+*But* Rack does not address the "cannot contain path-segment parameters"
+part at all.  So I (and probably a few other people) would like
+clarification on how to handle PATH_INFO when it comes to ";"
+
+
+Things to keep in mind:
+
+  * URI.parse keeps ";" in URI::HTTP#path
+    This point may not be relevant to us, as PATH_INFO and
+    URI::HTTP#path should not necessarily be treated as equals
+
+  * WEBrick keeps ";" in PATH_INFO
+
+  * PEP333 (which Rack is based on) does not go into this level of
+    detail regarding PATH_INFO and path segments
+
+  * PATH_INFO in Rack appears to be based on CGI/1.1 (RFC 3875)
+
+  * Again, Rack already contradicts the URL encoding rules of RFC 3875
+    for PATH_INFO, so there is precedence for Rack contradicting more
+    of RFC 3875...
+
+  * Rack::Request#full_path only looks at PATH_INFO + QUERY_STRING,
+    this means many Rack applications may never see the ";" parts
+    if Thin and Unicorn revert to old behavior.
+
+  * Rack does not require REQUEST_URI, this is an extension Unicorn
+    and Thin both carried over from Mongrel.
+
+  * None of the official rack/rack-contrib middleware use REQUEST_URI
+
+
+Of course, in the grand scheme of things, hardly anybody uses ";" in
+paths.  Yay for rare corner cases making our lives difficult.
+
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
