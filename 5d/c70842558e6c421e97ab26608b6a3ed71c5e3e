@@ -1,0 +1,106 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: Hardcoded ruby interpreter location
+Date: Tue, 15 Dec 2009 04:09:36 +0000
+Message-ID: <20091215040936.GA29127@dcvr.yhbt.net>
+References: <b9c5d3a30912141948i4d1b3471n20027951d4d31b89@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="iso-8859-1"
+Content-Transfer-Encoding: quoted-printable
+X-Trace: ger.gmane.org 1260850583 23780 80.91.229.12 (15 Dec 2009 04:16:23
+ GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Tue, 15 Dec 2009 04:16:23 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Tue Dec 15 05:16:16
+ 2009
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <b9c5d3a30912141948i4d1b3471n20027951d4d31b89@mail.gmail.com>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:217
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/217>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.50) id 1NKOpc-00009A-3z for gclrug-mongrel-unicorn@m.gmane.org; Tue,
+ 15 Dec 2009 05:16:16 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id EFFDF18582C1; Mon, 14 Dec 2009 23:16:15 -0500 (EST)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id BB1AB18582CE for <mongrel-unicorn@rubyforge.org>;
+ Mon, 14 Dec 2009 23:09:37 -0500 (EST)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) (using TLSv1 with cipher
+ DHE-RSA-AES128-SHA (128/128 bits)) (No client certificate requested) by
+ dcvr.yhbt.net (Postfix) with ESMTPSA id 1FA4E1F503; Tue, 15 Dec 2009 04:09:37
+ +0000 (UTC)
+
+Russell Branca <chewbranca@gmail.com> wrote:
+> ---Had some issues posting this, reposting, sorry if it does duplicate.
+> =
+
+> Hello,
+> =
+
+> I'm not sure if this is the correct send this bug report, but the 'Bug
+> Tracker' link on gemcutter links to this mailing list.
+
+Hi Russell, yes, the mailing list is a bug tracker here.
+
+> I just saw this in gem version 0.95.2, in the shebang line of both
+> bin/unicorn and bin/unicorn_rails the ruby=A0interpreter=A0is hard coded
+> to:
+> =
+
+> #!/home/ew/bin/ruby
+> =
+
+> Which obviously isn't correct.
+
+It doesn't matter, no matter what the source tree sets it to it's wrong
+for somebody.  Which is why RubyGems installs its own bin wrapper for
+all bins, and setup.rb rewrites the shebang line for you.
+
+And using the generic:
+
+  #!/usr/bin/env ruby
+
+...is even worse, since it can setup an incorrect $0 on some platforms
+so SIGUSR2 upgrade method fails.
+
+I might as well make it:
+
+  #!/shebang/will/be/rewritten/or/wrapped/anyways/ruby
+
+So it's very wrong for everyone :)
+
+-- =
+
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
