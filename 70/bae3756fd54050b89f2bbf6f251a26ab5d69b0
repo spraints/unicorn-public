@@ -1,0 +1,113 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: Usernames in the http_URL
+Date: Thu, 17 Dec 2009 17:23:32 -0800
+Message-ID: <20091218012332.GA30328@dcvr.yhbt.net>
+References: <d411cc4a0912171620k3ff74554i6c5ad278e10c4db@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: ger.gmane.org 1261099886 27374 80.91.229.12 (18 Dec 2009 01:31:26
+ GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Fri, 18 Dec 2009 01:31:26 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Fri Dec 18 02:31:19
+ 2009
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <d411cc4a0912171620k3ff74554i6c5ad278e10c4db@mail.gmail.com>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:222
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/222>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.50) id 1NLRgd-0004d5-5M for gclrug-mongrel-unicorn@m.gmane.org; Fri,
+ 18 Dec 2009 02:31:19 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id CC41918582D3; Thu, 17 Dec 2009 20:31:18 -0500 (EST)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 0308618582D3 for <mongrel-unicorn@rubyforge.org>;
+ Thu, 17 Dec 2009 20:23:32 -0500 (EST)
+Received: from localhost (unknown [127.0.2.5]) by dcvr.yhbt.net (Postfix)
+ with ESMTP id 52A461F512; Fri, 18 Dec 2009 01:23:32 +0000 (UTC)
+
+Scott Chacon <schacon@gmail.com> wrote:
+> I just ran into a stupid client that put the username in the http_URL
+> field, making the first line of the HTTP request look like this:
+> 
+> GET http://username@localhost:8080/mojombo/grit HTTP/1.1
+> 
+> Unicorn 500s on this, saying it can't parse the headers.  I'm
+> including a unit test that will die on this, but my question is should
+> Unicorn handle this gracefully by just stripping off the username -
+> parsing it as a 'server' instead of a 'host'?  It seems that most
+> other webservers do, even though it doesn't appear to be the spec.
+
+Hi Scott,
+
+Other servers (Mongrel) fell back to URI.parse which allowed this.
+Since Mongrel allowed it (possibly on accident), Unicorn should probably
+allow it, too...
+
+The following change should fix things for you, but I'm not sure about
+the list of allowed characters for the user and don't have time to check
+the RFCs right now.  Which client is doing this?  Any hope of fixing it
+there?  But yeah, definitely not in rfc2616 from what I remember.
+
+Also scp-ed the C source up to
+http://unicorn.bogomips.org/unicorn_parser.c in case you don't have
+Ragel.
+
+diff --git a/ext/unicorn_http/unicorn_http_common.rl b/ext/unicorn_http/unicorn_http_common.rl
+index 041dfec..4842972 100644
+--- a/ext/unicorn_http/unicorn_http_common.rl
++++ b/ext/unicorn_http/unicorn_http_common.rl
+@@ -28,6 +28,7 @@
+   scheme = ( "http"i ("s"i)? ) $downcase_char >mark %scheme;
+   hostname = (alnum | "-" | "." | "_")+;
+   host_with_port = (hostname (":" digit*)?) >mark %host;
++  user = ((alnum | "_" | ".")+ "@")*;
+ 
+   path = ( pchar+ ( "/" pchar* )* ) ;
+   query = ( uchar | reserved )* %query_string ;
+@@ -36,7 +37,7 @@
+   rel_path = (path? (";" params)? %request_path) ("?" %start_query query)?;
+   absolute_path = ( "/"+ rel_path );
+   path_uri = absolute_path > mark %request_uri;
+-  Absolute_URI = (scheme "://" host_with_port path_uri);
++  Absolute_URI = (scheme "://" user host_with_port path_uri);
+ 
+   Request_URI = ((absolute_path | "*") >mark %request_uri) | Absolute_URI;
+   Fragment = ( uchar | reserved )* >mark %fragment;
+
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
