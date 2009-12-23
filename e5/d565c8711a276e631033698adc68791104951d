@@ -1,0 +1,107 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: How to trap USR2 for custom ussage ?
+Date: Wed, 23 Dec 2009 20:47:05 +0000
+Message-ID: <20091223204705.GD13735@dcvr.yhbt.net>
+References: <200912231529.11880.ibc@aliax.net>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="iso-8859-1"
+Content-Transfer-Encoding: quoted-printable
+X-Trace: ger.gmane.org 1261601786 12348 80.91.229.12 (23 Dec 2009 20:56:26
+ GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Wed, 23 Dec 2009 20:56:26 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Wed Dec 23 21:56:19
+ 2009
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <200912231529.11880.ibc@aliax.net>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:237
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/237>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.50) id 1NNYFj-0001Y8-AX for gclrug-mongrel-unicorn@m.gmane.org; Wed,
+ 23 Dec 2009 21:56:15 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 71E8B1D78880; Wed, 23 Dec 2009 15:56:15 -0500 (EST)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id A794F18582CC for <mongrel-unicorn@rubyforge.org>;
+ Wed, 23 Dec 2009 15:47:05 -0500 (EST)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) (using TLSv1 with cipher
+ DHE-RSA-AES128-SHA (128/128 bits)) (No client certificate requested) by
+ dcvr.yhbt.net (Postfix) with ESMTPSA id 29EAA1F525; Wed, 23 Dec 2009 20:47:05
+ +0000 (UTC)
+
+I=F1aki Baz Castillo <ibc@aliax.net> wrote:
+> Hi, I've modified bin/unicorn to start a DRb server before last lines:
+> =
+
+>   MyApp::DRbServer.start(Process.pid)
+>   Unicorn::Launcher.daemonize! if daemonize
+>   Unicorn.run(app, options)
+> =
+
+> DRb server listens in port 5555. When I send a USR2 signal to unicorn mas=
+ter =
+
+> process I get an error because DRb is started again so:
+> =
+
+>   /usr/local/lib/ruby1.9/1.9.1/drb/drb.rb:861:in `initialize': Address al=
+ready
+>   in use - bind(2) (Errno::EADDRINUSE)
+
+First off I really don't think you need to be using DRb for this or
+(generally) sticking things into the master process that don't belong
+there.
+
+> Is there any way to achive this?
+> I could imagine a new config option "on_usr2" (or "before_reexec") so the =
+
+> passsed block would be executed upon receipt of USR2 (before the real "re=
+exec" =
+
+> method).
+> =
+
+> Does it make sense?
+
+There's already a similar before_exec hook documented in
+http://unicorn.bogomips.org/Unicorn/Configurator.html
+But it is called after forking, so the listener will be shared.
+
+But again, you don't need to use DRb for this.
+
+-- =
+
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
