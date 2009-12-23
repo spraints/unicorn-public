@@ -1,0 +1,188 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.7 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: =?iso-8859-1?q?I=F1aki_Baz_Castillo?= <ibc@aliax.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: "unicorn -D" always returns 0 "success" (even when failed to
+ load)
+Date: Wed, 23 Dec 2009 11:22:27 +0100
+Message-ID: <200912231122.28331.ibc@aliax.net>
+References: <200912230320.59469.ibc@aliax.net>
+ <20091223072617.GA28704@dcvr.yhbt.net>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="iso-8859-1"
+Content-Transfer-Encoding: quoted-printable
+X-Trace: ger.gmane.org 1261563768 18416 80.91.229.12 (23 Dec 2009 10:22:48
+ GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Wed, 23 Dec 2009 10:22:48 +0000 (UTC)
+To: mongrel-unicorn@rubyforge.org
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Wed Dec 23 11:22:41
+ 2009
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+User-Agent: KMail/1.12.2 (Linux/2.6.28-16-generic; KDE/4.3.2; x86_64; ; )
+In-Reply-To: <20091223072617.GA28704@dcvr.yhbt.net>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:230
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/230>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.50) id 1NNOMa-0006BV-Lo for gclrug-mongrel-unicorn@m.gmane.org; Wed,
+ 23 Dec 2009 11:22:40 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 803AB185830A; Wed, 23 Dec 2009 05:22:40 -0500 (EST)
+Received: from mail-fx0-f216.google.com (mail-fx0-f216.google.com
+ [209.85.220.216]) by rubyforge.org (Postfix) with ESMTP id 5E29618582DE for
+ <mongrel-unicorn@rubyforge.org>; Wed, 23 Dec 2009 05:22:35 -0500 (EST)
+Received: by fxm8 with SMTP id 8so6782444fxm.7 for
+ <mongrel-unicorn@rubyforge.org>; Wed, 23 Dec 2009 02:22:34 -0800 (PST)
+Received: by 10.223.127.200 with SMTP id h8mr4381583fas.56.1261563753455;
+ Wed, 23 Dec 2009 02:22:33 -0800 (PST)
+Received: from ibc-laptop.localnet
+ (133.85-85-128.dynamic.clientes.euskaltel.es [85.85.128.133]) by
+ mx.google.com with ESMTPS id 14sm2543781fxm.3.2009.12.23.02.22.31
+ (version=TLSv1/SSLv3 cipher=RC4-MD5); Wed, 23 Dec 2009 02:22:32 -0800 (PST)
+
+El Mi=E9rcoles, 23 de Diciembre de 2009, Eric Wong escribi=F3:
+
+> No way to determine that currently, as I've never encountered the need.
+> =
+
+> For validating startups, most folks I know have specific endpoint(s) in
+> application dedicated to checks.  That way they can get way more info
+> and all the way down into stack including things like database/memcached
+> connections.
+
+Yes, you are right and I agree now. I was thinking in Unicorn as a final =
+
+application rather than a HTTP applications container. It's like Apache, no =
+
+body expects Apache to return 1 and exit in case a PHP application has a ty=
+po =
+
+:)
+
+
+
+> > Usually if a worker (all the workers) fail to start at the moment of
+> > running it, it obviously means that there is some error in the
+> > application with prevents it to run. It could be great if Unicorn could
+> > detect it.
+> =
+
+> I'm generally hesitant to introduce code/features/bloat that aren't
+> helpful to people who properly test configurations before deploying :)
+> =
+
+> Adding this code doesn't solve problems.  Either way the site can become
+> inaccessible/unusable and problems are noticeable very quickly.
+
+Sure, but how to explain that to Hearteat? :)
+
+ =
+
+> If there's sufficient interest, I'll consider accepting a small patch
+> for this.  Right now I'm unconvinced...
+
+I've taken a look to the code and such a feature would definitively make it =
+
+ugly (IMHO).
+
+So I'm thinking in a different approach: a custom script to check the statu=
+s =
+
+of the application. Such script would communicate with the application (may=
+be =
+
+using DRB). If the DRB connection fails (because the workers fail to start) =
+
+then it means that something wrong occurs. And such script would also retur=
+n =
+
+the whole status (DB connections and so).
+I would include such script as "status" option in a service init script. Th=
+e =
+
+"start" action would call "status" after N seconds and decide if the =
+
+*application* is running or not (if not then kill unicorn and exit 1).
+
+PS: Since Unicorn makes usage of signals, is there any way to determine (by =
+
+using a signal) if the process running with some PID is an unicorn process?
+
+This is: usually to verify the process status the PID file/value is inspect=
+ed. =
+
+If there is a process running under such PID then we "assume" that process =
+is =
+
+Unicorn. In case that PID is stolen by any other process (since PID file =
+
+wasn't deleted) nobody realizes of it.
+
+A way to determine it could be asking to Unicorn master process (using i.e. =
+
+DRB) its PID and match it against the PID value stored in the pidfile. Of =
+
+course it would require some kind of communication with unicorn master proc=
+ess =
+
+to get its PID, is it possible now in some way?
+
+
+
+ =
+
+> > For that I suggest something as a new option "--validation-time TIME".
+> > Let's suppose TIME is 5 seconds. In case *all* the workers fail within 5
+> > seconds after starting unicorn, then unicorn understands that the Rack
+> > application is wrong (or any other error as Errno::EADDRINUSE) so
+> > terminates all the workers and itself (and hopefully returns 1 or any
+> > other non-zero exit status).
+> >
+> > Of course, all the above means that Unicorn should wait TIME seconds
+> > before being daemonized (so after TIME seconds it can decide which code
+> > to return).
+> >
+> > Does it make sense? Thanks a lot.
+> =
+
+> We avoid introducing command-line options since they're unlikely to be
+> compatible with "rackup" parsing of the "#\" lines in .ru files.
+
+I didn't know about such options in .ru file. Are those options supposed to=
+ be =
+
+read by the backend?
+
+
+Thanks a lot.
+
+-- =
+
+I=F1aki Baz Castillo <ibc@aliax.net>
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
