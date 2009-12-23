@@ -1,0 +1,217 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: "unicorn -D" always returns 0 "success" (even when failed to
+ load)
+Date: Wed, 23 Dec 2009 20:35:45 +0000
+Message-ID: <20091223203544.GB13735@dcvr.yhbt.net>
+References: <200912230320.59469.ibc@aliax.net>
+ <20091223072617.GA28704@dcvr.yhbt.net> <200912231122.28331.ibc@aliax.net>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="iso-8859-1"
+Content-Transfer-Encoding: quoted-printable
+X-Trace: ger.gmane.org 1261600615 8952 80.91.229.12 (23 Dec 2009 20:36:55
+ GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Wed, 23 Dec 2009 20:36:55 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Wed Dec 23 21:36:45
+ 2009
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <200912231122.28331.ibc@aliax.net>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:235
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/235>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.50) id 1NNXwq-00020y-VU for gclrug-mongrel-unicorn@m.gmane.org; Wed,
+ 23 Dec 2009 21:36:45 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 8F8FC185831E; Wed, 23 Dec 2009 15:36:42 -0500 (EST)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id CC15218582CC for <mongrel-unicorn@rubyforge.org>;
+ Wed, 23 Dec 2009 15:35:45 -0500 (EST)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) (using TLSv1 with cipher
+ DHE-RSA-AES128-SHA (128/128 bits)) (No client certificate requested) by
+ dcvr.yhbt.net (Postfix) with ESMTPSA id 4B6601F525; Wed, 23 Dec 2009 20:35:45
+ +0000 (UTC)
+
+I=F1aki Baz Castillo <ibc@aliax.net> wrote:
+> El Mi=E9rcoles, 23 de Diciembre de 2009, Eric Wong escribi=F3:
+> > > Usually if a worker (all the workers) fail to start at the moment of
+> > > running it, it obviously means that there is some error in the
+> > > application with prevents it to run. It could be great if Unicorn cou=
+ld
+> > > detect it.
+> > =
+
+> > I'm generally hesitant to introduce code/features/bloat that aren't
+> > helpful to people who properly test configurations before deploying :)
+> > =
+
+> > Adding this code doesn't solve problems.  Either way the site can become
+> > inaccessible/unusable and problems are noticeable very quickly.
+> =
+
+> Sure, but how to explain that to Hearteat? :)
+
+I had a lot of trouble coming to terms with this one myself :)
+
+Eventually I reasoned that the heartbeat mechanism is to protect against
+unforeseen failures way down the line (and sometimes outside of the
+application's control).
+
+It's (hopefully) common and expected to check applications shortly
+following deployments, so heartbeat isn't for that.
+
+However applications have a tendency to break in unforseen ways, and
+only in production, and at the worst times.  These failures happen well
+after the app is deployed :)
+
+In my experience, it's often the least used/trafficked parts of the
+application that fail, too.
+
+Of course if you write perfect software that handles every possible
+failure case and don't need heartbeat (nor multiple processes because
+your code is super-efficient :), check out Zbatery[1]
+
+[1] http://zbatery.bogomip.org/
+
+> > If there's sufficient interest, I'll consider accepting a small patch
+> > for this.  Right now I'm unconvinced...
+> =
+
+> I've taken a look to the code and such a feature would definitively make =
+it =
+
+> ugly (IMHO).
+> =
+
+> So I'm thinking in a different approach: a custom script to check the sta=
+tus =
+
+> of the application. Such script would communicate with the application (m=
+aybe =
+
+> using DRB). If the DRB connection fails (because the workers fail to star=
+t) =
+
+> then it means that something wrong occurs. And such script would also ret=
+urn =
+
+> the whole status (DB connections and so).
+> I would include such script as "status" option in a service init script. =
+The =
+
+> "start" action would call "status" after N seconds and decide if the =
+
+> *application* is running or not (if not then kill unicorn and exit 1).
+> =
+
+> PS: Since Unicorn makes usage of signals, is there any way to determine (=
+by =
+
+> using a signal) if the process running with some PID is an unicorn proces=
+s?
+> =
+
+> This is: usually to verify the process status the PID file/value is inspe=
+cted. =
+
+> If there is a process running under such PID then we "assume" that proces=
+s is =
+
+> Unicorn. In case that PID is stolen by any other process (since PID file =
+
+> wasn't deleted) nobody realizes of it.
+
+Under modern Linux systems, you have several options...
+
+  tr '\0' ' ' < /proc/$PID/cmdline # show the command-line
+
+  pmap $PID | grep unicorn_http.so # not many other things load this
+
+  lsof -p $PID  # can check listening ports/log files
+
+Unfortunately I don't use other OSes enough to remember the
+equivalents...
+
+> A way to determine it could be asking to Unicorn master process (using i.=
+e. =
+
+> DRB) its PID and match it against the PID value stored in the pidfile. Of =
+
+> course it would require some kind of communication with unicorn master pr=
+ocess =
+
+> to get its PID, is it possible now in some way?
+
+I don't see how being under a specific PID actually matters.  Why not
+just write a script that sends an HTTP request to check?
+
+Workers will die soon after the first request, or (timeout/2) seconds if
+a master dies anyways.
+
+> > We avoid introducing command-line options since they're unlikely to be
+> > compatible with "rackup" parsing of the "#\" lines in .ru files.
+> =
+
+> I didn't know about such options in .ru file. Are those options
+> supposed to be read by the backend?
+
+I don't believe it's well-documented, I only found out from reading the
+rackup code and I'm not really a fan of magic comments, but they're only
+for the basic command-line arguments rackup handles:
+
+  $ rackup -h
+  Usage: rackup [ruby options] [rack options] [rackup config]
+  Ruby options:
+    -e, --eval LINE          evaluate a LINE of code
+    -d, --debug              set debugging flags (set $DEBUG to true)
+    -w, --warn               turn warnings on for your script
+    -I, --include PATH       specify $LOAD_PATH (may be used more than once)
+    -r, --require LIBRARY    require the library, before executing your scr=
+ipt
+  Rack options:
+    -s, --server SERVER      serve using SERVER (webrick/mongrel)
+    -o, --host HOST          listen on HOST (default: 0.0.0.0)
+    -p, --port PORT          use PORT (default: 9292)
+    -E, --env ENVIRONMENT    use ENVIRONMENT for defaults (default: develop=
+ment)
+    -D, --daemonize          run daemonized in the background
+    -P, --pid FILE           file to store PID (default: rack.pid)
+  Common options:
+    -h, --help               Show this message
+        --version            Show version
+
+-- =
+
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
