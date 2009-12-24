@@ -1,0 +1,135 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: "unicorn -D" always returns 0 "success" (even when failed to
+ load)
+Date: Thu, 24 Dec 2009 11:34:33 -0800
+Message-ID: <20091224193433.GB14191@dcvr.yhbt.net>
+References: <200912230320.59469.ibc@aliax.net>
+ <200912231122.28331.ibc@aliax.net> <20091223203544.GB13735@dcvr.yhbt.net>
+ <200912241030.02160.ibc@aliax.net>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="iso-8859-1"
+Content-Transfer-Encoding: quoted-printable
+X-Trace: ger.gmane.org 1261683284 3506 80.91.229.12 (24 Dec 2009 19:34:44
+ GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Thu, 24 Dec 2009 19:34:44 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Thu Dec 24 20:34:37
+ 2009
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <200912241030.02160.ibc@aliax.net>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:243
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/243>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.50) id 1NNtSG-0002zR-7h for gclrug-mongrel-unicorn@m.gmane.org; Thu,
+ 24 Dec 2009 20:34:36 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 54C611D78872; Thu, 24 Dec 2009 14:34:36 -0500 (EST)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 60D151858249 for <mongrel-unicorn@rubyforge.org>;
+ Thu, 24 Dec 2009 14:34:34 -0500 (EST)
+Received: from localhost (unknown [127.0.2.5]) by dcvr.yhbt.net (Postfix)
+ with ESMTP id E1C7F1F528; Thu, 24 Dec 2009 19:34:33 +0000 (UTC)
+
+I=F1aki Baz Castillo <ibc@aliax.net> wrote:
+> El Mi=E9rcoles, 23 de Diciembre de 2009, Eric Wong escribi=F3:
+> However I'm building my app now and when start it it usually has errors, =
+and =
+
+> that's good as it means I'm working :)
+> But sincerelly I would like to see the error just once rather than many t=
+imes =
+
+> due to workers respawn :)
+> =
+
+> Also, is there any "interval" parameter so a worker is not re-spawned unt=
+il =
+
+> such timeout (after die).
+
+You can sleep in the before_fork hook.
+
+> Well, in fact I want to code some console utility to get information from=
+ the =
+
+> application (loaded configuration, check the database(s) connection and s=
+o).
+> For that I was thinking in a DRb server running in the master because it =
+must =
+
+> bind in some TCP port.
+ =
+
+DRb can bind to UNIX domain sockets, too.  But ask yourself:
+
+  Is your app really so broken that you always need DRb running on it?
+
+You may also want to checkout Hijack, I haven't used/needed it myself,
+but it could be interesting if an app is really in a lot of trouble:
+
+http://www.rubyinside.com/hijack-get-a-live-irb-prompt-for-any-existing-rub=
+y-process-2232.html
+
+> The problem is that I should stop the DRb server before master reexec to =
+avoid =
+
+> EADDINUSE. Well, I could code some rescue block...
+
+rescuing EADDRINUSE in a loop is also how the "listen" directive
+implements the :tries/:delay parameters.
+
+> >   $ rackup -h
+> ...
+> >  -D, --daemonize          run daemonized in the background
+> =
+
+> Why "daemonize" is not present in unicornf configuration file?
+
+Mainly it was cleaner and easier to test/implement it the way it is now.
+It's also easier for somebody testing a setup to toggle it from the
+command line.
+
+I actually didn't want to support --daemonize at all since setsid(8),
+is standard most GNU/Linux distros nowadays, but we support more than
+just GNU/Linux.
+
+> Really thanks a lot for all your help.
+
+No problem.
+
+-- =
+
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
