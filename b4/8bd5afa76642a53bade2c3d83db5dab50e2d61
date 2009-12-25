@@ -1,0 +1,115 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.7 required=5.0 tests=MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: =?iso-8859-1?q?I=F1aki_Baz_Castillo?= <ibc@aliax.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: How to trap USR2 for custom ussage ?
+Date: Fri, 25 Dec 2009 23:16:46 +0100
+Message-ID: <200912252316.46495.ibc@aliax.net>
+References: <200912231529.11880.ibc@aliax.net>
+ <200912241040.25841.ibc@aliax.net> <20091224194147.GC14191@dcvr.yhbt.net>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="iso-8859-1"
+Content-Transfer-Encoding: quoted-printable
+X-Trace: ger.gmane.org 1261779425 27870 80.91.229.12 (25 Dec 2009 22:17:05
+ GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Fri, 25 Dec 2009 22:17:05 +0000 (UTC)
+To: mongrel-unicorn@rubyforge.org
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Fri Dec 25 23:16:58
+ 2009
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+User-Agent: KMail/1.12.2 (Linux/2.6.28-16-generic; KDE/4.3.2; x86_64; ; )
+In-Reply-To: <20091224194147.GC14191@dcvr.yhbt.net>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:245
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/245>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.50) id 1NOISu-0006sU-TZ for gclrug-mongrel-unicorn@m.gmane.org; Fri,
+ 25 Dec 2009 23:16:57 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 7571518582D3; Fri, 25 Dec 2009 17:16:54 -0500 (EST)
+Received: from mail-fx0-f226.google.com (mail-fx0-f226.google.com
+ [209.85.220.226]) by rubyforge.org (Postfix) with ESMTP id 8E80518582C7 for
+ <mongrel-unicorn@rubyforge.org>; Fri, 25 Dec 2009 17:16:51 -0500 (EST)
+Received: by fxm26 with SMTP id 26so8980798fxm.19 for
+ <mongrel-unicorn@rubyforge.org>; Fri, 25 Dec 2009 14:16:50 -0800 (PST)
+Received: by 10.223.5.90 with SMTP id 26mr1951571fau.59.1261779410497; Fri,
+ 25 Dec 2009 14:16:50 -0800 (PST)
+Received: from ibc-laptop.localnet
+ (16.85-84-188.dynamic.clientes.euskaltel.es [85.84.188.16]) by mx.google.com
+ with ESMTPS id 15sm3291189fxm.6.2009.12.25.14.16.48 (version=TLSv1/SSLv3
+ cipher=RC4-MD5); Fri, 25 Dec 2009 14:16:49 -0800 (PST)
+
+El Jueves, 24 de Diciembre de 2009, Eric Wong escribi=F3:
+
+> > As I've said in other thread I want DRb to get some info related to the
+> > application. A DRb client console could be used to check application
+> > database(s) connection and so.
+> > What would you suggest for this rather than DRb server?
+> =
+
+> As I said before, write an endpoint in your HTTP application that
+> calls and displays all the needed info you need.  Something that
+> hits the database(s) and/or whatever else you're using.
+
+Can Rack/Unicorn behave different depending on the request received port?
+This is: I could run Unicorn in port 80 for clients access and port 5000 fo=
+r =
+
+admin access (status and so).
+However I couldn't find in Rack specification, neither in Unicorn, a way to =
+
+inspect the port in which the request was received by the http server. Is i=
+t =
+
+possible?
+
+
+> There's no need to introduce another socket protocol into that process.
+
+Yes, I'm realizing that openging another socet protocol gets in conflict wi=
+th =
+
+Unicorn signals usage. For example USR2 + QUIT is really great as it allows=
+ to =
+
+reload/restart a server and go back to the previos running instance if the =
+new =
+
+one fails in some way.
+So I'll use HTTP instead of DRb protocol to display the server status.
+
+Thanks a lot again.
+ =
+
+
+
+-- =
+
+I=F1aki Baz Castillo <ibc@aliax.net>
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
