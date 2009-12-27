@@ -1,0 +1,181 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.7 required=5.0 tests=MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: =?iso-8859-1?q?I=F1aki_Baz_Castillo?= <ibc@aliax.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: "unicorn -D" always returns 0 "success" (even when failed to
+ load)
+Date: Sun, 27 Dec 2009 04:06:39 +0100
+Message-ID: <200912270406.39535.ibc@aliax.net>
+References: <200912260529.45530.ibc@aliax.net>
+ <200912261923.24626.ibc@aliax.net> <20091227013115.GA28140@dcvr.yhbt.net>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="iso-8859-1"
+Content-Transfer-Encoding: quoted-printable
+X-Trace: ger.gmane.org 1261883216 29388 80.91.229.12 (27 Dec 2009 03:06:56
+ GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Sun, 27 Dec 2009 03:06:56 +0000 (UTC)
+To: mongrel-unicorn@rubyforge.org
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Sun Dec 27 04:06:48
+ 2009
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+User-Agent: KMail/1.12.2 (Linux/2.6.28-16-generic; KDE/4.3.2; x86_64; ; )
+In-Reply-To: <20091227013115.GA28140@dcvr.yhbt.net>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:256
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/256>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.50) id 1NOjSy-0007eZ-13 for gclrug-mongrel-unicorn@m.gmane.org; Sun,
+ 27 Dec 2009 04:06:48 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 467B318582C1; Sat, 26 Dec 2009 22:06:48 -0500 (EST)
+Received: from mail-ew0-f222.google.com (mail-ew0-f222.google.com
+ [209.85.219.222]) by rubyforge.org (Postfix) with ESMTP id B14A01858291 for
+ <mongrel-unicorn@rubyforge.org>; Sat, 26 Dec 2009 22:06:46 -0500 (EST)
+Received: by ewy22 with SMTP id 22so11540014ewy.19 for
+ <mongrel-unicorn@rubyforge.org>; Sat, 26 Dec 2009 19:06:44 -0800 (PST)
+Received: by 10.213.0.144 with SMTP id 16mr1730000ebb.37.1261883203917; Sat,
+ 26 Dec 2009 19:06:43 -0800 (PST)
+Received: from ibc-laptop.localnet (3.Red-83-57-15.dynamicIP.rima-tde.net
+ [83.57.15.3]) by mx.google.com with ESMTPS id
+ 14sm7288410ewy.15.2009.12.26.19.06.42 (version=TLSv1/SSLv3 cipher=RC4-MD5);
+ Sat, 26 Dec 2009 19:06:43 -0800 (PST)
+
+El Domingo, 27 de Diciembre de 2009, Eric Wong escribi=F3:
+> > Hi, I've improved it a bit with your suggestions and also simplified
+> > it a lot.  Now there is no a "controller process". Instead, if
+> > "Unicorn.run" raises then master process rescues the exception and
+> > sends USR1 to parent process so it exists with 1.
+> =
+
+> Hi, I realized Unicorn.run inside the daemonize method doesn't work.
+
+Strange, it works for me...
+
+ =
+
+> However, I've reimplemented much of your idea here so it does not
+> involve sleeping at all, but rather shares a pipe with the grandparent
+> (started by the user) and Unicorn master process.  The added benefit of
+> using a pipe is that there's no fuzzy sleeping involved at or grace
+> periods to worry about, too.
+> =
+
+> Also pushed out to the "ready_pipe" branch of
+> git://git.bogomips.org/unicorn.git
+> =
+
+> Let me know how it goes.
+> =
+
+> If everything looks good, I'll consider merging for 0.96.0.
+
+It's really awesome! I've tested it and it works great, and avoids the =
+
+sleeping stuff and a new commandlline option. Congratulations :)
+
+However there is still a not solved case. Let me please explain it with two =
+
+examples:
+
+1) In "after_fork" I set:
+     worker.user("non_existing_user","non_existing_group")
+
+The master process would start properly and would notify "success" to =
+
+grandparent. (so the init script returns 0). But the fact is that all the =
+
+workers fail to start and are respawned again and again.
+
+
+2) I use "Clogger" in my Rack config.ru. But I set a log file in a path tha=
+t =
+
+doesn't exist. Clogger raises due to this (it doesn't try to create the ful=
+l =
+
+path).
+Again the master process has notified "success" to grandparent (exis status=
+ 0 =
+
+then) but the workers are respawned again and again.
+
+
+In both cases, if "preload_app" is false then doing a "ps" I see new master =
+
+processes being created by first master process (with new workers) and all =
+of =
+
+them die while new ones born.
+If "preload_app" is false then there are no borning master processes as jus=
+t =
+
+the workers fail to start when loading the Rack app.
+
+
+It would be great if the same mechanims (master notifies to grandparent) wo=
+uld =
+
+be implemented between first process loading the Rack app (a worker if =
+
+"preload_app") and master process, so if the first worker fails when loadin=
+g =
+
+the Rack app then master process doesn't notify "success" to grandparent an=
+d =
+
+exists (instead of respawning again and again the workers).
+
+If "preload_app" is true then I don't understand why your new code doesn't =
+
+work right now. I expect that master process notifies "success" to grandpar=
+ent =
+
+before loading the Rack app, am I right? would make sense master process to =
+
+wait until Rack app is loaded and if it fails then notify "error" and exit =
+
+completely?
+
+
+Kind regards and thanks a lot for your great work.
+
+
+
+
+
+
+
+
+
+
+
+-- =
+
+I=F1aki Baz Castillo <ibc@aliax.net>
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
