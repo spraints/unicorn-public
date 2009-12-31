@@ -1,0 +1,136 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: PID is not regenerated when using "-P" and the master receives
+ USR2
+Date: Thu, 31 Dec 2009 21:41:04 +0000
+Message-ID: <20091231214104.GA19467@dcvr.yhbt.net>
+References: <200912311901.14620.ibc@aliax.net>
+ <20091231200117.GC24888@dcvr.yhbt.net> <200912312140.50446.ibc@aliax.net>
+ <200912312226.39253.ibc@aliax.net>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="iso-8859-1"
+Content-Transfer-Encoding: quoted-printable
+X-Trace: ger.gmane.org 1262295674 29210 80.91.229.12 (31 Dec 2009 21:41:14
+ GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Thu, 31 Dec 2009 21:41:14 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Thu Dec 31 22:41:07
+ 2009
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <200912312226.39253.ibc@aliax.net>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:283
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/283>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.50) id 1NQSlW-0001Vw-Nb for gclrug-mongrel-unicorn@m.gmane.org; Thu,
+ 31 Dec 2009 22:41:06 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 111F818582C3; Thu, 31 Dec 2009 16:41:07 -0500 (EST)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 9357C1858249 for <mongrel-unicorn@rubyforge.org>;
+ Thu, 31 Dec 2009 16:41:05 -0500 (EST)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) (using TLSv1 with cipher
+ DHE-RSA-AES128-SHA (128/128 bits)) (No client certificate requested) by
+ dcvr.yhbt.net (Postfix) with ESMTPSA id 2CBA91F548; Thu, 31 Dec 2009 21:41:05
+ +0000 (UTC)
+
+I=F1aki Baz Castillo <ibc@aliax.net> wrote:
+> El Jueves, 31 de Diciembre de 2009, I=F1aki Baz Castillo escribi=F3:
+> > El Jueves, 31 de Diciembre de 2009, Eric Wong escribi=F3:
+> > > I=F1aki Baz Castillo <ibc@aliax.net> wrote:
+> > > > El Jueves, 31 de Diciembre de 2009, I=F1aki Baz Castillo escribi=F3:
+
+<snip>
+
+> > > All command-line arguments are passed to the child process.  We captu=
+re
+> > > the command-line as soon as possible before option parsing happens.
+> > =
+
+> > However I use a modified version of "unicorn" executable, which is the =
+same
+> > with just two differences:
+> > =
+
+> > - The name is different.
+> > =
+
+> > - The commandline "-c" and "rackup" are removed. Instead these values a=
+re
+> > fixed and I set them into the executable script by adding:
+> > =
+
+> >   options[:config_file]  =3D "PATH_TO_UNICORN_CONFIG.rb"
+> >   config                 =3D "PATH_TO_CONFIG.ru"
+> > =
+
+> > =
+
+> > So to run as daemon I just type:
+> > =
+
+> >   ~# myapp -D -P /tmp/myapp.pid
+> > =
+
+> > =
+
+> > Could it explain my issue? I see "/tmp/myapp.pid.oldbin" after USR2, bu=
+t I
+> > don't see a new "/tmp/myapp.pid".
+> > =
+
+> > =
+
+> > Thanks a lot for your help.
+> =
+
+> =
+
+> I've some issue somewhere as when sending the USR2 I see:
+> =
+
+>   INFO: executing ["/usr/local/bin/myapp"] (in /)
+> =
+
+> while it should be ["/usr/local/bin/myapp","-P","/tmp/myapp.pid","-D"]
+
+You need to require 'unicorn/launcher' or 'unicorn' before you do any
+option parsing to stash ARGV in a safe place.
+
+You can also play with the Unicorn::HttpServer::START_CTX hash
+and modify the :argv array value if needed...
+
+-- =
+
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
