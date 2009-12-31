@@ -1,0 +1,131 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.7 required=5.0 tests=MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: =?iso-8859-1?q?I=F1aki_Baz_Castillo?= <ibc@aliax.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: PID is not regenerated when using "-P" and the master receives
+ USR2
+Date: Thu, 31 Dec 2009 21:40:50 +0100
+Message-ID: <200912312140.50446.ibc@aliax.net>
+References: <200912311901.14620.ibc@aliax.net>
+ <200912311923.41504.ibc@aliax.net> <20091231200117.GC24888@dcvr.yhbt.net>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="iso-8859-1"
+Content-Transfer-Encoding: quoted-printable
+X-Trace: ger.gmane.org 1262292072 21735 80.91.229.12 (31 Dec 2009 20:41:12
+ GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Thu, 31 Dec 2009 20:41:12 +0000 (UTC)
+To: mongrel-unicorn@rubyforge.org
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Thu Dec 31 21:41:04
+ 2009
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+User-Agent: KMail/1.12.2 (Linux/2.6.28-16-generic; KDE/4.3.2; x86_64; ; )
+In-Reply-To: <20091231200117.GC24888@dcvr.yhbt.net>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:281
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/281>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.50) id 1NQRpO-0004be-CP for gclrug-mongrel-unicorn@m.gmane.org; Thu,
+ 31 Dec 2009 21:41:02 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 40B22185827F; Thu, 31 Dec 2009 15:41:02 -0500 (EST)
+Received: from mail-fx0-f226.google.com (mail-fx0-f226.google.com
+ [209.85.220.226]) by rubyforge.org (Postfix) with ESMTP id D2B551858267 for
+ <mongrel-unicorn@rubyforge.org>; Thu, 31 Dec 2009 15:40:55 -0500 (EST)
+Received: by fxm26 with SMTP id 26so12688908fxm.19 for
+ <mongrel-unicorn@rubyforge.org>; Thu, 31 Dec 2009 12:40:55 -0800 (PST)
+Received: by 10.223.145.129 with SMTP id d1mr18612305fav.99.1262292054920;
+ Thu, 31 Dec 2009 12:40:54 -0800 (PST)
+Received: from ibc-laptop.localnet
+ (16.85-84-188.dynamic.clientes.euskaltel.es [85.84.188.16]) by mx.google.com
+ with ESMTPS id 15sm5016953fxm.10.2009.12.31.12.40.53 (version=TLSv1/SSLv3
+ cipher=RC4-MD5); Thu, 31 Dec 2009 12:40:53 -0800 (PST)
+
+El Jueves, 31 de Diciembre de 2009, Eric Wong escribi=F3:
+> I=F1aki Baz Castillo <ibc@aliax.net> wrote:
+> > El Jueves, 31 de Diciembre de 2009, I=F1aki Baz Castillo escribi=F3:
+> > > In case of using "unicorn -P PIDFILE" when the master receives a USR2
+> > > the pidfile is deleted and not regenerated anymore.
+> > >
+> > > In case of using "pid" mehotd in config file then it works well.
+> > >
+> > > It seems a bug, do I miss something?
+> >
+> > Definitively I think this is the expected behaviour as the new binary h=
+as
+> > no way to know the PIDFILE passed as commandline argument to original
+> > binary, am I right?
+> =
+
+> All command-line arguments are passed to the child process.  We capture
+> the command-line as soon as possible before option parsing happens.
+> =
+
+> When USR2 is received, we create a new pid file for the old
+> binary and add the ".oldbin" suffix to the pathname.
+> =
+
+> That said, "-P" in the command-line and "pid" in the config file should
+> work the same.  Despite being officially deprecated, "-P" is used
+> extensively and interchangeably with "pid" in the existing tests.
+
+Yes, I confirm that using pure "unicorn" command with "-P" it works (both =
+
+"name.pid" and "name.pid.oldbin" exist after USR2).
+
+However I use a modified version of "unicorn" executable, which is the same =
+
+with just two differences:
+
+- The name is different.
+
+- The commandline "-c" and "rackup" are removed. Instead these values are =
+
+fixed and I set them into the executable script by adding:
+
+  options[:config_file]  =3D "PATH_TO_UNICORN_CONFIG.rb"
+  config                 =3D "PATH_TO_CONFIG.ru"
+
+
+So to run as daemon I just type:
+
+  ~# myapp -D -P /tmp/myapp.pid
+
+
+Could it explain my issue? I see "/tmp/myapp.pid.oldbin" after USR2, but I =
+
+don't see a new "/tmp/myapp.pid".
+
+
+Thanks a lot for your help.
+
+
+-- =
+
+I=F1aki Baz Castillo <ibc@aliax.net>
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
