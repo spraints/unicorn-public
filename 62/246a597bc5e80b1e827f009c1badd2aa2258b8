@@ -1,0 +1,133 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.7 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: skaar <skaar@waste.org>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: unicorn/reexec/bundler/cap deploy issue
+Date: Sat, 2 Jan 2010 12:29:02 -0600
+Message-ID: <20100102182902.GA18964@waste.org>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: ger.gmane.org 1262474221 8051 80.91.229.12 (2 Jan 2010 23:17:01 GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Sat, 2 Jan 2010 23:17:01 +0000 (UTC)
+To: mongrel-unicorn@rubyforge.org
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Sun Jan 03 00:16:54
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+X-Virus-Scanned: Debian amavisd-new at waste.org
+Content-Disposition: inline
+User-Agent: Mutt/1.4i
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:289
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/289>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.50) id 1NRDDJ-0008JX-1w for gclrug-mongrel-unicorn@m.gmane.org; Sun,
+ 03 Jan 2010 00:16:53 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 1A93918582CE; Sat,  2 Jan 2010 18:16:53 -0500 (EST)
+Received: from waste.org (waste.org [173.11.57.241]) by rubyforge.org
+ (Postfix) with ESMTP id D659F18582CB for <mongrel-unicorn@rubyforge.org>;
+ Sat,  2 Jan 2010 18:16:51 -0500 (EST)
+Received: from localhost (localhost [127.0.0.1]) by waste.org (Postfix) with
+ ESMTP id 2EAD574138 for <mongrel-unicorn@rubyforge.org>; Sat,  2 Jan 2010
+ 12:29:04 -0600 (CST)
+Received: from waste.org ([127.0.0.1]) by localhost (waste.org [127.0.0.1])
+ (amavisd-new, port 10024) with LMTP id 3Bm-HRgoIO8E for
+ <mongrel-unicorn@rubyforge.org>; Sat,  2 Jan 2010 12:29:03 -0600 (CST)
+Received: by waste.org (Postfix, from userid 1122) id EF0DF7413B; Sat,  2 Jan
+ 2010 12:29:02 -0600 (CST)
+
+Hi Eric,
+
+we've run into an issue with Unicorn's reexec, when the rails app is
+using Bundler and we deploy into dated release directories. Still not
+sure what the correct fix is for this, but what happens is that bundler
+modifies (acutally prefixes) PATH/RUBYOPT and when you reexec unicorn
+these are passed along to the new master process - and Bundler will
+again append to the PATH/RUBYOBT.
+
+This becomes more of a problem when you deploy with capistrano and
+include SIGUSR2 restart of your unicorn. And effectively it will attempt
+to load all Bundler vendor/bundler_gems/environment.rb for all deploys
+since unicorn was first started - and if you have, say, a keep only 5
+releases strategy, you will soon get failures when a bundler
+environment.rb file in RUBYOPT has been shifted out.
+
+I'm still not sure what the right solution is (to modify unicorn, the
+unicorn.rb config file or to address it in bundler), but the following
+patch does it brute force in unicorn and introduce the assumption that
+a reexec should take the same PATH/RUBYOPT variables as the initial
+invokation of the unicorn process (using a similar strategy as with
+PWD):
+
+
+>From 3d6ca163723148668d69115ebaf00cb814db8f49 Mon Sep 17 00:00:00 2001
+From: skaar <skaar@waste.org>
+Date: Sat, 2 Jan 2010 12:29:38 -0500
+Subject: [PATCH] filter PATH/RUBYOPT when rexec, and give new master same values as the
+ original master process
+
+---
+ lib/unicorn.rb |    4 ++++
+ 1 files changed, 4 insertions(+), 0 deletions(-)
+
+diff --git a/lib/unicorn.rb b/lib/unicorn.rb
+index 225e00a..6b3e334 100644
+--- a/lib/unicorn.rb
++++ b/lib/unicorn.rb
+@@ -111,6 +111,8 @@ module Unicorn
+             Dir.pwd
+           end
+         }.call,
++      :path => ENV['PATH'],
++      :rybyopt => ENV['RUBYOPT'],
+       0 => $0.dup,
+     }
+ 
+@@ -488,6 +490,8 @@ module Unicorn
+       self.reexec_pid = fork do
+         listener_fds = LISTENERS.map { |sock| sock.fileno }
+         ENV['UNICORN_FD'] = listener_fds.join(',')
++        ENV['PATH'] = START_CTX[:path]
++        ENV['RUBYOPT'] = START_CTX[:rubyopt]
+         Dir.chdir(START_CTX[:cwd])
+         cmd = [ START_CTX[0] ].concat(START_CTX[:argv])
+ 
+-- 
+1.6.6.rc3
+
+
+
+-- 
+/skaar
+
+skaar@waste.org
+where in the W.A.S.T.E is the wisdom
+s_u_b_s_t_r_u_c_t_i_o_n
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
