@@ -1,0 +1,108 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: unicorn/reexec/bundler/cap deploy issue
+Date: Sat, 2 Jan 2010 16:25:44 -0800
+Message-ID: <20100103002544.GB13826@dcvr.yhbt.net>
+References: <20100102225903.GC18964@waste.org>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: ger.gmane.org 1262478354 17259 80.91.229.12 (3 Jan 2010 00:25:54
+ GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Sun, 3 Jan 2010 00:25:54 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Sun Jan 03 01:25:47
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <20100102225903.GC18964@waste.org>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:291
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/291>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.50) id 1NREHy-0000RF-CL for gclrug-mongrel-unicorn@m.gmane.org; Sun,
+ 03 Jan 2010 01:25:46 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id B5E6315B802B; Sat,  2 Jan 2010 19:25:46 -0500 (EST)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 4DF7A15B8029 for <mongrel-unicorn@rubyforge.org>;
+ Sat,  2 Jan 2010 19:25:45 -0500 (EST)
+Received: from localhost (unknown [127.0.2.5]) by dcvr.yhbt.net (Postfix)
+ with ESMTP id A5A6B1F525; Sun,  3 Jan 2010 00:25:44 +0000 (UTC)
+
+skaar <skaar@waste.org> wrote:
+> Hi Eric,
+> 
+> we've run into an issue with Unicorn's reexec, when the rails app is
+> using Bundler and we deploy into dated release directories. Still not
+> sure what the correct fix is for this, but what happens is that bundler
+> modifies (acutally prefixes) PATH/RUBYOPT and when you reexec unicorn
+> these are passed along to the new master process - and Bundler will
+> again append to the PATH/RUBYOBT.
+> 
+> This becomes more of a problem when you deploy with capistrano and
+> include SIGUSR2 restart of your unicorn. And effectively it will attempt
+> to load all Bundler vendor/bundler_gems/environment.rb for all deploys
+> since unicorn was first started - and if you have, say, a keep only 5
+> releases strategy, you will soon get failures when a bundler
+> environment.rb file in RUBYOPT has been shifted out.
+> 
+> I'm still not sure what the right solution is (to modify unicorn, the
+> unicorn.rb config file or to address it in bundler),
+
+Hi skaar,
+
+Does having this in the Unicorn config file work for you?
+
+  stash_env = %w(PATH RUBYOPT).map { |x| [ x, ENV[x] ] }
+  before_exec do |_|
+    stash_env.each { |(k,v)| ENV[k] = v }
+  end
+
+It's more generic and less surprising for people that (may) want
+to change environment variables on upgrades:
+
+> but the following
+> patch does it brute force in unicorn and introduce the assumption that
+> a reexec should take the same PATH/RUBYOPT variables as the initial
+> invokation of the unicorn process (using a similar strategy as with
+> PWD):
+
+Early versions of Unicorn actually captured the entire ENV at startup
+and restored it before exec.  I felt it was too heavy-handed since I
+figured any process that changed its environment variables has good
+reason to do so, so I've been trying to leave as much alone as
+possible...
+
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
