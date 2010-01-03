@@ -1,0 +1,100 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.7 required=5.0 tests=MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: skaar <skaar@waste.org>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: unicorn/reexec/bundler/cap deploy issue
+Date: Sun, 3 Jan 2010 11:08:02 -0600
+Message-ID: <20100103170802.GE18964@waste.org>
+References: <20100102225903.GC18964@waste.org>
+ <20100103002544.GB13826@dcvr.yhbt.net>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: ger.gmane.org 1262538496 30793 80.91.229.12 (3 Jan 2010 17:08:16
+ GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Sun, 3 Jan 2010 17:08:16 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Sun Jan 03 18:08:09
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+X-Virus-Scanned: Debian amavisd-new at waste.org
+Content-Disposition: inline
+In-Reply-To: <20100103002544.GB13826@dcvr.yhbt.net>
+User-Agent: Mutt/1.4i
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:293
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/293>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.50) id 1NRTvy-0004cz-Gf for gclrug-mongrel-unicorn@m.gmane.org; Sun,
+ 03 Jan 2010 18:08:06 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 8FDBD15B8030; Sun,  3 Jan 2010 12:08:06 -0500 (EST)
+Received: from waste.org (waste.org [173.11.57.241]) by rubyforge.org
+ (Postfix) with ESMTP id C020B15B8030 for <mongrel-unicorn@rubyforge.org>;
+ Sun,  3 Jan 2010 12:08:04 -0500 (EST)
+Received: from localhost (localhost [127.0.0.1]) by waste.org (Postfix) with
+ ESMTP id 61A0774052 for <mongrel-unicorn@rubyforge.org>; Sun,  3 Jan 2010
+ 11:08:04 -0600 (CST)
+Received: from waste.org ([127.0.0.1]) by localhost (waste.org [127.0.0.1])
+ (amavisd-new, port 10024) with LMTP id CGR+tbSsoGMH for
+ <mongrel-unicorn@rubyforge.org>; Sun,  3 Jan 2010 11:08:02 -0600 (CST)
+Received: by waste.org (Postfix, from userid 1122) id C53A574124; Sun,  3 Jan
+ 2010 11:08:02 -0600 (CST)
+
+> Hi skaar,
+> 
+> Does having this in the Unicorn config file work for you?
+> 
+>   stash_env = %w(PATH RUBYOPT).map { |x| [ x, ENV[x] ] }
+>   before_exec do |_|
+>     stash_env.each { |(k,v)| ENV[k] = v }
+>   end
+> 
+> It's more generic and less surprising for people that (may) want
+> to change environment variables on upgrades:
+ 
+yep, that does the job just fine - thanks.
+
+> Early versions of Unicorn actually captured the entire ENV at startup
+> and restored it before exec.  I felt it was too heavy-handed since I
+> figured any process that changed its environment variables has good
+> reason to do so, so I've been trying to leave as much alone as
+> possible...
+
+the approach of just stashing what you need from ENV as above is by far
+a better approach than just forcing in the reexec code.
+
+thanks again
+-- 
+/skaar
+
+skaar@waste.org
+where in the W.A.S.T.E is the wisdom
+s_u_b_s_t_r_u_c_t_i_o_n
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
