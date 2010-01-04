@@ -1,0 +1,144 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.7 required=5.0 tests=MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: =?iso-8859-1?q?I=F1aki_Baz_Castillo?= <ibc@aliax.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: Raised exceptions are not logged when USR2
+Date: Mon, 4 Jan 2010 23:51:01 +0100
+Message-ID: <201001042351.02053.ibc@aliax.net>
+References: <201001021742.29874.ibc@aliax.net>
+ <201001042314.52709.ibc@aliax.net> <20100104223406.GB3566@dcvr.yhbt.net>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="iso-8859-1"
+Content-Transfer-Encoding: quoted-printable
+X-Trace: ger.gmane.org 1262645688 8133 80.91.229.12 (4 Jan 2010 22:54:48 GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Mon, 4 Jan 2010 22:54:48 +0000 (UTC)
+To: mongrel-unicorn@rubyforge.org
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Mon Jan 04 23:54:41
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+User-Agent: KMail/1.12.2 (Linux/2.6.28-16-generic; KDE/4.3.2; x86_64; ; )
+In-Reply-To: <20100104223406.GB3566@dcvr.yhbt.net>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:297
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/297>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.50) id 1NRvov-0004PM-6y for gclrug-mongrel-unicorn@m.gmane.org; Mon,
+ 04 Jan 2010 23:54:41 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 9770315B802B; Mon,  4 Jan 2010 17:54:41 -0500 (EST)
+Received: from ey-out-2122.google.com (ey-out-2122.google.com [74.125.78.27])
+ by rubyforge.org (Postfix) with ESMTP id DF523185827F for
+ <mongrel-unicorn@rubyforge.org>; Mon,  4 Jan 2010 17:51:07 -0500 (EST)
+Received: by ey-out-2122.google.com with SMTP id 9so213840eyd.29 for
+ <mongrel-unicorn@rubyforge.org>; Mon, 04 Jan 2010 14:51:07 -0800 (PST)
+Received: by 10.213.110.201 with SMTP id o9mr28924022ebp.35.1262645466846;
+ Mon, 04 Jan 2010 14:51:06 -0800 (PST)
+Received: from ibc-laptop.localnet ([212.230.46.89]) by mx.google.com with
+ ESMTPS id 16sm93817ewy.6.2010.01.04.14.51.04 (version=TLSv1/SSLv3
+ cipher=RC4-MD5); Mon, 04 Jan 2010 14:51:05 -0800 (PST)
+
+El Lunes, 4 de Enero de 2010, Eric Wong escribi=F3:
+> I=F1aki Baz Castillo <ibc@aliax.net> wrote:
+> > El Domingo, 3 de Enero de 2010, Eric Wong escribi=F3:
+> > >   # Totally untested, stick this in your Unicorn config file and let
+> > >   # us know if it works or blows up badly:
+> > >
+> > >   require 'syslog_logger'
+> > >
+> > >   class MySyslogLogger < SyslogLogger
+> > >     alias puts error
+> > >     alias write error
+> > >     def flush; self; end
+> > >   end
+> > >
+> > >   $stderr =3D MySyslogLogger.new('foo')
+> >
+> > Unfortunatelly it doesn'w work very well. First of all Sysloglogger
+> > relies on a constant called SYSLOG created in "initialize" method so it=
+'s
+> > required to add the above methods to SyslogLogger class rather than
+> > subclass.
+> >
+> > Anyhow, the main problem is that by doing "$stderr =3D
+> > SyslogLogger.new('foo')" the std error is not redirected as /proc/PID/fd
+> > still shows:
+> >
+> >   2 -> /dev/pts/2
+> =
+
+> Yup, that's expected.  _Assigning_ $stderr does not do a redirect at the
+> OS-level, only at th Ruby level (sufficient for env["rack.errors"],
+> Kernel#warn).
+> =
+
+> > Of course by calling $stderr.puts "error" the above works, but when a
+> > real error raised it's is printed in the screen (/dev/pts/2).
+> >
+> > I strongly think that IO#reopen is required. IO#reopen accepts a string
+> > (file path) or other IO, so "converting" SyslogLogger into a IO is
+> > required.
+> >
+> > I'll try to achieve it.
+> =
+
+> Yes, you need to do something that'll dup()/dup2() internally like
+> IO#reopen to replace fd=3D2.  But when you have the raw file descriptor,
+> you won't get syslog formatting...
+> =
+
+> The only way I can think of is to redirect fd=3D2 to the stdin of a
+> separate process to add formatting in...
+> =
+
+>   r, w =3D IO.pipe
+>   fork {
+>      $stdin.reopen(r)
+>      w.close
+>      exec('ruby', '-rsyslog', '-ane',
+>           'BEGIN{Syslog.open("foo")}; Syslog.warning $_')
+>   }
+>   r.close
+>   $stderr.reopen(w)
+> =
+
+> Not pretty...
+
+
+Thanks. Definitively it seems too much complex so I'll change myidea and wi=
+ll =
+
+use a normal text file for stderr when running daemonized.
+
+Thanks a lot.
+
+
+-- =
+
+I=F1aki Baz Castillo <ibc@aliax.net>
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
