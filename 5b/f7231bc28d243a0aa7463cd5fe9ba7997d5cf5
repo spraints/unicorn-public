@@ -1,0 +1,101 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.7 required=5.0 tests=MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: =?iso-8859-1?q?I=F1aki_Baz_Castillo?= <ibc@aliax.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: 'before_fork' is executed in parallel by two processes 
+ =?iso-8859-1?q?=BF=3F?=
+Date: Wed, 6 Jan 2010 00:04:40 +0100
+Message-ID: <201001060004.40416.ibc@aliax.net>
+References: <201001051144.42394.ibc@aliax.net>
+ <20100105215104.GC15213@dcvr.yhbt.net> <201001052349.43567.ibc@aliax.net>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="iso-8859-1"
+Content-Transfer-Encoding: quoted-printable
+X-Trace: ger.gmane.org 1262733167 6856 80.91.229.12 (5 Jan 2010 23:12:47 GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Tue, 5 Jan 2010 23:12:47 +0000 (UTC)
+To: mongrel-unicorn@rubyforge.org
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Wed Jan 06 00:12:41
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+User-Agent: KMail/1.12.2 (Linux/2.6.28-16-generic; KDE/4.3.2; x86_64; ; )
+In-Reply-To: <201001052349.43567.ibc@aliax.net>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:311
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/311>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.50) id 1NSIZt-0000dU-Fd for gclrug-mongrel-unicorn@m.gmane.org; Wed,
+ 06 Jan 2010 00:12:41 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 093E218582DA; Tue,  5 Jan 2010 18:12:42 -0500 (EST)
+Received: from ey-out-2122.google.com (ey-out-2122.google.com [74.125.78.24])
+ by rubyforge.org (Postfix) with ESMTP id DF18B1858267 for
+ <mongrel-unicorn@rubyforge.org>; Tue,  5 Jan 2010 18:08:41 -0500 (EST)
+Received: by ey-out-2122.google.com with SMTP id 9so459382eyd.29 for
+ <mongrel-unicorn@rubyforge.org>; Tue, 05 Jan 2010 15:08:41 -0800 (PST)
+Received: by 10.213.109.69 with SMTP id i5mr15087216ebp.11.1262732921168;
+ Tue, 05 Jan 2010 15:08:41 -0800 (PST)
+Received: from ibc-laptop.localnet ([89.7.124.175]) by mx.google.com with
+ ESMTPS id 28sm936707eye.11.2010.01.05.15.08.39 (version=TLSv1/SSLv3
+ cipher=RC4-MD5); Tue, 05 Jan 2010 15:08:39 -0800 (PST)
+
+El Martes, 5 de Enero de 2010, I=F1aki Baz Castillo escribi=F3:
+> I confirm that there are two lines printed in that file when Unicorn star=
+ts =
+
+> (being 2 the number of workers). Is it the expected behavior?
+
+Simpler example:
+
+-----------------
+worker_processes 3
+
+before_fork do |server, worker|
+  puts "*** I'my PID #{$$}"
+end
+----------------
+
+
+Then run Unicorn in foreground and I see:
+
+  *** I'm PID 8791
+  *** I'm PID 8791
+  *** I'm PID 8791
+
+8791 is the PID of the master process, so yes, it seems that workers don't =
+
+exist yet in before_fork (as obviously expected). However the block into =
+
+before_fork is executed "worker_processes" times by master process.
+
+Do I miss something?
+
+-- =
+
+I=F1aki Baz Castillo <ibc@aliax.net>
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
