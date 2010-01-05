@@ -1,0 +1,98 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.6 required=5.0 tests=FREEMAIL_FROM,
+ MSGID_FROM_MTA_HEADER,RP_MATCHES_RCVD,T_DKIM_INVALID shortcircuit=no
+ autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Stefan Maier <stefanmaier@gmail.com>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Unicorn, Rails and Memcached
+Date: Tue, 05 Jan 2010 23:12:05 +0100
+Message-ID: <4B43B935.7050601@gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: ger.gmane.org 1262729543 27918 80.91.229.12 (5 Jan 2010 22:12:23
+ GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Tue, 5 Jan 2010 22:12:23 +0000 (UTC)
+To: mongrel-unicorn@rubyforge.org
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Tue Jan 05 23:12:14
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com; s=gamma;
+ h=domainkey-signature:received:received:message-id:date:from
+ :user-agent:mime-version:to:subject:x-enigmail-version:content-type
+ :content-transfer-encoding; bh=JkorENWsxIB4+aD3VJB7vvkYpHTMAFxl6zLGTB/8Edk=;
+ b=Poz3QV9v+xJlw3YsPflQEQmYe+9WnHCHJKP2bFLDmLLL/5VIcd4L64hW2LF9Vuw2yC
+ CLrJnml+ZtlSRVWJOzdwkzHvSTgfxsGHvSKXkr3j5osEDFmu1VHToU60d9kUF2Nj1okC
+ 9aTIgvl5xYRD7C8Fi/QxT3m7D3Nv8m1Xnj65k=
+DomainKey-Signature: a=rsa-sha1; c=nofws; d=gmail.com; s=gamma;
+ h=message-id:date:from:user-agent:mime-version:to:subject
+ :x-enigmail-version:content-type:content-transfer-encoding;
+ b=OeuzGZ+8hCb/FhV6aESzdetD3gahFTVfAe00ykfgO3VLeXqBodJ/IXKOp2gi3C+S1F
+ DrEpap0zMzCBk7NDQbzGdQXGrzo0LMeeQ3eL9eh7SvOg2R8iMDW1XA5Ch1BFmWfToRCk
+ D3zZed+X7K6ur+v316AT6y5w5cZtRSgzwWa4g=
+User-Agent: Mozilla/5.0 (Macintosh; U; Intel Mac OS X 10.6; de; rv:1.9.1.5)
+ Gecko/20091204 Thunderbird/3.0
+X-Enigmail-Version: 1.0
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:305
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/305>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.50) id 1NSHdO-0001uQ-H2 for gclrug-mongrel-unicorn@m.gmane.org; Tue,
+ 05 Jan 2010 23:12:14 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 0171819782DB; Tue,  5 Jan 2010 17:12:14 -0500 (EST)
+Received: from mail-bw0-f216.google.com (mail-bw0-f216.google.com
+ [209.85.218.216]) by rubyforge.org (Postfix) with ESMTP id 5B55C177993D for
+ <mongrel-unicorn@rubyforge.org>; Tue,  5 Jan 2010 17:12:12 -0500 (EST)
+Received: by bwz8 with SMTP id 8so12343483bwz.19 for
+ <mongrel-unicorn@rubyforge.org>; Tue, 05 Jan 2010 14:12:11 -0800 (PST)
+Received: by 10.204.152.200 with SMTP id h8mr7472794bkw.150.1262729531531;
+ Tue, 05 Jan 2010 14:12:11 -0800 (PST)
+Received: from ?10.0.0.133? ([84.146.225.179]) by mx.google.com with ESMTPS
+ id 16sm5708201bwz.7.2010.01.05.14.12.10 (version=SSLv3 cipher=RC4-MD5); Tue,
+ 05 Jan 2010 14:12:10 -0800 (PST)
+
+Hi,
+
+I am running unicorn with rails and memcached. The combination usually
+works flawlessly but sometimes when I retrieve an item from memcached i
+get a different, unrelated item.
+
+At the moment I'm more or less investigating in all directions and after
+reading
+http://www.modrails.com/documentation/Users%20guide.html#%5Fexample%5F1%5Fmemcached%5Fconnection%5Fsharing%5Fharmful
+I thought that maybe the forking nature of unicorn has something to do
+with it.
+
+So, are there any steps you have to take to ensure unicorn works with
+memcached?
+
+
+Thanks in advance,
+Stefan Maier
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
