@@ -1,0 +1,125 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: 'before_fork' is =?iso-8859-1?Q?execut?=
+ =?iso-8859-1?Q?ed_in_parallel_by_two_processes_=BF=3F?=
+Date: Tue, 5 Jan 2010 13:51:04 -0800
+Message-ID: <20100105215104.GC15213@dcvr.yhbt.net>
+References: <201001051144.42394.ibc@aliax.net>
+ <201001051203.17578.ibc@aliax.net> <201001051233.30107.ibc@aliax.net>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="iso-8859-1"
+Content-Transfer-Encoding: quoted-printable
+X-Trace: ger.gmane.org 1262728582 24687 80.91.229.12 (5 Jan 2010 21:56:22
+ GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Tue, 5 Jan 2010 21:56:22 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Tue Jan 05 22:56:15
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <201001051233.30107.ibc@aliax.net>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:304
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/304>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.50) id 1NSHNu-0003wi-PK for gclrug-mongrel-unicorn@m.gmane.org; Tue,
+ 05 Jan 2010 22:56:14 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 4FECA1779945; Tue,  5 Jan 2010 16:56:15 -0500 (EST)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 1E4D3177993B for <mongrel-unicorn@rubyforge.org>;
+ Tue,  5 Jan 2010 16:51:04 -0500 (EST)
+Received: from localhost (unknown [127.0.2.5]) by dcvr.yhbt.net (Postfix)
+ with ESMTP id 994381F4E5; Tue,  5 Jan 2010 21:51:04 +0000 (UTC)
+
+I=F1aki Baz Castillo <ibc@aliax.net> wrote:
+> El Martes, 5 de Enero de 2010, I=F1aki Baz Castillo escribi=F3:
+> >   before_fork do |server, worker|
+> >     `echo "before_fork $$" >> /tmp/kk`
+> >   end
+> =
+
+> =
+
+> > And this is the file output:
+> > =
+
+> >   before_fork 3447
+> >   after_fork  3456
+> >   before_fork 3454
+> >   before_fork 3463
+> >   after_fork  3464
+> >   after_fork  3472
+> =
+
+> =
+
+> Hummm, this could be something strange related to how `` works...
+> =
+
+> If I do the following:
+> =
+
+>   before_fork do |server, worker|
+>     `echo "before_fork $$" >> /tmp/kk`
+>      File.open("/tmp/kk", "a") do |f|
+>        f.puts "$$=3D#{$$}"
+>      end
+>   end
+
+Odd, I'm confused by the way `` is working there too...  I wonder if
+this is a Ruby bug...  Anyhow, in your use case system() or your
+File.open block should be the way to go.  Don't use `` when system()
+will do.
+
+> then I get:
+> =
+
+>   before_fork 11989
+>   $$=3D11977
+>   before_fork 11994
+>   $$=3D11977
+>   before_fork 12000
+>   $$=3D11977
+> =
+
+> So I'm totally lost. However if I test my databases in "before_fork" then=
+ I =
+
+> see N number of DB connections (N =3D workers num).
+
+How are you testing the database?  `` or via Ruby code?
+
+-- =
+
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
