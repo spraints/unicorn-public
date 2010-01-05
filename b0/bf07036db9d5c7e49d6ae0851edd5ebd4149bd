@@ -1,0 +1,107 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.7 required=5.0 tests=MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: =?iso-8859-1?q?I=F1aki_Baz_Castillo?= <ibc@aliax.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: stderr_path doesn't work at the moment of being called
+Date: Tue, 5 Jan 2010 23:50:24 +0100
+Message-ID: <201001052350.24395.ibc@aliax.net>
+References: <201001051126.32449.ibc@aliax.net>
+ <201001051132.37358.ibc@aliax.net> <20100105214708.GB15213@dcvr.yhbt.net>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="iso-8859-1"
+Content-Transfer-Encoding: quoted-printable
+X-Trace: ger.gmane.org 1262731852 2831 80.91.229.12 (5 Jan 2010 22:50:52 GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Tue, 5 Jan 2010 22:50:52 +0000 (UTC)
+To: mongrel-unicorn@rubyforge.org
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Tue Jan 05 23:50:45
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+User-Agent: KMail/1.12.2 (Linux/2.6.28-16-generic; KDE/4.3.2; x86_64; ; )
+In-Reply-To: <20100105214708.GB15213@dcvr.yhbt.net>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:309
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/309>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.50) id 1NSIEZ-0000cH-T7 for gclrug-mongrel-unicorn@m.gmane.org; Tue,
+ 05 Jan 2010 23:50:40 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 6F773177993D; Tue,  5 Jan 2010 17:50:40 -0500 (EST)
+Received: from ey-out-2122.google.com (ey-out-2122.google.com [74.125.78.26])
+ by rubyforge.org (Postfix) with ESMTP id 2E5A41858249 for
+ <mongrel-unicorn@rubyforge.org>; Tue,  5 Jan 2010 17:50:38 -0500 (EST)
+Received: by ey-out-2122.google.com with SMTP id 9so456204eyd.29 for
+ <mongrel-unicorn@rubyforge.org>; Tue, 05 Jan 2010 14:50:37 -0800 (PST)
+Received: by 10.213.102.209 with SMTP id h17mr18504304ebo.17.1262731837486;
+ Tue, 05 Jan 2010 14:50:37 -0800 (PST)
+Received: from ibc-laptop.localnet ([89.7.124.175]) by mx.google.com with
+ ESMTPS id 13sm13638637ewy.9.2010.01.05.14.50.34 (version=TLSv1/SSLv3
+ cipher=RC4-MD5); Tue, 05 Jan 2010 14:50:35 -0800 (PST)
+
+El Martes, 5 de Enero de 2010, Eric Wong escribi=F3:
+> I=F1aki Baz Castillo <ibc@aliax.net> wrote:
+> > El Martes, 5 de Enero de 2010, I=F1aki Baz Castillo escribi=F3:
+> > > The second workaround is exactly what Unicorn does when calling to
+> > > "stderr_path" ("redirect_io" method). So, why doesn't work for me
+> > > without the hacks? do I miss something?
+> >
+> > By running 'exec "ls -l /proc/$$/fd"' after 'stderr_path' I've realized
+> > that the stderr is still pointing to /dev/pts/N. Perhaps the method is
+> > called later and now it's just "eval"-ulated?
+> =
+
+> The value is stored and then set later.  I avoid changing internal
+> configuration variables during evaluation time for several reasons:
+> =
+
+> 1. A Unicorn config file is typically the last thing configured for an
+>    application, when a user is testing their configuration it's easier
+>    to see the error message in the console if it's in the Unicorn
+>    config file
+> =
+
+> 2. HUP-ing a with a bad config file should not leave the server in an
+>    unknown state.  There are still some things that bind immediately
+>    (working_directory, all of Rainbows!) for now, but for the most
+>    part it should be possible to recover on bad HUPs.
+> =
+
+> 3. "working_directory" needs to be factored in for non-absolute paths.
+>    I prefer to work with absolute paths, but some people like
+>    non-absolute ones for various reasons.  So we always ensure
+>    stderr_path is set after "working_directory" is called.
+
+Ok, it makes sense :)
+Thanks. =
+
+
+
+-- =
+
+I=F1aki Baz Castillo <ibc@aliax.net>
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
