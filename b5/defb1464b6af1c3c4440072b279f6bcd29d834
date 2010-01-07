@@ -1,0 +1,127 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: Using a worker for a different purpose
+Date: Thu, 7 Jan 2010 12:53:15 -0800
+Message-ID: <20100107205315.GA6074@dcvr.yhbt.net>
+References: <201001071635.56191.ibc@aliax.net>
+ <20100107202632.GB27432@dcvr.yhbt.net> <201001072144.25944.ibc@aliax.net>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="iso-8859-1"
+Content-Transfer-Encoding: quoted-printable
+X-Trace: ger.gmane.org 1262897605 6848 80.91.229.12 (7 Jan 2010 20:53:25 GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Thu, 7 Jan 2010 20:53:25 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Thu Jan 07 21:53:18
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <201001072144.25944.ibc@aliax.net>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:328
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/328>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.50) id 1NSzM5-0001aq-B4 for gclrug-mongrel-unicorn@m.gmane.org; Thu,
+ 07 Jan 2010 21:53:17 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id A130A18582C3; Thu,  7 Jan 2010 15:53:17 -0500 (EST)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id A763318582C1 for <mongrel-unicorn@rubyforge.org>;
+ Thu,  7 Jan 2010 15:53:15 -0500 (EST)
+Received: from localhost (unknown [127.0.2.5]) by dcvr.yhbt.net (Postfix)
+ with ESMTP id 4D5481F4F9; Thu,  7 Jan 2010 20:53:15 +0000 (UTC)
+
+I=F1aki Baz Castillo <ibc@aliax.net> wrote:
+> El Jueves, 7 de Enero de 2010, Eric Wong escribi=F3:
+> > I=F1aki Baz Castillo <ibc@aliax.net> wrote:
+> > > Hi, I'm thinking in using a worker (i.e: "worker.nr =3D=3D 0") to acc=
+omplish
+> > > a diferent task than binding in the Unicorn socket.
+> > >
+> > > It would behave as a different process which binds in a different soc=
+ket
+> > > as daemon, so the other workers would notify it after processing data.
+> > >
+> > > Of course I could have a separate process but why not using an Unicorn
+> > > worker for this? in this way it's automatically reaped by master proc=
+ess
+> > > if it crashes and I don't need to manage two different services.
+> > >
+> > > Is is suitable? The main question is: how to tell a worker not to bin=
+d in
+> > > the Unicorn configured socket(s)? is it possible?
+> > =
+
+> > Hi I=F1aki,
+> > =
+
+> > You could _try_ something like:
+> > =
+
+> >   after_fork do |server, worker|
+> >     if worker.nr =3D=3D 0
+> >       # new app
+> >       server.app =3D Rack::Builder.new { ... }
+> > =
+
+> >       # clear the local listener set
+> >       server.listeners =3D []
+> > =
+
+> >       # new listeners
+> >       server.listen another_socket, socket_options
+> >     end
+> >   end
+> > =
+
+> > I make no guarantees that it'll work, though, and I'm hesitant
+> > to support/encourage it even if it does.
+> =
+
+> It seems interesting. Just a doubt: would it work with "preload_app true"?
+> I use preload_app since in case he config.ru is wrong then it raises in t=
+he =
+
+> master (instead of raising each worker and being reaped again and again).
+
+It should work, but you won't be saving memory/spawning time with
+"preload_app true" since you're replacing the app with a new one.
+
+It's really dirty and smelly.  Processes are a great OS-level
+abstraction to separate distinct services from each other.  IMHO it's
+saner to just run another Unicorn instance.
+
+Unicorn is not a VM, after all :)
+
+-- =
+
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
