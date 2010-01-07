@@ -1,0 +1,123 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.7 required=5.0 tests=MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: =?iso-8859-1?q?I=F1aki_Baz_Castillo?= <ibc@aliax.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: Strange Thread related errors
+Date: Thu, 7 Jan 2010 17:31:49 +0100
+Message-ID: <201001071731.49847.ibc@aliax.net>
+References: <944a03771001070805k27356c9dwdc535bed8efa7bb6@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="iso-8859-1"
+Content-Transfer-Encoding: quoted-printable
+X-Trace: ger.gmane.org 1262881934 13371 80.91.229.12 (7 Jan 2010 16:32:14
+ GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Thu, 7 Jan 2010 16:32:14 +0000 (UTC)
+To: mongrel-unicorn@rubyforge.org
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Thu Jan 07 17:32:07
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+User-Agent: KMail/1.12.2 (Linux/2.6.28-16-generic; KDE/4.3.2; x86_64; ; )
+In-Reply-To: <944a03771001070805k27356c9dwdc535bed8efa7bb6@mail.gmail.com>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:319
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/319>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.50) id 1NSvHK-0001Ra-Up for gclrug-mongrel-unicorn@m.gmane.org; Thu,
+ 07 Jan 2010 17:32:07 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 36EE715B802C; Thu,  7 Jan 2010 11:31:59 -0500 (EST)
+Received: from mail-ew0-f222.google.com (mail-ew0-f222.google.com
+ [209.85.219.222]) by rubyforge.org (Postfix) with ESMTP id 696CA18582C7 for
+ <mongrel-unicorn@rubyforge.org>; Thu,  7 Jan 2010 11:31:56 -0500 (EST)
+Received: by ewy22 with SMTP id 22so22120457ewy.19 for
+ <mongrel-unicorn@rubyforge.org>; Thu, 07 Jan 2010 08:31:55 -0800 (PST)
+Received: by 10.213.43.78 with SMTP id v14mr2813492ebe.57.1262881914630; Thu,
+ 07 Jan 2010 08:31:54 -0800 (PST)
+Received: from ibc-laptop.localnet ([212.230.46.89]) by mx.google.com with
+ ESMTPS id 7sm43909270eyb.42.2010.01.07.08.31.52 (version=TLSv1/SSLv3
+ cipher=RC4-MD5); Thu, 07 Jan 2010 08:31:53 -0800 (PST)
+
+El Jueves, 7 de Enero de 2010, Michael Guterl escribi=F3:
+> Our Rails app has started raising exceptions (caught by hoptoad
+> thankfully) and I can only imagine they're related to unicorn.  I only
+> think the errors are occurring on the request after we deploy, which
+> upgrades the Unicorn process.  I say this because the errors are
+> coming from many different actions, but I haven't been able to
+> reproduce.
+
+Let me explain a problem I had with Sequel and Unicorn (already solved), =
+
+perhaps it's related:
+
+
+I load Sequel database toolkit in the master process so it generates its ow=
+n =
+
+threads pool.
+Then Unicorn forks into workers but each worker uses the same instance of =
+
+Sequel database, this is, the same threads pool.
+
+This causes errors since some thread could be used by different processes a=
+t =
+
+the same time.
+
+The solution is simple:
+
+Don't set the Sequel instance in the master process, instead do it in each =
+
+worker ("after_fork" block in unicorn config file).
+
+In this way each process has its own Sequel instance with its own threads =
+
+pool.
+
+Also, using Sequel thread pool makes no sense when using Unicorn as each =
+
+worker is single thread, so I gain some performance by setting =
+
+"single_threaded =3D true" in Sequel database configuration (no thread pool =
+
+stuff).
+
+Probably you are getting a similar issue due to ActiveRecord or any other =
+
+multithread library you load in the master process so the instance is share=
+d =
+
+between all the workers.
+ =
+
+
+
+-- =
+
+I=F1aki Baz Castillo <ibc@aliax.net>
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
