@@ -1,0 +1,95 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.6 required=5.0 tests=AWL,FREEMAIL_FROM,
+ MSGID_FROM_MTA_HEADER,RP_MATCHES_RCVD,T_DKIM_INVALID shortcircuit=no
+ autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Jeremy Evans <jeremyevans0@gmail.com>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: Strange Thread related errors
+Date: Thu, 7 Jan 2010 10:10:02 -0800
+Message-ID: <5c548e461001071010i330fc61fs68967fcb5af88313@mail.gmail.com>
+References: <944a03771001070805k27356c9dwdc535bed8efa7bb6@mail.gmail.com>
+ <201001071731.49847.ibc@aliax.net>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="iso-8859-1"
+Content-Transfer-Encoding: quoted-printable
+X-Trace: ger.gmane.org 1262888252 5366 80.91.229.12 (7 Jan 2010 18:17:32 GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Thu, 7 Jan 2010 18:17:32 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Thu Jan 07 19:17:25
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com; s=gamma;
+ h=domainkey-signature:mime-version:received:in-reply-to:references
+ :date:message-id:subject:from:to:content-type :content-transfer-encoding;
+ bh=p4GSRLbGuhbJ06egLm6vo2FSfa+L+dKCP87wwd1YN6c=;
+ b=j5fh4k0+pPnX9DUJ/8eozib5QAvl0qtyPMNcp7C0ZbBcGCUV3AxcGkVlsLBrwiG+6k
+ YBtD4TlSsZS6hiM5cmGhF3wrijtPnITUfWwwqFlVcWr5L5de7+c7vT6dUNWQn51OvVUe
+ 6cGMlgZu0pjMHA8dSs/zKjyI1uUN6EKhdXy9U=
+DomainKey-Signature: a=rsa-sha1; c=nofws; d=gmail.com; s=gamma;
+ h=mime-version:in-reply-to:references:date:message-id:subject:from:to
+ :content-type:content-transfer-encoding;
+ b=UqmR0OJb6/izERxU4Wk3SVUAV4mX0P4kDAVmqx+TD7zmDe20kCBXCVDMuapbO4/0QV
+ ghjHBioNvsuPs+ssbOKGf5J4yg5RTu/VW/taKRmJnkqFhHFXPTDtNkXaEoLIyLkMH8j9
+ +LAThEWqn3DegM8JMnw0J1qE3ze9aFocBLbQc=
+In-Reply-To: <201001071731.49847.ibc@aliax.net>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:320
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/320>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.50) id 1NSwv7-0004Wu-CK for gclrug-mongrel-unicorn@m.gmane.org; Thu,
+ 07 Jan 2010 19:17:17 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 8667C18582BF; Thu,  7 Jan 2010 13:17:17 -0500 (EST)
+Received: from mail-pz0-f171.google.com (mail-pz0-f171.google.com
+ [209.85.222.171]) by rubyforge.org (Postfix) with ESMTP id CF47518582AC for
+ <mongrel-unicorn@rubyforge.org>; Thu,  7 Jan 2010 13:17:14 -0500 (EST)
+Received: by pzk1 with SMTP id 1so3120305pzk.33 for
+ <mongrel-unicorn@rubyforge.org>; Thu, 07 Jan 2010 10:17:13 -0800 (PST)
+Received: by 10.140.56.8 with SMTP id e8mr1152109rva.175.1262887802612; Thu, 
+ 07 Jan 2010 10:10:02 -0800 (PST)
+
+On Thu, Jan 7, 2010 at 8:31 AM, I=F1aki Baz Castillo <ibc@aliax.net> wrote:
+> Don't set the Sequel instance in the master process, instead do it in each
+> worker ("after_fork" block in unicorn config file).
+
+Alternatively, you can set up the Sequel Database in the master
+process, and just call Database#disconnect before forking.
+
+> In this way each process has its own Sequel instance with its own threads
+> pool.
+>
+> Also, using Sequel thread pool makes no sense when using Unicorn as each
+> worker is single thread, so I gain some performance by setting
+> "single_threaded =3D true" in Sequel database configuration (no thread po=
+ol
+> stuff).
+
+This is good advice.
+
+Jeremy
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
