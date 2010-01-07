@@ -1,0 +1,95 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.6 required=5.0 tests=AWL,FREEMAIL_FROM,
+ MSGID_FROM_MTA_HEADER,RP_MATCHES_RCVD,T_DKIM_INVALID shortcircuit=no
+ autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Jeremy Evans <jeremyevans0@gmail.com>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: Strange Thread related errors
+Date: Thu, 7 Jan 2010 12:08:52 -0800
+Message-ID: <5c548e461001071208u384a2a4bj7ea5e983381ad801@mail.gmail.com>
+References: <944a03771001070805k27356c9dwdc535bed8efa7bb6@mail.gmail.com>
+ <201001071731.49847.ibc@aliax.net>
+ <944a03771001071049j520f6580i26c3a3ae8b850a48@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: ger.gmane.org 1262894943 29860 80.91.229.12 (7 Jan 2010 20:09:03
+ GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Thu, 7 Jan 2010 20:09:03 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Thu Jan 07 21:08:55
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com; s=gamma;
+ h=domainkey-signature:mime-version:received:in-reply-to:references
+ :date:message-id:subject:from:to:content-type;
+ bh=erHPt9p/EKOjVlA1JcwL2L7L1Waw5vyWr5DNO7CCYh0=;
+ b=l1Uel3AabMGCBddBkoqAQ7g7dw3QZuJmj2LnmcZzEZutoWv9GoJKPX4Zbkc6BXkrNA
+ fSCdUBElrSpPLqjuX1MLtJuwx395JDc4EXpW6uFnRRL+1ePDYW62dUlKwbOZCGV8Nt5A
+ NG6H+ddls+lyvjq8WTgZ7i4x31+BYS1SJ3uoM=
+DomainKey-Signature: a=rsa-sha1; c=nofws; d=gmail.com; s=gamma;
+ h=mime-version:in-reply-to:references:date:message-id:subject:from:to
+ :content-type;
+ b=FjO3FIu5p7QhrZduq9MPIdpmpNKcLmOgE+JYrpn/HyGm+ansgcncxv8R6t3pJdfT0M
+ VX5CwslR+dE3JEXQa5WUhh5iyR0je+SpW2CbWRCX75LTNKPa81A2e2vSz3zwlU5o1Kif
+ 1IjMZIuMkcloIs7MvyRvKUQtgQffnqzvX8b2c=
+In-Reply-To: <944a03771001071049j520f6580i26c3a3ae8b850a48@mail.gmail.com>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:324
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/324>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.50) id 1NSyf8-0003Eo-15 for gclrug-mongrel-unicorn@m.gmane.org; Thu,
+ 07 Jan 2010 21:08:54 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 3E8FC15B802F; Thu,  7 Jan 2010 15:08:54 -0500 (EST)
+Received: from mail-pw0-f60.google.com (mail-pw0-f60.google.com
+ [209.85.160.60]) by rubyforge.org (Postfix) with ESMTP id DCEB9185828E for
+ <mongrel-unicorn@rubyforge.org>; Thu,  7 Jan 2010 15:08:52 -0500 (EST)
+Received: by pwj13 with SMTP id 13so15094026pwj.19 for
+ <mongrel-unicorn@rubyforge.org>; Thu, 07 Jan 2010 12:08:52 -0800 (PST)
+Received: by 10.140.55.14 with SMTP id d14mr10961210rva.276.1262894932043; 
+ Thu, 07 Jan 2010 12:08:52 -0800 (PST)
+
+On Thu, Jan 7, 2010 at 10:49 AM, Michael Guterl <mguterl@gmail.com> wrote:
+> We currently disconnect from both databases in before_fork and
+> re-establish the connection in after_fork.
+>
+> Here's our unicorn config: http://gist.github.com/271449
+>
+> Maybe I should disable connection pooling?
+
+Try:
+
+  ActiveRecord::Base.clear_active_connections!
+
+instead of:
+
+  ActiveRecord::Base.connection.disconnect!
+
+Jeremy
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
