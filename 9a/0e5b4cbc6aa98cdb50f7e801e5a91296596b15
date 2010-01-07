@@ -1,0 +1,93 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.7 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: =?iso-8859-1?q?I=F1aki_Baz_Castillo?= <ibc@aliax.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: 'before_fork' is executed in parallel by two processes 
+ =?iso-8859-1?q?=BF=3F?=
+Date: Thu, 7 Jan 2010 16:26:49 +0100
+Message-ID: <201001071626.49880.ibc@aliax.net>
+References: <201001051144.42394.ibc@aliax.net>
+ <201001051233.30107.ibc@aliax.net> <20100105215104.GC15213@dcvr.yhbt.net>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="iso-8859-1"
+Content-Transfer-Encoding: quoted-printable
+X-Trace: ger.gmane.org 1262878028 29697 80.91.229.12 (7 Jan 2010 15:27:08
+ GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Thu, 7 Jan 2010 15:27:08 +0000 (UTC)
+To: mongrel-unicorn@rubyforge.org
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Thu Jan 07 16:27:01
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+User-Agent: KMail/1.12.2 (Linux/2.6.28-16-generic; KDE/4.3.2; x86_64; ; )
+In-Reply-To: <20100105215104.GC15213@dcvr.yhbt.net>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:316
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/316>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.50) id 1NSuGK-0007TA-Ih for gclrug-mongrel-unicorn@m.gmane.org; Thu,
+ 07 Jan 2010 16:27:00 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 025FB18582C2; Thu,  7 Jan 2010 10:27:00 -0500 (EST)
+Received: from mail-ew0-f222.google.com (mail-ew0-f222.google.com
+ [209.85.219.222]) by rubyforge.org (Postfix) with ESMTP id D745518582C7 for
+ <mongrel-unicorn@rubyforge.org>; Thu,  7 Jan 2010 10:26:56 -0500 (EST)
+Received: by ewy22 with SMTP id 22so22050032ewy.19 for
+ <mongrel-unicorn@rubyforge.org>; Thu, 07 Jan 2010 07:26:56 -0800 (PST)
+Received: by 10.213.1.148 with SMTP id 20mr61185ebf.42.1262878015981; Thu, 07
+ Jan 2010 07:26:55 -0800 (PST)
+Received: from ibc-laptop.localnet ([212.230.46.89]) by mx.google.com with
+ ESMTPS id 24sm43870452eyx.30.2010.01.07.07.26.53 (version=TLSv1/SSLv3
+ cipher=RC4-MD5); Thu, 07 Jan 2010 07:26:53 -0800 (PST)
+
+El Martes, 5 de Enero de 2010, Eric Wong escribi=F3:
+> >   before_fork do |server, worker|
+> >     `echo "before_fork $$" >> /tmp/kk`
+> >      File.open("/tmp/kk", "a") do |f|
+> >        f.puts "$$=3D#{$$}"
+> >      end
+> >   end
+> =
+
+> Odd, I'm confused by the way `` is working there too...  I wonder if
+> this is a Ruby bug...  Anyhow, in your use case system() or your
+> File.open block should be the way to go.  Don't use `` when system()
+> will do.
+
+I think that the above makse sense since `` creates a new process (with its =
+
+own pid). So each time it's called (once per worker) it will be a different =
+
+process. =
+
+
+
+-- =
+
+I=F1aki Baz Castillo <ibc@aliax.net>
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
