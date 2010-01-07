@@ -1,0 +1,223 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.6 required=5.0 tests=AWL,FREEMAIL_FROM,
+ MSGID_FROM_MTA_HEADER,RP_MATCHES_RCVD,T_DKIM_INVALID shortcircuit=no
+ autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Michael Guterl <mguterl@gmail.com>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Strange Thread related errors
+Date: Thu, 7 Jan 2010 11:05:15 -0500
+Message-ID: <944a03771001070805k27356c9dwdc535bed8efa7bb6@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: ger.gmane.org 1262880580 8285 80.91.229.12 (7 Jan 2010 16:09:40 GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Thu, 7 Jan 2010 16:09:40 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Thu Jan 07 17:09:33
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com; s=gamma;
+ h=domainkey-signature:mime-version:received:date:message-id:subject
+ :from:to:content-type; bh=cXEeOhSIVTTv59Fw8vlKtCNExowXPuYgkq14kTYymOY=;
+ b=FdY3RyTu/n1DrjhFFIE1DXiwAF72mBjgYbL8xRdiWuc9zNnvA3xmR5k794Zcj/Kvmw
+ LlQNDKrk0UUbimvmdeK7JJs5fzlfxgVwgKoyLmI/uSmRFJpoJaEeiZv/sc8rnpsvq+B6
+ jzT2y0DwHwC2NY40LFvEeiy687u1YsV4SqCEw=
+DomainKey-Signature: a=rsa-sha1; c=nofws; d=gmail.com; s=gamma;
+ h=mime-version:date:message-id:subject:from:to:content-type;
+ b=l3I0HNKwgGOGjl24aTjiYdzZZ5I36YJjpk3wTlXdNXXLKsUDjX+GoK8tJiDehsOOtd
+ 6GurJMrQzK5C5oves+s7Ff3A0nYAyxK8lcR7wTjEuzHy3WcacT9KcNcy6mp1Z9BlSzwm
+ 3SQSCEFy+pI39Q16bbuJyQdI85I5eADUGPErE=
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:318
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/318>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.50) id 1NSuvV-0007fs-1l for gclrug-mongrel-unicorn@m.gmane.org; Thu,
+ 07 Jan 2010 17:09:33 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 1052F15B802E; Thu,  7 Jan 2010 11:09:16 -0500 (EST)
+Received: from mail-pw0-f60.google.com (mail-pw0-f60.google.com
+ [209.85.160.60]) by rubyforge.org (Postfix) with ESMTP id 686B2185828E for
+ <mongrel-unicorn@rubyforge.org>; Thu,  7 Jan 2010 11:05:15 -0500 (EST)
+Received: by pwj13 with SMTP id 13so14933489pwj.19 for
+ <mongrel-unicorn@rubyforge.org>; Thu, 07 Jan 2010 08:05:15 -0800 (PST)
+Received: by 10.114.7.10 with SMTP id 10mr16661281wag.90.1262880315276; Thu, 
+ 07 Jan 2010 08:05:15 -0800 (PST)
+
+Our Rails app has started raising exceptions (caught by hoptoad
+thankfully) and I can only imagine they're related to unicorn.  I only
+*think* the errors are occurring on the request after we deploy, which
+upgrades the Unicorn process.  I say this because the errors are
+coming from many different actions, but I haven't been able to
+reproduce.
+
+After the most recent batch of errors, I upgraded from 0.95.1 to
+0.95.3, but we have not deployed again.
+
+ThreadError: stopping only thread note: use sleep to stop forever
+
+/usr/local/lib/ruby/1.8/monitor.rb:285:in `stop'
+
+/usr/local/lib/ruby/1.8/monitor.rb:285:in `mon_acquire'
+
+/usr/local/lib/ruby/1.8/monitor.rb:214:in `mon_enter'
+
+/usr/local/lib/ruby/1.8/monitor.rb:240:in `synchronize'
+
+/usr/local/lib/ruby/1.8/logger.rb:496:in `write'
+
+/usr/local/lib/ruby/1.8/logger.rb:326:in `add'
+
+/usr/local/lib/ruby/1.8/logger.rb:374:in `info'
+
+/home/deploy/public_html/rm/releases/20100107153636/vendor/plugins/newrelic_rpm/lib/new_relic/agent/agent.rb:46:in
+`ensure_worker_thread_started'
+
+/home/deploy/public_html/rm/releases/20100107153636/vendor/plugins/newrelic_rpm/lib/new_relic/agent/instrumentation/controller_instrumentation.rb:248:in
+`perform_action'
+
+/home/deploy/public_html/rm/releases/20100107153636/vendor/rails/actionpack/lib/action_controller/base.rb:532:in
+`send'
+
+/home/deploy/public_html/rm/releases/20100107153636/vendor/rails/actionpack/lib/action_controller/base.rb:532:in
+`process_without_filters'
+
+/home/deploy/public_html/rm/releases/20100107153636/vendor/rails/actionpack/lib/action_controller/filters.rb:606:in
+`process'
+
+/home/deploy/public_html/rm/releases/20100107153636/vendor/rails/actionpack/lib/action_controller/base.rb:391:in
+`process'
+
+/home/deploy/public_html/rm/releases/20100107153636/vendor/rails/actionpack/lib/action_controller/base.rb:386:in
+`call'
+
+/home/deploy/public_html/rm/releases/20100107153636/vendor/rails/actionpack/lib/action_controller/routing/route_set.rb:437:in
+`call'
+
+/home/deploy/public_html/rm/releases/20100107153636/vendor/rails/actionpack/lib/action_controller/dispatcher.rb:87:in
+`dispatch'
+
+/home/deploy/public_html/rm/releases/20100107153636/vendor/rails/actionpack/lib/action_controller/dispatcher.rb:121:in
+`_call'
+
+/home/deploy/public_html/rm/releases/20100107153636/vendor/rails/actionpack/lib/action_controller/dispatcher.rb:130:in
+`build_middleware_stack'
+
+/home/deploy/public_html/rm/releases/20100107153636/vendor/rails/activerecord/lib/active_record/query_cache.rb:29:in
+`call'
+
+/home/deploy/public_html/rm/releases/20100107153636/vendor/rails/activerecord/lib/active_record/query_cache.rb:29:in
+`call'
+
+/home/deploy/public_html/rm/releases/20100107153636/vendor/rails/activerecord/lib/active_record/connection_adapters/abstract/query_cache.rb:34:in
+`cache'
+
+/home/deploy/public_html/rm/releases/20100107153636/vendor/rails/activerecord/lib/active_record/query_cache.rb:9:in
+`cache'
+
+/home/deploy/public_html/rm/releases/20100107153636/vendor/rails/activerecord/lib/active_record/query_cache.rb:28:in
+`call'
+
+/home/deploy/public_html/rm/releases/20100107153636/vendor/rails/activerecord/lib/active_record/connection_adapters/abstract/connection_pool.rb:361:in
+`call'
+
+/home/deploy/public_html/rm/releases/20100107153636/vendor/rails/actionpack/lib/action_controller/string_coercion.rb:25:in
+`call'
+
+/usr/local/lib/ruby/gems/1.8/gems/rack-1.0.1/lib/rack/head.rb:9:in `call'
+
+/usr/local/lib/ruby/gems/1.8/gems/rack-1.0.1/lib/rack/methodoverride.rb:24:in
+`call'
+
+/home/deploy/public_html/rm/releases/20100107153636/vendor/rails/actionpack/lib/action_controller/params_parser.rb:15:in
+`call'
+
+/home/deploy/public_html/rm/releases/20100107153636/vendor/rails/actionpack/lib/action_controller/session/cookie_store.rb:93:in
+`call'
+
+/home/deploy/public_html/rm/releases/20100107153636/vendor/rails/activesupport/lib/active_support/cache/strategy/local_cache.rb:24:in
+`call'
+
+/home/deploy/public_html/rm/releases/20100107153636/vendor/rails/actionpack/lib/action_controller/failsafe.rb:26:in
+`call'
+
+/usr/local/lib/ruby/gems/1.8/gems/rack-1.0.1/lib/rack/lock.rb:11:in `call'
+
+/usr/local/lib/ruby/gems/1.8/gems/rack-1.0.1/lib/rack/lock.rb:11:in
+`synchronize'
+
+/usr/local/lib/ruby/gems/1.8/gems/rack-1.0.1/lib/rack/lock.rb:11:in `call'
+
+/home/deploy/public_html/rm/releases/20100107153636/vendor/rails/actionpack/lib/action_controller/dispatcher.rb:106:in
+`call'
+
+/home/deploy/public_html/rm/releases/20100107153636/vendor/rails/railties/lib/rails/rack/static.rb:31:in
+`call'
+
+/usr/local/lib/ruby/gems/1.8/gems/rack-1.0.1/lib/rack/urlmap.rb:46:in `call'
+
+/usr/local/lib/ruby/gems/1.8/gems/rack-1.0.1/lib/rack/urlmap.rb:40:in `each'
+
+/usr/local/lib/ruby/gems/1.8/gems/rack-1.0.1/lib/rack/urlmap.rb:40:in `call'
+
+/usr/local/lib/ruby/gems/1.8/gems/unicorn-0.95.1/lib/unicorn.rb:571:in
+`process_client'
+
+/usr/local/lib/ruby/gems/1.8/gems/unicorn-0.95.1/lib/unicorn.rb:643:in
+`worker_loop'
+
+/usr/local/lib/ruby/gems/1.8/gems/unicorn-0.95.1/lib/unicorn.rb:641:in `each'
+
+/usr/local/lib/ruby/gems/1.8/gems/unicorn-0.95.1/lib/unicorn.rb:641:in
+`worker_loop'
+
+/usr/local/lib/ruby/gems/1.8/gems/unicorn-0.95.1/lib/unicorn.rb:534:in
+`spawn_missing_workers'
+
+/usr/local/lib/ruby/gems/1.8/gems/unicorn-0.95.1/lib/unicorn.rb:534:in `fork'
+
+/usr/local/lib/ruby/gems/1.8/gems/unicorn-0.95.1/lib/unicorn.rb:534:in
+`spawn_missing_workers'
+
+/usr/local/lib/ruby/gems/1.8/gems/unicorn-0.95.1/lib/unicorn.rb:530:in `each'
+
+/usr/local/lib/ruby/gems/1.8/gems/unicorn-0.95.1/lib/unicorn.rb:530:in
+`spawn_missing_workers'
+
+/usr/local/lib/ruby/gems/1.8/gems/unicorn-0.95.1/lib/unicorn.rb:540:in
+`maintain_worker_count'
+
+/usr/local/lib/ruby/gems/1.8/gems/unicorn-0.95.1/lib/unicorn.rb:215:in `start'
+
+/usr/local/lib/ruby/gems/1.8/gems/unicorn-0.95.1/lib/unicorn.rb:28:in `run'
+
+/usr/local/lib/ruby/gems/1.8/gems/unicorn-0.95.1/bin/unicorn_rails:207
+
+/usr/local/bin/unicorn_rails:19:in `load'
+
+/usr/local/bin/unicorn_rails:19
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
