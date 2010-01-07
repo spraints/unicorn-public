@@ -1,0 +1,107 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: Strange Thread related errors
+Date: Thu, 7 Jan 2010 20:13:40 +0000
+Message-ID: <20100107201340.GA27432@dcvr.yhbt.net>
+References: <944a03771001070805k27356c9dwdc535bed8efa7bb6@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: ger.gmane.org 1262895231 30807 80.91.229.12 (7 Jan 2010 20:13:51
+ GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Thu, 7 Jan 2010 20:13:51 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Thu Jan 07 21:13:44
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <944a03771001070805k27356c9dwdc535bed8efa7bb6@mail.gmail.com>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:325
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/325>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.50) id 1NSyjm-0005DU-Vn for gclrug-mongrel-unicorn@m.gmane.org; Thu,
+ 07 Jan 2010 21:13:43 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 7AA0B1779938; Thu,  7 Jan 2010 15:13:43 -0500 (EST)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 31CC715B802F for <mongrel-unicorn@rubyforge.org>;
+ Thu,  7 Jan 2010 15:13:42 -0500 (EST)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) (using TLSv1 with cipher
+ DHE-RSA-AES128-SHA (128/128 bits)) (No client certificate requested) by
+ dcvr.yhbt.net (Postfix) with ESMTPSA id 7288D1F4F9; Thu,  7 Jan 2010 20:13:41
+ +0000 (UTC)
+
+Michael Guterl <mguterl@gmail.com> wrote:
+> Our Rails app has started raising exceptions (caught by hoptoad
+> thankfully) and I can only imagine they're related to unicorn.  I only
+> *think* the errors are occurring on the request after we deploy, which
+> upgrades the Unicorn process.  I say this because the errors are
+> coming from many different actions, but I haven't been able to
+> reproduce.
+> 
+> After the most recent batch of errors, I upgraded from 0.95.1 to
+> 0.95.3, but we have not deployed again.
+> 
+> ThreadError: stopping only thread note: use sleep to stop forever
+> 
+> /usr/local/lib/ruby/1.8/monitor.rb:285:in `stop'
+> 
+> /usr/local/lib/ruby/1.8/monitor.rb:285:in `mon_acquire'
+> 
+> /usr/local/lib/ruby/1.8/monitor.rb:214:in `mon_enter'
+> 
+> /usr/local/lib/ruby/1.8/monitor.rb:240:in `synchronize'
+> 
+> /usr/local/lib/ruby/1.8/logger.rb:496:in `write'
+> 
+> /usr/local/lib/ruby/1.8/logger.rb:326:in `add'
+> 
+> /usr/local/lib/ruby/1.8/logger.rb:374:in `info'
+> 
+> /home/deploy/public_html/rm/releases/20100107153636/vendor/plugins/newrelic_rpm/lib/new_relic/agent/agent.rb:46:in
+> `ensure_worker_thread_started'
+
+Hi Michael,
+
+It looks like there's a background thread with the NewRelic plugin...
+
+With "preload_app true", then any threads spawned in the master will die
+in workers.  This is true for Ruby 1.8 green threads by design.  With
+1.9, it's not even to share native POSIX threads between processes.
+
+So in your after_fork hook, you need to restart threads inside
+each worker.
+
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
