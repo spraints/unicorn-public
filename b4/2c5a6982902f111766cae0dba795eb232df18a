@@ -1,0 +1,95 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: X-Forwarded-Proto / X_FORWARDED_PROTO
+Date: Sat, 9 Jan 2010 22:39:03 +0000
+Message-ID: <20100109223903.GC7480@dcvr.yhbt.net>
+References: <20100109221656.GA8846@waste.org>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: ger.gmane.org 1263076754 32066 80.91.229.12 (9 Jan 2010 22:39:14
+ GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Sat, 9 Jan 2010 22:39:14 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Sat Jan 09 23:39:07
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <20100109221656.GA8846@waste.org>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:335
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/335>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.50) id 1NTjxZ-0007YN-Jx for gclrug-mongrel-unicorn@m.gmane.org; Sat,
+ 09 Jan 2010 23:39:05 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 2FA7315B8029; Sat,  9 Jan 2010 17:39:06 -0500 (EST)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id C455D18582C2 for <mongrel-unicorn@rubyforge.org>;
+ Sat,  9 Jan 2010 17:39:04 -0500 (EST)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) (using TLSv1 with cipher
+ DHE-RSA-AES128-SHA (128/128 bits)) (No client certificate requested) by
+ dcvr.yhbt.net (Postfix) with ESMTPSA id 245A71F503; Sat,  9 Jan 2010 22:39:04
+ +0000 (UTC)
+
+skaar <skaar@waste.org> wrote:
+> Eric,
+> 
+> think I came across an issue with the parser in unicorn, with a request
+> (due to 2 layers of nginx proxying) coming across with both a
+> X_FORWARDED_PROTO and a X-Forwarded-Proto header. From the socket (in
+> HttpRequest) - we get:
+> 
+>   X_FORWARDED_PROTO: http
+>   X-Forwarded-Proto: https
+> 
+> which is parsed to 
+> 
+>   HTTP_X_FORWARDED_PROTO"=>"http,https
+> 
+> There was a passenger ticket that describes that from nginx's point of
+> view - X-Forwarded-Proto is the "correct" form. 
+
+Hi skaar,
+
+The Rack (and CGI) specs require that '-' be replaced with '_' for
+HTTP header names, so Unicorn is doing the correct thing and treating
+it as the same header.
+
+Even though '_' appears to be allowed in header names by rfc 2616, it's
+use is questionable as there are parsers that reject it.  Any chance of
+fixing whatever sends the "X_FORWARDED_PROTO" header?  It's completely
+pointless to set to "http"
+
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
