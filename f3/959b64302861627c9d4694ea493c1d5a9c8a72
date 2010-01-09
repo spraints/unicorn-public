@@ -1,0 +1,113 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.7 required=5.0 tests=MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: skaar <skaar@waste.org>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: X-Forwarded-Proto / X_FORWARDED_PROTO
+Date: Sat, 9 Jan 2010 17:29:03 -0600
+Message-ID: <20100109232903.GB8846@waste.org>
+References: <20100109221656.GA8846@waste.org>
+ <20100109223903.GC7480@dcvr.yhbt.net>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: ger.gmane.org 1263079756 7361 80.91.229.12 (9 Jan 2010 23:29:16 GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Sat, 9 Jan 2010 23:29:16 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Sun Jan 10 00:29:09
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+X-Virus-Scanned: Debian amavisd-new at waste.org
+Content-Disposition: inline
+In-Reply-To: <20100109223903.GC7480@dcvr.yhbt.net>
+User-Agent: Mutt/1.4i
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:338
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/338>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.50) id 1NTkk0-0006NT-EI for gclrug-mongrel-unicorn@m.gmane.org; Sun,
+ 10 Jan 2010 00:29:08 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id DFAEA19782D4; Sat,  9 Jan 2010 18:29:08 -0500 (EST)
+Received: from waste.org (waste.org [173.11.57.241]) by rubyforge.org
+ (Postfix) with ESMTP id 3A52915B8029 for <mongrel-unicorn@rubyforge.org>;
+ Sat,  9 Jan 2010 18:29:06 -0500 (EST)
+Received: from localhost (localhost [127.0.0.1]) by waste.org (Postfix) with
+ ESMTP id BECC7741B3 for <mongrel-unicorn@rubyforge.org>; Sat,  9 Jan 2010
+ 17:29:05 -0600 (CST)
+Received: from waste.org ([127.0.0.1]) by localhost (waste.org [127.0.0.1])
+ (amavisd-new, port 10024) with LMTP id a73tR9i6izTO for
+ <mongrel-unicorn@rubyforge.org>; Sat,  9 Jan 2010 17:29:03 -0600 (CST)
+Received: by waste.org (Postfix, from userid 1122) id C986F741D7; Sat,  9 Jan
+ 2010 17:29:03 -0600 (CST)
+
+> 
+> The Rack (and CGI) specs require that '-' be replaced with '_' for
+> HTTP header names, so Unicorn is doing the correct thing and treating
+> it as the same header.
+
+but should it aggregate the values?
+ 
+> Even though '_' appears to be allowed in header names by rfc 2616, it's
+> use is questionable as there are parsers that reject it.  Any chance of
+> fixing whatever sends the "X_FORWARDED_PROTO" header?  It's completely
+> pointless to set to "http"
+
+in our case we can probably fix the proxy chain - we have a set of
+dedicated SSL systems (which sets X-Forwarded-Proto) which forward to
+the main nginx front end (which sets X_FORWARDED_PROTO). I'll also look
+at removing the proxy-set-header cases that sets it to to 'http'.
+
+Just for reference: we ran into this issue when replacing nginx to
+mongrels over a TCP socket, with nginx to unicorn over a domain socket.
+With mongrel we don't have this problem (although I see from
+e26ebc985b882c38da50fb0104791a5f2c0f8522 - that you added support for it
+in http11)
+
+/skaar
+
+
+
+
+
+
+> 
+> -- 
+> Eric Wong
+> _______________________________________________
+> Unicorn mailing list - mongrel-unicorn@rubyforge.org
+> http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+> Do not quote signatures (like this one) or top post when replying
+
+-- 
+/skaar
+
+skaar@waste.org
+where in the W.A.S.T.E is the wisdom
+s_u_b_s_t_r_u_c_t_i_o_n
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
