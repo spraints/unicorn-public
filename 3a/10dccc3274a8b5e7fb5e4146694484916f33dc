@@ -1,0 +1,113 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: X-Forwarded-Proto / X_FORWARDED_PROTO
+Date: Sat, 9 Jan 2010 22:12:09 -0800
+Message-ID: <20100110061209.GA1685@dcvr.yhbt.net>
+References: <20100109221656.GA8846@waste.org>
+ <20100109223903.GC7480@dcvr.yhbt.net> <20100109232903.GB8846@waste.org>
+ <201001100045.37677.ibc@aliax.net>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="iso-8859-1"
+Content-Transfer-Encoding: quoted-printable
+X-Trace: ger.gmane.org 1263103941 22887 80.91.229.12 (10 Jan 2010 06:12:21
+ GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Sun, 10 Jan 2010 06:12:21 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Sun Jan 10 07:12:13
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <201001100045.37677.ibc@aliax.net>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:341
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/341>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.50) id 1NTr25-0004Xz-9D for gclrug-mongrel-unicorn@m.gmane.org; Sun,
+ 10 Jan 2010 07:12:13 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 3285D18582C7; Sun, 10 Jan 2010 01:12:12 -0500 (EST)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 99513185828E for <mongrel-unicorn@rubyforge.org>;
+ Sun, 10 Jan 2010 01:12:10 -0500 (EST)
+Received: from localhost (unknown [127.0.2.5]) by dcvr.yhbt.net (Postfix)
+ with ESMTP id 15B641F505; Sun, 10 Jan 2010 06:12:10 +0000 (UTC)
+
+I=F1aki Baz Castillo <ibc@aliax.net> wrote:
+> El Domingo, 10 de Enero de 2010, skaar escribi=F3:
+> > > The Rack (and CGI) specs require that '-' be replaced with '_' for
+> > > HTTP header names, so Unicorn is doing the correct thing and treating
+> > > it as the same header.
+> > =
+
+> > but should it aggregate the values?
+> =
+
+> Hi, review my other response in this thread.
+> =
+
+> This is undefined. Some headers do allow multiple values separated by com=
+ma in =
+
+> the same header with the same meaning as varios headers with same name an=
+d =
+
+> single values. But this depends on each header specification.
+
+>From reading rfc 2616, section 4.2 that all multi-value headers can be
+combined with commas without changing semantics of the message[1].
+There's also no other way (e.g. with an Array) to represent them for
+Rack...
+
+[1] In the Real-World(TM), this is not true for Set-Cookie headers in
+    HTTP responses.
+
+> In your case it seems valid for me (just an opinnion) as =
+
+> "HTTP_X_FORWARDED_PROTO: http,https" could mean that the request has been=
+ sent =
+
+> using HTTPS and an intermediary proxy has forwarded it using HTTP. Of cou=
+rse =
+
+> the final destination (Unicorn application) must be ready to support such =
+
+> syntax.
+
+Is it safe to say that if there's an "https" *anywhere* in the
+X-Forwarded-Proto chain, that "rack.url_scheme" should be set to
+"https"?   Because I suppose most of the time there's only one
+(client-facing) proxy using https.
+
+-- =
+
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
