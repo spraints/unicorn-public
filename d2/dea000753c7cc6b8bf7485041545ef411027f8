@@ -1,0 +1,108 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.6 required=5.0 tests=FREEMAIL_FROM,
+ MSGID_FROM_MTA_HEADER,RP_MATCHES_RCVD,T_DKIM_INVALID shortcircuit=no
+ autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Peter Kieltyka <peter.kieltyka@gmail.com>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Unicorn 0.96 doesn't play nice with Rails 2.3.5
+Date: Mon, 11 Jan 2010 17:27:51 -0500
+Message-ID: <64540A96-A12F-468F-91F8-B4872A333ABC@gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0 (Apple Message framework v1077)
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: ger.gmane.org 1263248886 22735 80.91.229.12 (11 Jan 2010 22:28:06
+ GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Mon, 11 Jan 2010 22:28:06 +0000 (UTC)
+To: mongrel-unicorn@rubyforge.org
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Mon Jan 11 23:27:59
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com; s=gamma;
+ h=domainkey-signature:received:received:from:content-type
+ :content-transfer-encoding:subject:date:message-id:to:mime-version :x-mailer;
+ bh=LIsFJlJ3ERpntuovRhMRVR10GCEOD/yCGdpNud5BjYs=;
+ b=P2S9I6zQrHUc0KxGk7D0GsA7pLtHTlD1ZjqMq2fpBAdwJe4JY6XhkzGOTHmBa5cenU
+ zGvUdH4+0XYKV3NcWq9s2G5AkqwJM/38xttJ1WD5AHR9oj1fQZsF9RxMsIhr0sJfuIwj
+ PrWTBNfbS6srAtceMs3qlkiRl1hzTreKDnbhk=
+DomainKey-Signature: a=rsa-sha1; c=nofws; d=gmail.com; s=gamma;
+ h=from:content-type:content-transfer-encoding:subject:date:message-id
+ :to:mime-version:x-mailer;
+ b=dQOnpZbWCXjE6zx+LEmDX+usfRjiPynBragoohoqVv8Lk6nOCOYi8oGquoxhajoikw
+ 8KQA/NaUVQ2J4d3enSI5b0TwxI3dSK8iU1ZFNGtEmhh9WUFu1WC+ZD+Rg3u+KMcVcWH9
+ SCRVg++OkyTqr+Gno/lB88NfR9llWqVExdlhE=
+X-Mailer: Apple Mail (2.1077)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:344
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/344>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.50) id 1NUSjt-0000Uv-VK for gclrug-mongrel-unicorn@m.gmane.org; Mon,
+ 11 Jan 2010 23:27:58 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 8A2171779946; Mon, 11 Jan 2010 17:27:58 -0500 (EST)
+Received: from mail-yx0-f187.google.com (mail-yx0-f187.google.com
+ [209.85.210.187]) by rubyforge.org (Postfix) with ESMTP id E24FD185827F for
+ <mongrel-unicorn@rubyforge.org>; Mon, 11 Jan 2010 17:27:53 -0500 (EST)
+Received: by yxe17 with SMTP id 17so20761081yxe.33 for
+ <mongrel-unicorn@rubyforge.org>; Mon, 11 Jan 2010 14:27:53 -0800 (PST)
+Received: by 10.150.55.1 with SMTP id d1mr8125906yba.269.1263248873140; Mon,
+ 11 Jan 2010 14:27:53 -0800 (PST)
+Received: from ?192.168.2.18? ([76.9.195.100]) by mx.google.com with ESMTPS
+ id 15sm10649564yxh.58.2010.01.11.14.27.52 (version=TLSv1/SSLv3
+ cipher=RC4-MD5); Mon, 11 Jan 2010 14:27:52 -0800 (PST)
+
+Hello,
+
+I've experienced a bug while trying to setup Unicorn 0.96.0 with my Rails 2.3.5 app. Some details on my system: I'm running Freebsd 8.0-p2 (amd64) with Ruby 1.9.1 and Rubygems 1.3.5.
+
+Pretty much, I tried running "unicorn_rails" in the root of my rails application, but it never loads. What happens is the master process load then it keeps trying to start the worker app but fails. I kept getting the message that I need to install Rails 2.3.5. At fist I thought I had configured something incorrectly and there was a bad reference to my gems, but no. The error message came from my Rails config/boot.rb file which is called after the gem list has been refreshed (via app.call in Unicorn). I traced through unicorn until I found that in the load_rails_gem method of the GemBoot class was raising the load error. When checking the exception message variable it told me: 
+
+$ unicorn_rails                     
+I, [2010-01-11T16:20:11.330566 #23391]  INFO -- : listening on addr=0.0.0.0:8080 fd=3
+I, [2010-01-11T16:20:11.337793 #23391]  INFO -- : worker=0 spawning...
+I, [2010-01-11T16:20:11.339090 #23391]  INFO -- : master process ready
+I, [2010-01-11T16:20:11.339225 #23393]  INFO -- : worker=0 spawned pid=23393
+I, [2010-01-11T16:20:11.379570 #23393]  INFO -- : Refreshing Gem list
+Missing the Rails 2.3.5 gem. Please `gem install -v=2.3.5 rails`, update your RAILS_GEM_VERSION setting in config/environment.rb for the Rails version you do have installed, or comment out RAILS_GEM_VERSION to use the latest version installed.
+I, [2010-01-11T16:20:11.446208 #23391]  INFO -- : reaped #<Process::Status: pid 23393 exit 1> worker=0
+I, [2010-01-11T16:20:11.446461 #23391]  INFO -- : worker=0 spawning...
+I, [2010-01-11T16:20:11.447539 #23394]  INFO -- : worker=0 spawned pid=23394
+I, [2010-01-11T16:20:11.488722 #23394]  INFO -- : Refreshing Gem list
+Missing the Rails 2.3.5 gem. Please `gem install -v=2.3.5 rails`, update your RAILS_GEM_VERSION setting in config/environment.rb for the Rails version you do have installed, or comment out RAILS_GEM_VERSION to use the latest version installed.
+... etc. ... keeps going on and on and on.
+
+The exception message in GemBoot tells me:
+can't activate rack (~> 1.0.0, runtime) for ["actionpack-2.3.5", "rails-2.3.5"], already activated rack-1.1.0 for ["unicorn-0.96.0"]
+
+So, I uninstalled rack 1.1.0, leaving behind just rack 1.0.1. Started up the unicorn_rails again and voila. The issue seemed to be a conflict with the rack 1.1 already being loaded by Unicorn, and when Rails begins to load and checks its dependencies, the rack version is too new for 2.3.5.
+
+I'm not sure what the fix is here, but uninstalling rack 1.1 probably is not the answer.
+
+Cheers,
+
+Peter
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
