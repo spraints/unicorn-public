@@ -1,0 +1,110 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.7 required=5.0 tests=MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: =?iso-8859-1?q?I=F1aki_Baz_Castillo?= <ibc@aliax.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: Issue when sending USR2 too soon
+Date: Mon, 18 Jan 2010 12:48:49 +0100
+Message-ID: <201001181248.49502.ibc@aliax.net>
+References: <201001170244.55418.ibc@aliax.net>
+ <201001181225.28388.ibc@aliax.net> <20100118114334.GC4625@dcvr.yhbt.net>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="iso-8859-1"
+Content-Transfer-Encoding: quoted-printable
+X-Trace: ger.gmane.org 1263815500 8846 80.91.229.12 (18 Jan 2010 11:51:40
+ GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Mon, 18 Jan 2010 11:51:40 +0000 (UTC)
+To: mongrel-unicorn@rubyforge.org
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Mon Jan 18 12:51:33
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+User-Agent: KMail/1.12.2 (Linux/2.6.28-16-generic; KDE/4.3.2; x86_64; ; )
+In-Reply-To: <20100118114334.GC4625@dcvr.yhbt.net>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:352
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/352>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.50) id 1NWq8q-0001RF-OQ for gclrug-mongrel-unicorn@m.gmane.org; Mon,
+ 18 Jan 2010 12:51:33 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 5F94015B802B; Mon, 18 Jan 2010 06:51:33 -0500 (EST)
+Received: from mail-fx0-f226.google.com (mail-fx0-f226.google.com
+ [209.85.220.226]) by rubyforge.org (Postfix) with ESMTP id 1A3F115B8029 for
+ <mongrel-unicorn@rubyforge.org>; Mon, 18 Jan 2010 06:48:54 -0500 (EST)
+Received: by fxm26 with SMTP id 26so888819fxm.19 for
+ <mongrel-unicorn@rubyforge.org>; Mon, 18 Jan 2010 03:48:54 -0800 (PST)
+Received: by 10.87.58.21 with SMTP id l21mr1985345fgk.49.1263815334154; Mon,
+ 18 Jan 2010 03:48:54 -0800 (PST)
+Received: from ibc-laptop.localnet ([212.230.46.89]) by mx.google.com with
+ ESMTPS id d8sm10944226fga.28.2010.01.18.03.48.52 (version=TLSv1/SSLv3
+ cipher=RC4-MD5); Mon, 18 Jan 2010 03:48:52 -0800 (PST)
+
+El Lunes, 18 de Enero de 2010, Eric Wong escribi=F3:
+
+> On systems with RubyGems, the executable is always an automatically
+> generated wrapper script that does "require 'rubygems'" first.
+
+True, but I use Ruby 1.9 which doesn't require using "rubygems". However it=
+'s =
+
+of course true that the binary does a "gem_load_bin('unicorn'..)" and so.
+
+But in my case, for now, I use directly the *real* executable rather than t=
+he =
+
+executable that Gem puts in /usr/bin or /usr/local/bin.
+
+> > > Is the issue with a script reading the pid file and sending the signal
+> > > because it exists?
+> >
+> > I've done a init script to start/stop/reload/log-rotate Unicorn. The
+> > action "log-rotate" takes the PID from the pid file and sends a USR1
+> > (this call is made by logrotate). The action "reload" sends a USR2 and
+> > later a TERM (depending on if the PID has changed or not).
+> >
+> > I just want to avoid that, in case a user invokes "reload" twice too
+> > fast, Unicorn receives USR2 before preparing it so it dies. With my
+> > "hack" is more difficult such possibility to occur.
+> =
+
+> I'll look into what the consequences of writing the pid file after
+> signal handlers are setup later this week.
+
+Hum, yes, that sound good.
+
+
+> Unfortunately pid files are inherently racy for the USR2 case.  Perhaps
+> your script can check the ctime of the pid file...
+
+Good suggestion :)
+
+
+-- =
+
+I=F1aki Baz Castillo <ibc@aliax.net>
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
