@@ -1,0 +1,98 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: Issue when sending USR2 too soon
+Date: Mon, 18 Jan 2010 11:04:47 +0000
+Message-ID: <20100118110446.GA4625@dcvr.yhbt.net>
+References: <201001170244.55418.ibc@aliax.net>
+ <201001170252.28706.ibc@aliax.net> <201001170259.59678.ibc@aliax.net>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="iso-8859-1"
+Content-Transfer-Encoding: quoted-printable
+X-Trace: ger.gmane.org 1263813112 1064 80.91.229.12 (18 Jan 2010 11:11:52
+ GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Mon, 18 Jan 2010 11:11:52 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Mon Jan 18 12:11:44
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <201001170259.59678.ibc@aliax.net>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:349
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/349>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.50) id 1NWpWK-00012F-Lr for gclrug-mongrel-unicorn@m.gmane.org; Mon,
+ 18 Jan 2010 12:11:44 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 6861718582D4; Mon, 18 Jan 2010 06:11:45 -0500 (EST)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id B6ED218582DD for <mongrel-unicorn@rubyforge.org>;
+ Mon, 18 Jan 2010 06:04:48 -0500 (EST)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) (using TLSv1 with cipher
+ DHE-RSA-AES128-SHA (128/128 bits)) (No client certificate requested) by
+ dcvr.yhbt.net (Postfix) with ESMTPSA id 768EC1F4FC; Mon, 18 Jan 2010 11:04:47
+ +0000 (UTC)
+
+I=F1aki Baz Castillo <ibc@aliax.net> wrote:
+> El Domingo, 17 de Enero de 2010, I=F1aki Baz Castillo escribi=F3:
+> > What about if Unicorn very quicky prepares the trap for USR2 so in case=
+ it =
+
+> > receives it soon when starting it ignores it (and logs some warning)?
+> > Does it make sense?
+> =
+
+> Adding the following on the top of bin/unicorn solves the problem:
+> =
+
+>   # Ignore USR2 (instead of terminating script) in case it arrives too so=
+on.
+>   trap("USR2") do
+>     $stderr.puts "WARN: USR2 signal (reload action) received too soon, ig=
+nored"
+>   end
+
+No it doesn't, it just reduces the window where signals aren't setup.
+On systems where Unicorn is installed as a RubyGem, that window of time
+may be much bigger.
+
+Is the issue with a script reading the pid file and sending the signal
+because it exists?
+
+In that case, it might be better to drop the pid file after
+setting up signal handlers, but I seem to recall some tools wanting
+the pid file earlier...  I'll get back to this on Tuesday.
+
+-- =
+
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
