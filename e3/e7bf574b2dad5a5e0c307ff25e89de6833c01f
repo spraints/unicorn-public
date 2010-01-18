@@ -1,0 +1,140 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: Issue when sending USR2 too soon
+Date: Mon, 18 Jan 2010 11:43:34 +0000
+Message-ID: <20100118114334.GC4625@dcvr.yhbt.net>
+References: <201001170244.55418.ibc@aliax.net>
+ <201001170259.59678.ibc@aliax.net> <20100118110446.GA4625@dcvr.yhbt.net>
+ <201001181225.28388.ibc@aliax.net>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="iso-8859-1"
+Content-Transfer-Encoding: quoted-printable
+X-Trace: ger.gmane.org 1263815031 7370 80.91.229.12 (18 Jan 2010 11:43:51
+ GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Mon, 18 Jan 2010 11:43:51 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Mon Jan 18 12:43:44
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <201001181225.28388.ibc@aliax.net>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:351
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/351>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.50) id 1NWq1A-0006Sj-18 for gclrug-mongrel-unicorn@m.gmane.org; Mon,
+ 18 Jan 2010 12:43:36 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 81D2415B802F; Mon, 18 Jan 2010 06:43:36 -0500 (EST)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id E2DBF15B802C for <mongrel-unicorn@rubyforge.org>;
+ Mon, 18 Jan 2010 06:43:34 -0500 (EST)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) (using TLSv1 with cipher
+ DHE-RSA-AES128-SHA (128/128 bits)) (No client certificate requested) by
+ dcvr.yhbt.net (Postfix) with ESMTPSA id 71B6A1F4FC; Mon, 18 Jan 2010 11:43:34
+ +0000 (UTC)
+
+I=F1aki Baz Castillo <ibc@aliax.net> wrote:
+> El Lunes, 18 de Enero de 2010, Eric Wong escribi=F3:
+> > I=F1aki Baz Castillo <ibc@aliax.net> wrote:
+> > > El Domingo, 17 de Enero de 2010, I=F1aki Baz Castillo escribi=F3:
+> > > > What about if Unicorn very quicky prepares the trap for USR2 so in =
+case
+> > > > it receives it soon when starting it ignores it (and logs some
+> > > > warning)? Does it make sense?
+> > >
+> > > Adding the following on the top of bin/unicorn solves the problem:
+> > >
+> > >   # Ignore USR2 (instead of terminating script) in case it arrives too
+> > > soon. trap("USR2") do
+> > >     $stderr.puts "WARN: USR2 signal (reload action) received too soon,
+> > > ignored" end
+> > =
+
+> > No it doesn't, it just reduces the window where signals aren't setup.
+> > On systems where Unicorn is installed as a RubyGem, that window of time
+> > may be much bigger.
+> =
+
+> But note that I've added:
+> =
+
+>   trap("USR2") do
+>     $stderr.puts "WARN: USR2 signal (reload action) received too soon,
+>                   ignored"
+>   end
+> =
+
+> at the beginning of the executable, so the time window is really reduced.=
+ Also =
+
+> note that in my modified version of the executable I load many other gems=
+ and =
+
+> them make the unicorn loading slower, increasing the time window.
+
+On systems with RubyGems, the executable is always an automatically
+generated wrapper script that does "require 'rubygems'" first.
+
+> > Is the issue with a script reading the pid file and sending the signal
+> > because it exists?
+> =
+
+> I've done a init script to start/stop/reload/log-rotate Unicorn. The acti=
+on =
+
+> "log-rotate" takes the PID from the pid file and sends a USR1 (this call =
+is =
+
+> made by logrotate). The action "reload" sends a USR2 and later a TERM =
+
+> (depending on if the PID has changed or not).
+> =
+
+> I just want to avoid that, in case a user invokes "reload" twice too fast=
+, =
+
+> Unicorn receives USR2 before preparing it so it dies. With my "hack" is m=
+ore =
+
+> difficult such possibility to occur.
+
+I'll look into what the consequences of writing the pid file after
+signal handlers are setup later this week.
+
+Unfortunately pid files are inherently racy for the USR2 case.  Perhaps
+your script can check the ctime of the pid file...
+
+-- =
+
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
