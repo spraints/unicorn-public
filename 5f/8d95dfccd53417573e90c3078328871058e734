@@ -1,0 +1,154 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: X-Forwarded-Proto / X_FORWARDED_PROTO
+Date: Tue, 19 Jan 2010 13:43:47 -0800
+Message-ID: <20100119214347.GA8301@dcvr.yhbt.net>
+References: <20100109221656.GA8846@waste.org>
+ <20100109223903.GC7480@dcvr.yhbt.net> <20100109232903.GB8846@waste.org>
+ <201001100045.37677.ibc@aliax.net> <20100110061209.GA1685@dcvr.yhbt.net>
+ <20100110063218.GA3102@dcvr.yhbt.net>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="iso-8859-1"
+Content-Transfer-Encoding: quoted-printable
+X-Trace: ger.gmane.org 1263937440 13972 80.91.229.12 (19 Jan 2010 21:44:00
+ GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Tue, 19 Jan 2010 21:44:00 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Tue Jan 19 22:43:52
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <20100110063218.GA3102@dcvr.yhbt.net>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:354
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/354>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.50) id 1NXLra-0005Vn-3T for gclrug-mongrel-unicorn@m.gmane.org; Tue,
+ 19 Jan 2010 22:43:50 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 11D2A18582E2; Tue, 19 Jan 2010 16:43:51 -0500 (EST)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 870E718582DD for <mongrel-unicorn@rubyforge.org>;
+ Tue, 19 Jan 2010 16:43:48 -0500 (EST)
+Received: from localhost (unknown [127.0.2.5]) by dcvr.yhbt.net (Postfix)
+ with ESMTP id B7D7C1F503; Tue, 19 Jan 2010 21:43:47 +0000 (UTC)
+
+Eric Wong <normalperson@yhbt.net> wrote:
+> Eric Wong <normalperson@yhbt.net> wrote:
+> > I=F1aki Baz Castillo <ibc@aliax.net> wrote:
+> > > In your case it seems valid for me (just an opinnion) as =
+
+> > > "HTTP_X_FORWARDED_PROTO: http,https" could mean that the request has =
+been sent =
+
+> > > using HTTPS and an intermediary proxy has forwarded it using HTTP. Of=
+ course =
+
+> > > the final destination (Unicorn application) must be ready to support =
+such =
+
+> > > syntax.
+> > =
+
+> > Is it safe to say that if there's an "https" *anywhere* in the
+> > X-Forwarded-Proto chain, that "rack.url_scheme" should be set to
+> > "https"?   Because I suppose most of the time there's only one
+> > (client-facing) proxy using https.
+> =
+
+> Maybe this will work...
+
+Any feedback on this patch would be appreciated, thanks.
+
+> diff --git a/ext/unicorn_http/global_variables.h b/ext/unicorn_http/globa=
+l_variables.h
+> index e593cf6..6705851 100644
+> --- a/ext/unicorn_http/global_variables.h
+> +++ b/ext/unicorn_http/global_variables.h
+> @@ -74,7 +74,6 @@ void init_globals(void)
+>    DEF_GLOBAL(server_name, "SERVER_NAME");
+>    DEF_GLOBAL(server_port, "SERVER_PORT");
+>    DEF_GLOBAL(server_protocol, "SERVER_PROTOCOL");
+> -  DEF_GLOBAL(http_x_forwarded_proto, "HTTP_X_FORWARDED_PROTO");
+>    DEF_GLOBAL(port_80, "80");
+>    DEF_GLOBAL(port_443, "443");
+>    DEF_GLOBAL(localhost, "localhost");
+> diff --git a/ext/unicorn_http/unicorn_http.rl b/ext/unicorn_http/unicorn_=
+http.rl
+> index 6232e2c..f3945b2 100644
+> --- a/ext/unicorn_http/unicorn_http.rl
+> +++ b/ext/unicorn_http/unicorn_http.rl
+> @@ -197,6 +197,14 @@ static void write_value(VALUE req, struct http_parse=
+r *hp,
+>      assert_frozen(f);
+>    }
+>  =
+
+> +  /*
+> +   * any X-Forwarded-Proto: https means there's an https server in the
+> +   * proxy chain, and that server is most likely the one that actually
+> +   * sees the client, so help Rack apps generate URLs with "https"
+> +   */
+> +  if (f =3D=3D g_http_x_forwarded_proto && STR_CSTR_EQ(v, "https"))
+> +    rb_hash_aset(req, g_rack_url_scheme, v);
+> +
+>    e =3D rb_hash_aref(req, f);
+>    if (NIL_P(e)) {
+>      hp->cont =3D rb_hash_aset(req, f, v);
+> @@ -393,12 +401,7 @@ static void finalize_header(struct http_parser *hp, =
+VALUE req)
+>  =
+
+>    /* set rack.url_scheme to "https" or "http", no others are allowed by =
+Rack */
+>    if (NIL_P(temp)) {
+> -    temp =3D rb_hash_aref(req, g_http_x_forwarded_proto);
+> -    if (!NIL_P(temp) && STR_CSTR_EQ(temp, "https"))
+> -      server_port =3D g_port_443;
+> -    else
+> -      temp =3D g_http;
+> -    rb_hash_aset(req, g_rack_url_scheme, temp);
+> +    rb_hash_aset(req, g_rack_url_scheme, g_http);
+>    } else if (STR_CSTR_EQ(temp, "https")) {
+>      server_port =3D g_port_443;
+>    } else {
+> @@ -712,5 +715,6 @@ void Init_unicorn_http(void)
+>    SET_GLOBAL(g_http_transfer_encoding, "TRANSFER_ENCODING");
+>    SET_GLOBAL(g_content_length, "CONTENT_LENGTH");
+>    SET_GLOBAL(g_http_connection, "CONNECTION");
+> +  SET_GLOBAL(g_http_x_forwarded_proto, "X_FORWARDED_PROTO");
+>  }
+>  #undef SET_GLOBAL
+-- =
+
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
