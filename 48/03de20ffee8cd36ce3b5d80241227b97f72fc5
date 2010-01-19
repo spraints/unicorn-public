@@ -1,0 +1,114 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: Unicorn can't find gems?
+Date: Tue, 19 Jan 2010 13:48:13 -0800
+Message-ID: <20100119214813.GB8301@dcvr.yhbt.net>
+References: <dd81403b1001191342w53e32dddn8499e8399540a876@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: ger.gmane.org 1263937703 14907 80.91.229.12 (19 Jan 2010 21:48:23
+ GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Tue, 19 Jan 2010 21:48:23 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Tue Jan 19 22:48:16
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <dd81403b1001191342w53e32dddn8499e8399540a876@mail.gmail.com>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:355
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/355>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.50) id 1NXLvq-0007NQ-4x for gclrug-mongrel-unicorn@m.gmane.org; Tue,
+ 19 Jan 2010 22:48:14 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 0989018582E2; Tue, 19 Jan 2010 16:48:15 -0500 (EST)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id AF47A18582DD for <mongrel-unicorn@rubyforge.org>;
+ Tue, 19 Jan 2010 16:48:13 -0500 (EST)
+Received: from localhost (unknown [127.0.2.5]) by dcvr.yhbt.net (Postfix)
+ with ESMTP id 3963C1F503; Tue, 19 Jan 2010 21:48:13 +0000 (UTC)
+
+Steve Klabnik <steve@steveklabnik.com> wrote:
+> Hello all. I've run into a strange problem with Unicorn, and Google
+> couldn't help me out. Basically, I'm going to switch from Passenger to
+> Unicorn for the next release of my Rails app. I installed it on my
+> local machine, and it ran great. But then, as I was building my new
+> server to deploy on, I ran into a snag.
+> 
+> When I run 'unicorn_rails', I got a strange error. Here's the output
+> of 'unicorn_rails -d' :
+> 
+> $ unicorn_rails -d
+
+<snip>
+
+> Exception `Gem::LoadError' at
+> /opt/ruby-enterprise-1.8.7-2009.10/lib/ruby/site_ruby/1.8/rubygems.rb:280
+> - can't activate rack (~> 1.0.0, runtime) for ["actionpack-2.3.5",
+> "rails-2.3.5"], already activated rack-1.1.0 for ["unicorn-0.96.0"]
+> Missing the Rails 2.3.5 gem. Please `gem install -v=2.3.5 rails`,
+> update your RAILS_GEM_VERSION setting in config/environment.rb for the
+> Rails version you do have installed, or comment out RAILS_GEM_VERSION
+> to use the latest version installed.
+> Exception `Errno::EAGAIN' at
+> /opt/ruby-enterprise-1.8.7-2009.10/lib/ruby/gems/1.8/gems/unicorn-0.96.0/lib/unicorn.rb:436
+> - Resource temporarily unavailable
+> I, [2010-01-19T21:25:09.918670 #30184]  INFO -- : reaped
+> #<Process::Status: pid=30185,exited(1)> worker=0
+> Exception `Errno::ECHILD' at
+> /opt/ruby-enterprise-1.8.7-2009.10/lib/ruby/gems/1.8/gems/unicorn-0.96.0/lib/unicorn.rb:454
+> - No child processes
+> 
+> And then it just repeats.
+> 
+> I'm using ree both locally and on the server (as you can see), but I'm
+> using it through rvm locally.
+> 
+> Any idea what this might be?
+
+Hi Steve,
+
+Rails 2.3.x isn't compatible with Rack 1.1.0.  Unicorn depends on Rack
+and since Unicorn is always loaded before Rails is, the Unicorn
+dependency will always load the newest version of Rack on the system.
+
+Uninstalling Rack 1.1.0 for now should fix things, just keep Rack 1.0.1
+installed).
+
+I'll add this to the FAQ for now, not sure if there's a sane solution
+for it...
+
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
