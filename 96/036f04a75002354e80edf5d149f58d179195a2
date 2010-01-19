@@ -1,0 +1,124 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.7 required=5.0 tests=MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Steve Klabnik <steve@steveklabnik.com>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Unicorn can't find gems?
+Date: Tue, 19 Jan 2010 21:42:33 +0000
+Message-ID: <dd81403b1001191342w53e32dddn8499e8399540a876@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: ger.gmane.org 1263937403 13837 80.91.229.12 (19 Jan 2010 21:43:23
+ GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Tue, 19 Jan 2010 21:43:23 +0000 (UTC)
+To: mongrel-unicorn@rubyforge.org
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Tue Jan 19 22:43:16
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:353
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/353>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.50) id 1NXLqT-0004bY-GG for gclrug-mongrel-unicorn@m.gmane.org; Tue,
+ 19 Jan 2010 22:42:41 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 94E1C18582E3; Tue, 19 Jan 2010 16:42:39 -0500 (EST)
+Received: from fg-out-1718.google.com (fg-out-1718.google.com
+ [72.14.220.159]) by rubyforge.org (Postfix) with ESMTP id 7735B18582E2 for
+ <mongrel-unicorn@rubyforge.org>; Tue, 19 Jan 2010 16:42:34 -0500 (EST)
+Received: by fg-out-1718.google.com with SMTP id 22so527945fge.5 for
+ <mongrel-unicorn@rubyforge.org>; Tue, 19 Jan 2010 13:42:33 -0800 (PST)
+Received: by 10.239.186.80 with SMTP id f16mr922280hbh.125.1263937353407;
+ Tue,  19 Jan 2010 13:42:33 -0800 (PST)
+
+Hello all. I've run into a strange problem with Unicorn, and Google
+couldn't help me out. Basically, I'm going to switch from Passenger to
+Unicorn for the next release of my Rails app. I installed it on my
+local machine, and it ran great. But then, as I was building my new
+server to deploy on, I ran into a snag.
+
+When I run 'unicorn_rails', I got a strange error. Here's the output
+of 'unicorn_rails -d' :
+
+$ unicorn_rails -d
+{:daemonize=>false,
+ :unicorn_options=>{:listeners=>[]},
+ :app=>
+  #<Proc:0x000000000216dad0@/opt/ruby-enterprise-1.8.7-2009.10/lib/ruby/gems/1.8/gems/unicorn-0.96.0/bin/unicorn_rails:124>}
+Exception `Errno::EEXIST' at
+/opt/ruby-enterprise-1.8.7-2009.10/lib/ruby/1.8/fileutils.rb:243 -
+File exists - tmp/cache
+Exception `Errno::EEXIST' at
+/opt/ruby-enterprise-1.8.7-2009.10/lib/ruby/1.8/fileutils.rb:243 -
+File exists - tmp/pids
+Exception `Errno::EEXIST' at
+/opt/ruby-enterprise-1.8.7-2009.10/lib/ruby/1.8/fileutils.rb:243 -
+File exists - tmp/sessions
+Exception `Errno::EEXIST' at
+/opt/ruby-enterprise-1.8.7-2009.10/lib/ruby/1.8/fileutils.rb:243 -
+File exists - tmp/sockets
+I, [2010-01-19T21:25:09.748670 #30184]  INFO -- : listening on
+addr=0.0.0.0:8080 fd=3
+Exception `LoadError' at
+/opt/ruby-enterprise-1.8.7-2009.10/lib/ruby/site_ruby/1.8/rubygems/custom_require.rb:31
+- no such file to load -- Win32API
+Exception `LoadError' at
+/opt/ruby-enterprise-1.8.7-2009.10/lib/ruby/site_ruby/1.8/rubygems/custom_require.rb:38
+- no such file to load -- Win32API
+I, [2010-01-19T21:25:09.758670 #30184]  INFO -- : worker=0 spawning...
+I, [2010-01-19T21:25:09.768670 #30184]  INFO -- : master process ready
+I, [2010-01-19T21:25:09.768670 #30185]  INFO -- : worker=0 spawned pid=30185
+I, [2010-01-19T21:25:09.828670 #30185]  INFO -- : Refreshing Gem list
+Exception `Gem::LoadError' at
+/opt/ruby-enterprise-1.8.7-2009.10/lib/ruby/site_ruby/1.8/rubygems.rb:280
+- can't activate rack (~> 1.0.0, runtime) for ["actionpack-2.3.5",
+"rails-2.3.5"], already activated rack-1.1.0 for ["unicorn-0.96.0"]
+Missing the Rails 2.3.5 gem. Please `gem install -v=2.3.5 rails`,
+update your RAILS_GEM_VERSION setting in config/environment.rb for the
+Rails version you do have installed, or comment out RAILS_GEM_VERSION
+to use the latest version installed.
+Exception `Errno::EAGAIN' at
+/opt/ruby-enterprise-1.8.7-2009.10/lib/ruby/gems/1.8/gems/unicorn-0.96.0/lib/unicorn.rb:436
+- Resource temporarily unavailable
+I, [2010-01-19T21:25:09.918670 #30184]  INFO -- : reaped
+#<Process::Status: pid=30185,exited(1)> worker=0
+Exception `Errno::ECHILD' at
+/opt/ruby-enterprise-1.8.7-2009.10/lib/ruby/gems/1.8/gems/unicorn-0.96.0/lib/unicorn.rb:454
+- No child processes
+
+And then it just repeats.
+
+I'm using ree both locally and on the server (as you can see), but I'm
+using it through rvm locally.
+
+Any idea what this might be?
+
+Thanks,
+Steve
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
