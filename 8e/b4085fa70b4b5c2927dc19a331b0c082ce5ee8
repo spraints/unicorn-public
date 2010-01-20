@@ -1,0 +1,196 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: [PATCH] initialize signal handlers before writing pid file
+Date: Tue, 19 Jan 2010 18:38:26 -0800
+Message-ID: <20100120023826.GA25165@dcvr.yhbt.net>
+References: <201001170244.55418.ibc@aliax.net>
+ <201001170259.59678.ibc@aliax.net> <20100118110446.GA4625@dcvr.yhbt.net>
+ <201001181225.28388.ibc@aliax.net> <20100118114334.GC4625@dcvr.yhbt.net>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: ger.gmane.org 1263955119 28493 80.91.229.12 (20 Jan 2010 02:38:39
+ GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Wed, 20 Jan 2010 02:38:39 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Wed Jan 20 03:38:31
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <20100118114334.GC4625@dcvr.yhbt.net>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:360
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/360>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.50) id 1NXQSl-0008Hr-GX for gclrug-mongrel-unicorn@m.gmane.org; Wed,
+ 20 Jan 2010 03:38:31 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 158D418582F9; Tue, 19 Jan 2010 21:38:32 -0500 (EST)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id DDF9C18582F7 for <mongrel-unicorn@rubyforge.org>;
+ Tue, 19 Jan 2010 21:38:26 -0500 (EST)
+Received: from localhost (unknown [127.0.2.5]) by dcvr.yhbt.net (Postfix)
+ with ESMTP id 3CE941F507; Wed, 20 Jan 2010 02:38:26 +0000 (UTC)
+
+This prevents trigger-happy init scripts from reading the pid
+file (and thus sending signals) to a not-fully initialized
+master process to handle them.
+
+This does NOT fix anything if other processes are sending
+signals prematurely without relying on the presence of the pid
+file.  It's not possible to prevent all cases of this in one
+process, even in a purely C application, so we won't bother
+trying.
+
+We continue to always defer signal handling to the main loop
+anyways, and signals sent to the master process will be
+deferred/ignored until Unicorn::HttpServer#join is run.
+---
+  Eric Wong <normalperson@yhbt.net> wrote:
+  > I'll look into what the consequences of writing the pid file after
+  > signal handlers are setup later this week.
+
+  I just pushed this out to git://git.bogomips.org/unicorn.git
+
+  There were some test cases (that shouldn't be called "unit tests")
+  that needed to be fixed but I don't think anything else is broken,
+  but be sure to let us know either way.
+
+ lib/unicorn.rb            |   16 +++++++++++-----
+ test/test_helper.rb       |    5 +++++
+ test/unit/test_server.rb  |    1 +
+ test/unit/test_signals.rb |    6 +++++-
+ test/unit/test_upload.rb  |    1 +
+ 5 files changed, 23 insertions(+), 6 deletions(-)
+
+diff --git a/lib/unicorn.rb b/lib/unicorn.rb
+index 7a1ef34..e3e4315 100644
+--- a/lib/unicorn.rb
++++ b/lib/unicorn.rb
+@@ -210,7 +210,18 @@ module Unicorn
+       end
+       config_listeners.each { |addr| listen(addr) }
+       raise ArgumentError, "no listeners" if LISTENERS.empty?
++
++      # this pipe is used to wake us up from select(2) in #join when signals
++      # are trapped.  See trap_deferred.
++      init_self_pipe!
++
++      # setup signal handlers before writing pid file in case people get
++      # trigger happy and send signals as soon as the pid file exists.
++      # Note that signals don't actually get handled until the #join method
++      QUEUE_SIGS.each { |sig| trap_deferred(sig) }
++      trap(:CHLD) { |_| awaken_master }
+       self.pid = config[:pid]
++
+       self.master_pid = $$
+       build_app! if preload_app
+       maintain_worker_count
+@@ -322,14 +333,9 @@ module Unicorn
+     # one-at-a-time time and we'll happily drop signals in case somebody
+     # is signalling us too often.
+     def join
+-      # this pipe is used to wake us up from select(2) in #join when signals
+-      # are trapped.  See trap_deferred
+-      init_self_pipe!
+       respawn = true
+       last_check = Time.now
+ 
+-      QUEUE_SIGS.each { |sig| trap_deferred(sig) }
+-      trap(:CHLD) { |sig_nr| awaken_master }
+       proc_name 'master'
+       logger.info "master process ready" # test_exec.rb relies on this message
+       if ready_pipe
+diff --git a/test/test_helper.rb b/test/test_helper.rb
+index 3bdbeb1..5b750ee 100644
+--- a/test/test_helper.rb
++++ b/test/test_helper.rb
+@@ -294,3 +294,8 @@ def chunked_spawn(stdout, *cmd)
+     end while true
+   }
+ end
++
++def reset_sig_handlers
++  sigs = %w(CHLD).concat(Unicorn::HttpServer::QUEUE_SIGS)
++  sigs.each { |sig| trap(sig, "DEFAULT") }
++end
+diff --git a/test/unit/test_server.rb b/test/unit/test_server.rb
+index 00705d0..36333a0 100644
+--- a/test/unit/test_server.rb
++++ b/test/unit/test_server.rb
+@@ -41,6 +41,7 @@ class WebServerTest < Test::Unit::TestCase
+       File.truncate("test_stderr.#$$.log", 0)
+       @server.stop(true)
+     end
++    reset_sig_handlers
+   end
+ 
+   def test_preload_app_config
+diff --git a/test/unit/test_signals.rb b/test/unit/test_signals.rb
+index eb2af0b..71cf8f4 100644
+--- a/test/unit/test_signals.rb
++++ b/test/unit/test_signals.rb
+@@ -40,6 +40,10 @@ class SignalsTest < Test::Unit::TestCase
+     @server = nil
+   end
+ 
++  def teardown
++    reset_sig_handlers
++  end
++
+   def test_worker_dies_on_dead_master
+     pid = fork {
+       app = lambda { |env| [ 200, {'X-Pid' => "#$$" }, [] ] }
+@@ -190,7 +194,7 @@ class SignalsTest < Test::Unit::TestCase
+     killer = fork { loop { Process.kill(:HUP, pid); sleep(0.0001) } }
+     buf = ' ' * @bs
+     @count.times { sock.syswrite(buf) }
+-    Process.kill(:TERM, killer)
++    Process.kill(:KILL, killer)
+     Process.waitpid2(killer)
+     redirect_test_io { @server.stop(true) }
+     # can't check for == since pending signals get merged
+diff --git a/test/unit/test_upload.rb b/test/unit/test_upload.rb
+index 7ac3c9e..dc0eb40 100644
+--- a/test/unit/test_upload.rb
++++ b/test/unit/test_upload.rb
+@@ -55,6 +55,7 @@ class UploadTest < Test::Unit::TestCase
+   def teardown
+     redirect_test_io { @server.stop(true) } if @server
+     @random.close
++    reset_sig_handlers
+   end
+ 
+   def test_put
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
