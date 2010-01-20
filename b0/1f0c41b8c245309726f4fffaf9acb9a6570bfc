@@ -1,0 +1,151 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.7 required=5.0 tests=MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: =?iso-8859-1?q?I=F1aki_Baz_Castillo?= <ibc@aliax.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: [PATCH] initialize signal handlers before writing pid file
+Date: Wed, 20 Jan 2010 09:45:33 +0100
+Message-ID: <201001200945.33438.ibc@aliax.net>
+References: <201001170244.55418.ibc@aliax.net>
+ <20100118114334.GC4625@dcvr.yhbt.net> <20100120023826.GA25165@dcvr.yhbt.net>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="iso-8859-1"
+Content-Transfer-Encoding: quoted-printable
+X-Trace: ger.gmane.org 1263977542 10363 80.91.229.12 (20 Jan 2010 08:52:22
+ GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Wed, 20 Jan 2010 08:52:22 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Wed Jan 20 09:52:14
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+User-Agent: KMail/1.12.2 (Linux/2.6.28-16-generic; KDE/4.3.2; x86_64; ; )
+In-Reply-To: <20100120023826.GA25165@dcvr.yhbt.net>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:361
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/361>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.50) id 1NXWIO-0004Dm-M9 for gclrug-mongrel-unicorn@m.gmane.org; Wed,
+ 20 Jan 2010 09:52:12 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 6163618582F9; Wed, 20 Jan 2010 03:52:13 -0500 (EST)
+Received: from mail-ew0-f212.google.com (mail-ew0-f212.google.com
+ [209.85.219.212]) by rubyforge.org (Postfix) with ESMTP id B080218582DD for
+ <mongrel-unicorn@rubyforge.org>; Wed, 20 Jan 2010 03:45:39 -0500 (EST)
+Received: by ewy4 with SMTP id 4so2352485ewy.7 for
+ <mongrel-unicorn@rubyforge.org>; Wed, 20 Jan 2010 00:45:39 -0800 (PST)
+Received: by 10.213.107.13 with SMTP id z13mr3254249ebo.68.1263977139140;
+ Wed, 20 Jan 2010 00:45:39 -0800 (PST)
+Received: from ibc-laptop.localnet ([212.230.46.89]) by mx.google.com with
+ ESMTPS id 7sm9075311eyb.18.2010.01.20.00.45.36 (version=TLSv1/SSLv3
+ cipher=RC4-MD5); Wed, 20 Jan 2010 00:45:37 -0800 (PST)
+
+El Mi=E9rcoles, 20 de Enero de 2010, Eric Wong escribi=F3:
+> This prevents trigger-happy init scripts from reading the pid
+> file (and thus sending signals) to a not-fully initialized
+> master process to handle them.
+> =
+
+> This does NOT fix anything if other processes are sending
+> signals prematurely without relying on the presence of the pid
+> file.  It's not possible to prevent all cases of this in one
+> process, even in a purely C application, so we won't bother
+> trying.
+> =
+
+> We continue to always defer signal handling to the main loop
+> anyways, and signals sent to the master process will be
+> deferred/ignored until Unicorn::HttpServer#join is run.
+
+
+Hi Eric, I've already tested it. It works great :)
+
+
+To check it I use the following init script "reload" action which hope coul=
+d =
+
+be useful for others (it requires loading "/lib/lsb/init-functions"):
+
+
+reload|force-reload|safe-reload)
+  # Return
+  #   0 if daemon has been reloaded
+  #   1 if daemon was not running
+  #   1 if daemon could not be reloaded
+  #
+  log_daemon_msg "Safe reloading $DESC"
+
+  oldpid=3D$(pidofproc -p $PIDFILE)
+  if [ "$oldpid" ] ; then
+    kill -s USR2 $oldpid
+    log_action_msg "signal USR2 sent to $NAME master process (pid $oldpid) =
+to
+                    fork a new master and workers processes"
+
+    log_action_msg "waiting for the new process to successfully start..."
+    printf "."
+    sleep 1
+    while [ "$(pidofproc -p $PIDFILE.oldbin)" ]; do
+      printf "."
+      sleep 1
+    done
+    echo
+
+    newpid=3D$(pidofproc -p $PIDFILE)
+    # If the PID has definitively changed than the new master is running.
+    if [ "$oldpid" !=3D "$newpid" ] ; then
+      log_success_msg "server correctly reloaded, new master process has pid
+                       $newpid"
+      log_end_msg 0
+    # If not, the new master process couldn't start due to the new
+    # configuration or code error.
+    else
+      log_failure_msg "error running a new master process, $NAME was not
+                       reloaded (check error log)"
+      log_end_msg 1
+    fi
+  else
+    log_failure_msg "$NAME is not running"
+    log_end_msg 1
+  fi
+  ;;
+
+
+
+And I test the following loop to check it:
+
+  while [ 0 ] ; do /etc/init.d/myserver reload ; done
+
+
+
+
+
+
+-- =
+
+I=F1aki Baz Castillo <ibc@aliax.net>
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
