@@ -1,0 +1,108 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.7 required=5.0 tests=MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Travis Bell <travis@meticulo.com>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Getting a strange cookie error
+Date: Thu, 21 Jan 2010 23:30:50 -0700
+Message-ID: <AAD43046-6AF4-4685-933D-41F7E1DC0795@meticulo.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0 (Apple Message framework v1077)
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: ger.gmane.org 1264142310 30041 80.91.229.12 (22 Jan 2010 06:38:30
+ GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Fri, 22 Jan 2010 06:38:30 +0000 (UTC)
+To: mongrel-unicorn@rubyforge.org
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Fri Jan 22 07:38:22
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+X-Greylist: delayed 387 seconds by postgrey-1.31 at rubyforge.org; Fri, 22
+ Jan 2010 01:37:26 EST
+X-Mailer: Apple Mail (2.1077)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:368
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/368>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.50) id 1NYD9u-0004Jj-TH for gclrug-mongrel-unicorn@m.gmane.org; Fri,
+ 22 Jan 2010 07:38:19 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 9993C18582E2; Fri, 22 Jan 2010 01:38:17 -0500 (EST)
+Received: from na3sys009aog108.obsmtp.com (na3sys009aog108.obsmtp.com
+ [74.125.149.199]) by rubyforge.org (Postfix) with SMTP id 3F5F218582C7 for
+ <mongrel-unicorn@rubyforge.org>; Fri, 22 Jan 2010 01:37:26 -0500 (EST)
+Received: from source ([209.85.160.41]) by na3sys009aob108.postini.com
+ ([74.125.148.12]) with SMTP ID
+ DSNKS1lHpVD2FvG0ixaTMG1oRY+U3ww8gLcN@postini.com; Thu, 21 Jan 2010 22:37:26
+ PST
+Received: by mail-pw0-f41.google.com with SMTP id 4so561884pwj.0 for
+ <mongrel-unicorn@rubyforge.org>; Thu, 21 Jan 2010 22:37:25 -0800 (PST)
+Received: by 10.114.20.6 with SMTP id 6mr1758195wat.64.1264141853918; Thu, 21
+ Jan 2010 22:30:53 -0800 (PST)
+Received: from ?10.0.1.7? (S0106001b63f42692.cg.shawcable.net
+ [68.144.18.239]) by mx.google.com with ESMTPS id
+ 20sm577793pzk.9.2010.01.21.22.30.51 (version=SSLv3 cipher=RC4-MD5); Thu, 21
+ Jan 2010 22:30:52 -0800 (PST)
+
+Hey guys,
+
+I've been developing with Thin since day 1 (many months) and today, as I started moving everything to test on production (with Unicorn) started getting this weird error.
+
+I am using Sinatra, and have been setting my cookies like so:
+
+         response.set_cookie('foo', {
+            :value => "bar",
+            :path => '/',
+            :expires => Time.today+14400
+         })
+
+In Thin, Webrick, Passenger, this seems to work fine. However in Unicorn I get a big fat ugly error:
+
+# Rack::Lint::LintError at /login
+# a header value must be a String, but the value of 'Set-Cookie' is a Array
+# /opt/ruby-enterprise-1.8.7-2010.01/lib/ruby/gems/1.8/gems/rack-1.1.0/lib/rack/lint.rb: in assert, line 18
+
+I'm not really sure what this means since :value is a string. I am using the following versions:
+
+- REE (1.8.7-2010.01)
+- Rack 1.1.0
+- Unicorn 0.96.0
+- Latest Sinatra from source
+
+Does anyone have any input as to why this is happening? I have been able to re-produce this on a 32-bit CentOS box and my local MacBook Pro (Snow Leopard).
+
+
+Cheers,
+
+-- 
+Travis Bell
+http://www.twitter.com/travisbell
+http://www.twitter.com/themoviedb
+
+
+
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
