@@ -1,0 +1,99 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: Getting a strange cookie error
+Date: Fri, 22 Jan 2010 15:03:37 -0800
+Message-ID: <20100122230337.GA18815@dcvr.yhbt.net>
+References: <AAD43046-6AF4-4685-933D-41F7E1DC0795@meticulo.com>
+ <0B0E184C-1FD8-4208-BD48-0AC7DE2C33A0@meticulo.com>
+ <20100122214851.GA26081@dcvr.yhbt.net>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: ger.gmane.org 1264201476 344 80.91.229.12 (22 Jan 2010 23:04:36 GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Fri, 22 Jan 2010 23:04:36 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Sat Jan 23 00:04:28
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <20100122214851.GA26081@dcvr.yhbt.net>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:373
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.50) id 1NYSYG-00027q-IE for gclrug-mongrel-unicorn@m.gmane.org; Sat,
+ 23 Jan 2010 00:04:28 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 7A1A918582CE; Fri, 22 Jan 2010 18:04:29 -0500 (EST)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 3B96C167830B for <mongrel-unicorn@rubyforge.org>;
+ Fri, 22 Jan 2010 18:03:54 -0500 (EST)
+Received: from localhost (unknown [127.0.2.5]) by dcvr.yhbt.net (Postfix)
+ with ESMTP id C8C4C1F449; Fri, 22 Jan 2010 23:03:37 +0000 (UTC)
+
+Eric Wong <normalperson@yhbt.net> wrote:
+> Travis Bell <travis@meticulo.com> wrote:
+> > Just a follow up, it looks like it was rack 1.1.0 causing the issues.
+> > I uninstalled it, and am now using rack 1.0.1 and the error has gone
+> > away.
+> > 
+> > Why it worked with Thin + Rack 1.1.0 and not Unicorn, still not sure.
+> 
+> Sorry, I keep getting distracted/interrupted while looking into this,
+> it's probably related to the Rack::Utils::HeaderHash optimizations[1] in
+> Rack 1.1.0 somehow interacting badly with Sinatra + Rack::Lint
+> 
+> But Sinatra uses Rack::Response, so it shouldn't happen, but somehow
+> it does, I'll look at it more when I get a chance.
+
+HI Travis,
+
+I can't seem to reproduce this with Sinatra
+466cc74b8f393f98de227122c78ed55cb745cbc6, and Rack 1.1.0 with a basic
+"hello world" application.  I'll need to know more about what your
+application does with response headers...
+
+Are you running any other middlewares or patches that could affect
+things inside Rack::Response or Rack::Utils?
+
+Unicorn takes a very strict interpretation of the Rack spec and always
+loads Rack::Lint in development mode.  This makes Unicorn much more
+picky about applications/middleware that don't completely conform to the
+Rack spec.
+
+Thin itself doesn't appear to load Rack::Lint by default, but does
+running your application with "rackup -s thin -E development..." let you
+reproduce the failures you see with Unicorn?
+
+Thanks for any more info you can give us!
+
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
