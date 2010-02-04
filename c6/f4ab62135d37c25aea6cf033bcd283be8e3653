@@ -1,0 +1,144 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: "upstream timed out" after upgrades
+Date: Thu, 4 Feb 2010 02:11:49 -0800
+Message-ID: <20100204101149.GA14864@dcvr.yhbt.net>
+References: <F6F8107F-B3A8-44DF-BF70-D9DAD5927D0A@berlin.ccc.de>
+ <5D2B92C5-8D0A-4810-B86B-06F670C6EFDB@h3q.com>
+ <9D7E3DD2-4CE3-45FA-8383-34E33BCDA5C4@h3q.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="iso-8859-1"
+Content-Transfer-Encoding: quoted-printable
+X-Trace: ger.gmane.org 1265278486 8402 80.91.229.12 (4 Feb 2010 10:14:46 GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Thu, 4 Feb 2010 10:14:46 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Thu Feb 04 11:14:39
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <9D7E3DD2-4CE3-45FA-8383-34E33BCDA5C4@h3q.com>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:386
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/386>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1NcyjO-0005pb-AW for gclrug-mongrel-unicorn@m.gmane.org; Thu, 04 Feb 2010
+ 11:14:38 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 1122218582E3; Thu,  4 Feb 2010 05:14:37 -0500 (EST)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 5BCE518582DF for <mongrel-unicorn@rubyforge.org>;
+ Thu,  4 Feb 2010 05:11:58 -0500 (EST)
+Received: from localhost (unknown [127.0.2.5]) by dcvr.yhbt.net (Postfix)
+ with ESMTP id 9125B1F4EF; Thu,  4 Feb 2010 10:11:49 +0000 (UTC)
+
+John-Paul Bader <hukl@h3q.com> wrote:
+> One more,
+
+Hi,
+
+About the exceptions, looks like you had '-d' (debug) instead of '-D'
+(daemonize) so it spewed every exception (even if trapped) to stderr.
+EAGAIN is common when dealing with non-blocking sockets.  Most of that
+is noise...
+
+However the EINVAL in unicorn/http_response.rb is suspect.
+
+> I reproduced the upgrading on my staging server which was still at the
+> old state in terms of software. I started by upgrading ruby from
+> =
+
+> ruby+nopthreads-1.8.7.160_5,1       -> ruby+nopthreads-1.8.7.248,1
+> ruby18-iconv-1.8.7.160,1                   -> ruby18-iconv-1.8.7.248,1
+> =
+
+> And voil=E1 - the very same problems. So now I'm like what?
+> =
+
+> Is this rather a ruby than a unicorn issue ? Couldn't find any clues
+> in the changelog so far:
+> http://svn.ruby-lang.org/cgi-bin/viewvc.cgi/tags/v1_8_7_248/ChangeLog
+
+That should narrow it down, so I start reading diffs from
+v1_8_7_160..v1_8_7_248 ...
+
+Does backporting the following change in ruby_1_8
+(but not yet in the ruby_1_8_7 branch) fix things for you?
+
+commit 841a57341ed43f5fa86489c12aceb25a232be820
+Author: nobu <nobu@b2dd03c8-39d4-4d8f-98ff-823fe69b080e>
+Date:   Fri Jan 8 09:51:23 2010 +0000
+
+    * io.c (io_fwrite): preserve errno.  [ruby-core:27425]
+    =
+
+    =
+
+    git-svn-id: http://svn.ruby-lang.org/repos/ruby/branches/ruby_1_8@26253
+
+  (snipped)
+
+diff --git a/io.c b/io.c
+index 375cbc8..d4d28e5 100644
+--- a/io.c
++++ b/io.c
+@@ -122,6 +122,9 @@ extern void Init_File _((void));
+ # endif
+ #endif
+ =
+
++#define preserving_errno(stmts) \
++	do {int saved_errno =3D errno; stmts; errno =3D saved_errno;} while (0)
++
+ VALUE rb_cIO;
+ VALUE rb_eEOFError;
+ VALUE rb_eIOError;
+@@ -490,7 +493,7 @@ io_fwrite(str, fptr)
+ 	r =3D write(fileno(f), RSTRING(str)->ptr+offset, l);
+         TRAP_END;
+ #if BSD_STDIO
+-	fseeko(f, lseek(fileno(f), (off_t)0, SEEK_CUR), SEEK_SET);
++	preserving_errno(fseeko(f, lseek(fileno(f), (off_t)0, SEEK_CUR), SEEK_SET=
+));
+ #endif
+         if (r =3D=3D n) return len;
+         if (0 <=3D r) {
+---
+Of course, the original reason for this fseeko() was to fix another
+problem Unicorn exposed when mixing stdio + unistd calls...
+
+   http://redmine.ruby-lang.org/issues/show/2267
+
+-- =
+
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
