@@ -1,0 +1,126 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: "upstream timed out" after upgrades
+Date: Thu, 4 Feb 2010 13:52:01 -0800
+Message-ID: <20100204215201.GC2551@dcvr.yhbt.net>
+References: <5D2B92C5-8D0A-4810-B86B-06F670C6EFDB@h3q.com>
+ <9D7E3DD2-4CE3-45FA-8383-34E33BCDA5C4@h3q.com>
+ <20100204101149.GA14864@dcvr.yhbt.net>
+ <9170C06E-85E6-428A-A5E5-56AF9379AD41@h3q.com>
+ <2F0B8521-F568-4C68-B59C-1173203CE4E3@berlin.ccc.de>
+ <40336AA2-17B7-433B-BCFA-30B172365781@h3q.com>
+ <20100204194228.GA4555@dcvr.yhbt.net>
+ <A199AC8A-C5B8-4EFD-BD9D-BDBA4EB0B699@berlin.ccc.de>
+ <20100204201455.GA11834@dcvr.yhbt.net>
+ <D4FE4429-57DC-4465-8A6D-2246468518CA@h3q.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: ger.gmane.org 1265320618 7548 80.91.229.12 (4 Feb 2010 21:56:58 GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Thu, 4 Feb 2010 21:56:58 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Thu Feb 04 22:56:55
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <D4FE4429-57DC-4465-8A6D-2246468518CA@h3q.com>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:399
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/399>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1Nd9h0-00005w-GF for gclrug-mongrel-unicorn@m.gmane.org; Thu, 04 Feb 2010
+ 22:56:54 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id DEE5518582C7; Thu,  4 Feb 2010 16:56:53 -0500 (EST)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 8690D185826F for <mongrel-unicorn@rubyforge.org>;
+ Thu,  4 Feb 2010 16:52:02 -0500 (EST)
+Received: from localhost (unknown [127.0.2.5]) by dcvr.yhbt.net (Postfix)
+ with ESMTP id 180431F50C; Thu,  4 Feb 2010 21:52:02 +0000 (UTC)
+
+John-Paul Bader <hukl@h3q.com> wrote:
+> Hmm,
+> 
+> my C skills are really weak but this patch suppresses any IO errors
+> right? At least on BSD? Can you explain what exactly it is doing? Just
+> want to understand entirely.
+
+>From the beginning (a bit long, feel free to ask me for more
+clarification, too much of this is second nature to me by now
+and I may glance over important details...):
+
+There are two standard ways of doing IO in C: stdio.h (fwrite(3)/
+fread(3)/fseek(2) ...) and the lower-level Unix system calls found in
+unistd.h (write(2)/read(2)/lseek(2)...)
+
+stdio.h functions are wrappers that do buffering in userspace and wrap
+the underlying unistd.h syscalls.  They should not be used
+interchangeably on the same file descriptors.
+
+Unfortunately, Ruby 1.8 makes this mistake and uses them interchangeably
+in some places: bad.
+
+So when working with regular files, file offsets maintained in userspace
+via stdio did not get properly synchronized to the underlying
+kernel-level file offsets.  That's why the fseeko(lseek()) was added to
+fix an issue exposed by Unicorn.  lseek() was used to read the offset
+from the kernel, and then fseeko() is then used to synchronize the
+userspace offset to that of the kernel.   All of this works well for
+seekable regular files.
+
+Now, sockets and pipes aren't seekable, so you'll get an error from the
+kernel if you try to seek on them.  Errors from system calls are stored
+in "errno", a global variable that stores the error of the last system
+call executed.  So since attempting to seek on an unseekable file sets
+errno, it clobbers the previous clean (or the "safe" value of EAGAIN[1])
+errno.
+
+Eventually, this caused rb_sys_fail() function to be called, which
+raises a Ruby exception matching the current value of errno.
+
+[1] - EAGAIN (and EWOULDBLOCK on some systems) basically means "try
+calling this same function again, later".  It gets returned when kernel
+buffers (not the userspace ones) are full if attempting to write, or
+empty if attempting to read.  Since Ruby 1.8 relies on non-blocking I/O
+for sockets/pipes, the "blocking" write methods are coded to
+(eventually) retry on EAGAIN.
+
+> I thought your diff was the ruby diff of r26253 and didn't realize it
+> was yours ;)
+
+Actually, it's not mine, I just submitted the ticket that fixed one bug
+and introduced the one you hit :)
+
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
