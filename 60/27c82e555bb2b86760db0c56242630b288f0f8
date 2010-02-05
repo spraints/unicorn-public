@@ -1,0 +1,128 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: Unicorn Tuning
+Date: Fri, 5 Feb 2010 02:52:56 -0800
+Message-ID: <20100205105256.GB16881@dcvr.yhbt.net>
+References: <e2a562d51002042024h2e5664c1s35ea5c1fcb6efed1@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: ger.gmane.org 1265368928 3209 80.91.229.12 (5 Feb 2010 11:22:08 GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Fri, 5 Feb 2010 11:22:08 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Fri Feb 05 12:22:05
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <e2a562d51002042024h2e5664c1s35ea5c1fcb6efed1@mail.gmail.com>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:402
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/402>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1NdMG8-0003sD-JH for gclrug-mongrel-unicorn@m.gmane.org; Fri, 05 Feb 2010
+ 12:22:00 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 945A418582BF; Fri,  5 Feb 2010 06:21:59 -0500 (EST)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 9E2011858289 for <mongrel-unicorn@rubyforge.org>;
+ Fri,  5 Feb 2010 05:53:05 -0500 (EST)
+Received: from localhost (unknown [127.0.2.5]) by dcvr.yhbt.net (Postfix)
+ with ESMTP id CA99A1F4F3; Fri,  5 Feb 2010 10:52:56 +0000 (UTC)
+
+Andres Rojas <arojas@oogalabs.com> wrote:
+> Hi all, we've recently migrated from a mongrel setup to a Unicorn
+> setup on most of our projects and we're trying to figure out how best
+> to get stats about queued requests so we can tune accordingly.
+> 
+> Our old setup:
+> Hardware load balancer -----> Virtual Machine -----> Nginx ----->
+> HAProxy -----> Mongrel
+> 
+> 
+> New setup:
+> Hardware load balancer -----> Virtual Machine -----> Nginx -----> Unicorn!
+> 
+> 
+> The nice thing about HAProxy is that it gives you an easy way of
+> seeing how many requests are queued up, which helps us determine how
+> many slices we need, etc. With the loss of HAProxy in our Unicorn
+> setup, I'm curious as how best to determine this. I've looked around
+> in the mailing list and haven't come across much. Any help would be
+> much appreciated.
+
+Hi Andres,
+
+You don't *have* to take HAproxy out if you really want to see the queue
+when using Unicorn :)  But yes, the extra data copies with HAproxy will
+hurt performance slightly and it's more to manage.
+
+
+The obvious way would be send occasional monitoring requests to a
+"hello world" endpoint in your app, and then compare Unicorn response
+times (via the X-Runtime header in the application or your application log)
+with the actual time seen by the client (from the same LAN):
+
+  time curl -iI http://example.com/_test | grep ^X-Runtime:
+
+This lets you notice bottlenecks in the entire stack, not just
+the nginx <-> unicorn path.  Most folks I know do this (and monitor
+overall server load).
+
+
+Another possible way (untested with real traffic) to get rough data for
+the nginx <-> unicorn path is to have two listeners in Unicorn.  One
+with a large backlog and the other with a small backlog:
+
+  ------------ unicorn config ------------
+  listen "/tmp/.primary", :backlog => 5
+  listen "/tmp/.backup", :backlog => 1024
+
+
+Then watching the nginx error log for errors going to the primary
+socket.  The backup socket will be used whenever errors happen on the
+primary socket due to listen queue being full.
+
+  ------------ nginx config ------------
+  error_log /tmp/nginx.error.log info;
+
+  upstream app_server {
+    server unix:/tmp/.primary fail_timeout=0;
+    server unix:/tmp/.backup fail_timeout=0 backup;
+  }
+
+If you see lots of errors going to .primary, then you can try increasing
+the backlog for that to something you're more comfortable with.
+
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
