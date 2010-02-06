@@ -1,0 +1,114 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.6 required=5.0 tests=FREEMAIL_FROM,
+ MSGID_FROM_MTA_HEADER,RP_MATCHES_RCVD,T_DKIM_INVALID shortcircuit=no
+ autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Warren Konkel <warren.konkel@gmail.com>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Confused classes
+Date: Sat, 6 Feb 2010 09:33:13 -0300
+Message-ID: <de9b0f01002060433s3a8cdcf6j7476ef7e83d396ca@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: ger.gmane.org 1265460896 21655 80.91.229.12 (6 Feb 2010 12:54:56
+ GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Sat, 6 Feb 2010 12:54:56 +0000 (UTC)
+To: mongrel-unicorn@rubyforge.org
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Sat Feb 06 13:54:53
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com; s=gamma;
+ h=domainkey-signature:mime-version:sender:received:from:date
+ :x-google-sender-auth:message-id:subject:to:content-type;
+ bh=W/0NhkA3hMFAcmujGzuMOWAnZL0JF+2LcjuNqfysFGc=;
+ b=qS/IGMcDrH1uK64wzVBOa7umDnmGiFeaq7tpNtUOTUeQ3WwrORajfoxkpS39L3YvLv
+ 7mxI9JRlRQPNiJtOb5diYU8x8S+S0Sm6QrYlSxpN0u2hlaM8zQXYDVCG4CYzWq/wBOB+
+ b/DhQOBBbCaEWP33+ObxAD5G+sTRnjYJYWB+k=
+DomainKey-Signature: a=rsa-sha1; c=nofws; d=gmail.com; s=gamma;
+ h=mime-version:sender:from:date:x-google-sender-auth:message-id
+ :subject:to:content-type;
+ b=FAq1I7fS7vTD+7bQxuNq/oYTXr5rPEMC9d64j4/4qSH3r/roRbWxfF+Fyov/0yJtW8
+ WlrhhmKpGWbcPHeXnOHEh5m5zUMi0A1VLa7XH+DARj9olmzO2WnWkqSOT6l58sMpaJWR
+ vfNEpDf73tzQq9Iw86mvJn4OsBn318IBY/OCI=
+X-Google-Sender-Auth: 38596d7b1c841ea2
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:403
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/403>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1NdkBE-0007Zd-Hz for gclrug-mongrel-unicorn@m.gmane.org; Sat, 06 Feb 2010
+ 13:54:32 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id CAC4118582DE; Sat,  6 Feb 2010 07:54:31 -0500 (EST)
+Received: from mail-bw0-f226.google.com (mail-bw0-f226.google.com
+ [209.85.218.226]) by rubyforge.org (Postfix) with ESMTP id 5FFDE18582DC for
+ <mongrel-unicorn@rubyforge.org>; Sat,  6 Feb 2010 07:33:33 -0500 (EST)
+Received: by bwz26 with SMTP id 26so195564bwz.7 for
+ <mongrel-unicorn@rubyforge.org>; Sat, 06 Feb 2010 04:33:33 -0800 (PST)
+Received: by 10.204.16.83 with SMTP id n19mr952391bka.96.1265459613131; Sat, 
+ 06 Feb 2010 04:33:33 -0800 (PST)
+
+I switched from mod_passenger to unicorn on a fairly high traffic site
+and ran into a strange problem that forced me to move back to
+mod_passenger... it seems as if classes would sometimes get mixed up
+with each other.  If I had two Rails models:
+
+  class Foo < ActiveRecord::Base;  end
+  class Bar < ActiveRecord::Base;  end
+
+Normally Foo.inspect and Bar.inspect would return:
+
+  Foo(field1: integer, field2: integer)
+  Bar(field3: integer, field4: integer)
+
+When things were "broken" within a process, sometimes I would see:
+
+   Foo(field3: integer, field4: integer)    <--- note field3/field4
+actually belong to Bar, not Foo
+
+And because of that, wacky errors would appear in my logs like:
+
+   Foo.find_by_field1(12345) --> not a method
+   Foo.create(:field1 => 12345)  --> column not found
+
+I also noticed the problem with field serializing in ActiveRecord... given:
+
+  class Boz < ActiveRecord::Base
+    serialize :some_data
+  end
+
+When processes were working correctly,  Boz.find(1).some_data would
+return an actual object (like a Hash).  When things were broken, the
+raw serialized string from the database would be returned... almost as
+if the Boz class "forgot" that it's supposed to deserialize
+"some_data".
+
+Could it be that class attributes are somehow being co-mingled when
+unicorn is starting up under high concurrency?  Perhaps a mutex is
+missing somewhere?
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
