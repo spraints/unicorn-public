@@ -1,0 +1,96 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: Confused classes
+Date: Sat, 6 Feb 2010 18:01:19 -0800
+Message-ID: <20100207020118.GA14392@dcvr.yhbt.net>
+References: <de9b0f01002060433s3a8cdcf6j7476ef7e83d396ca@mail.gmail.com>
+ <201002061406.04172.ibc@aliax.net>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="iso-8859-1"
+Content-Transfer-Encoding: quoted-printable
+X-Trace: ger.gmane.org 1265508092 22243 80.91.229.12 (7 Feb 2010 02:01:32
+ GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Sun, 7 Feb 2010 02:01:32 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Sun Feb 07 03:01:29
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <201002061406.04172.ibc@aliax.net>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:405
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/405>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1NdwSm-0007qI-TW for gclrug-mongrel-unicorn@m.gmane.org; Sun, 07 Feb 2010
+ 03:01:29 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id E76991858291; Sat,  6 Feb 2010 21:01:27 -0500 (EST)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id CBEC41858289 for <mongrel-unicorn@rubyforge.org>;
+ Sat,  6 Feb 2010 21:01:20 -0500 (EST)
+Received: from localhost (unknown [127.0.2.5]) by dcvr.yhbt.net (Postfix)
+ with ESMTP id 619B01F68F; Sun,  7 Feb 2010 02:01:19 +0000 (UTC)
+
+I=F1aki Baz Castillo <ibc@aliax.net> wrote:
+> El S=E1bado, 6 de Febrero de 2010, Warren Konkel escribi=F3:
+> > Could it be that class attributes are somehow being co-mingled when
+> > unicorn is starting up under high concurrency?  Perhaps a mutex is
+> > missing somewhere?
+> =
+
+> IMHO all your Unicorn workers are sharing the same DB connection (the sam=
+e =
+
+> ActiveRecord instances) so the problem arises.
+> =
+
+> Take a look to the configuration here:
+>   http://unicorn.bogomips.org/examples/unicorn.conf.rb
+> You can see there how the ActiveRecord is disconnected at the beggining a=
+nd =
+
+> started for each worker later.
+
+Yes, you have to reconnect any connected TCP sockets since they have no
+defined atomicity semantics when they're shared across processes/threads.
+
+Ruby Mutexes aren't useful at all here, they're only useful with threads
+in the same process.  If you need to protect TCP client sockets from
+multiple processes, you'll need SysV/POSIX semaphores or file locks
+(flock/fcntl), but you're really better off using multiple TCP client
+sockets in the first place.
+
+-- =
+
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
