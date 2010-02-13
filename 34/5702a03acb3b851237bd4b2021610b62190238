@@ -1,0 +1,96 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS4713 221.184.0.0/13
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups:
+ gmane.comp.lang.ruby.general,gmane.comp.lang.ruby.unicorn.general,gmane.comp.lang.ruby.rainbows.general
+Subject: [ANN] unicorn 0.96.1 - leak fix for Rainbows!/Zbatery
+Date: Sat, 13 Feb 2010 19:34:10 +0900
+Message-ID: <20100213103409.GA7833@dcvr.yhbt.net>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+X-Trace: ger.gmane.org 1266057285 667 80.91.229.12 (13 Feb 2010 10:34:45 GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Sat, 13 Feb 2010 10:34:45 +0000 (UTC)
+To: ruby-talk@ruby-lang.org (ruby-talk ML) ,mongrel-unicorn@rubyforge.org,
+ rainbows-talk@rubyforge.org
+Original-X-From: ruby-talk-admin@ruby-lang.org Sat Feb 13 11:34:42 2010
+Return-path: <ruby-talk-admin@ruby-lang.org>
+Envelope-to: gclrg-ruby-talk@m.gmane.org
+Delivered-To: ruby-talk@ruby-lang.org
+Original-Posted: Sat, 13 Feb 2010 10:34:09 +0000
+X-ML-Name: ruby-talk
+X-Mail-Count: 357221
+X-MLServer: fml [fml 4.0.3 release (20011202/4.0.3)]; post only (only members
+ can post)
+X-ML-Info: If you have a question, send e-mail with the body "help" (without
+ quotes) to the address ruby-talk-ctl@ruby-lang.org;
+ help=<mailto:ruby-talk-ctl@ruby-lang.org?body=help>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+Content-Disposition: inline
+Precedence: bulk
+Original-Lines: 32
+List-Id: <unicorn-public@bogomips.org>
+List-Software: fml [fml 4.0.3 release (20011202/4.0.3)]
+List-Post: <unicorn-public@bogomips.org>
+List-Owner: <mailto:ruby-talk-admin@ruby-lang.org>
+List-Help: <mailto:ruby-talk-ctl@ruby-lang.org?body=help>
+List-Unsubscribe: <mailto:ruby-talk-ctl@ruby-lang.org?body=unsubscribe>
+Xref: news.gmane.org gmane.comp.lang.ruby.general:314357
+ gmane.comp.lang.ruby.unicorn.general:406
+ gmane.comp.lang.ruby.rainbows.general:67
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/406>
+Received: from carbon.ruby-lang.org ([221.186.184.68]) by lo.gmane.org with
+ esmtp (Exim 4.69) (envelope-from <ruby-talk-admin@ruby-lang.org>) id
+ 1NgFKf-0003kj-Cd for gclrg-ruby-talk@m.gmane.org; Sat, 13 Feb 2010 11:34:42
+ +0100
+Received: from carbon.ruby-lang.org (beryllium.ruby-lang.org [127.0.0.1]) by
+ carbon.ruby-lang.org (Postfix) with ESMTP id 9796F3C21E21D; Sat, 13 Feb 2010
+ 19:34:15 +0900 (JST)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by
+ carbon.ruby-lang.org (Postfix) with ESMTP id 952523C21E7AE for
+ <ruby-talk@ruby-lang.org>; Sat, 13 Feb 2010 19:34:10 +0900 (JST)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) (using TLSv1 with cipher
+ DHE-RSA-AES128-SHA (128/128 bits)) (No client certificate requested) by
+ dcvr.yhbt.net (Postfix) with ESMTPSA id 702B01F890; Sat, 13 Feb 2010 10:34:09
+ +0000 (UTC)
+
+First off, this memory leak doesn't affect Unicorn itself at all
+(but it doesn't hurt, either).
+
+Unicorn itself always allocates the HttpParser once and always reuses it
+in every sequential request.
+
+This leak only affects applications that repeatedly allocate a new HTTP
+parser.  Thus this bug affects _all_ deployments of Rainbows! and
+Zbatery.  These servers allocate a new parser for every client
+connection to serve clients concurrently, but due to a bug in Unicorn,
+never allows the Ruby GC to properly free the memory allocated.
+
+Here's what happened:
+
+  I misread the Data_Make_Struct()/Data_Wrap_Struct()
+  documentation and ended up passing NULL as the "free" argument
+  instead of -1, causing the memory to never be freed.
+
+  From README.EXT in the MRI source which I misread:
+  > The free argument is the function to free the pointer
+  > allocation.  If this is -1, the pointer will be just freed.
+  > The functions mark and free will be called from garbage
+  > collector.
+
+Yes, I suck at reading and can't write code properly as a result.
+
+* http://unicorn.bogomips.org/
+* mongrel-unicorn@rubyforge.org
+* git://git.bogomips.org/unicorn.git
+
+-- 
+Eric Wong
+
+
