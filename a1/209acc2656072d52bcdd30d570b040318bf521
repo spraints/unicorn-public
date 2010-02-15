@@ -1,0 +1,108 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: Nginx Sock And Rails Envinroment Error
+Date: Sun, 14 Feb 2010 23:30:43 -0800
+Message-ID: <20100215073043.GA22519@dcvr.yhbt.net>
+References: <0E8F6F3C-0406-4BC8-BA7A-539ADB500374@me.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: ger.gmane.org 1266219293 2156 80.91.229.12 (15 Feb 2010 07:34:53
+ GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Mon, 15 Feb 2010 07:34:53 +0000 (UTC)
+Cc: Alex Barlow <alexbarlowis@me.com>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Mon Feb 15 08:34:51
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <0E8F6F3C-0406-4BC8-BA7A-539ADB500374@me.com>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:409
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/409>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1NgvTk-0002f2-SR for gclrug-mongrel-unicorn@m.gmane.org; Mon, 15 Feb 2010
+ 08:34:49 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 0E3711588074; Mon, 15 Feb 2010 02:34:47 -0500 (EST)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 25B8F18582DE for <mongrel-unicorn@rubyforge.org>;
+ Mon, 15 Feb 2010 02:30:44 -0500 (EST)
+Received: from localhost (unknown [127.0.2.5]) by dcvr.yhbt.net (Postfix)
+ with ESMTP id 87CC21F488; Mon, 15 Feb 2010 07:30:43 +0000 (UTC)
+
+Alex Barlow <alexbarlowis@me.com> wrote:
+> Hi There,
+> 
+> Im running an amazon instance with nginx proxying to a unicorn sock.
+> 
+> For some reason, even though i specify the production environment,
+> when being visited by nginx, the site shows errors in  development
+> form.
+> 
+> Interestingly, when running on a port rather than a sock, if i visit
+> that port, the errors are rendered as normal with a 500 page, the same
+> port, throught nginx, shows errors like you do in development.
+
+Hi Alex,
+
+Sorry, I'm having a little trouble following you, so you're saying:
+
+client <- TCP -> Unicorn                         => quiet errors (good)
+client <- TCP -> nginx <- TCP -> Unicorn         => verbose errors (bad)
+client <- TCP -> nginx <- Unix socket-> Unicorn  => verbose errors (bad)
+
+Are you sure you have nginx configured correctly and pointing to the
+right instance of your app?  Mind sharing your nginx config file?
+
+> The app is rails latest (not 3), i run it with unicorn_rails -E
+> production -c /root/pbr/current/config/unicorn.rb -D
+> 
+> and unicorn.rb looks like..
+> 
+> worker_processes (20)
+> preload_app(true)
+> 
+> Im thinking it could be a permissions problem, the rails directory is
+> in under root, nginx runs as user nginx, but i have given chown
+> permission the the directory?
+
+nginx error logs should tell you if you have permissions problems.
+
+I usually specify domain sockets as a dot file in /tmp since I know
+the directory is world read/writeable on a properly configured system
+and path resolution is slightly faster :)
+
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
