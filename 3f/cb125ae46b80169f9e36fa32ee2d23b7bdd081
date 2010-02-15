@@ -1,0 +1,152 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: Nginx Sock And Rails Envinroment Error
+Date: Mon, 15 Feb 2010 16:19:18 +0000
+Message-ID: <20100215161917.GC4053@dcvr.yhbt.net>
+References: <0E8F6F3C-0406-4BC8-BA7A-539ADB500374@me.com>
+ <20100215073043.GA22519@dcvr.yhbt.net>
+ <F36C09C0-604E-48AE-9B0D-1101D67F1C91@me.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: ger.gmane.org 1266250998 14317 80.91.229.12 (15 Feb 2010 16:23:18
+ GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Mon, 15 Feb 2010 16:23:18 +0000 (UTC)
+Cc: unicorn list <mongrel-unicorn@rubyforge.org>
+To: Alex Barlow <alexbarlowis@me.com>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Mon Feb 15 17:23:15
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <F36C09C0-604E-48AE-9B0D-1101D67F1C91@me.com>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:412
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/412>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1Nh3j2-0004lf-Ep for gclrug-mongrel-unicorn@m.gmane.org; Mon, 15 Feb 2010
+ 17:23:08 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 49B4A18582CE; Mon, 15 Feb 2010 11:23:07 -0500 (EST)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 73F6518582CE for <mongrel-unicorn@rubyforge.org>;
+ Mon, 15 Feb 2010 11:19:21 -0500 (EST)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) (using TLSv1 with cipher
+ DHE-RSA-AES128-SHA (128/128 bits)) (No client certificate requested) by
+ dcvr.yhbt.net (Postfix) with ESMTPSA id 7C126296806; Mon, 15 Feb 2010
+ 16:19:20 +0000 (UTC)
+
+Alex Barlow <alexbarlowis@me.com> wrote:
+> Hi
+> 
+> It goes
+> 
+> client <- TCP -> Unicorn                         => quiet errors (good)
+> client <- TCP -> nginx <- TCP -> Unicorn         => quiet errors (good)
+> client <- TCP -> nginx <- Unix socket-> Unicorn  => verbose errors (bad)
+> 
+> Strange i know!
+
+Hi Alex,
+
+My gut feeling is that somehow nginx is hitting a different instance of
+your app when using the Unix socket.  Other than that, I'm confused.
+More info/questions below.
+
+> Ill try the socket in /tmp/ see what that does.
+> 
+> The Nginx error logs show nothing error wise really. My Nginx config is...
+> 
+> user  nginx;
+> worker_processes  1;
+> 
+> events {
+>     worker_connections  1024;
+> }
+> 
+> http {
+>     include       mime.types;
+>     default_type  application/octet-stream;
+> 
+>     sendfile        on;
+>     keepalive_timeout  65;
+>     gzip  on;
+> 
+> 	upstream unicorn_sock {
+> 		server unix:/root/pbr/unicorn.sock;
+> 	}
+> 	
+>     server {
+>         listen       80;
+>         server_name  localhost;
+> 		proxy_set_header Host $host;
+> 
+>         location / {
+> 			proxy_pass  http://unicorn_sock;
+>         }
+>     }
+> }
+
+Nothing strange there, what's the verbosity of the nginx error_log?
+
+Also, anything enlightening in the Rails production.log or Unicorn
+stderr?
+
+Which OS are you running?  Maybe there's a platform-specific bug
+somewhere, too...
+
+> This is currently throwing out verbose errors, in production (must be,
+> its using asset host and the production database)
+> 
+> Put the sock in /tmp, no difference
+
+Is there another Unicorn instance on the same box that it might be
+somehow hitting?
+
+What happens when you try have Unicorn listening on both TCP and a Unix
+socket?  Just put both "listen" directives in your config file and point
+nginx to the Unix socket.  Then try hitting the Unicorn TCP port
+directly, and then also the Unix socket via nginx.
+
+You can also try hitting the Unix socket directly by crafting your
+own HTTP request using socat from th shell:
+
+   req='GET / HTTP/1.1\r\nHost: example.com\r\n\r\n'
+   printf "$req" | socat - UNIX:/root/pbr/unicorn.sock
+
+P.S.: I might not have a chance to respond again for the next day
+      or so due to personal matters.  Maybe somebody else on this
+      list can help....
+
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
