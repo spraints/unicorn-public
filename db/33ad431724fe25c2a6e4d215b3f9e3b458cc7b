@@ -1,0 +1,108 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: Rails 3 "RAILS_ENV not defined by config/boot" error
+Date: Thu, 18 Feb 2010 15:36:32 -0800
+Message-ID: <20100218233632.GA24894@dcvr.yhbt.net>
+References: <d13d1e941002181001o5c1bc685u7dfd4e523ac86a59@mail.gmail.com>
+ <20100218190852.GA10448@dcvr.yhbt.net>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="iso-8859-1"
+Content-Transfer-Encoding: quoted-printable
+X-Trace: ger.gmane.org 1266536328 32176 80.91.229.12 (18 Feb 2010 23:38:48
+ GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Thu, 18 Feb 2010 23:38:48 +0000 (UTC)
+Cc: John Wulff <johnwulff@gmail.com>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Fri Feb 19 00:38:45
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <20100218190852.GA10448@dcvr.yhbt.net>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:422
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/422>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1NiFxF-0003f5-JO for gclrug-mongrel-unicorn@m.gmane.org; Fri, 19 Feb 2010
+ 00:38:45 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id F021B18582CE; Thu, 18 Feb 2010 18:38:44 -0500 (EST)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id EC7991858267 for <mongrel-unicorn@rubyforge.org>;
+ Thu, 18 Feb 2010 18:36:32 -0500 (EST)
+Received: from localhost (unknown [127.0.2.5]) by dcvr.yhbt.net (Postfix)
+ with ESMTP id 5F06A1F4FA; Thu, 18 Feb 2010 23:36:32 +0000 (UTC)
+
+Eric Wong <normalperson@yhbt.net> wrote:
+> John Wulff <johnwulff@gmail.com> wrote:
+> > I'm running unicorn and unicorn-rails 0.96.1 and the latest Rails 3
+> > beta gem. =A0Firing up unicorn_rails spews "RAILS_ENV not defined by
+> > config/boot". =A0I know this is likely a result of RAILS_ROOT being
+> > deprecated=A0in Rails 3 but I can't seem to config my way around it.
+> > I'm sure other people must have run into this before. =A0Is there a
+> > quick fix?
+> =
+
+> Hi John,
+> =
+
+> I haven't had a chance to look at Rails 3 yet, but you can probably try
+> just using a plain config.ru with "unicorn" (not "unicorn_rails")
+
+I've been planning on some large-ish changes in Unicorn 0.97.x to
+bin/{unicorn,unicorn_rails} to make maintenance easier and fix
+a few minor issues with the existing code.
+
+Would the following change be enough to work with Rails 3
+out-of-the-box?
+
+diff --git a/bin/unicorn_rails b/bin/unicorn_rails
+index b1458fc..4441c34 100755
+--- a/bin/unicorn_rails
++++ b/bin/unicorn_rails
+@@ -128,8 +128,6 @@ app =3D lambda do ||
+   rescue LoadError =3D> err
+     abort "#$0 must be run inside RAILS_ROOT: #{err.inspect}"
+   end
+-  defined?(::RAILS_ROOT) or abort "RAILS_ROOT not defined by config/boot"
+-  defined?(::RAILS_ENV) or abort "RAILS_ENV not defined by config/boot"
+   defined?(::Rails::VERSION::STRING) or
+     abort "Rails::VERSION::STRING not defined by config/boot"
+ =
+
+
+(I'll remember to test when I fix a few other things elsewhere)
+
+-- =
+
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
