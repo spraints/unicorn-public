@@ -1,0 +1,128 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.7 required=5.0 tests=MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Steve Klabnik <steve@steveklabnik.com>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Capistrano and Unicorn
+Date: Thu, 18 Feb 2010 20:41:20 +0000
+Message-ID: <dd81403b1002181241x65fd6516o5661c504c96fc25b@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: ger.gmane.org 1266525703 28286 80.91.229.12 (18 Feb 2010 20:41:43
+ GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Thu, 18 Feb 2010 20:41:43 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Thu Feb 18 21:41:40
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:420
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/420>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1NiDBn-0007vV-CI for gclrug-mongrel-unicorn@m.gmane.org; Thu, 18 Feb 2010
+ 21:41:35 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id AD5C91588033; Thu, 18 Feb 2010 15:41:34 -0500 (EST)
+Received: from gv-out-0910.google.com (gv-out-0910.google.com
+ [216.239.58.186]) by rubyforge.org (Postfix) with ESMTP id 9791E18582C2 for
+ <mongrel-unicorn@rubyforge.org>; Thu, 18 Feb 2010 15:41:21 -0500 (EST)
+Received: by gv-out-0910.google.com with SMTP id o2so326938gve.12 for
+ <mongrel-unicorn@rubyforge.org>; Thu, 18 Feb 2010 12:41:21 -0800 (PST)
+Received: by 10.239.193.139 with SMTP id j11mr1067481hbi.127.1266525680349; 
+ Thu, 18 Feb 2010 12:41:20 -0800 (PST)
+
+Anyone have any tips for using Capistrano with unicorn?
+
+I'm following what GitHub did (http://github.com/blog/517-unicorn) ,
+and for some reason, my old master isn't dying correctly. If I `pkill
+-9 unicorn_rails && unicorn_rails` the new code shows up. I'm thinking
+the problem may be with how capistrano uses the 'current' directory as
+a symlink.
+
+That config's before_fork seems to make sense to me; I might just be
+doing something stupid.
+
+Here's my config, for reference:
+
+# Use at least one worker per core if you're on a dedicated server,
+# more will usually help for _short_ waits on databases/caches.
+worker_processes 16
+
+working_directory "/home/git/site/current" # available in 0.94.0+
+
+# listen on both a Unix domain socket and a TCP port,
+# we use a shorter backlog for quicker failover when busy
+listen "/tmp/.sock", :backlog => 64
+listen 8080, :tcp_nopush => true
+
+timeout 600
+
+pid "/var/run/unicorn.pid"
+
+# some applications/frameworks log to stderr or stdout, so prevent
+# them from going to /dev/null when daemonized here:
+stderr_path "/var/log/unicorn.stderr.log"
+stdout_path "/var/log/unicorn.stdout.log"
+
+# combine REE with "preload_app true" for memory savings
+# http://rubyenterpriseedition.com/faq.html#adapt_apps_for_cow
+preload_app true
+GC.respond_to?(:copy_on_write_friendly=) and
+  GC.copy_on_write_friendly = true
+
+before_fork do |server, worker|
+  # the following is highly recomended for Rails + "preload_app true"
+  # as there's no need for the master process to hold a connection
+  defined?(ActiveRecord::Base) and
+    ActiveRecord::Base.connection.disconnect!
+
+  old_pid =  RAILS_ROOT + '/tmp/pids/unicorn.pid.oldbin'
+  if File.exists?(old_pid) && server.pid != old_pid
+    begin
+      Process.kill("QUIT", File.read(old_pid).to_i)
+    rescue Errno::ENOENT, Errno::ESRCH
+      # someone else did our job for us
+    end
+  end
+
+end
+
+after_fork do |server, worker|
+
+  # the following is *required* for Rails + "preload_app true",
+  defined?(ActiveRecord::Base) and
+    ActiveRecord::Base.establish_connection
+
+end
+
+I am using ree, so preload_app should be in effect.
+
+Thanks in advance.
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
