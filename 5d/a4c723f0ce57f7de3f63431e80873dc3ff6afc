@@ -1,0 +1,84 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.6 required=5.0 tests=FREEMAIL_FROM,
+ MSGID_FROM_MTA_HEADER,RP_MATCHES_RCVD,T_DKIM_INVALID shortcircuit=no
+ autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Joseph McDonald <superjoe@gmail.com>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: fork on client connection?
+Date: Thu, 25 Feb 2010 11:37:25 -0800
+Message-ID: <73096a161002251137h14caabc4hca0521bd570c8edc@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1267127963 31507 80.91.229.12 (25 Feb 2010 19:59:23
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Thu, 25 Feb 2010 19:59:23 +0000 (UTC)
+To: mongrel-unicorn <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Thu Feb 25 20:59:18
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+X-Greylist: delayed 841 seconds by postgrey-1.31 at rubyforge.org; Thu, 25
+ Feb 2010 14:59:06 EST
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com; s=gamma;
+ h=domainkey-signature:mime-version:received:date:message-id:subject
+ :from:to:content-type; bh=7rY30GT0FpUdx33IjuAG2w9hdMN+8GLSNoP6Wscy4NA=;
+ b=whk4Br272IvsfGN6dPyqm1/xCdXgPFanxn+FG2ZBDm518sJ5FTKfYKe+nsOmQpnA3c
+ GPXsCHl5xpTvswEMUFZTwH9W92n+5hfMoOoHPrPSAGI/bAfkPsfPdBM9WKn05J2jGdkC
+ 1WJBOXgeEZpRUO8WWxpRKBEU75y2/zCgZhAfY=
+DomainKey-Signature: a=rsa-sha1; c=nofws; d=gmail.com; s=gamma;
+ h=mime-version:date:message-id:subject:from:to:content-type;
+ b=XAhGkBD7YmgbDwM+SeKpgnHRtvlcw9jO8X0FXl3bDH7rFPuCAmp4HIEcpBzsfyS1gY
+ g4Efs/EkP9WMaQbRKgVdDSBzNltDMLNUU9UYfu6E9zx2DFffJcZ6eMcPduDIzo5pIjgQ
+ Xu7e7/dIjWl5CzzbUoSzfezhtuvzb6o8vFZjc=
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:423
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/423>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1Nkjrh-0001nu-Sv for gclrug-mongrel-unicorn@m.gmane.org; Thu, 25 Feb 2010
+ 20:59:18 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 0D80B18582C1; Thu, 25 Feb 2010 14:59:15 -0500 (EST)
+Received: from mail-gy0-f178.google.com (mail-gy0-f178.google.com
+ [209.85.160.178]) by rubyforge.org (Postfix) with ESMTP id 01D3C18582CA for
+ <mongrel-unicorn@rubyforge.org>; Thu, 25 Feb 2010 14:59:06 -0500 (EST)
+Received: by gyd8 with SMTP id 8so1531386gyd.23 for
+ <mongrel-unicorn@rubyforge.org>; Thu, 25 Feb 2010 11:59:06 -0800 (PST)
+Received: by 10.91.193.19 with SMTP id v19mr523550agp.4.1267126645072; Thu,
+ 25  Feb 2010 11:37:25 -0800 (PST)
+
+Would it be possible to configure unicorn to fork off your rack
+process when it gets a connection from a client as opposed to
+preforking  the workers?  While in development mode I have my app kill
+itself after serving a request, however at that point unicorn fires up
+a new one right away.  If it could wait until it got a connection from
+a client, that would be *super awesome* for development mode.
+
+thanks,
+-joe
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
