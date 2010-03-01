@@ -1,0 +1,105 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general,gmane.comp.lang.ruby.general
+Subject: [ANN] unicorn 0.97.0 - polishing and cleaning up
+Date: Mon, 1 Mar 2010 18:42:47 +0000
+Message-ID: <20100301184247.GA22271@dcvr.yhbt.net>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1267468981 25522 80.91.229.12 (1 Mar 2010 18:43:01
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Mon, 1 Mar 2010 18:43:01 +0000 (UTC)
+To: mongrel-unicorn@rubyforge.org, ruby-talk <ruby-talk@ruby-lang.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Mon Mar 01 19:42:57
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:430
+ gmane.comp.lang.ruby.general:315395
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/430>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1NmAZz-0000Og-6G for gclrug-mongrel-unicorn@m.gmane.org; Mon, 01 Mar 2010
+ 19:42:55 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 6F44718582FF; Mon,  1 Mar 2010 13:42:54 -0500 (EST)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id C5FC7158806F for <mongrel-unicorn@rubyforge.org>;
+ Mon,  1 Mar 2010 13:42:48 -0500 (EST)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) (using TLSv1 with cipher
+ DHE-RSA-AES128-SHA (128/128 bits)) (No client certificate requested) by
+ dcvr.yhbt.net (Postfix) with ESMTPSA id 021A11F4FC; Mon,  1 Mar 2010 18:42:48
+ +0000 (UTC)
+
+Unicorn is an HTTP server for Rack applications designed to only serve
+fast clients on low-latency, high-bandwidth connections and take
+advantage of features in Unix/Unix-like kernels.  Slow clients should
+only be served by placing a reverse proxy capable of fully buffering
+both the the request and response in between Unicorn and slow clients.
+
+* http://unicorn.bogomips.org/
+* mongrel-unicorn@rubyforge.org
+* git://git.bogomips.org/unicorn.git
+
+Changes:
+
+A bunch of small fixes related to startup/configuration and hot
+reload issues with HUP:
+
+* Variables in the user-generated config.ru files no longer
+  risk clobbering variables used in laucher scripts.
+
+* signal handlers are initialized before the pid file is
+  dropped, so over-eager firing of init scripts won't
+  mysteriously nuke a process.
+
+* SIGHUP will return app to original state if an updated
+  config.ru fails to load due to {Syntax,Load}Error.
+
+* unicorn_rails should be Rails 3 compatible out-of-the-box
+  ('unicorn' works as always, and is recommended for Rails 3)
+
+* unicorn_rails is finally "working_directory"-aware when
+  generating default temporary paths and pid file
+
+* config.ru encoding is the application's default in 1.9,
+  not forced to binary like many parts of Unicorn.
+
+* configurator learned to handle the "user" directive outside
+  of after_fork hook (which will always remain supported).
+
+There are also various internal cleanups and possible speedups.
+
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
