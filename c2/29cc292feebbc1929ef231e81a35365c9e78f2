@@ -1,0 +1,92 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: unicorn segfaulting on Array.shuffle under ruby 1.9.1
+Date: Sun, 14 Mar 2010 23:53:57 +0000
+Message-ID: <20100314235357.GC27911@dcvr.yhbt.net>
+References: <70b2ff111003141500r55eebf03kb0d993d9e34c5d96@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1268610847 14171 80.91.229.12 (14 Mar 2010 23:54:07
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Sun, 14 Mar 2010 23:54:07 +0000 (UTC)
+Cc: Bharanee Rathna <deepfryed@gmail.com>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Mon Mar 15 00:54:03
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <70b2ff111003141500r55eebf03kb0d993d9e34c5d96@mail.gmail.com>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:439
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/439>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1NqxdC-0005pR-Ux for gclrug-mongrel-unicorn@m.gmane.org; Mon, 15 Mar 2010
+ 00:54:03 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 192B11598084; Sun, 14 Mar 2010 19:54:02 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id A617B18582DE for <mongrel-unicorn@rubyforge.org>;
+ Sun, 14 Mar 2010 19:53:58 -0400 (EDT)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) (using TLSv1 with cipher
+ DHE-RSA-AES128-SHA (128/128 bits)) (No client certificate requested) by
+ dcvr.yhbt.net (Postfix) with ESMTPSA id 1296F1F503; Sun, 14 Mar 2010 23:53:58
+ +0000 (UTC)
+
+Bharanee Rathna <deepfryed@gmail.com> wrote:
+> Hi Guys,
+> 
+> http://gist.github.com/332266
+> 
+> results in a segfault when run under unicorn.  It seems to be fine
+> with webrick or thin. Any ideas ?
+
+Hi Bharanee, it looks like the random number generator needs to be
+reinitialized after fork()...
+
+Try putting "rand" anywhere before shuffle, you can reproduce
+it below even without Unicorn:
+
+------------------- 8< ----------------
+pid = fork do
+  rand # removing this will segfault
+  (1..10).to_a.shuffle
+end
+p Process.waitpid2(pid)
+------------------- 8< ----------------
+
+I'll see if I can fix it and follow up with a report to ruby-core/redmine
+
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
