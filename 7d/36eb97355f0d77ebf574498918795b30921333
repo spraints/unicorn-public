@@ -1,0 +1,92 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: TCP reset and socket buffer draining responsibility
+Date: Mon, 15 Mar 2010 10:48:00 -0700
+Message-ID: <20100315174800.GB3261@dcvr.yhbt.net>
+References: <D476A0C6-7D74-464D-B962-96D5EF9E5F92@adobe.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1268675295 16161 80.91.229.12 (15 Mar 2010 17:48:15
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Mon, 15 Mar 2010 17:48:15 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Mon Mar 15 18:48:11
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <D476A0C6-7D74-464D-B962-96D5EF9E5F92@adobe.com>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:442
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/442>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1NrEOh-0004uz-JC for gclrug-mongrel-unicorn@m.gmane.org; Mon, 15 Mar 2010
+ 18:48:11 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 0A8F118582FF; Mon, 15 Mar 2010 13:48:11 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 2019D18582FA for <mongrel-unicorn@rubyforge.org>;
+ Mon, 15 Mar 2010 13:48:01 -0400 (EDT)
+Received: from localhost (unknown [127.0.2.5]) by dcvr.yhbt.net (Postfix)
+ with ESMTP id AD8A81F507; Mon, 15 Mar 2010 17:48:00 +0000 (UTC)
+
+John Fieber <jfieber@adobe.com> wrote:
+> I have a bug where some Rack middleware that determines certain
+> PUT/POST error responses without needing to read the request body.  On
+> Linux, this causes a TCP reset when Unicorn closes the socket with
+> unread data in the input buffer.  The reset preempts the delivery
+> written but still buffered response, so client receives a simple RST
+> and no response.   If I inject some read-buffer draining code just
+> before the close, the problem goes away.
+> 
+> The RST behavior is obviously not desired, but my question is what
+> level of the stack is responsible for making sure it doesn't happen?
+> It strikes me that Unicorn is in the best position to do it
+> efficiently and reliably, but anything higher up can also do it.
+
+Hi John,
+
+You have to use the read buffer draining code in your app or middleware.
+
+The Unicorn::TeeInput class doesn't read off the socket until it needs
+to.  This is because Rack requires the input stream to be rewindable,
+and the input stream being rewindable means it must be buffered to a
+temporary file which could potentially fill up the disk (especially with
+chunked input that doesn't declare a Content-Length).
+
+So Unicorn gives apps/middleware control to cut off uploading clients in
+this case.
+
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
