@@ -1,0 +1,89 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.7 required=5.0 tests=MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: John Fieber <jfieber@adobe.com>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: TCP reset and socket buffer draining responsibility
+Date: Mon, 15 Mar 2010 07:32:06 -0700
+Message-ID: <D476A0C6-7D74-464D-B962-96D5EF9E5F92@adobe.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1268673084 6851 80.91.229.12 (15 Mar 2010 17:11:24
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Mon, 15 Mar 2010 17:11:24 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Mon Mar 15 18:11:17
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+X-Greylist: delayed 9435 seconds by postgrey-1.31 at rubyforge.org; Mon, 15
+ Mar 2010 13:09:35 EDT
+Thread-Topic: TCP reset and socket buffer draining responsibility
+Thread-Index: AcrETEmkoleZWYbuQHmwhM04d5UUvg==
+Accept-Language: en-US
+Content-Language: en-US
+X-MS-Has-Attach: 
+X-MS-TNEF-Correlator: 
+acceptlanguage: en-US
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:441
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/441>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1NrDoy-0001XR-JE for gclrug-mongrel-unicorn@m.gmane.org; Mon, 15 Mar 2010
+ 18:11:16 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 70AEC18582FA; Mon, 15 Mar 2010 13:11:15 -0400 (EDT)
+Received: from exprod6og107.obsmtp.com (exprod6og107.obsmtp.com
+ [64.18.1.208]) by rubyforge.org (Postfix) with ESMTP id A233718582EA for
+ <mongrel-unicorn@rubyforge.org>; Mon, 15 Mar 2010 13:09:35 -0400 (EDT)
+Received: from source ([192.150.8.22]) by exprod6ob107.postini.com
+ ([64.18.5.12]) with SMTP ID DSNKS55pzo0J6jQwP/Bp81IvYEMYzQDUx+oa@postini.com;
+ Mon, 15 Mar 2010 10:09:35 PDT
+Received: from inner-relay-3.eur.adobe.com (inner-relay-3b [10.128.4.236]) by
+ outbound-smtp-2.corp.adobe.com (8.12.10/8.12.10) with ESMTP id o2FEW9s5016411
+ for <mongrel-unicorn@rubyforge.org>; Mon, 15 Mar 2010 07:32:14 -0700 (PDT)
+Received: from nahub01.corp.adobe.com (nahub01.corp.adobe.com [10.8.189.97])
+ by inner-relay-3.eur.adobe.com (8.12.10/8.12.9) with ESMTP id o2FEW87o029181
+ for <mongrel-unicorn@rubyforge.org>; Mon, 15 Mar 2010 07:32:08 -0700 (PDT)
+Received: from excas03.corp.adobe.com (10.8.189.123) by
+ nahub01.corp.adobe.com (10.8.189.97) with Microsoft SMTP Server (TLS) id
+ 8.1.375.2; Mon, 15 Mar 2010 07:32:07 -0700
+Received: from NAMBX02.corp.adobe.com ([10.8.127.96]) by
+ excas03.corp.adobe.com ([10.8.189.123]) with mapi; Mon, 15 Mar 2010 07:32:07
+ -0700
+
+I have a bug where some Rack middleware that determines certain PUT/POST error responses without needing to read the request body.  On Linux, this causes a TCP reset when Unicorn closes the socket with unread data in the input buffer.  The reset preempts the delivery written but still buffered response, so client receives a simple RST and no response.   If I inject some read-buffer draining code just before the close, the problem goes away.
+
+The RST behavior is obviously not desired, but my question is what level of the stack is responsible for making sure it doesn't happen?  It strikes me that Unicorn is in the best position to do it efficiently and reliably, but anything higher up can also do it.
+
+Thoughts?
+
+-john
+
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
