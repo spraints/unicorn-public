@@ -1,0 +1,86 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.6 required=5.0 tests=FREEMAIL_FROM,
+ MSGID_FROM_MTA_HEADER,RP_MATCHES_RCVD,T_DKIM_INVALID shortcircuit=no
+ autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: ghazel@gmail.com
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Unicorn 0.97.0 old master is never dying
+Date: Wed, 17 Mar 2010 02:51:55 -0700
+Message-ID: <151643b21003170251g3cabd79bq36c9af668db574e0@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1268819768 26364 80.91.229.12 (17 Mar 2010 09:56:08
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Wed, 17 Mar 2010 09:56:08 +0000 (UTC)
+To: mongrel-unicorn@rubyforge.org
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Wed Mar 17 10:56:03
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com; s=gamma;
+ h=domainkey-signature:mime-version:received:from:date:message-id
+ :subject:to:content-type; bh=PkLFKijm0XmGRNqokqPTYo76j65gOISWcG4QQH4vSnc=;
+ b=XDFO+wTkihTpVnokc9gJHzsponoZVYY/LvFQL0FCmV7elsg0iUCvVHzBCyRBCrnPHS
+ phl2YFgr7Nm4BaS6hBTGan+d9kf0sYm/qNoZrbiE5dvukOAicCJ//E9iBm8omgCcL4sf
+ OeKndfXTc3iMQY2u5U58KFdUj89s0yQkWyRno=
+DomainKey-Signature: a=rsa-sha1; c=nofws; d=gmail.com; s=gamma;
+ h=mime-version:from:date:message-id:subject:to:content-type;
+ b=Tc/EehgjI7GaKzDa7o49xVwjUUwxb1eCvmJ0xI9NAYVoWK/cQMDIbq8wPtyXwNVgLG
+ 3dQlFoT6FmlfY+zHBcIX4Pnwez33svziocACig/aDnPmM+4pzgKnWdIK00Wgtrtg2ibA
+ N/jvCWqpqfxTAL7WnN2N4MXqJl3HPqyGYihDI=
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:445
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/445>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1Nrpys-0000kx-DB for gclrug-mongrel-unicorn@m.gmane.org; Wed, 17 Mar 2010
+ 10:56:02 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 7619818582F5; Wed, 17 Mar 2010 05:55:59 -0400 (EDT)
+Received: from mail-bw0-f222.google.com (mail-bw0-f222.google.com
+ [209.85.218.222]) by rubyforge.org (Postfix) with ESMTP id A3EDD18582C2 for
+ <mongrel-unicorn@rubyforge.org>; Wed, 17 Mar 2010 05:52:16 -0400 (EDT)
+Received: by bwz22 with SMTP id 22so801627bwz.25 for
+ <mongrel-unicorn@rubyforge.org>; Wed, 17 Mar 2010 02:52:15 -0700 (PDT)
+Received: by 10.204.141.78 with SMTP id l14mr897248bku.50.1268819535156; Wed,
+ 17 Mar 2010 02:52:15 -0700 (PDT)
+
+I upgraded to Unicorn 0.97.0 from 0.96.1. Unicorn starts fine, but
+sending a USR2 to the 0.97.0 master launches a new master and all the
+workers, but never kills the old master. The new workers retry binding
+their admin TCP ports forever. Killing all the Unicorns and
+downgrading to returns peace to the forest.
+
+Here are the before_fork and after_fork from my config/unicorn.rb:
+http://codepad.org/5LyVtyq7
+
+Did something change with the Unicorn master in 0.97.0 that would
+require a change in my config, or is this a bug?
+
+-Greg
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
