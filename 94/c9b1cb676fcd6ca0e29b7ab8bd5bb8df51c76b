@@ -1,0 +1,93 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: Unicorn 0.97.0 old master is never dying
+Date: Thu, 18 Mar 2010 01:40:22 -0700
+Message-ID: <20100318084022.GA11167@dcvr.yhbt.net>
+References: <151643b21003170251g3cabd79bq36c9af668db574e0@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1268901738 8323 80.91.229.12 (18 Mar 2010 08:42:18
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Thu, 18 Mar 2010 08:42:18 +0000 (UTC)
+Cc: ghazel@gmail.com
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Thu Mar 18 09:42:12
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <151643b21003170251g3cabd79bq36c9af668db574e0@mail.gmail.com>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:446
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/446>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1NsBIv-0003Os-Vy for gclrug-mongrel-unicorn@m.gmane.org; Thu, 18 Mar 2010
+ 09:42:11 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id C895318582EE; Thu, 18 Mar 2010 04:42:08 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id ECF4B18582D8 for <mongrel-unicorn@rubyforge.org>;
+ Thu, 18 Mar 2010 04:40:23 -0400 (EDT)
+Received: from localhost (unknown [127.0.2.5]) by dcvr.yhbt.net (Postfix)
+ with ESMTP id CA9321F4EF; Thu, 18 Mar 2010 08:40:22 +0000 (UTC)
+
+ghazel@gmail.com wrote:
+> I upgraded to Unicorn 0.97.0 from 0.96.1. Unicorn starts fine, but
+> sending a USR2 to the 0.97.0 master launches a new master and all the
+> workers, but never kills the old master. The new workers retry binding
+> their admin TCP ports forever. Killing all the Unicorns and
+> downgrading to returns peace to the forest.
+> 
+> Here are the before_fork and after_fork from my config/unicorn.rb:
+> http://codepad.org/5LyVtyq7
+> 
+> Did something change with the Unicorn master in 0.97.0 that would
+> require a change in my config, or is this a bug?
+> 
+> -Greg
+
+Hi Greg,
+
+Odd, are you passing the pid file path via the command-line?
+
+I don't see the pid directive in the config file you posted there, so
+there was nothing to check with File.exists?.  Are you using `unicorn'
+or `unicorn_rails'?
+
+There were some startup changes in 0.97.0, but I couldn't reproduce what
+you're seeing with 'pid'.  That said, I'm not sure if that method of
+killing old masters in the after_fork is very common.
+
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
