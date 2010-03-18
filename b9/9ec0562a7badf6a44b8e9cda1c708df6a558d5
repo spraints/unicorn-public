@@ -1,0 +1,112 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.6 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD,T_DKIM_INVALID shortcircuit=no autolearn=unavailable
+ version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: James Cox <james@imaj.es>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Issue with unicorn not starting via bluepill?
+Date: Thu, 18 Mar 2010 17:12:49 -0400
+Message-ID: <c3938dec1003181412s77c73bbfyc40450c9b8a08d7e@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1268946899 25986 80.91.229.12 (18 Mar 2010 21:14:59
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Thu, 18 Mar 2010 21:14:59 +0000 (UTC)
+To: mongrel-unicorn@rubyforge.org
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Thu Mar 18 22:14:55
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com; s=gamma;
+ h=domainkey-signature:mime-version:sender:received:from:date
+ :x-google-sender-auth:message-id:subject:to:content-type;
+ bh=/fKfMfrkJvd6z3QjTzlOoOJWF5278jUKWnho/Uf795c=;
+ b=A0etxwiSATtQUmB1+H2fT+6pBhSajQrZ0wlIQ1n2LqEsQVBUCcz9nV83lvLmaABgGJ
+ o/DkNV4tMyfkc/3RSgj+/zDMyfoc+oKLX1zSxf1Y7b036d2T40w2Q+ovCr2SgbxINCvT
+ ucLDbKn3va6p7AeBwBfEKloTgMg6W6GPDCM/4=
+DomainKey-Signature: a=rsa-sha1; c=nofws; d=gmail.com; s=gamma;
+ h=mime-version:sender:from:date:x-google-sender-auth:message-id
+ :subject:to:content-type;
+ b=VOq82FisfILotizBS7hKAVUZRS5UCqJq5X2j29JlhPkydO9a/YNDgWgQr5awX9qoFt
+ kSron+HdRQHrznvV5glEMQV5Ta3myE9Pa0CK0N3GDfl6QJXqkLf+3b6xHzLYZyitzIOs
+ Kw+MtgOj6+l6QBrGZWnWWTWUUNggASyGjOMA8=
+X-Google-Sender-Auth: 257660b1fbfe60de
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:448
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/448>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1NsN3O-0008G5-GB for gclrug-mongrel-unicorn@m.gmane.org; Thu, 18 Mar 2010
+ 22:14:54 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id D16FD18582D6; Thu, 18 Mar 2010 17:14:53 -0400 (EDT)
+Received: from mail-bw0-f226.google.com (mail-bw0-f226.google.com
+ [209.85.218.226]) by rubyforge.org (Postfix) with ESMTP id BE8AF18582CE for
+ <mongrel-unicorn@rubyforge.org>; Thu, 18 Mar 2010 17:13:10 -0400 (EDT)
+Received: by bwz26 with SMTP id 26so2031715bwz.7 for
+ <mongrel-unicorn@rubyforge.org>; Thu, 18 Mar 2010 14:13:10 -0700 (PDT)
+Received: by 10.204.9.153 with SMTP id l25mr2942417bkl.208.1268946789245;
+ Thu,  18 Mar 2010 14:13:09 -0700 (PDT)
+
+trying to start my unicorn via bluepill, and running into this :
+
+Starting unicorn...\n{:unicorn_options=>
+  {:config_file=>"/home/configs/unicorn/marketing.rb", :listeners=>[]},
+ :daemonize=>true,
+ :app=>
+  #<Proc:0x000000001042c718@/usr/local/rvm/gems/ree-1.8.7-2010.01/gems/unicorn-0.97.0/bin/unicorn_rails:120>}
+Exception `Errno::EEXIST' at
+/usr/local/rvm/rubies/ree-1.8.7-2010.01/lib/ruby/1.8/fileutils.rb:243
+- File exists - tmp/cache
+Exception `Errno::EEXIST' at
+/usr/local/rvm/rubies/ree-1.8.7-2010.01/lib/ruby/1.8/fileutils.rb:243
+- File exists - tmp/pids
+Exception `Errno::EEXIST' at
+/usr/local/rvm/rubies/ree-1.8.7-2010.01/lib/ruby/1.8/fileutils.rb:243
+- File exists - tmp/sessions
+Exception `Errno::EEXIST' at
+/usr/local/rvm/rubies/ree-1.8.7-2010.01/lib/ruby/1.8/fileutils.rb:243
+- File exists - tmp/sockets
+Exception `EOFError' at
+/usr/local/rvm/gems/ree-1.8.7-2010.01/gems/unicorn-0.97.0/lib/unicorn/launcher.rb:45
+- end of file reached
+master failed to start, check stderr log for details
+
+
+it's a rather complicated setup etc, but essentially i've got bluepill
+instructing a start script which sets the right version of ruby just
+before hand (i.e. the rvm stuff).
+
+I can run it manually by going into the RAILS_ROOT and running it, but
+trying to run via bluepill explodes.
+
+any ideas?
+
+Thanks,
+James
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
