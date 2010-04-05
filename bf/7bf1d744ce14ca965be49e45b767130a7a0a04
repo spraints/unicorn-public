@@ -1,0 +1,141 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: Nginx Socket with Multiple Unicorn instances
+Date: Mon, 5 Apr 2010 16:29:27 -0700
+Message-ID: <20100405232927.GA9966@dcvr.yhbt.net>
+References: <590E25C9-7434-4EA8-862E-EBB1C03E9B23@thesuperformula.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1270510175 16923 80.91.229.12 (5 Apr 2010 23:29:35
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Mon, 5 Apr 2010 23:29:35 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Tue Apr 06 01:29:34
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <590E25C9-7434-4EA8-862E-EBB1C03E9B23@thesuperformula.com>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:458
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/458>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1NyvjZ-0001vm-Qh for gclrug-mongrel-unicorn@m.gmane.org; Tue, 06 Apr 2010
+ 01:29:34 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 9963818582F4; Mon,  5 Apr 2010 19:29:32 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id CC02E18582E9 for <mongrel-unicorn@rubyforge.org>;
+ Mon,  5 Apr 2010 19:29:28 -0400 (EDT)
+Received: from localhost (unknown [127.0.2.5]) by dcvr.yhbt.net (Postfix)
+ with ESMTP id E17891F505; Mon,  5 Apr 2010 23:29:27 +0000 (UTC)
+
+William N Prater III <will@thesuperformula.com> wrote:
+> Hello,
+> 
+> Is it possible to run one Nginx socket that is used by multiple master
+> Unicorn processes for different applications?  Or does one need to
+> setup a new upstream for each?
+
+Hi William,
+
+Nginx socket?  It's ambiguous what you mean by that, but since you
+mention upstreams I'll assume you mean UNIX domain sockets bound by
+Unicorn that nginx connects to.
+
+Generally, you'll have to create a new upstream for each, but nginx can
+listen on the same HTTP socket (usually port 80) and use virtual hosts.
+
+So I assume you'll do something like this to talk to separate Unicorn
+masters:
+
+  upstream unicorn_a {
+    server unix:/tmp/.a fail_timeout=0;
+  }
+  upstream unicorn_b {
+    server unix:/tmp/.b fail_timeout=0;
+  }
+  server {
+    # catch all, this serves an error to people that connect w/o a host name
+    listen 80 default deferred;
+    server_name _;
+    root /srv/default;
+  }
+  server {
+    server_name a.example.com;
+    root /srv/a;
+    location / {
+      proxy_set_header Host $http_host;
+      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+      if (!-f $request_filename) {
+        proxy_pass http://unicorn_a;
+      }
+    }
+  }
+  server {
+    server_name b.example.com;
+    root /srv/b;
+    location / {
+      proxy_set_header Host $http_host;
+      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+      if (!-f $request_filename) {
+        proxy_pass http://unicorn_b;
+      }
+    }
+  }
+
+However, if you _really_ trust your apps and frameworks to work
+correctly in the same process, you can run multiple apps within the same
+Rack server, you can actually have virtual hosts this way in Rack:
+
+--------------------------- 8< ----------------------------
+use Rack::ContentLength
+use Rack::ContentType, 'text/plain'
+# more global middlewares can go here
+
+# virtual hosts:
+map "http://a.example.com/" do
+  run lambda { |env| [ 200, {}, [ "Hello A\n" ] ] }
+end
+map "http://b.example.com/" do
+  run lambda { |env| [ 200, {}, [ "Hello B\n" ] ] }
+end
+--------------------------- 8< ----------------------------
+
+However, if your apps (or dependent libraries/frameworks) share any
+global resources in an unintended or unsafe manner, then you won't be
+able to do this.  The above example is of course highly trivial.
+
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
