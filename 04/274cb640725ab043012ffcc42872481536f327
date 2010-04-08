@@ -1,0 +1,157 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: funky process tree + stillborn masters
+Date: Thu, 8 Apr 2010 16:55:48 -0700
+Message-ID: <20100408235548.GA11184@dcvr.yhbt.net>
+References: <18DCBEFE-BC6D-41F7-996C-ACACA629ED24@tramchase.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1270770963 20496 80.91.229.12 (8 Apr 2010 23:56:03
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Thu, 8 Apr 2010 23:56:03 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Fri Apr 09 01:55:59
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <18DCBEFE-BC6D-41F7-996C-ACACA629ED24@tramchase.com>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:461
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/461>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1O01Zk-0008US-9r for gclrug-mongrel-unicorn@m.gmane.org; Fri, 09 Apr 2010
+ 01:55:56 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 362961598096; Thu,  8 Apr 2010 19:55:55 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 118221598077 for <mongrel-unicorn@rubyforge.org>;
+ Thu,  8 Apr 2010 19:55:48 -0400 (EDT)
+Received: from localhost (unknown [127.0.2.5]) by dcvr.yhbt.net (Postfix)
+ with ESMTP id 413961F4E1; Thu,  8 Apr 2010 23:55:48 +0000 (UTC)
+
+Jamie Wilkinson <jamie@tramchase.com> wrote:
+> Since upgrading bundler (but applying the RUBYOPT path fixes) we've
+> started experiencing intermittent, difficult-to-isolate USR2 restart
+> failures.
+> 
+> After a USR2 signal our process tree winds up looking like this, with
+> several master-esque processes listed as children (but without the
+> "worker[N]" label):
+> 
+> app      14402  4.4  0.8 199612 70264 ?        S    14:07   0:04 unicorn_rails master -c config/unicorn.rb -E production -D
+> app      14433  0.0  0.8 204540 68504 ?        Sl   14:07   0:00  \_ unicorn_rails worker[0] -c config/unicorn.rb -E production -D
+> app      14435  0.0  0.8 204540 68508 ?        Sl   14:07   0:00  \_ unicorn_rails worker[1] -c config/unicorn.rb -E production -D
+> app      14438  0.0  0.8 199748 65840 ?        S    14:07   0:00  \_ /usr/bin/ruby1.8 /usr/bin/unicorn_rails -c config/unicorn.rb -E production -D
+> app      14440  0.0  0.8 204540 68508 ?        Sl   14:07   0:00  \_ unicorn_rails worker[3] -c config/unicorn.rb -E production -D
+> app      14442  0.0  0.8 204540 68508 ?        Sl   14:07   0:00  \_ unicorn_rails worker[4] -c config/unicorn.rb -E production -D
+> app      14445  0.0  0.8 199760 65840 ?        S    14:07   0:00  \_ /usr/bin/ruby1.8 /usr/bin/unicorn_rails -c config/unicorn.rb -E production -D
+> app      14447  0.0  0.8 204540 68508 ?        Sl   14:07   0:00  \_ unicorn_rails worker[6] -c config/unicorn.rb -E production -D
+> app      14449  0.0  0.8 204780 69272 ?        Sl   14:07   0:00  \_ unicorn_rails worker[7] -c config/unicorn.rb -E production -D
+
+> Sending another USR2 signal will bring a new master into the mix as a
+> child, spins up a single child worker of its own (which also resembles
+> the "/usr/bin/ruby1.8" master-esque processes), and then fails to
+> continue. 
+
+Hi Jamie,
+
+Odd, if I had to guess PIDs 14438 and 14445 are actually worker[2] and
+worker[5] based on the PIDs relative to other workers.  So the new
+master died right away, which really should've been logged...
+
+> Further USR2 restarts will obviously do nothing, and we're forced to
+> either kill -9 the stillborn master or cold-restart all of the
+> unicorns. Nothing out of the ordinary is dumped to stderr or stdout
+
+Anything in your before_fork/after_fork hooks?  Since it looks like
+you're on a Linux system, can you strace the master while you send
+it a USR2 and see if anything strange happens?
+
+Also, can you strace the weird looking processes above and see if
+they're doing anything?
+
+> Starting unicorns fresh produces a nice process list where every child
+> is listed cleanly as "unicorn_rails worker[N]"
+> 
+> We only have this issue in one of our applications, on a machine that
+> has 1 Rails app & 2 Sinatra apps, all powered by nginx+unicorn. We've
+> also only noticed this since upgrading to bundler from bundler08
+
+I assume you're using regular "unicorn" to run your Sinatra apps and not
+"unicorn_rails".  I made some largish cleanups to both for the 0.97.0
+release and and perhaps some bugs slipped into the "_rails" variant.
+
+Can you try regular "unicorn" with a config.ru for Rails?  I've stolen
+this from the Rainbows! FAQ (http://rainbows.rubyforge.org/FAQ.html):
+
+  For Rails 2.3.x and later, the following config.ru will work for you:
+
+    ENV["RAILS_ENV"] ||= ENV["RACK_ENV"]
+    require "config/environment"
+    use Rails::Rack::Static
+    run ActionController::Dispatcher.new
+
+  For older versions of Rails, the following config.ru will work:
+
+    ENV["RAILS_ENV"] ||= ENV["RACK_ENV"]
+    require 'config/boot'
+    require 'config/environment'
+    require 'unicorn/app/old_rails'
+    require 'unicorn/app/old_rails/static' # not needed with Unicorn 0.95+
+    use Unicorn::App::OldRails::Static
+    run Unicorn::App::OldRails.new
+
+  One thing to watch out for is that RAILS_ENV will not be set in the
+  environment for you, thus we set it to match RACK_ENV.
+
+> Are the goofy worker processes in the process tree a real problem, or
+> just a red herring?
+
+Not sure if it's a problem, but with Bundler I assume Rack itself is a
+bundled dependency, but you're starting unicorn_rails out of
+/usr/bin/unicorn_rails which indicates Unicorn is not bundled (and won't
+use the bundled Rack).  Can you ensure your unbundled Rack is the same
+version as the bundled one to be on the safe side?
+
+I've yet to try bundler 0.9 (and have barely used earlier), but you can
+also try bundling Unicorn and using the bundled bin/unicorn(_rails)
+launchers instead to ensure a consistent environment.
+
+Unicorn currently ends up (auto)loading "rack/utils" before the
+application is loaded, maybe it could (auto)load it after the app is
+loaded for preload_app users.
+
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
