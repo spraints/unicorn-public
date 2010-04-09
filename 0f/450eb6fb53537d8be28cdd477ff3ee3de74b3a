@@ -1,0 +1,187 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: [ANN] raindrops - real-time stats for preforking Rack servers
+Date: Fri, 9 Apr 2010 02:37:05 +0000
+Message-ID: <20100409023705.GB5154@dcvr.yhbt.net>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1270780636 12510 80.91.229.12 (9 Apr 2010 02:37:16
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Fri, 9 Apr 2010 02:37:16 +0000 (UTC)
+To: mongrel-unicorn@rubyforge.org
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Fri Apr 09 04:37:12
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:463
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/463>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1O045o-0005BL-0t for gclrug-mongrel-unicorn@m.gmane.org; Fri, 09 Apr 2010
+ 04:37:12 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 2120A1598096; Thu,  8 Apr 2010 22:37:11 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 50521159802D for <mongrel-unicorn@rubyforge.org>;
+ Thu,  8 Apr 2010 22:37:06 -0400 (EDT)
+Received: from localhost (unknown [127.0.2.5]) by dcvr.yhbt.net (Postfix)
+ with ESMTP id E78BF1F4E1; Fri,  9 Apr 2010 02:37:05 +0000 (UTC)
+
+(I announced this yesterday on ruby-talk, but I realized it would
+be wise to actually announce it on the list of a server it was
+designed for :)
+
+Raindrops is a real time stats package to show statistics for Rack HTTP
+servers.  It is designed for preforking servers such as Rainbows! and
+Unicorn, but should support any Rack HTTP server under Ruby 1.9, 1.8 and
+possibly Rubinius (untested) on platforms supporting POSIX shared memory
+and compiled with GCC (for atomic builtins).
+
+Raindrops includes a Struct-like Raindrops::Struct class that may be used
+standalone to create atomic counters shared across any number of forked
+processes under SMP.
+
+* http://raindrops.bogomips.org/
+* raindrops@librelist.com
+* git://git.bogomips.org/raindrops.git
+
+== Features
+
+* counters are shared across all forked children and lock-free
+
+* counters are kept on separate cache lines to reduce contention under SMP
+
+* may expose server statistics as a Rack Middleware endpoint
+  (default: "/_raindrops")
+
+* middleware displays the number of actively processing and writing
+  clients from a single request regardless of which worker process
+  it hits.
+
+== Linux-only Extra Features!
+
+* Middleware response includes extra stats for bound TCP and
+  Unix domain sockets (configurable, it can include stats from
+  other TCP or UNIX domain socket servers).
+
+* TCP socket stats use efficient inet_diag facilities via netlink
+  instead of parsing /proc/net/tcp to minimize overhead.
+  This was fun to discover and write.
+
+== Install
+
+raindrops requires GCC 4.x (or compatible) or later to support the
+atomic builtins (__sync_{add,sub}_and_fetch()).  Atomic operations on
+other compilers may be supported if there is demand.
+
+If you're using a packaged Ruby distribution, make sure you have a C
+compiler and the matching Ruby development libraries and headers.
+
+If you use RubyGems:
+
+    gem install raindrops
+
+Otherwise grab the latest tarball from:
+
+http://raindrops.bogomips.org/files/
+
+Unpack it, and run "ruby setup.rb"
+
+== Usage (Rainbows!/Unicorn preload_app=false)
+
+If you're using preload_app=false (the default) in your Rainbows!/Unicorn
+config file, you'll need to create the global Stats object before
+forking.
+
+        require 'raindrops'
+        $stats ||= Raindrops::Middleware::Stats.new
+
+In your Rack config.ru:
+
+        use Raindrops::Middleware, :stats => $stats
+
+== Usage (Rainbows!/Unicorn preload_app=true)
+
+If you're using preload_app=true in your Rainbows!/Unicorn
+config file, just add the middleware to your stack:
+
+In your Rack config.ru:
+
+        use Raindrops::Middleware
+
+== Usage (Linux-extras)
+
+To get bound listener statistics under Linux, you need to specify the
+listener names for your server.  You can even include listen sockets for
+*other* servers on the same machine.  This can be handy for monitoring
+your nginx proxy as well.
+
+In your Rack config.ru, just pass the :listeners argument as an array of
+strings (along with any other arguments).  You can specify any
+combination of TCP or Unix domain socket names:
+
+        use Raindrops::Middleware, :listeners => %w(0.0.0.0:80 /tmp/.sock)
+
+See the tests/ and examples/ directory for more examples
+
+== Development
+
+You can get the latest source via git from the following locations:
+
+  git://git.bogomips.org/raindrops.git
+  git://repo.or.cz/raindrops.git (mirror)
+
+You may browse the code from the web and download the latest snapshot
+tarballs here:
+
+* http://git.bogomips.org/cgit/raindrops.git (cgit)
+* http://repo.or.cz/w/raindrops.git (gitweb)
+
+Inline patches (from "git format-patch") to the mailing list are
+preferred because they allow code review and comments in the reply to
+the patch.
+
+We will adhere to mostly the same conventions for patch submissions as
+git itself.  See the Documentation/SubmittingPatches document
+distributed with git on on patch submission guidelines to follow.  Just
+don't email the git mailing list or maintainer with raindrops patches.
+
+== Contact
+
+All feedback (bug reports, user/development discussion, patches, pull
+requests) go to the mailing list: mailto:raindrops@librelist.com
+
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
