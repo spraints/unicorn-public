@@ -1,0 +1,118 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: funky process tree + stillborn masters
+Date: Tue, 13 Apr 2010 05:24:10 +0000
+Message-ID: <20100413052410.GA31794@dcvr.yhbt.net>
+References: <18DCBEFE-BC6D-41F7-996C-ACACA629ED24@tramchase.com>
+ <20100408235548.GA11184@dcvr.yhbt.net> <20100409012050.GA31641@dcvr.yhbt.net>
+ <20100412025200.GA29391@dcvr.yhbt.net>
+ <F04EF571-4CCF-425F-82BC-C2363308C6C4@tramchase.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1271136268 25406 80.91.229.12 (13 Apr 2010 05:24:28
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Tue, 13 Apr 2010 05:24:28 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Tue Apr 13 07:24:26
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <F04EF571-4CCF-425F-82BC-C2363308C6C4@tramchase.com>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:466
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/466>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1O1Ybm-000422-VQ for gclrug-mongrel-unicorn@m.gmane.org; Tue, 13 Apr 2010
+ 07:24:23 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 277BF3C8036; Tue, 13 Apr 2010 01:24:22 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 51D1A1D78891 for <mongrel-unicorn@rubyforge.org>;
+ Tue, 13 Apr 2010 01:24:12 -0400 (EDT)
+Received: from localhost (unknown [127.0.2.5]) by dcvr.yhbt.net (Postfix)
+ with ESMTP id D039B1F73B; Tue, 13 Apr 2010 05:24:10 +0000 (UTC)
+
+Jamie Wilkinson <jamie@tramchase.com> wrote:
+> I've also produced straces of the *original* master during USR2
+> restarts, both a success trace and a failure trace.  Here's a tarball
+> with both complete traces as well as filtered/grepp'd ones:
+> http://jamiedubs.com/files/unicorn-strace.tgz
+> 
+> I've also found that kill -9'ing the 1st worker of the new orphaned
+> master allows it to continue operation as normal (spinning up workers
+> and taking control from the original master) -- suggesting something
+> is up with just that first worker (!). I'm going to keep noodling with
+> before_/after_fork strategies.
+
+Hi Jamie, your successful straces have this oddity in them:
+
+  poll([{fd=7, events=POLLIN|POLLPRI}], 1, 0) = 1 ([{fd=7, revents=POLLIN|POLLHUP}
+  read(7, ""..., 8192)                    = 0
+  shutdown(7, 2 /* send and receive */)   = -1 ENOTCONN (Transport endpoint is not
+  close(7)                                = 0
+
+> Eric Wong <normalperson@yhbt.net> wrote:
+> > Anything in your before_fork/after_fork hooks?  Since it looks like
+> > you're on a Linux system, can you strace the master while you send
+> > it a USR2 and see if anything strange happens?
+> 
+> The only real contents of our before_hook is a
+> send-QUIT-on-first-worker, which I swapped out for the default SIGTTOU
+> behavior. No change.
+
+It looks like you should be disconnecting/reconnecting whatever is using
+fd=7 in the before_fork/after_fork hooks respectively.
+
+Unicorn (and mainline Ruby) do not use the poll() system call (which is
+why that strace raised red flags), so there's another C extension
+calling poll() in your master process (not good).  I remember one (or
+all of) the Ruby Postgres libraries using poll() internally, and there
+are likely other things that use poll() in Ruby as well.
+
+Perhaps something like this in the config (assuming you're using
+Rails ActiveRecord) (also see http://unicorn.bogomips.org/examples/)
+
+  before_fork do |server,worker|
+    defined?(ActiveRecord::Base) and
+      ActiveRecord::Base.connection.disconnect!
+  end
+
+  after_fork do |server,worker|
+    defined?(ActiveRecord::Base) and
+      ActiveRecord::Base.establish_connection
+  end
+
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
