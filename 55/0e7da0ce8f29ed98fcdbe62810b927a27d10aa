@@ -1,0 +1,77 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.7 required=5.0 tests=MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: =?UTF-8?Q?I=C3=B1aki_Baz_Castillo?= <ibc@aliax.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Explanation of how Unicorn returns error code when daemonized and 
+ cannot bind the address
+Date: Thu, 15 Apr 2010 19:17:10 +0200
+Message-ID: <o2occ1f582e1004151017s98788d2au437724819596dde0@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+X-Trace: dough.gmane.org 1271351844 19799 80.91.229.12 (15 Apr 2010 17:17:24
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Thu, 15 Apr 2010 17:17:24 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Thu Apr 15 19:17:20
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:467
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/467>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1O2Sgm-0002nE-Py for gclrug-mongrel-unicorn@m.gmane.org; Thu, 15 Apr 2010
+ 19:17:16 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id C81341D78890; Thu, 15 Apr 2010 13:17:15 -0400 (EDT)
+Received: from mail-pv0-f178.google.com (mail-pv0-f178.google.com
+ [74.125.83.178]) by rubyforge.org (Postfix) with ESMTP id 5270C18582EF for
+ <mongrel-unicorn@rubyforge.org>; Thu, 15 Apr 2010 13:17:11 -0400 (EDT)
+Received: by pvg4 with SMTP id 4so1051837pvg.23 for
+ <mongrel-unicorn@rubyforge.org>; Thu, 15 Apr 2010 10:17:11 -0700 (PDT)
+Received: by 10.140.141.3 with HTTP; Thu, 15 Apr 2010 10:17:10 -0700 (PDT)
+Received: by 10.141.89.7 with SMTP id r7mr697826rvl.52.1271351830528; Thu, 15
+ Apr 2010 10:17:10 -0700 (PDT)
+
+SGkgRXJpYywgYXMgeW91IHJlbWVtYmVyIHlvdSBkaWQgYW4gaW1wcm92ZW1lbnQgaW4gVW5pY29y
+biBpbiBvcmRlciBpdAp0byByZXR1cm4gYW4gZXJyb3IgY29kZSAobWF5YmUgMSkgd2hlbiBydW5u
+aW5nIGRhZW1vbml6ZWQgYW5kIHRyeWluZwp0byBiaW5kIGluIGEgd3JvbmcgYWRkcmVzcyAoaS5l
+LiBhIG5vbiBsb2NhbCBhZGRyZXNzKS4KCkFzIGZhciBhcyBJIHJlbWVtYmVyIHlvdSBpbXBsZW1l
+bnRlZCBhIHBpcGUgYmV0d2VlbiBkYWVtb24gYW5kIG1hc3Rlcgpwcm9jZXNzLCBzbyBpZiB0aGUg
+bWFzdGVyIHJldHVybnMgZXJyb3IgaXQgc2VuZHMgc3VjaCByZXN1bHQgdG8gdGhlCmRhZW1vbiBw
+cm9jZXNzIGFuZCBpdCBhbHNvIGVuZHMgd2l0aCBlcnJvci4gVGhpcyBpcyBtb3JlIHRoYW4gdXNl
+ZnVsCmFuZCByZXF1aXJlZCB3aGVuIGhhbmRsaW5nIGluaXQgc2NyaXB0IHdpdGggSGVhcnRCZWF0
+IGFuZCBzaW1pbGFyCnNvZnR3YXJlIGluIHdoaWNoIHRoZSByZXR1cm4gY29kZSBvZiB0aGUgaW5p
+dCBzY3JpcHQgbXVzdCBiZSBjb3JyZWN0CihpdCBqdXN0IGNhbiByZXR1cm4gMCBpZiBpdCBoYXMg
+c3RhcnRlZCBjb3JyZWN0bHkpLgoKSWYgSSdtIHdyb25nLCBjb3VsZCB5b3UgZGV0YWlsIGl0IGEg
+Yml0IHBsZWFzZT8gSSB3YW50IHRvIHByb3Bvc2UgdGhlCnNhbWUgaW1wcm92ZW1lbnQgaW4gb3Ro
+ZXIgcHJvamVjdCBpbiB3aGljaCBJIHBhcnRpY2lwYXRlLgoKUmVhbGx5IHRoYW5rcyBhIGxvdC4K
+Ci0tIApJw7Fha2kgQmF6IENhc3RpbGxvCjxpYmNAYWxpYXgubmV0PgpfX19fX19fX19fX19fX19f
+X19fX19fX19fX19fX19fX19fX19fX19fX19fX19fXwpVbmljb3JuIG1haWxpbmcgbGlzdCAtIG1v
+bmdyZWwtdW5pY29ybkBydWJ5Zm9yZ2Uub3JnCmh0dHA6Ly9ydWJ5Zm9yZ2Uub3JnL21haWxtYW4v
+bGlzdGluZm8vbW9uZ3JlbC11bmljb3JuCkRvIG5vdCBxdW90ZSBzaWduYXR1cmVzIChsaWtlIHRo
+aXMgb25lKSBvciB0b3AgcG9zdCB3aGVuIHJlcGx5aW5nCg==
+
