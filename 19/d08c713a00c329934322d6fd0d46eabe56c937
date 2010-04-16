@@ -1,0 +1,114 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: Using HTTP/1.1 and permanent connections
+Date: Fri, 16 Apr 2010 13:09:18 -0700
+Message-ID: <20100416200918.GA10256@dcvr.yhbt.net>
+References: <r2hcc1f582e1004161149ja4187a68k7867f794aeed8d7f@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="iso-8859-1"
+Content-Transfer-Encoding: quoted-printable
+X-Trace: dough.gmane.org 1271449430 25082 80.91.229.12 (16 Apr 2010 20:23:50
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Fri, 16 Apr 2010 20:23:50 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Fri Apr 16 22:23:48
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <r2hcc1f582e1004161149ja4187a68k7867f794aeed8d7f@mail.gmail.com>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:470
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/470>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1O2s4j-0005qo-QT for gclrug-mongrel-unicorn@m.gmane.org; Fri, 16 Apr 2010
+ 22:23:42 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id DEED71D78891; Fri, 16 Apr 2010 16:23:40 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 566E818582F6 for <mongrel-unicorn@rubyforge.org>;
+ Fri, 16 Apr 2010 16:09:20 -0400 (EDT)
+Received: from localhost (unknown [127.0.2.5]) by dcvr.yhbt.net (Postfix)
+ with ESMTP id 30CDD1F4EF; Fri, 16 Apr 2010 20:09:19 +0000 (UTC)
+
+I=F1aki Baz Castillo <ibc@aliax.net> wrote:
+> Hi, I know that Unicorn forces TCP disconnection as it's explained at
+> the top of lib/unicorn/http_response.rb:
+> =
+
+>   # A design decision was made to force the client to not pipeline or
+>   # keepalive requests.  HTTP/1.1 pipelining really kills the
+>   # performance due to how it has to be handled and how unclear the
+>   # standard is.  To fix this the HttpResponse always gives a
+>   # "Connection: close" header which forces the client to close right
+>   # away.  The bonus for this is that it gives a pretty nice speed boost
+>   # to most clients since they can close their connection immediately.
+> =
+
+> =
+
+> However I want to try TCP permanent connections from the client (or a
+> proxy) to Unicorn. I've tryed to modify same file as above by changing
+> at the end:
+
+<snip>
+
+> But of course this is not enough and it fails. Not sure what exactly
+> happens, it seems that a Unicorn worker doesn't process requests
+> anymore until replying the first response.
+> =
+
+> So I would like to know if it's feasible to make Unicorn work in
+> persistent mode.
+> NOTE: I already know that the current design is really good, better
+> than using persistent connections, but I want to experiment with
+> persistent connections for other purposes I will explain in a future.
+
+Hi I=F1aki,
+
+Unicorn won't try to read further requests from the socket (see
+process_client() in lib/unicorn.rb).
+
+However, you can use Rainbows! without specifying a concurrency model at
+all (or "use :Base").  That way you'll get proper HTTP/1.1 keepalive
+support and you can control keepalive_timeout:
+
+# both of these values are the defaults for unconfigured Rainbows!
+Rainbows! do
+  use :Base
+  keepalive_timeout 5
+end
+
+-- =
+
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
