@@ -1,0 +1,136 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: Shared memory between workers
+Date: Mon, 26 Apr 2010 12:03:39 -0700
+Message-ID: <20100426190338.GA27686@dcvr.yhbt.net>
+References: <w2qcc1f582e1004260118za5609803x3753efd2ac850e4c@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="iso-8859-1"
+Content-Transfer-Encoding: quoted-printable
+X-Trace: dough.gmane.org 1272309211 12682 80.91.229.12 (26 Apr 2010 19:13:31
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Mon, 26 Apr 2010 19:13:31 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Mon Apr 26 21:13:30
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <w2qcc1f582e1004260118za5609803x3753efd2ac850e4c@mail.gmail.com>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:476
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/476>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1O6TkH-00020t-BD for gclrug-mongrel-unicorn@m.gmane.org; Mon, 26 Apr 2010
+ 21:13:29 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 8F4D6167829F; Mon, 26 Apr 2010 15:13:28 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 2930B1858311 for <mongrel-unicorn@rubyforge.org>;
+ Mon, 26 Apr 2010 15:03:39 -0400 (EDT)
+Received: from localhost (unknown [127.0.2.5]) by dcvr.yhbt.net (Postfix)
+ with ESMTP id 398201F4EF; Mon, 26 Apr 2010 19:03:39 +0000 (UTC)
+
+I=F1aki Baz Castillo <ibc@aliax.net> wrote:
+> Hi, I plan to build a SIP TCP server (no UDP) based on
+> Unicorn/Rainbows! HTTP server. The main different between a SIP server
+> and HTTP server are:
+> =
+
+> - SIP uses persistent TCP connections, so I should use Rainbows!.
+> - For a SIP server it's not valid a simple request-response model.
+> Different workers could handle SIP messages (requests and responses)
+> belonging to the same SIP session so I need a shared memory between
+> all the workers.
+> =
+
+> Another option is using EventMachine, perhaps more suitable for this
+> purpose by design as it uses a single Ruby process so sharing memory
+> is not a problem. In the other side using a single process in a
+> multicore server is a pain.
+> I would like to use Unicorn/Rainbows as I love its design: by far it's
+> the more reliable and efficient Ruby HTTP server and it takes
+> advantages of Unix's features.
+> =
+
+> I don't want to use a DB server neither MemCache as "shared memory" as
+> it would be too slow. Is there any way to share RAM memory between
+> different Unicorn/Rainbows! workers in a *safe* way? I could create a
+> Hash or Array of SIP sessions into the master process so all the
+> workers reuse it, but I don't think it would be safe to access/write
+> into it from different Ruby processes. For that I would also need a
+> semaphore system (perhaps again a shared variable between all workers
+> in order to lock the shared Array/Hash when a worker writes into it).
+> =
+
+> Any tip about it? suggstions?
+
+Hi I=F1aki,
+
+First off I wouldn't call Memcached slow...  How many requests do you
+need out of it and what kind of access patterns are you doing?
+
+If you're on a modern Linux 2.6 box, then anything on the local
+filesystem is basically shared memory if you have enough RAM to store
+your working set (and it sounds like you do).
+
+If you're willing to be confined to a single box, I've had great
+experiences with TokyoCabinet the past few years.  One system I built
+shares 10G of read-mostly data (on 16G boxes) across 8 Unicorn
+(previously Mongrel) workers.  TokyoCabinet uses mmap and pread/pwrite,
+so you can safely share DB handles across any number of native
+threads/processes.
+
+Writes in TC need filesystem locking and you can only have one active
+writer, but that was still plenty fast enough in my experience.
+
+If fsync() becomes a bottleneck, then for non-critical data either:
+
+  1) disable it (TC lets you)
+  2) or use libeatmydata if you choose something that doesn't let
+     you disable fsync()
+
+<soapbox>
+  My personal opinion is that fsync()/O_SYNC are completely overrated.
+  All important machines these days have redundant storage, redundant
+  power supplies, ECC memory, hardware health monitoring/alerting and
+  backup power.  Any remaining hardware/kernel failure possibilities
+  are far less likely than application bugs that corrupt data :)
+
+  But, if you really have critical data, /then/ get an SSD or
+  a battery-backed write cache.
+</soapbox>
+
+-- =
+
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
