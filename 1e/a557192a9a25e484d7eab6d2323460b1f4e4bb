@@ -1,0 +1,184 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: [PATCH] Add worker interrogation via INFO signals
+Date: Tue, 27 Apr 2010 08:59:22 +0000
+Message-ID: <20100427085922.GA8080@dcvr.yhbt.net>
+References: <FCE9AA21-B75A-4518-8FDE-2654CF9592B4@watsonian.net>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1272358792 30036 80.91.229.12 (27 Apr 2010 08:59:52
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Tue, 27 Apr 2010 08:59:52 +0000 (UTC)
+Cc: Joel Watson <joel@watsonian.net>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Tue Apr 27 10:59:46
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <FCE9AA21-B75A-4518-8FDE-2654CF9592B4@watsonian.net>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:479
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/479>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1O6gdp-0007sv-7s for gclrug-mongrel-unicorn@m.gmane.org; Tue, 27 Apr 2010
+ 10:59:41 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 492F51D799BA; Tue, 27 Apr 2010 04:59:37 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 80CC41858309 for <mongrel-unicorn@rubyforge.org>;
+ Tue, 27 Apr 2010 04:59:23 -0400 (EDT)
+Received: from localhost (unknown [127.0.2.5]) by dcvr.yhbt.net (Postfix)
+ with ESMTP id 41E8A1F4EA; Tue, 27 Apr 2010 08:59:23 +0000 (UTC)
+
+Joel Watson <joel@watsonian.net> wrote:
+> Hey all,
+> 
+> Below is a proposed patch I worked on over the weekend. Just adding a
+> note here to mention that I'm currently not a subscriber to the
+> mailing list, so please CC me on any replies. Let me know what you all
+> think. This change was made on a local topic branch off of the maint
+> branch. If you'd like to view the change on GitHub, you can do so
+> here: http://github.com/watsonian/unicorn/compare/maint...siginfo
+> 
+> -Joel
+> ================================
+> >From a0ccb9efe508d4bd0a2a238305fedcbfc051d202 Mon Sep 17 00:00:00 2001
+> From: watsonian <watsonian@gmail.com>
+> Date: Mon, 26 Apr 2010 18:25:02 -0700
+> Subject: [PATCH] Add worker interrogation via INFO signals
+> 
+> You can now send a worker an INFO signal and it will write the
+> current request uri it's processing and how long it's been processing
+> it for to the log. Sending the master process an INFO signal will
+> send all workers an INFO signal as well.
+> 
+> This addresses cases where it's desirable to know exactly what a
+> worker is doing at a particular point in time (e.g., if it's hanging
+> on a particular request such that it isn't writing out to log files).
+> ---
+>  lib/unicorn.rb |   25 ++++++++++++++++++++-----
+>  1 files changed, 20 insertions(+), 5 deletions(-)
+
+Hi Joel,
+
+I'm alright with most of the changes, but I'm not ready to put more
+things into every single request that people cannot opt-out of.
+
+Since this data is written in a way that most users will rarely access,
+I would avoid the changes to process_client:
+
+>      # once a client is accepted, it is processed in its entirety here
+>      # in 3 easy steps: read request, call app, write app response
+> -    def process_client(client)
+> +    def process_client(client, worker)
+>        client.fcntl(Fcntl::F_SETFD, Fcntl::FD_CLOEXEC)
+> -      response = app.call(env = REQUEST.read(client))
+> +      env = REQUEST.read(client)
+> +      worker.request_start = Time.now.to_i
+> +      worker.request_uri = env["REQUEST_URI"]
+> +      response = app.call(env)
+
+And instead do it as middleware which requires opting in:
+
+  # XXX Totally untested code written at ~1:30 AM, may not even compile
+  # this middleware is only useful for Unicorn
+  module Unicorn
+  class Info < Struct.new(:app, :body)
+    TIME_KEY = "unicorn.info_time".freeze
+
+    # +env+ passed is always Unicorn::HttpRequest::REQ when used with Unicorn
+    def call(env)
+      env[TIME_KEY] = Time.now.to_i
+      status, headers, self.body = app.call(env)
+    end
+
+    # this is a no-op proxy method, we only have this so we can
+    # wrap the "close" method later on...
+    def each(&block)
+      body.each(&block)
+    end
+
+    # http_response.rb will call this in an ensure statement,
+    # we'll finalize our per-request data here
+    def close
+      # Unicorn has only a single env hash to pass to Rack that always
+      # gets reused across requests, this micro-optimization makes it
+      # less likely to require expensive rehashing/resizing every
+      # request.  Normally Unicorn will wait until the start of the next
+      # request to clear this.
+      HttpRequest::REQ.clear[TIME_KEY] = Time.now.to_i
+
+      body.close if body.respond_to?(:close)
+    end
+  end # class Info
+  end # module Unicorn
+
+>        if 100 == response.first.to_i
+>          client.write(Const::EXPECT_100_RESPONSE)
+> @@ -641,6 +646,9 @@ module Unicorn
+>        HttpResponse.write(client, response, HttpRequest::PARSER.headers?)
+>      rescue => e
+>        handle_error(client, e)
+> +    ensure
+> +      worker.request_start = Time.now.to_i
+> +      worker.request_uri = nil
+>      end
+
+
+> +    # used to see what a worker is doing when it's sent an :INFO signal
+> +    def worker_info(worker)
+> +      "worker[#{worker.nr}] - #{worker.request_uri || "idle"} - #{(Time.now.to_i - worker.request_start).to_s if worker.request_start}"
+
+No long lines, please, I can only work in 80 column terminals.
+
+Also, the prevalent logger calls use "worker=#{worker.nr}" and not
+"worker[#{worker.nr}]"
+
+Since Unicorn::HttpRequest::REQ is global (ZOI rule), we can just read
+that hash directly, no need to stash stuff in the worker object.
+Based on the proposed middleware, we can have this.
+
+     trap(:INFO) do
+       t0 = HttpRequest::REQ[Info::TIME_KEY]
+       logger.info "worker=#{worker.nr} - " \
+                   "#{HttpRequest::REQ['REQUEST_URI'] || 'idle'} - " \
+                   "#{(Time.now.to_i - t0) if t0}"
+     end if defined?(Unicorn::Info)
+
+Thanks for digging into the code, let me know what you think of the
+proposed middleware solution.
+
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
