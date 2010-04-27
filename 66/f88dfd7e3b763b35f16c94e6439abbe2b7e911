@@ -1,0 +1,185 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.7 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Joel Watson <joel@watsonian.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: [PATCH] Add worker interrogation via INFO signals
+Date: Mon, 26 Apr 2010 19:37:08 -0700
+Message-ID: <FCE9AA21-B75A-4518-8FDE-2654CF9592B4@watsonian.net>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0 (Apple Message framework v1078)
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1272335847 29085 80.91.229.12 (27 Apr 2010 02:37:27
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Tue, 27 Apr 2010 02:37:27 +0000 (UTC)
+To: mongrel-unicorn@rubyforge.org
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Tue Apr 27 04:37:26
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+X-Mailer: Apple Mail (2.1078)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:478
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/478>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1O6aft-0003Sv-LY for gclrug-mongrel-unicorn@m.gmane.org; Tue, 27 Apr 2010
+ 04:37:26 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id B0B2518582F6; Mon, 26 Apr 2010 22:37:21 -0400 (EDT)
+Received: from mail-vw0-f50.google.com (mail-vw0-f50.google.com
+ [209.85.212.50]) by rubyforge.org (Postfix) with ESMTP id 65A6418582D0 for
+ <mongrel-unicorn@rubyforge.org>; Mon, 26 Apr 2010 22:37:12 -0400 (EDT)
+Received: by vws19 with SMTP id 19so372829vws.23 for
+ <mongrel-unicorn@rubyforge.org>; Mon, 26 Apr 2010 19:37:11 -0700 (PDT)
+Received: by 10.220.108.228 with SMTP id g36mr3436402vcp.26.1272335831503;
+ Mon, 26 Apr 2010 19:37:11 -0700 (PDT)
+Received: from [10.0.1.16] ([204.14.155.178]) by mx.google.com with ESMTPS id
+ 20sm3204159ywh.11.2010.04.26.19.37.09 (version=TLSv1/SSLv3 cipher=RC4-MD5);
+ Mon, 26 Apr 2010 19:37:10 -0700 (PDT)
+
+Hey all,
+
+Below is a proposed patch I worked on over the weekend. Just adding a note here to mention that I'm currently not a subscriber to the mailing list, so please CC me on any replies. Let me know what you all think. This change was made on a local topic branch off of the maint branch. If you'd like to view the change on GitHub, you can do so here: http://github.com/watsonian/unicorn/compare/maint...siginfo
+
+-Joel
+================================
+>From a0ccb9efe508d4bd0a2a238305fedcbfc051d202 Mon Sep 17 00:00:00 2001
+From: watsonian <watsonian@gmail.com>
+Date: Mon, 26 Apr 2010 18:25:02 -0700
+Subject: [PATCH] Add worker interrogation via INFO signals
+
+You can now send a worker an INFO signal and it will write the
+current request uri it's processing and how long it's been processing
+it for to the log. Sending the master process an INFO signal will
+send all workers an INFO signal as well.
+
+This addresses cases where it's desirable to know exactly what a
+worker is doing at a particular point in time (e.g., if it's hanging
+on a particular request such that it isn't writing out to log files).
+---
+ lib/unicorn.rb |   25 ++++++++++++++++++++-----
+ 1 files changed, 20 insertions(+), 5 deletions(-)
+
+diff --git a/lib/unicorn.rb b/lib/unicorn.rb
+index b63abeb..b11360c 100644
+--- a/lib/unicorn.rb
++++ b/lib/unicorn.rb
+@@ -163,7 +163,7 @@ module Unicorn
+     # releases of Unicorn.  You may need to access it in the
+     # before_fork/after_fork hooks.  See the Unicorn::Configurator RDoc
+     # for examples.
+-    class Worker < Struct.new(:nr, :tmp, :switched)
++    class Worker < Struct.new(:nr, :tmp, :switched, :request_uri, :request_start)
+ 
+       # worker objects may be compared to just plain numbers
+       def ==(other_nr)
+@@ -422,6 +422,8 @@ module Unicorn
+             self.worker_processes += 1
+           when :TTOU
+             self.worker_processes -= 1 if self.worker_processes > 0
++          when :INFO
++            kill_each_worker(:INFO)
+           when :HUP
+             respawn = true
+             if config.config_file
+@@ -462,7 +464,7 @@ module Unicorn
+ 
+     # list of signals we care about and trap in master.
+     QUEUE_SIGS = [ :WINCH, :QUIT, :INT, :TERM, :USR1, :USR2, :HUP,
+-                   :TTIN, :TTOU ]
++                   :TTIN, :TTOU, :INFO ]
+ 
+     # defer a signal for later processing in #join (master process)
+     def trap_deferred(signal)
+@@ -629,9 +631,12 @@ module Unicorn
+ 
+     # once a client is accepted, it is processed in its entirety here
+     # in 3 easy steps: read request, call app, write app response
+-    def process_client(client)
++    def process_client(client, worker)
+       client.fcntl(Fcntl::F_SETFD, Fcntl::FD_CLOEXEC)
+-      response = app.call(env = REQUEST.read(client))
++      env = REQUEST.read(client)
++      worker.request_start = Time.now.to_i
++      worker.request_uri = env["REQUEST_URI"]
++      response = app.call(env)
+ 
+       if 100 == response.first.to_i
+         client.write(Const::EXPECT_100_RESPONSE)
+@@ -641,6 +646,9 @@ module Unicorn
+       HttpResponse.write(client, response, HttpRequest::PARSER.headers?)
+     rescue => e
+       handle_error(client, e)
++    ensure
++      worker.request_start = Time.now.to_i
++      worker.request_uri = nil
+     end
+ 
+     # gets rid of stuff the worker has no business keeping track of
+@@ -662,6 +670,7 @@ module Unicorn
+       worker.user(*user) if user.kind_of?(Array) && ! worker.switched
+       self.timeout /= 2.0 # halve it for select()
+       build_app! unless preload_app
++      worker.request_start = Time.now.to_i # keep track of initial idle time
+     end
+ 
+     def reopen_worker_logs(worker_nr)
+@@ -684,6 +693,7 @@ module Unicorn
+       # closing anything we IO.select on will raise EBADF
+       trap(:USR1) { nr = -65536; SELF_PIPE.first.close rescue nil }
+       trap(:QUIT) { alive = nil; LISTENERS.each { |s| s.close rescue nil } }
++      trap(:INFO) { logger.info worker_info(worker) }
+       [:TERM, :INT].each { |sig| trap(sig) { exit!(0) } } # instant shutdown
+       logger.info "worker=#{worker.nr} ready"
+       m = 0
+@@ -704,7 +714,7 @@ module Unicorn
+ 
+         ready.each do |sock|
+           begin
+-            process_client(sock.accept_nonblock)
++            process_client(sock.accept_nonblock, worker)
+             nr += 1
+             alive.chmod(m = 0 == m ? 1 : 0)
+           rescue Errno::EAGAIN, Errno::ECONNABORTED
+@@ -817,6 +827,11 @@ module Unicorn
+             ]).concat(START_CTX[:argv]).join(' ')
+     end
+ 
++    # used to see what a worker is doing when it's sent an :INFO signal
++    def worker_info(worker)
++      "worker[#{worker.nr}] - #{worker.request_uri || "idle"} - #{(Time.now.to_i - worker.request_start).to_s if worker.request_start}"
++    end
++
+     def redirect_io(io, path)
+       File.open(path, 'ab') { |fp| io.reopen(fp) } if path
+       io.sync = true
+-- 
+1.7.0.2
+
+
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
