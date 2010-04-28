@@ -1,0 +1,130 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: funky process tree + stillborn masters
+Date: Wed, 28 Apr 2010 07:40:02 +0000
+Message-ID: <20100428074002.GB8080@dcvr.yhbt.net>
+References: <18DCBEFE-BC6D-41F7-996C-ACACA629ED24@tramchase.com>
+ <20100408235548.GA11184@dcvr.yhbt.net> <20100409012050.GA31641@dcvr.yhbt.net>
+ <20100412025200.GA29391@dcvr.yhbt.net>
+ <F04EF571-4CCF-425F-82BC-C2363308C6C4@tramchase.com>
+ <20100413052410.GA31794@dcvr.yhbt.net> <20100419182146.GA22994@dcvr.yhbt.net>
+ <B26A4E0B-9155-40A1-B53C-D1F6521DA20B@tramchase.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1272441968 23483 80.91.229.12 (28 Apr 2010 08:06:08
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Wed, 28 Apr 2010 08:06:08 +0000 (UTC)
+Cc: unicorn list <mongrel-unicorn@rubyforge.org>
+To: Jamie Wilkinson <jamie@tramchase.com>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Wed Apr 28 10:06:05
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <B26A4E0B-9155-40A1-B53C-D1F6521DA20B@tramchase.com>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:481
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/481>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1O72HN-0007bs-6L for gclrug-mongrel-unicorn@m.gmane.org; Wed, 28 Apr 2010
+ 10:05:57 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id EA32A1D799CF; Wed, 28 Apr 2010 04:05:53 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id EE0D8185827F for <mongrel-unicorn@rubyforge.org>;
+ Wed, 28 Apr 2010 03:40:03 -0400 (EDT)
+Received: from localhost (unknown [127.0.2.5]) by dcvr.yhbt.net (Postfix)
+ with ESMTP id 402581F4F5; Wed, 28 Apr 2010 07:40:03 +0000 (UTC)
+
+Jamie Wilkinson <jamie@tramchase.com> wrote:
+> Update from the trenches: I've traced this down to the newrelic_rpm
+> agent
+> 
+> Noticed this is not the 1st time this has been brought up, since
+> newrelic spins up the stats collector in its own thread.
+> 
+> Attempted the (old) logger mutex monkeypatch mentioned in the unicorn
+> docs without luck. Noodled with various permutations of
+> NewRelic::Agent.shutdown in before/after_fork without success.
+> NewRelic apparently has some compat issues with bundler, but that
+> didn't affect it, nor did switching to the plugin.
+> 
+> I'm running the latest newrelic_rpm agent (2.11.2) and the latest
+> unicorn (0.97.1). 
+> 
+> I imagine this is contention over its logfile. Is there any
+> low-hanging fruit I should try?
+
+Hi Jamie, thanks for the follow up.
+
+Exactly which version of Ruby + patchlevel are you using?   Some of the
+1.8.7 releases had threading bugs in them which you may be hitting:
+
+  http://redmine.ruby-lang.org/issues/show/1993
+  http://www.daniel-azuma.com/blog/view/z2ysbx0e4c3it9/ruby_1_8_7_io_select_threading_bug
+
+But ...
+
+> I've also filed a bug with NewRelic:
+> http://support.newrelic.com/discussions/support/2577-newrelic-agentbundler-causing-stillborn-unicorn-processes?unresolve=true
+
+> # straces show there's a bad file descriptor read -- presumably logfiles.
+> # I've noodled with shutting down the agent in unicorn before/after forks
+> # without a lot of luck. Tried newrelic as a plugin with the same issue,
+> # as well as some of the bundler fixes mentioned in the FAQ, as well as
+> # the
+
+Now that we know it's NewRelic, I suspect it could be reading from the
+agent's client socket, not a log file.  You can map fd => files/sockets
+with "ls -l /proc/$pid/fd" or "lsof -p $pid"
+
+Perhaps in the before_fork hook you can try closing the TCPSocket (or
+similar) that NewRelic is using.  Merely stopping the agent thread
+isn't guaranteed to close the client socket properly (in fact, I can
+almost guaratee it won't close the socket at the OS level).
+
+Since you're on Linux, try putting the output of "ls -l /proc/#$$/fd" or
+"lsof -p #$$" in both the after_fork+before_fork hooks to get an idea of
+which descriptors are open across forks.
+
+> # Unicorn doesn't play very nicely with threads, are there are any other
+> # manual setup/teardown methods beyond NewRelic::Agent.shutdown I could
+> # try to get fd's closed properly between forks?
+
+There's nothing inherent to Unicorn that prevents it from playing nicely
+with threads.  It's just not playing nicely with threaded code written
+without potential fork() calls in mind.
+
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
