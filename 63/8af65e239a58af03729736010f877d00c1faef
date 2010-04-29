@@ -1,0 +1,95 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.7 required=5.0 tests=MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Gleb Arshinov <gleb.lists@pluron.com>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: Shared memory between workers
+Date: Wed, 28 Apr 2010 17:12:40 -0700
+Message-ID: <l2k21e991821004281712q1d701226id5e430a5ea17a68e@mail.gmail.com>
+References: <w2qcc1f582e1004260118za5609803x3753efd2ac850e4c@mail.gmail.com> 
+ <20100426190338.GA27686@dcvr.yhbt.net>
+ <v2gcc1f582e1004261546y874ecdd0yf3931d014ab3a000@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1272499999 18154 80.91.229.12 (29 Apr 2010 00:13:19
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Thu, 29 Apr 2010 00:13:19 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Thu Apr 29 02:13:18
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+In-Reply-To: <v2gcc1f582e1004261546y874ecdd0yf3931d014ab3a000@mail.gmail.com>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:482
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/482>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1O7HNT-0008Qs-Pn for gclrug-mongrel-unicorn@m.gmane.org; Thu, 29 Apr 2010
+ 02:13:16 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 9CAF4185834B; Wed, 28 Apr 2010 20:13:12 -0400 (EDT)
+Received: from mail-qy0-f189.google.com (mail-qy0-f189.google.com
+ [209.85.221.189]) by rubyforge.org (Postfix) with ESMTP id ABEB01858346 for
+ <mongrel-unicorn@rubyforge.org>; Wed, 28 Apr 2010 20:13:01 -0400 (EDT)
+Received: by qyk27 with SMTP id 27so15360725qyk.23 for
+ <mongrel-unicorn@rubyforge.org>; Wed, 28 Apr 2010 17:13:01 -0700 (PDT)
+Received: by 10.229.219.203 with SMTP id hv11mr10517412qcb.46.1272499980934; 
+ Wed, 28 Apr 2010 17:13:00 -0700 (PDT)
+Received: by 10.229.234.83 with HTTP; Wed, 28 Apr 2010 17:12:40 -0700 (PDT)
+
+> If you use a "on memory database" there wouldn't be filesystem locking, right?
+
+fsync throughput (a.k.a. commit rate) is easy to test:
+
+  sudo aptitude install sysbench
+  sysbench --test=fileio --file-fsync-freq=1 --file-num=1 \
+   --file-total-size=16384 --file-test-mode=rndwr run \
+   | grep "Requests/sec"
+
+You can then see if any additional tuning (RAM drive, etc.) is even
+necessary for your requirements.
+
+Unless something is doing write-back caching in between the app and
+the drive this rate will be a function of RPM of your drive, e.g.
+~120/s for 7200RPM   We did a bunch of benchmarking when setting up a
+couple of DB servers recently and found that consumer-grade drives
+(SATA) lie and have write-back caching enabled by default, and you get
+1-3k/s.  It's not considered safe to run a database on such
+configuration as HDD cache lacks battery backup.  For comparison we
+get ~10k/s on a 4 disk RAID 10 SAS array (w/ battery backup unit) with
+write-back caching turned on in the controller and off in the drives.
+
+So, the point is that consumer hardware lies and you are quite likely
+to get good fsync performance.  Since you don't care about data safety
+for your setup this should be fine.
+
+Best regards,
+
+Gleb
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
