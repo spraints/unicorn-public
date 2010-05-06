@@ -1,0 +1,104 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: [ANN] unicorn 0.99.0 - simplicity wins
+Date: Thu, 6 May 2010 19:37:40 +0000
+Message-ID: <20100506193740.GB10280@dcvr.yhbt.net>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1273174673 8324 80.91.229.12 (6 May 2010 19:37:53
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Thu, 6 May 2010 19:37:53 +0000 (UTC)
+To: mongrel-unicorn@rubyforge.org
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Thu May 06 21:37:52
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:485
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/485>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1OA6tK-0005K5-0J for gclrug-mongrel-unicorn@m.gmane.org; Thu, 06 May 2010
+ 21:37:50 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id DC6E4185833E; Thu,  6 May 2010 15:37:48 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 264CF1858340 for <mongrel-unicorn@rubyforge.org>;
+ Thu,  6 May 2010 15:37:41 -0400 (EDT)
+Received: from localhost (unknown [127.0.2.5]) by dcvr.yhbt.net (Postfix)
+ with ESMTP id 6A8911F43D; Thu,  6 May 2010 19:37:40 +0000 (UTC)
+
+Unicorn is an HTTP server for Rack applications designed to only serve
+fast clients on low-latency, high-bandwidth connections and take
+advantage of features in Unix/Unix-like kernels.  Slow clients should
+only be served by placing a reverse proxy capable of fully buffering
+both the the request and response in between Unicorn and slow clients.
+
+* http://unicorn.bogomips.org/
+* mongrel-unicorn@rubyforge.org
+* git://git.bogomips.org/unicorn.git
+
+Changes:
+
+Starting with this release, we'll always load Rack up front at
+startup.
+
+Previously we had complicated ways to avoid loading Rack until
+after the application was loaded to allow the application to
+load an alternate version of Rack.  However this has proven too
+error-prone to be worth supporting even though Unicorn does not
+have strict requirements on currently released Rack versions.
+
+If an app requires a different version of Rack than what Unicorn
+would load by default, it is recommended they only install that
+version of Rack (and no others) since Unicorn does not have any
+strict requirements on currently released Rack versions.
+
+Rails 2.3.x users should be aware of this as those versions are
+not compatible with Rack 1.1.0.
+
+If it is not possible to only have one Rack version installed
+"globally", then they should either use Isolate or Bundler and
+install a private version of Unicorn along with their preferred
+version of Rack.  Users who install in this way are recommended
+to execute the isolated/bundled version of Unicorn, instead of
+what would normally be in $PATH.
+
+Feedback/tips to mailto:mongrel-unicorn@rubyforge.org from
+Isolate and Bundler users would be greatly appreciated.
+
+Thanks to Aaron Eisenberger for making us aware of this issue.
+
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
