@@ -1,0 +1,109 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: Garbage collection outside of request cycle?
+Date: Thu, 6 May 2010 13:57:54 -0700
+Message-ID: <20100506205754.GA13412@dcvr.yhbt.net>
+References: <0BFC98E9-072B-47EE-9A70-05478C20141B@lukemelia.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1273179482 26742 80.91.229.12 (6 May 2010 20:58:02
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Thu, 6 May 2010 20:58:02 +0000 (UTC)
+Cc: Luke Melia <luke@lukemelia.com>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Thu May 06 22:58:00
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <0BFC98E9-072B-47EE-9A70-05478C20141B@lukemelia.com>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:488
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/488>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1OA88u-0000m9-2A for gclrug-mongrel-unicorn@m.gmane.org; Thu, 06 May 2010
+ 22:58:00 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 8C0311858340; Thu,  6 May 2010 16:57:59 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 297E91858340 for <mongrel-unicorn@rubyforge.org>;
+ Thu,  6 May 2010 16:57:55 -0400 (EDT)
+Received: from localhost (unknown [127.0.2.5]) by dcvr.yhbt.net (Postfix)
+ with ESMTP id 915B11F43D; Thu,  6 May 2010 20:57:54 +0000 (UTC)
+
+Luke Melia <luke@lukemelia.com> wrote:
+> I've been analyzing our Unicorn-powered Rails app's performance, and
+> have found that garbage collection is a big factor in slow requests.
+> 
+> In the interest of avoiding those performance hits while handling
+> requests, would it be possible to have a unicorn worker run garbage
+> collection after handling a request and before waiting for the next
+> one? Would this be a good idea?
+
+Hi Luke,
+
+I made this for one heavyweight app a while back.
+
+I guess I should throw this into the examples section, but it won't be
+the default since it hurts simpler applications that don't generate
+much garbage.
+
+==> big_app_gc.rb <==
+# This shouldn't hurt overall performance as long as the server cluster
+# is at <=50% CPU capacity, and improves the performance of most memory
+# intensive requests.  This serves to improve _client-visible_
+# performance (possibly at the cost of overall performance).
+#
+# We'll call GC after each request is been written out to the socket, so
+# the client never sees the extra GC hit it. It's ideal to call the GC
+# inside the HTTP server (vs middleware or hooks) since the stack is
+# smaller at this point, so the GC will both be faster and more
+# effective at releasing unused memory.
+#
+# This monkey patch is _only_ effective for applications that use a lot
+# of memory, and will hurt simpler apps/endpoints that can process
+# multiple requests before incurring GC.
+
+class Unicorn::HttpServer
+  REQ = Unicorn::HttpRequest::REQ
+  alias _process_client process_client
+  undef_method :process_client
+  def process_client(client)
+    _process_client(client)
+    REQ.clear
+    GC.start
+  end
+end if defined?(Unicorn)
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
