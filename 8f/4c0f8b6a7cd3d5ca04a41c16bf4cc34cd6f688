@@ -1,0 +1,96 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: [ANN] unicorn 0.99.0 - simplicity wins
+Date: Thu, 6 May 2010 14:01:51 -0700
+Message-ID: <20100506210151.GB13412@dcvr.yhbt.net>
+References: <20100506193740.GB10280@dcvr.yhbt.net>
+ <9ECF07C4-5216-47BE-961D-AFC0F0C82060@internetfamo.us>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1273179718 27764 80.91.229.12 (6 May 2010 21:01:58
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Thu, 6 May 2010 21:01:58 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Thu May 06 23:01:57
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <9ECF07C4-5216-47BE-961D-AFC0F0C82060@internetfamo.us>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:489
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/489>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1OA8Cf-0002h4-Gd for gclrug-mongrel-unicorn@m.gmane.org; Thu, 06 May 2010
+ 23:01:53 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 02A7C1858340; Thu,  6 May 2010 17:01:53 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id C31291858323 for <mongrel-unicorn@rubyforge.org>;
+ Thu,  6 May 2010 17:01:51 -0400 (EDT)
+Received: from localhost (unknown [127.0.2.5]) by dcvr.yhbt.net (Postfix)
+ with ESMTP id 4B7FD1F4EF; Thu,  6 May 2010 21:01:51 +0000 (UTC)
+
+Jamie Wilkinson <jamie@internetfamo.us> wrote:
+> Re: bundling/isolating:
+> 
+> > If it is not possible to only have one Rack version installed
+> > "globally", then they should either use Isolate or Bundler and
+> > install a private version of Unicorn along with their preferred
+> > version of Rack.  Users who install in this way are recommended to
+> > execute the isolated/bundled version of Unicorn, instead of what
+> > would normally be in $PATH.
+> 
+> A caveat about using a bundled unicorn binary (via `bundle exec
+> unicorn`): if you use capistrano-based deployment, make sure to use a
+> shared vendor/bundler_gems!
+
+Thanks for the tip!
+
+> Obviously this is much faster than re-bundling each release, but it
+> also prevents the unicorn binary from going missing -- if unicorn is
+> originally executed as
+> /app/releases/XXY/vendor/bundler_gems/bin/unicorn and that release
+> gets rolled back or pruned by :keep_releases, the original master's
+> binary is now gone & it will no longer be able to fork new unicorn
+> masters (is this expected behavior/a known issue?)
+
+Yeah, Unicorn will stash the original command-line it was executed
+with.  If you need to override this at runtime, I would do something
+like this in the Unicorn config file:
+
+      Unicorn::HttpServer::START_CTX[0] = "/some/path/to/bin/unicorn"
+
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
