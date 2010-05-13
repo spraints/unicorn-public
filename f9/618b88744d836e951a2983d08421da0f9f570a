@@ -1,0 +1,116 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: Prematurely closed connection
+Date: Thu, 13 May 2010 20:13:17 +0000
+Message-ID: <20100513201317.GA9848@dcvr.yhbt.net>
+References: <AANLkTiko7AQ2msnXa_Y3h01esdXcJTwRqd__XLoeSMPF@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1273781630 15784 80.91.229.12 (13 May 2010 20:13:50
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Thu, 13 May 2010 20:13:50 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Thu May 13 22:13:49
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <AANLkTiko7AQ2msnXa_Y3h01esdXcJTwRqd__XLoeSMPF@mail.gmail.com>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:504
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/504>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1OCemy-0001nE-2b for gclrug-mongrel-unicorn@m.gmane.org; Thu, 13 May 2010
+ 22:13:48 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id B57B81678217; Thu, 13 May 2010 16:13:46 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id DDF281858343 for <mongrel-unicorn@rubyforge.org>;
+ Thu, 13 May 2010 16:13:18 -0400 (EDT)
+Received: from localhost (unknown [127.0.2.5]) by dcvr.yhbt.net (Postfix)
+ with ESMTP id 286141F4EF; Thu, 13 May 2010 20:13:18 +0000 (UTC)
+
+Paul Carey <paul.p.carey@gmail.com> wrote:
+> Hi
+> 
+> I've come across a puzzling issue. The code segment below works as
+> expected, but if I replace :error => true with :error =>
+> invite.errors, nginx serves a 502 as per the log below. invite.errors
+> is normal hash.
+> 
+> I'm using a bundled merb 1.1 with Unicorn 0.99. Unicorn is a system
+> gem. I'm running nginx 0.7.65. I've only experienced this issue with
+> nginx / unicorn.
+> I'd be grateful for any thoughts or pointers.
+> 
+> Many thanks
+> Paul
+> 
+> == controller action, serving json
+> if invite.save
+>   display :ok => true
+> else
+>   Merb.logger.info "invite.errors #{invite.errors}"
+>   display :error => true
+> end
+
+<snip>
+
+Hi Paul,
+
+> == unicorn.stderr.log
+> I, [2010-05-13T16:34:03.869423 #15332]  INFO -- : reaped
+> #<Process::Status: pid 15398 SIGSEGV (signal 11)> worker=15I,
+                               ^^^^^^^
+
+Uh oh, something is causing the Unicorn process to segfault in the
+response phase.  Since Unicorn is only running Ruby code at that point,
+I suspect there's something in your JSON enoder that's not liking
+the serialization of invite.errors...
+
+I'm not familiar with Merb at all, but I'd be curious to see how your
+JSON encoder is handling the "invite.errors" hash.
+
+Which version of Ruby, JSON/Yajl library, etc are you using?
+
+Can you get us a backtrace?
+
+Can you run with RACK_ENV=development to get Rack::Lint onto your
+middleware stack?  Perhaps Merb isn't returning a 100% valid Rack
+response and Rack::Lint will notice.
+
+Thanks for any info you can provide.
+
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
