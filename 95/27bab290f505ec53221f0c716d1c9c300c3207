@@ -1,0 +1,91 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.7 required=5.0 tests=MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Luke Melia <luke@lukemelia.com>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: Garbage collection outside of request cycle?
+Date: Thu, 13 May 2010 16:29:04 -0400
+Message-ID: <B593A412-6452-417A-8E99-DBF113F99973@lukemelia.com>
+References: <0BFC98E9-072B-47EE-9A70-05478C20141B@lukemelia.com>
+ <20100506205754.GA13412@dcvr.yhbt.net>
+ <2B9DF63C-F43F-48B0-A380-2270EDFA53F4@lukemelia.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0 (Apple Message framework v1078)
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1273782556 19142 80.91.229.12 (13 May 2010 20:29:16
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Thu, 13 May 2010 20:29:16 +0000 (UTC)
+Cc: unicorn list <mongrel-unicorn@rubyforge.org>
+To: Luke Melia <luke@lukemelia.com>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Thu May 13 22:29:15
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+X-pair-Authenticated: 66.192.34.240
+In-Reply-To: <2B9DF63C-F43F-48B0-A380-2270EDFA53F4@lukemelia.com>
+X-Mailer: Apple Mail (2.1078)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:505
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/505>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1OCf1u-00025d-ID for gclrug-mongrel-unicorn@m.gmane.org; Thu, 13 May 2010
+ 22:29:14 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 053DF18582FF; Thu, 13 May 2010 16:29:14 -0400 (EDT)
+Received: from relay01.pair.com (relay01.pair.com [209.68.5.15]) by
+ rubyforge.org (Postfix) with SMTP id 6BEDD1858289 for
+ <mongrel-unicorn@rubyforge.org>; Thu, 13 May 2010 16:29:09 -0400 (EDT)
+Received: (qmail 26415 invoked by uid 0); 13 May 2010 20:29:05 -0000
+Received: from 66.192.34.240 (HELO ?192.168.122.70?) (66.192.34.240) by
+ relay01.pair.com with SMTP; 13 May 2010 20:29:05 -0000
+
+> On May 6, 2010, at 4:57 PM, Eric Wong wrote:
+> 
+>> ==> big_app_gc.rb <==
+>> # This shouldn't hurt overall performance as long as the server cluster
+>> # is at <=50% CPU capacity, and improves the performance of most memory
+>> # intensive requests.  This serves to improve _client-visible_
+>> # performance (possibly at the cost of overall performance).
+
+I thought the list might be interested in how this worked for us. I applied the patch to execute GC between each request. I'm using NewRelic to measure the app. Prior to the patch our, we spent about 25% of our aggregate time serving a request in GC and our application was running at around 20-30% CPU load. Our running app shows up as using ~330MB of memory.
+
+Applying the patch cut the time spent in GC time to nearly zero and as predicted CPU spiked. Client-perceived responsiveness increased as well. Unfortunately, during our busiest time of the day, CPU load got so high that nginx locked up, so we rolled back the patch.
+
+I made a simple change to execute GC once every 5 requests and applied it again. Aggregate time spent in GC reduced to out 10% of total request time. This resulted in a bout a 25% overall improvement in client response time. Big win! CPU maxes out at about 80% with this configuration..
+
+One other thing I did was force GC to execute before_fork, on the theory that with COW, we would want to fork in the tidiest state possible. I have not measured this on it's own to evaluate it's impact.
+
+Thanks again for the help and code on this, Eric.
+
+Considering how useful this is, perhaps unicorn should have an after_request hook, to avoid the need to monkey-patch?
+
+Cheers,
+Luke
+--
+http://www.lukemelia.com/
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
