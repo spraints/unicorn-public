@@ -1,0 +1,116 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.6 required=5.0 tests=FREEMAIL_FROM,
+ MSGID_FROM_MTA_HEADER,RP_MATCHES_RCVD,T_DKIM_INVALID shortcircuit=no
+ autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Paul Carey <paul.p.carey@gmail.com>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Prematurely closed connection
+Date: Thu, 13 May 2010 18:10:10 +0100
+Message-ID: <AANLkTiko7AQ2msnXa_Y3h01esdXcJTwRqd__XLoeSMPF@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1273770646 6351 80.91.229.12 (13 May 2010 17:10:46
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Thu, 13 May 2010 17:10:46 +0000 (UTC)
+To: mongrel-unicorn@rubyforge.org
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Thu May 13 19:10:44
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com; s=gamma;
+ h=domainkey-signature:mime-version:received:received:date:message-id
+ :subject:from:to:content-type;
+ bh=7NiyDcJXSry/jOQAYLoTN5E0g6O9n8Gc92yjs4I+OmA=;
+ b=kbg99SLu9CmM0opsF/eskvAnbYBaZ0mBTYxYINX5mpK8n+KXHsIOygV576AHKF5l+n
+ I9/LkKocN0lD2uBV72ku8WGFrNweP2iMAO250KTIH6amflHC/QD9upBVh1uM9lobwG7h
+ 33RPTGHJANS3xszrpH1mK+1ogqrpDtg3OWVi4=
+DomainKey-Signature: a=rsa-sha1; c=nofws; d=gmail.com; s=gamma;
+ h=mime-version:date:message-id:subject:from:to:content-type;
+ b=ry8cF34Uh9Ub7lEotZjoZbAIN95SklpCTh92dy2FplcMNPwi3FUHKmV+6vz+aPUPi8
+ 4Lk7PJm+7g4TsmbH6v843Zf3g9JcdlCMs3iKa0nuyWSS8VGcXtNmXyVyevZsGNRId1sc
+ +pZItojDz08jWlWiYFfpPheWQz3z+pK4g+pig=
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:503
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/503>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1OCbvn-0003bQ-JK for gclrug-mongrel-unicorn@m.gmane.org; Thu, 13 May 2010
+ 19:10:43 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 00A6B1858319; Thu, 13 May 2010 13:10:42 -0400 (EDT)
+Received: from mail-wy0-f178.google.com (mail-wy0-f178.google.com
+ [74.125.82.178]) by rubyforge.org (Postfix) with ESMTP id A12071858317 for
+ <mongrel-unicorn@rubyforge.org>; Thu, 13 May 2010 13:10:11 -0400 (EDT)
+Received: by wye20 with SMTP id 20so566859wye.23 for
+ <mongrel-unicorn@rubyforge.org>; Thu, 13 May 2010 10:10:11 -0700 (PDT)
+Received: by 10.216.174.142 with SMTP id x14mr162947wel.8.1273770610896; Thu,
+ 13 May 2010 10:10:10 -0700 (PDT)
+Received: by 10.216.180.210 with HTTP; Thu, 13 May 2010 10:10:10 -0700 (PDT)
+
+Hi
+
+I've come across a puzzling issue. The code segment below works as
+expected, but if I replace :error => true with :error =>
+invite.errors, nginx serves a 502 as per the log below. invite.errors
+is normal hash.
+
+I'm using a bundled merb 1.1 with Unicorn 0.99. Unicorn is a system
+gem. I'm running nginx 0.7.65. I've only experienced this issue with
+nginx / unicorn.
+I'd be grateful for any thoughts or pointers.
+
+Many thanks
+Paul
+
+== controller action, serving json
+if invite.save
+  display :ok => true
+else
+  Merb.logger.info "invite.errors #{invite.errors}"
+  display :error => true
+end
+
+== nginx.log
+2010/05/13 16:34:03 [error] 11448#0: *226 upstream prematurely closed
+connection while reading response header from upstream, client:
+78.147.1.152, server: _, request: "PUT
+/invites/726a50c3400d2fa16c7ec9e29512ac2cb69b52c8 HTTP/1.1", upstream:
+"http://unix:/var/apps/sd/tmp/unicorn.sock:/invites/726a50c3400d2fa16c7ec9e29512ac2cb69b52c8",
+host: "ec2-174-129-71-76.compute-1.amazonaws.com", referrer:
+"http://ec2-174-129-71-76.compute-1.amazonaws.com/events/djk5qipe87bas51z0qrgeukrr"
+
+== unicorn.stderr.log
+I, [2010-05-13T16:34:03.869423 #15332]  INFO -- : reaped
+#<Process::Status: pid 15398 SIGSEGV (signal 11)> worker=15I,
+[2010-05-13T16:34:03.890454 #15429]  INFO -- : worker=15 spawned
+pid=15429
+I, [2010-05-13T16:34:03.890669 #15429]  INFO -- : worker=15 readyI,
+[2010-05-13T16:34:55.650233 #15332]  INFO -- : reloading
+config_file=config/unicorn.rb
+I, [2010-05-13T16:34:58.583076 #15332]  INFO -- : Refreshing Gem list
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
