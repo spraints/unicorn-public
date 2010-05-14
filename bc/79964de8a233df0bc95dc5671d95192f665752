@@ -1,0 +1,221 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: Garbage collection outside of request cycle?
+Date: Fri, 14 May 2010 19:02:31 +0000
+Message-ID: <20100514190231.GA21711@dcvr.yhbt.net>
+References: <0BFC98E9-072B-47EE-9A70-05478C20141B@lukemelia.com>
+ <20100506205754.GA13412@dcvr.yhbt.net>
+ <2B9DF63C-F43F-48B0-A380-2270EDFA53F4@lukemelia.com>
+ <B593A412-6452-417A-8E99-DBF113F99973@lukemelia.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1273863771 19727 80.91.229.12 (14 May 2010 19:02:51
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Fri, 14 May 2010 19:02:51 +0000 (UTC)
+Cc: unicorn list <mongrel-unicorn@rubyforge.org>
+To: Luke Melia <luke@lukemelia.com>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Fri May 14 21:02:47
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <B593A412-6452-417A-8E99-DBF113F99973@lukemelia.com>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:507
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/507>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1OD09l-0006ID-7u for gclrug-mongrel-unicorn@m.gmane.org; Fri, 14 May 2010
+ 21:02:45 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 1495B1858355; Fri, 14 May 2010 15:02:44 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id CC454185834B for <mongrel-unicorn@rubyforge.org>;
+ Fri, 14 May 2010 15:02:32 -0400 (EDT)
+Received: from localhost (unknown [127.0.2.5]) by dcvr.yhbt.net (Postfix)
+ with ESMTP id 056A71F4F9; Fri, 14 May 2010 19:02:32 +0000 (UTC)
+
+Luke Melia <luke@lukemelia.com> wrote:
+> > On May 6, 2010, at 4:57 PM, Eric Wong wrote:
+> > 
+> >> ==> big_app_gc.rb <== # This shouldn't hurt overall performance as
+> >> long as the server cluster # is at <=50% CPU capacity, and improves
+> >> the performance of most memory # intensive requests.  This serves
+> >> to improve _client-visible_ # performance (possibly at the cost of
+> >> overall performance).
+> 
+> I thought the list might be interested in how this worked for us. I
+> applied the patch to execute GC between each request. I'm using
+> NewRelic to measure the app. Prior to the patch our, we spent about
+> 25% of our aggregate time serving a request in GC and our application
+> was running at around 20-30% CPU load. Our running app shows up as
+> using ~330MB of memory.
+
+Thanks for the feedback, Luke.
+
+Was the original 30% CPU load during peak traffic or normal traffic?
+
+> Applying the patch cut the time spent in GC time to nearly zero and as
+> predicted CPU spiked. Client-perceived responsiveness increased as
+> well. Unfortunately, during our busiest time of the day, CPU load got
+> so high that nginx locked up, so we rolled back the patch.
+
+Yikes, nginx locking up is rare.  It's worth investigating and fixing
+that from the nginx side if you can reproduce it.
+
+> I made a simple change to execute GC once every 5 requests and applied
+> it again. Aggregate time spent in GC reduced to out 10% of total
+> request time. This resulted in a bout a 25% overall improvement in
+> client response time. Big win! CPU maxes out at about 80% with this
+> configuration..
+
+How many Unicorn workers do you have per-core?  I forgot to mention that
+you might want to run more workers to "hide" GC costs, something like a
+poor man's concurrent GC.
+
+> One other thing I did was force GC to execute before_fork, on the
+> theory that with COW, we would want to fork in the tidiest state
+> possible. I have not measured this on it's own to evaluate it's
+> impact.
+
+I doubt it'd help for anything other than the first <=5 requests that
+hit the worker process.
+
+> Thanks again for the help and code on this, Eric.
+
+Thank _you_ for actually being willing to run and report back on
+crazy experiments I come up with :)
+
+> Considering how useful this is, perhaps unicorn should have an
+> after_request hook, to avoid the need to monkey-patch?
+
+Given configurability requirements and the ability of such a feature to
+penalize some apps, I think making the monkey patch into middleware is a
+nice compromise.
+
+The GC.start in the below middleware runs at a slightly deeper stack
+level, meaning GC will scan more and reap less than the original monkey
+patch, but I doubt there'll be real difference if your app is already
+spending enough time in GC to be a problem.
+
+I've also pushed the following up to git://git.bogomips.org/unicorn.git
+Let me know if you get a chance to test it on your app in place of
+the monkey patch.
+
+>From 95b75a5043b34f39ece4f52befb4b3f884dfdd20 Mon Sep 17 00:00:00 2001
+From: Eric Wong <normalperson@yhbt.net>
+Date: Fri, 14 May 2010 18:27:35 +0000
+Subject: [PATCH] add Unicorn::OobGC middleware
+
+This middleware allows configurable out-of-band garbage
+collection outside of the normal request/response cycle.
+
+It offers configurable paths (to only GC on expensive actions)
+and intervals to limit GC frequency.
+
+It is only expected to work well with Unicorn, as it would
+hurt performance on single-threaded servers if they
+have keepalive enabled.  Obviously this does not work well
+for multi-threaded or evented servers that serve multiple
+clients at once.
+---
+ lib/unicorn/oob_gc.rb |   58 +++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 files changed, 58 insertions(+), 0 deletions(-)
+ create mode 100644 lib/unicorn/oob_gc.rb
+
+diff --git a/lib/unicorn/oob_gc.rb b/lib/unicorn/oob_gc.rb
+new file mode 100644
+index 0000000..8dc4dcf
+--- /dev/null
++++ b/lib/unicorn/oob_gc.rb
+@@ -0,0 +1,58 @@
++# -*- encoding: binary -*-
++module Unicorn
++
++  # Run GC after every request, after closing the client socket and
++  # before attempting to accept more connections.
++  #
++  # This shouldn't hurt overall performance as long as the server cluster
++  # is at <50% CPU capacity, and improves the performance of most memory
++  # intensive requests.  This serves to improve _client-visible_
++  # performance (possibly at the cost of overall performance).
++  #
++  # We'll call GC after each request is been written out to the socket, so
++  # the client never sees the extra GC hit it.
++  #
++  # This middleware is _only_ effective for applications that use a lot
++  # of memory, and will hurt simpler apps/endpoints that can process
++  # multiple requests before incurring GC.
++  #
++  # This middleware is only designed to work with Unicorn, as it harms
++  # keepalive performance.
++  #
++  # Example (in config.ru):
++  #
++  #     require 'unicorn/oob_gc'
++  #
++  #     # GC ever two requests that hit /expensive/foo or /more_expensive/foo
++  #     # in your app.  By default, this will GC once every 5 requests
++  #     # for all endpoints in your app
++  #     use Unicorn::OobGC, 2, %r{\A/(?:expensive/foo|more_expensive/foo)}
++  class OobGC < Struct.new(:app, :interval, :path, :nr, :env, :body)
++
++    def initialize(app, interval = 5, path = %r{\A/})
++      super(app, interval, path, interval)
++    end
++
++    def call(env)
++      status, headers, self.body = app.call(self.env = env)
++      [ status, headers, self ]
++    end
++
++    def each(&block)
++      body.each(&block)
++    end
++
++    # in Unicorn, this is closed _after_ the client socket
++    def close
++      body.close if body.respond_to?(:close)
++
++      if path =~ env['PATH_INFO'] && ((self.nr -= 1) <= 0)
++        self.nr = interval
++        self.body = nil
++        env.clear
++        GC.start
++      end
++    end
++
++  end
++end
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
