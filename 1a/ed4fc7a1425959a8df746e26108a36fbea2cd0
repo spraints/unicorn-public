@@ -1,0 +1,101 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.6 required=5.0 tests=FREEMAIL_FROM,
+ MSGID_FROM_MTA_HEADER,RP_MATCHES_RCVD,T_DKIM_INVALID shortcircuit=no
+ autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Russell Branca <chewbranca@gmail.com>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Forking off the unicorn master process to create a background worker
+Date: Tue, 25 May 2010 11:53:02 -0700
+Message-ID: <AANLkTinpzdLFf1bWBMRqDepIYQBKeZWb_mC0n-nlPhzD@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1274814160 25565 80.91.229.12 (25 May 2010 19:02:40
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Tue, 25 May 2010 19:02:40 +0000 (UTC)
+To: mongrel-unicorn@rubyforge.org
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Tue May 25 21:02:39
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com; s=gamma;
+ h=domainkey-signature:mime-version:received:received:date:message-id
+ :subject:from:to:content-type;
+ bh=fizP+D9Os5O+akISh5l97aKRkmxSprCQHoyEuiJLC0E=;
+ b=YzJCBaUEs4lFbqjGcszQgerIyGlejaWXLvyNKOpn55yYP6ayRDtbGtsDreYxq42SKX
+ aTtop/w0Zgi5Y3v7YA6JBLcx2Yilb8+qYQQ9WOqCQoH4pb8OVll0qEBA0Yj1JbdEYTnx
+ snmILcB6dG4FGVi7E27eTqyBCaTF2vQIEjoq8=
+DomainKey-Signature: a=rsa-sha1; c=nofws; d=gmail.com; s=gamma;
+ h=mime-version:date:message-id:subject:from:to:content-type;
+ b=aKckPnRC+BolBBkToPRGzuTq7MtkwhLSzH8JtjKg+EZgHc8IMgKR85/j0DGyRx0skQ
+ tqzMvvjhE0oE8cr1uoSzTXuOnmVslGW8I+fqzGhJumD3brrwdt67ciwPo+Xw/+GTIZqG
+ hNz9kq3WGFilk8KhBqZmN+hV278fybUwR8C9A=
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:511
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/511>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1OGzOg-0007hS-Pg for gclrug-mongrel-unicorn@m.gmane.org; Tue, 25 May 2010
+ 21:02:39 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 43F7B1858357; Tue, 25 May 2010 15:02:35 -0400 (EDT)
+Received: from mail-qy0-f189.google.com (mail-qy0-f189.google.com
+ [209.85.221.189]) by rubyforge.org (Postfix) with ESMTP id 058CB1779943 for
+ <mongrel-unicorn@rubyforge.org>; Tue, 25 May 2010 14:53:13 -0400 (EDT)
+Received: by qyk27 with SMTP id 27so7917425qyk.23 for
+ <mongrel-unicorn@rubyforge.org>; Tue, 25 May 2010 11:53:13 -0700 (PDT)
+Received: by 10.224.17.147 with SMTP id s19mr4147574qaa.324.1274813582477; 
+ Tue, 25 May 2010 11:53:02 -0700 (PDT)
+Received: by 10.229.86.74 with HTTP; Tue, 25 May 2010 11:53:02 -0700 (PDT)
+
+Hello,
+
+I'm trying to find an efficient way to create a new instance of a
+rails application to perform some background tasks without having to
+load up the entire rails stack every time, so I figured forking off
+the master process would be a good way to go. Now I can easily just
+increment the worker count and then send a web request in, but the new
+worker would be part of the main worker pool, so in the time between
+spawning a new worker and sending the request, another request could
+have come in and snagged that worker. Is it possible to create a new
+worker and not have it enter the main worker pool so I could access it
+directly?
+
+I know this is not your typical use case for unicorn, and you're
+probably thinking there is a lot better ways to do this, however, I
+currently have a rails framework that powers a handful of standalone
+applications on a server with limited resources, and I'm trying to
+make a centralized queue that all the applications use, so the queue
+needs to be able to spawn a new worker for each of the applications
+efficiently, and incrementing/decrementing worker counts in unicorn is
+the most efficient way I've found to spawn a new rails instance.
+
+Any help, suggestions or insight into this would be greatly appreciated.
+
+
+-Russell
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
