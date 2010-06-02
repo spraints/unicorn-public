@@ -1,0 +1,94 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: Read error: #<TypeError: can't modify frozen string> raised from
+ HttpParser
+Date: Wed, 2 Jun 2010 20:25:18 +0000
+Message-ID: <20100602202518.GA8617@dcvr.yhbt.net>
+References: <AANLkTim5Zd_NUWewbSLOy2cEZ1bsJSetq120DvmI79mK@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1275510330 14255 80.91.229.12 (2 Jun 2010 20:25:30
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Wed, 2 Jun 2010 20:25:30 +0000 (UTC)
+Cc: Augusto Becciu <augusto@jadedpixel.com>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Wed Jun 02 22:25:28
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <AANLkTim5Zd_NUWewbSLOy2cEZ1bsJSetq120DvmI79mK@mail.gmail.com>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:518
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/518>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1OJuVD-0004xI-RO for gclrug-mongrel-unicorn@m.gmane.org; Wed, 02 Jun 2010
+ 22:25:28 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 3A39C1678217; Wed,  2 Jun 2010 16:25:27 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 3806B1858362 for <mongrel-unicorn@rubyforge.org>;
+ Wed,  2 Jun 2010 16:25:20 -0400 (EDT)
+Received: from localhost (unknown [127.0.2.5]) by dcvr.yhbt.net (Postfix)
+ with ESMTP id C1EDE1F4F5; Wed,  2 Jun 2010 20:25:18 +0000 (UTC)
+
+Augusto Becciu <augusto@jadedpixel.com> wrote:
+> Hey guys,
+> 
+> Started running unicorn in a production server like two weeks ago.
+> It's been running smoothly, but looking at the logs found 44
+> exceptions like this:
+> 
+> E, [2010-06-02T16:17:15.117071 #22680] ERROR -- : Read error:
+> #<TypeError: can't modify frozen string>
+> E, [2010-06-02T16:17:15.117270 #22680] ERROR -- :
+> /usr/lib/ruby/gems/1.8/gems/unicorn-0.99.0/lib/unicorn/http_request.rb:59:in
+> `headers'
+
+<snip>
+
+> Ruby version: ruby 1.8.7 (2009-12-24 patchlevel 248) [i686-linux],
+> MBARI 0x8770, Ruby Enterprise Edition 2010.01
+> 
+> Any ideas? Maybe a bug in the http parser?
+
+Hi Augusto,
+
+Somehow the reusable Unicorn::HttpRequest::BUF string constant is
+getting frozen when it shouldn't be.   Do you have any code that could
+be freezing that string?  That string object should never be returned to
+the application via any code paths in Unicorn (env or tee_input).
+
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
