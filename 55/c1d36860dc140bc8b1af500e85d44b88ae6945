@@ -1,0 +1,115 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.7 required=5.0 tests=MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Augusto Becciu <augusto@jadedpixel.com>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: Read error: #<TypeError: can't modify frozen string> raised from
+ HttpParser
+Date: Wed, 2 Jun 2010 17:47:44 -0300
+Message-ID: <AANLkTikCjTCVorHoIwsOtfSzt1Z-Mv4ZE8nf0Mqtgnqq@mail.gmail.com>
+References: <AANLkTim5Zd_NUWewbSLOy2cEZ1bsJSetq120DvmI79mK@mail.gmail.com> 
+ <20100602202518.GA8617@dcvr.yhbt.net>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="iso-8859-1"
+Content-Transfer-Encoding: quoted-printable
+X-Trace: dough.gmane.org 1275511700 19293 80.91.229.12 (2 Jun 2010 20:48:20
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Wed, 2 Jun 2010 20:48:20 +0000 (UTC)
+Cc: unicorn list <mongrel-unicorn@rubyforge.org>
+To: Eric Wong <normalperson@yhbt.net>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Wed Jun 02 22:48:17
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+In-Reply-To: <20100602202518.GA8617@dcvr.yhbt.net>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:519
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/519>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1OJurD-0006oX-CU for gclrug-mongrel-unicorn@m.gmane.org; Wed, 02 Jun 2010
+ 22:48:11 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id C1F8C1858363; Wed,  2 Jun 2010 16:48:10 -0400 (EDT)
+Received: from mail-pv0-f178.google.com (mail-pv0-f178.google.com
+ [74.125.83.178]) by rubyforge.org (Postfix) with ESMTP id 13A2B1858362 for
+ <mongrel-unicorn@rubyforge.org>; Wed,  2 Jun 2010 16:48:05 -0400 (EDT)
+Received: by pvg3 with SMTP id 3so1400907pvg.23 for
+ <mongrel-unicorn@rubyforge.org>; Wed, 02 Jun 2010 13:48:05 -0700 (PDT)
+Received: by 10.142.249.16 with SMTP id w16mr5547757wfh.134.1275511685042; 
+ Wed, 02 Jun 2010 13:48:05 -0700 (PDT)
+Received: by 10.220.109.2 with HTTP; Wed, 2 Jun 2010 13:47:44 -0700 (PDT)
+
+Hi Eric,
+
+There's no way our application could be freezing that constant, at
+least not intentionally.
+
+We're using New Replic's RPM plugin, but checked it out and couldn't
+find anything that could do that.
+
+http://github.com/newrelic/rpm/blob/master/lib/new_relic/agent/instrumentat=
+ion/unicorn_instrumentation.rb
+
+Let me know if I can help in any way.
+
+Thanks,
+Augusto
+
+On Wed, Jun 2, 2010 at 5:25 PM, Eric Wong <normalperson@yhbt.net> wrote:
+> Augusto Becciu <augusto@jadedpixel.com> wrote:
+>> Hey guys,
+>>
+>> Started running unicorn in a production server like two weeks ago.
+>> It's been running smoothly, but looking at the logs found 44
+>> exceptions like this:
+>>
+>> E, [2010-06-02T16:17:15.117071 #22680] ERROR -- : Read error:
+>> #<TypeError: can't modify frozen string>
+>> E, [2010-06-02T16:17:15.117270 #22680] ERROR -- :
+>> /usr/lib/ruby/gems/1.8/gems/unicorn-0.99.0/lib/unicorn/http_request.rb:5=
+9:in
+>> `headers'
+>
+> <snip>
+>
+>> Ruby version: ruby 1.8.7 (2009-12-24 patchlevel 248) [i686-linux],
+>> MBARI 0x8770, Ruby Enterprise Edition 2010.01
+>>
+>> Any ideas? Maybe a bug in the http parser?
+>
+> Hi Augusto,
+>
+> Somehow the reusable Unicorn::HttpRequest::BUF string constant is
+> getting frozen when it shouldn't be. =A0 Do you have any code that could
+> be freezing that string? =A0That string object should never be returned to
+> the application via any code paths in Unicorn (env or tee_input).
+>
+> --
+> Eric Wong
+>
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
