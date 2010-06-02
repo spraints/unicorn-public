@@ -1,0 +1,109 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.7 required=5.0 tests=MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Augusto Becciu <augusto@jadedpixel.com>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Read error: #<TypeError: can't modify frozen string> raised from 
+ HttpParser
+Date: Wed, 2 Jun 2010 15:01:59 -0300
+Message-ID: <AANLkTim5Zd_NUWewbSLOy2cEZ1bsJSetq120DvmI79mK@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1275501759 8918 80.91.229.12 (2 Jun 2010 18:02:39
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Wed, 2 Jun 2010 18:02:39 +0000 (UTC)
+To: mongrel-unicorn@rubyforge.org
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Wed Jun 02 20:02:38
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:517
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/517>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1OJsGy-0000Q3-Ab for gclrug-mongrel-unicorn@m.gmane.org; Wed, 02 Jun 2010
+ 20:02:36 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 63FAB185835D; Wed,  2 Jun 2010 14:02:33 -0400 (EDT)
+Received: from mail-pv0-f178.google.com (mail-pv0-f178.google.com
+ [74.125.83.178]) by rubyforge.org (Postfix) with ESMTP id 12117185834E for
+ <mongrel-unicorn@rubyforge.org>; Wed,  2 Jun 2010 14:02:20 -0400 (EDT)
+Received: by pvg3 with SMTP id 3so1296969pvg.23 for
+ <mongrel-unicorn@rubyforge.org>; Wed, 02 Jun 2010 11:02:19 -0700 (PDT)
+Received: by 10.142.10.14 with SMTP id 14mr5291227wfj.96.1275501739365; Wed, 
+ 02 Jun 2010 11:02:19 -0700 (PDT)
+Received: by 10.114.195.17 with HTTP; Wed, 2 Jun 2010 11:01:59 -0700 (PDT)
+
+Hey guys,
+
+Started running unicorn in a production server like two weeks ago.
+It's been running smoothly, but looking at the logs found 44
+exceptions like this:
+
+E, [2010-06-02T16:17:15.117071 #22680] ERROR -- : Read error:
+#<TypeError: can't modify frozen string>
+E, [2010-06-02T16:17:15.117270 #22680] ERROR -- :
+/usr/lib/ruby/gems/1.8/gems/unicorn-0.99.0/lib/unicorn/http_request.rb:59:in
+`headers'
+/usr/lib/ruby/gems/1.8/gems/unicorn-0.99.0/lib/unicorn/http_request.rb:59:in
+`read'
+/usr/lib/ruby/gems/1.8/gems/unicorn-0.99.0/lib/unicorn.rb:643:in
+`process_client'
+/usr/lib/ruby/gems/1.8/gems/unicorn-0.99.0/lib/unicorn.rb:716:in `worker_loop'
+/usr/lib/ruby/gems/1.8/gems/unicorn-0.99.0/lib/unicorn.rb:714:in `each'
+/usr/lib/ruby/gems/1.8/gems/unicorn-0.99.0/lib/unicorn.rb:714:in `worker_loop'
+/u/apps/xxxx/releases/20100602004926/vendor/plugins/newrelic_rpm/lib/new_relic/agent/instrumentation/unicorn_instrumentation.rb:7:in
+`call'
+/u/apps/xxxx/releases/20100602004926/vendor/plugins/newrelic_rpm/lib/new_relic/agent/instrumentation/unicorn_instrumentation.rb:7:in
+`worker_loop'
+/usr/lib/ruby/gems/1.8/gems/unicorn-0.99.0/lib/unicorn.rb:605:in
+`spawn_missing_workers'
+/usr/lib/ruby/gems/1.8/gems/unicorn-0.99.0/lib/unicorn.rb:602:in `fork'
+/usr/lib/ruby/gems/1.8/gems/unicorn-0.99.0/lib/unicorn.rb:602:in
+`spawn_missing_workers'
+/usr/lib/ruby/gems/1.8/gems/unicorn-0.99.0/lib/unicorn.rb:598:in `each'
+/usr/lib/ruby/gems/1.8/gems/unicorn-0.99.0/lib/unicorn.rb:598:in
+`spawn_missing_workers'
+/usr/lib/ruby/gems/1.8/gems/unicorn-0.99.0/lib/unicorn.rb:612:in
+`maintain_worker_count'
+/usr/lib/ruby/gems/1.8/gems/unicorn-0.99.0/lib/unicorn.rb:276:in `start'
+/usr/lib/ruby/gems/1.8/gems/unicorn-0.99.0/lib/unicorn.rb:28:in `run'
+/usr/lib/ruby/gems/1.8/gems/unicorn-0.99.0/bin/unicorn_rails:203
+/usr/bin/unicorn_rails:26:in `load'
+/usr/bin/unicorn_rails:26
+
+Ruby version: ruby 1.8.7 (2009-12-24 patchlevel 248) [i686-linux],
+MBARI 0x8770, Ruby Enterprise Edition 2010.01
+
+
+Any ideas? Maybe a bug in the http parser?
+
+Thanks,
+Augusto
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
