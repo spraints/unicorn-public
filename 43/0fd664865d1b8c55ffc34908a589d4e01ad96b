@@ -1,0 +1,113 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: Fwd: Support for Soft Timeout in Unicorn
+Date: Thu, 3 Jun 2010 18:22:46 +0000
+Message-ID: <20100603182246.GB19649@dcvr.yhbt.net>
+References: <20100603173749.GA19649@dcvr.yhbt.net>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1275589548 9542 80.91.229.12 (3 Jun 2010 18:25:48
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Thu, 3 Jun 2010 18:25:48 +0000 (UTC)
+Cc: Pierre Baillet <oct@fotonauts.com>
+To: mongrel-unicorn@rubyforge.org
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Thu Jun 03 20:25:46
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <20100603173749.GA19649@dcvr.yhbt.net>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:523
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/523>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1OKF6u-0005i4-Kg for gclrug-mongrel-unicorn@m.gmane.org; Thu, 03 Jun 2010
+ 20:25:44 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 070201858353; Thu,  3 Jun 2010 14:25:44 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 1B57A185834B for <mongrel-unicorn@rubyforge.org>;
+ Thu,  3 Jun 2010 14:22:47 -0400 (EDT)
+Received: from localhost (unknown [127.0.2.5]) by dcvr.yhbt.net (Postfix)
+ with ESMTP id 774891F4E5; Thu,  3 Jun 2010 18:22:46 +0000 (UTC)
+
+Pierre Baillet wrote:
+> We use Unicorn at fotopedia since yesterday in production. We switched from
+> Passenger due to an issue in the way Passenger was handling some error in
+> our main application. Things run very well on Unicorn.
+> 
+> We have also modified Unicorn to handle a soft timeout for its workers. The
+> Unicorn timeout was killing the workers without any chance for us to catch
+> the Rails stack trace and identify the issue. I've forked and branched
+> Unicorn from github and added a soft_timeout configuration value that is
+> used for long running workers.
+> 
+> The workers now handle SIGABRT and will raise an exception. This will crash
+> the Rails application if it can be crashed and force the framework to dump
+> the stack trace in the logs. Let me know if this might be useful for other
+> people and, why not, integrate that in the main Unicorn code !
+
+Hi Pierre,
+
+I'm thinking there's a better way to do this without involving the
+master process.
+
+The current timeout implementation[1] is really the last resort,
+point-of-no-return situations when the workers are completely
+stuck/blocked and cannot respond to other signals[2].  If the worker can
+respond to SIGABRT (especially going through the interpreter and raising
+an exception), then that means it could technically respond to
+Thread#raise, too...
+
+Unfortunately, the current core Ruby timeout implementation is extremely
+naive and inefficient.  It shouldn't be hard to write a better timeout
+implementation that reuses a single timer Thread which can be rearmed
+with every request.
+
+This would be doable as middleware, too, and if done carefully, even
+safely reusable in multi-threaded web servers.  This would be a good
+addition to rack-contrib, even.  I might consider doing it myself if I
+had time.
+
+[1] - I'm not completely happy with "needing" the current timeout
+      implementation in the first place.  I will at least redo it
+      at some point (after Unicorn 1.x) to gain some
+      scalability/performance (and perhaps lose some portability).
+
+[2] - SIGKILL and SIGSTOP are special, userspace has no mechanism
+      to block/catch/ignore those signals, so we rely on the master
+      process to deliver them.
+
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
