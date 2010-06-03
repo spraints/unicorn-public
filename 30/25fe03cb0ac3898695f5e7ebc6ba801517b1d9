@@ -1,0 +1,158 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.7 required=5.0 tests=MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Augusto Becciu <augusto@jadedpixel.com>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: Read error: #<TypeError: can't modify frozen string> raised from
+ HttpParser
+Date: Thu, 3 Jun 2010 20:05:21 -0300
+Message-ID: <AANLkTimy0cLsh36A4pBoYMzZJY5wBKrxCp7rgCxyiZ53@mail.gmail.com>
+References: <AANLkTim5Zd_NUWewbSLOy2cEZ1bsJSetq120DvmI79mK@mail.gmail.com> 
+ <20100602202518.GA8617@dcvr.yhbt.net>
+ <AANLkTikCjTCVorHoIwsOtfSzt1Z-Mv4ZE8nf0Mqtgnqq@mail.gmail.com> 
+ <20100602213815.GA23255@dcvr.yhbt.net>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="iso-8859-1"
+Content-Transfer-Encoding: quoted-printable
+X-Trace: dough.gmane.org 1275606786 4707 80.91.229.12 (3 Jun 2010 23:13:06
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Thu, 3 Jun 2010 23:13:06 +0000 (UTC)
+Cc: unicorn list <mongrel-unicorn@rubyforge.org>
+To: Eric Wong <normalperson@yhbt.net>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Fri Jun 04 01:13:04
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+In-Reply-To: <20100602213815.GA23255@dcvr.yhbt.net>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:528
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/528>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1OKJax-0005hV-Rp for gclrug-mongrel-unicorn@m.gmane.org; Fri, 04 Jun 2010
+ 01:13:04 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id CA6D31858356; Thu,  3 Jun 2010 19:13:02 -0400 (EDT)
+Received: from mail-vw0-f50.google.com (mail-vw0-f50.google.com
+ [209.85.212.50]) by rubyforge.org (Postfix) with ESMTP id 002611858300 for
+ <mongrel-unicorn@rubyforge.org>; Thu,  3 Jun 2010 19:05:41 -0400 (EDT)
+Received: by vws17 with SMTP id 17so844625vws.23 for
+ <mongrel-unicorn@rubyforge.org>; Thu, 03 Jun 2010 16:05:41 -0700 (PDT)
+Received: by 10.224.98.84 with SMTP id p20mr5303357qan.298.1275606341221;
+ Thu,  03 Jun 2010 16:05:41 -0700 (PDT)
+Received: by 10.220.109.2 with HTTP; Thu, 3 Jun 2010 16:05:21 -0700 (PDT)
+
+On Wed, Jun 2, 2010 at 6:38 PM, Eric Wong <normalperson@yhbt.net> wrote:
+> Augusto Becciu <augusto@jadedpixel.com> wrote:
+>> On Wed, Jun 2, 2010 at 5:25 PM, Eric Wong <normalperson@yhbt.net> wrote:
+>> > Augusto Becciu <augusto@jadedpixel.com> wrote:
+>> >> Hey guys,
+>> >>
+>> >> Started running unicorn in a production server like two weeks ago.
+>> >> It's been running smoothly, but looking at the logs found 44
+>> >> exceptions like this:
+>> >>
+>> >> E, [2010-06-02T16:17:15.117071 #22680] ERROR -- : Read error:
+>> >> #<TypeError: can't modify frozen string>
+>> >> E, [2010-06-02T16:17:15.117270 #22680] ERROR -- :
+>> >> /usr/lib/ruby/gems/1.8/gems/unicorn-0.99.0/lib/unicorn/http_request.r=
+b:59:in
+>> >> `headers'
+>> >
+>> > <snip>
+>> >
+>> >> Ruby version: ruby 1.8.7 (2009-12-24 patchlevel 248) [i686-linux],
+>> >> MBARI 0x8770, Ruby Enterprise Edition 2010.01
+>> >>
+>> >> Any ideas? Maybe a bug in the http parser?
+>> >
+>> > Hi Augusto,
+>> >
+>> > Somehow the reusable Unicorn::HttpRequest::BUF string constant is
+>> > getting frozen when it shouldn't be. =A0 Do you have any code that cou=
+ld
+>> > be freezing that string? =A0That string object should never be returne=
+d to
+>> > the application via any code paths in Unicorn (env or tee_input).
+>
+> Please don't top post, thanks.
+>
+>> Hi Eric,
+>>
+>> There's no way our application could be freezing that constant, at
+>> least not intentionally.
+>>
+>> We're using New Replic's RPM plugin, but checked it out and couldn't
+>> find anything that could do that.
+>>
+>> http://github.com/newrelic/rpm/blob/master/lib/new_relic/agent/instrumen=
+tation/unicorn_instrumentation.rb
+>>
+>> Let me know if I can help in any way.
+>
+> Are you able to reproduce the problem without the RPM plugin? =A0I've
+> never used RPM myself, but we've heard of (and proposed some fixes)
+> with it over the recent months.
+>
+> Some of those problems could be segfaults (on x86_64), but memory
+> corruption could also cause an unintentional freeze, as well...
+>
+> In particular, could you try disabling compression when sending things
+> upstream?
+>
+> (totally untested, I don't even have a New Relic account[1]).
+>
+> diff --git a/lib/new_relic/agent/agent.rb b/lib/new_relic/agent/agent.rb
+> index 928c6d7..5e60520 100644
+> --- a/lib/new_relic/agent/agent.rb
+> +++ b/lib/new_relic/agent/agent.rb
+> @@ -554,7 +554,7 @@ module NewRelic
+> =A0 =A0 =A0 dump_size =3D dump.size
+>
+> =A0 =A0 =A0 # small payloads don't need compression
+> - =A0 =A0 =A0return [dump, 'identity'] if dump_size < 2000
+> + =A0 =A0 =A0return [dump, 'identity']
+>
+> =A0 =A0 =A0 # medium payloads get fast compression, to save CPU
+> =A0 =A0 =A0 # big payloads get all the compression possible, to stay under
+> ---
+>
+> There's also 1787b22eb2d8ab8b4046ae14be349aa487abc7b5 in the
+> v2.12.2_beta tag of git://github.com/newrelic/rpm which raises
+> the compression threshold, too...
+>
+> --
+> Eric Wong
+>
+> [1] - yes I'm allergic to signing up for commercial things
+>
+
+Thanks Eric! Unfortunately after completely disabling RPM, we keep
+getting that error. :(
+
+What else could it be?
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
