@@ -1,0 +1,189 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: unicorn_rails cleanup (possible fix for Rails3) pushed
+Date: Fri, 4 Jun 2010 01:58:38 +0000
+Message-ID: <20100604015838.GA21464@dcvr.yhbt.net>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1275616732 27599 80.91.229.12 (4 Jun 2010 01:58:52
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Fri, 4 Jun 2010 01:58:52 +0000 (UTC)
+To: mongrel-unicorn@rubyforge.org
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Fri Jun 04 03:58:48
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:530
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/530>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1OKMBL-0001Q1-Uy for gclrug-mongrel-unicorn@m.gmane.org; Fri, 04 Jun 2010
+ 03:58:48 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id B2124185834B; Thu,  3 Jun 2010 21:58:44 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id C3E74185834B for <mongrel-unicorn@rubyforge.org>;
+ Thu,  3 Jun 2010 21:58:39 -0400 (EDT)
+Received: from localhost (unknown [127.0.2.5]) by dcvr.yhbt.net (Postfix)
+ with ESMTP id B21D21F4F9; Fri,  4 Jun 2010 01:58:38 +0000 (UTC)
+
+Hi all,
+
+I've pushed the following patch out go git://git.bogomips.org/unicorn
+along with a few other Rails-related test updates.  This is more of a
+shotgun fix (but less code is better :) since I haven't been able to
+reproduce the brokeness people have been seeing with "unicorn_rails"
+and Rails 3 betas.
+
+Even though "unicorn" works perfectly well for Rails3, some folks will
+inevitably run "unicorn_rails" because of the "rails" in its name.
+
+If I were to do it all over again, I would've just made everybody write
+config.ru files for Rails.  But yes, programming is like sex, make one
+mistake and support it for life :)
+
+You can grab a git gem here, too:
+
+  http://unicorn.bogomips.org/files/unicorn-0.99.0.16.g59a625.gem
+
+>From 4b44e21957e4cb8ec6ace5604fbe096dfd8959d2 Mon Sep 17 00:00:00 2001
+From: Eric Wong <normalperson@yhbt.net>
+Date: Thu, 3 Jun 2010 22:52:11 +0000
+Subject: [PATCH] unicorn_rails: avoid duplicating config.ru logic
+
+This should allow "unicorn_rails" to be used seamlessly
+with Rails 3 projects which package config.ru for you.
+---
+ bin/unicorn_rails |   50 ++++++++++++++------------------------------------
+ 1 files changed, 14 insertions(+), 36 deletions(-)
+
+diff --git a/bin/unicorn_rails b/bin/unicorn_rails
+index 72ab288..45a9b11 100755
+--- a/bin/unicorn_rails
++++ b/bin/unicorn_rails
+@@ -109,53 +109,30 @@ end
+ 
+ ru = ARGV[0] || (File.exist?('config.ru') ? 'config.ru' : nil)
+ 
+-if ru && ru =~ /\.ru\z/
+-  # parse embedded command-line options in config.ru comments
+-  /^#\\(.*)/ =~ File.read(ru) and opts.parse!($1.split(/\s+/))
+-end
+-
+-def rails_builder(ru, daemonize)
++def rails_builder(daemonize)
+   # this lambda won't run until after forking if preload_app is false
+   lambda do ||
+     # Load Rails and (possibly) the private version of Rack it bundles.
+     begin
+       require 'config/boot'
++      require 'config/environment'
+     rescue LoadError => err
+       abort "#$0 must be run inside RAILS_ROOT: #{err.inspect}"
+     end
+ 
+-    inner_app = case ru
+-    when nil
+-      require 'config/environment'
+-
+-      defined?(::Rails::VERSION::STRING) or
+-        abort "Rails::VERSION::STRING not defined by config/{boot,environment}"
+-      # it seems Rails >=2.2 support Rack, but only >=2.3 requires it
+-      old_rails = case ::Rails::VERSION::MAJOR
+-      when 0, 1 then true
+-      when 2 then Rails::VERSION::MINOR < 3 ? true : false
+-      else
+-        false
+-      end
+-
+-      if old_rails
+-        require 'unicorn/app/old_rails'
+-        Unicorn::App::OldRails.new
+-      else
+-        ActionController::Dispatcher.new
+-      end
+-    when /\.ru$/
+-      raw = File.read(ru)
+-      raw.sub!(/^__END__\n.*/, '')
+-      eval("Rack::Builder.new {(#{raw}\n)}.to_app", TOPLEVEL_BINDING, ru)
++    defined?(::Rails::VERSION::STRING) or
++      abort "Rails::VERSION::STRING not defined by config/{boot,environment}"
++    # it seems Rails >=2.2 support Rack, but only >=2.3 requires it
++    old_rails = case ::Rails::VERSION::MAJOR
++    when 0, 1 then true
++    when 2 then Rails::VERSION::MINOR < 3 ? true : false
+     else
+-      require ru
+-      Object.const_get(File.basename(ru, '.rb').capitalize)
++      false
+     end
+ 
+     Rack::Builder.new do
+       map_path = ENV['RAILS_RELATIVE_URL_ROOT'] || '/'
+-      if inner_app.class.to_s == "Unicorn::App::OldRails"
++      if old_rails
+         if map_path != '/'
+           # patches + tests welcome, but I really cbf to deal with this
+           # since all apps I've ever dealt with just use "/" ...
+@@ -163,23 +140,24 @@ def rails_builder(ru, daemonize)
+         end
+         $stderr.puts "LogTailer not available for Rails < 2.3" unless daemonize
+         $stderr.puts "Debugger not available" if $DEBUG
++        require 'unicorn/app/old_rails'
+         map(map_path) do
+           use Unicorn::App::OldRails::Static
+-          run inner_app
++          run Unicorn::App::OldRails.new
+         end
+       else
+         use Rails::Rack::LogTailer unless daemonize
+         use Rails::Rack::Debugger if $DEBUG
+         map(map_path) do
+           use Rails::Rack::Static
+-          run inner_app
++          run ActionController::Dispatcher.new
+         end
+       end
+     end.to_app
+   end
+ end
+ 
+-app = rails_builder(ru, daemonize)
++app = ru ? Unicorn.builder(ru, opts) : rails_builder(daemonize)
+ options[:listeners] << "#{host}:#{port}" if set_listener
+ 
+ if $DEBUG
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
