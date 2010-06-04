@@ -1,0 +1,187 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: [PATCH] doc: emphasize the importance of stderr_path
+Date: Fri, 4 Jun 2010 13:47:36 -0700
+Message-ID: <20100604204736.GA4647@dcvr.yhbt.net>
+References: <977C003B-E2CA-48B9-A3E6-C126DB231EB5@nulayer.com>
+ <20100604200648.GA6767@dcvr.yhbt.net>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1275684466 18378 80.91.229.12 (4 Jun 2010 20:47:46
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Fri, 4 Jun 2010 20:47:46 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Fri Jun 04 22:47:44
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <20100604200648.GA6767@dcvr.yhbt.net>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:536
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/536>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1OKdnq-0006CV-VF for gclrug-mongrel-unicorn@m.gmane.org; Fri, 04 Jun 2010
+ 22:47:43 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id C79C41858364; Fri,  4 Jun 2010 16:47:41 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id D912A1858348 for <mongrel-unicorn@rubyforge.org>;
+ Fri,  4 Jun 2010 16:47:36 -0400 (EDT)
+Received: from localhost (unknown [127.0.2.5]) by dcvr.yhbt.net (Postfix)
+ with ESMTP id 3D8081F4F9; Fri,  4 Jun 2010 20:47:36 +0000 (UTC)
+
+Eric Wong <normalperson@yhbt.net> wrote:
+> I shall emphasize the importance of stderr_path if you're using the
+> default logger configuration in the documentation.
+
+I've just pushed the following out to unicorn.git and website.
+
+Comments/grammar/speling korections welcome as always.
+
+>From 2d5a4b075801493a85c6e8d2dbdf0c95002e046d Mon Sep 17 00:00:00 2001
+From: Eric Wong <normalperson@yhbt.net>
+Date: Fri, 4 Jun 2010 13:42:34 -0700
+Subject: [PATCH] doc: emphasize the importance of stderr_path
+
+While second nature to myself, stderr_path may be an
+overlooked configuration parameter for some users.  Also,
+add a minimal sample configuration file that is shorter
+and hopefully less intimidating to new users.
+---
+ examples/unicorn.conf.minimal.rb |   13 +++++++++++++
+ examples/unicorn.conf.rb         |   12 +++++++++---
+ lib/unicorn/configurator.rb      |   22 ++++++++++++++++++----
+ 3 files changed, 40 insertions(+), 7 deletions(-)
+ create mode 100644 examples/unicorn.conf.minimal.rb
+
+diff --git a/examples/unicorn.conf.minimal.rb b/examples/unicorn.conf.minimal.rb
+new file mode 100644
+index 0000000..2a47910
+--- /dev/null
++++ b/examples/unicorn.conf.minimal.rb
+@@ -0,0 +1,13 @@
++# Minimal sample configuration file for Unicorn (not Rack) when used
++# with daemonization (unicorn -D) started in your working directory.
++#
++# See http://unicorn.bogomips.org/Unicorn/Configurator.html for complete
++# documentation.
++# See also http://unicorn.bogomips.org/examples/unicorn.conf.rb for
++# a more verbose configuration using more features.
++
++listen 2007 # by default Unicorn listens on port 8080
++worker_processes 2 # this should be >= nr_cpus
++pid "/path/to/app/shared/pids/unicorn.pid"
++stderr_path "/path/to/app/shared/log/unicorn.log"
++stdout_path "/path/to/app/shared/log/unicorn.log"
+diff --git a/examples/unicorn.conf.rb b/examples/unicorn.conf.rb
+index e209894..37c3e81 100644
+--- a/examples/unicorn.conf.rb
++++ b/examples/unicorn.conf.rb
+@@ -1,4 +1,9 @@
+-# Sample configuration file for Unicorn (not Rack)
++# Sample verbose configuration file for Unicorn (not Rack)
++#
++# This configuration file documents many features of Unicorn
++# that may not be needed for some applications. See
++# http://unicorn.bogomips.org/examples/unicorn.conf.minimal.rb
++# for a much simpler configuration file.
+ #
+ # See http://unicorn.bogomips.org/Unicorn/Configurator.html for complete
+ # documentation.
+@@ -22,8 +27,9 @@ timeout 30
+ # feel free to point this anywhere accessible on the filesystem
+ pid "/path/to/app/shared/pids/unicorn.pid"
+ 
+-# some applications/frameworks log to stderr or stdout, so prevent
+-# them from going to /dev/null when daemonized here:
++# By default, the Unicorn logger will write to stderr.
++# Additionally, ome applications/frameworks log to stderr or stdout,
++# so prevent them from going to /dev/null when daemonized here:
+ stderr_path "/path/to/app/shared/log/unicorn.stderr.log"
+ stdout_path "/path/to/app/shared/log/unicorn.stdout.log"
+ 
+diff --git a/lib/unicorn/configurator.rb b/lib/unicorn/configurator.rb
+index 64a25e3..4fa745d 100644
+--- a/lib/unicorn/configurator.rb
++++ b/lib/unicorn/configurator.rb
+@@ -7,9 +7,11 @@ module Unicorn
+ 
+   # Implements a simple DSL for configuring a Unicorn server.
+   #
+-  # See http://unicorn.bogomips.org/examples/unicorn.conf.rb for an
+-  # example config file.  An example config file for use with nginx is
+-  # also available at http://unicorn.bogomips.org/examples/nginx.conf
++  # See http://unicorn.bogomips.org/examples/unicorn.conf.rb and
++  # http://unicorn.bogomips.org/examples/unicorn.conf.minimal.rb
++  # example configuration files.  An example config file for use with
++  # nginx is also available at
++  # http://unicorn.bogomips.org/examples/nginx.conf
+   class Configurator < Struct.new(:set, :config_file, :after_reload)
+ 
+     # Default settings for Unicorn
+@@ -78,6 +80,10 @@ module Unicorn
+     # sets object to the +new+ Logger-like object.  The new logger-like
+     # object must respond to the following methods:
+     #  +debug+, +info+, +warn+, +error+, +fatal+, +close+
++    # The default Logger will log its output to the path specified
++    # by +stderr_path+.  If you're running Unicorn daemonized, then
++    # you must specify a path to prevent error messages from going
++    # to /dev/null.
+     def logger(new)
+       %w(debug info warn error fatal close).each do |m|
+         new.respond_to?(m) and next
+@@ -310,11 +316,19 @@ module Unicorn
+     # file will be opened with the File::APPEND flag and writes
+     # synchronized to the kernel (but not necessarily to _disk_) so
+     # multiple processes can safely append to it.
++    #
++    # If you are daemonizing and using the default +logger+, it is important
++    # to specify this as errors will otherwise be lost to /dev/null.
++    # Some applications/libraries may also triggering warnings that go to
++    # stderr, and they will end up here.
+     def stderr_path(path)
+       set_path(:stderr_path, path)
+     end
+ 
+-    # Same as stderr_path, except for $stdout
++    # Same as stderr_path, except for $stdout.  Not many Rack applications
++    # write to $stdout, but any that do will have their output written here.
++    # It is safe to point this to the same location a stderr_path.
++    # Like stderr_path, this defaults to /dev/null when daemonized.
+     def stdout_path(path)
+       set_path(:stdout_path, path)
+     end
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
