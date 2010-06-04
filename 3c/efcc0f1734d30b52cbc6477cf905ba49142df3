@@ -1,0 +1,102 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.7 required=5.0 tests=MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Peter Kieltyka <peter.kieltyka@nulayer.com>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Logging errors from Unicorn
+Date: Fri, 4 Jun 2010 15:06:17 -0400
+Message-ID: <977C003B-E2CA-48B9-A3E6-C126DB231EB5@nulayer.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0 (Apple Message framework v1078)
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1275678602 30990 80.91.229.12 (4 Jun 2010 19:10:02
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Fri, 4 Jun 2010 19:10:02 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Fri Jun 04 21:09:56
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+X-Mailer: Apple Mail (2.1078)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:534
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/534>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1OKcHB-0001JJ-Fk for gclrug-mongrel-unicorn@m.gmane.org; Fri, 04 Jun 2010
+ 21:09:53 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 81F3A1858376; Fri,  4 Jun 2010 15:09:50 -0400 (EDT)
+Received: from mail-vw0-f50.google.com (mail-vw0-f50.google.com
+ [209.85.212.50]) by rubyforge.org (Postfix) with ESMTP id A89D01858373 for
+ <mongrel-unicorn@rubyforge.org>; Fri,  4 Jun 2010 15:06:22 -0400 (EDT)
+Received: by vws17 with SMTP id 17so1742499vws.23 for
+ <mongrel-unicorn@rubyforge.org>; Fri, 04 Jun 2010 12:06:22 -0700 (PDT)
+Received: by 10.220.158.12 with SMTP id d12mr8134250vcx.84.1275678381470;
+ Fri, 04 Jun 2010 12:06:21 -0700 (PDT)
+Received: from [192.168.1.103] ([76.9.195.100]) by mx.google.com with ESMTPS
+ id b22sm6331219vcp.8.2010.06.04.12.06.19 (version=TLSv1/SSLv3
+ cipher=RC4-MD5); Fri, 04 Jun 2010 12:06:20 -0700 (PDT)
+
+Hey guys,
+
+I'm running a Rails 3 beta3 application using Ruby 1.9.2-preview3 and it has been running fairly well, however every now and then (usually when under high load), I see error messages like:
+
+2010/06/04 14:34:29 [error] 1884#0: *8844 upstream prematurely closed connection while reading response header from upstream, client: 119.235.237.93, server: portal.crowdreel.com, request: "GET /post/18Vmy HTTP/1.1", upstream: "http://unix:/home/app/crowdreel-portal/tmp/sockets/unicorn.sock:/post/18Vmy", host: "crowdreel.com"
+
+... a lot of these messages.. this is a pretty heavy duty server with lots of ram.
+
+I have a setup similar to what I read up on github's blog as in: nginx -> unicorns via a socket upstream.
+
+My unicorn.rb file looks like:
+
+--------
+
+# 16 workers and 1 master
+worker_processes 16
+
+# Load the app into the master before forking workers for super-fast worker spawn times
+preload_app false
+
+# Restart any workers that haven't responded in 30 seconds
+timeout 45
+
+# Listen on a Unix data socket
+listen File.expand_path(File.dirname(__FILE__)+'/../tmp/sockets/unicorn.sock'), :backlog => 2048
+
+----------
+
+I don't preload the app because I start running into annoying issues where my workers use the same db connection, so instead I just have them load their own instance, its very fast to start up anyways.
+
+I've read everything I could on this issue and exhausted Google, which leaves me to think the only thing left is some incompatibilities with 1.9.2. So I was wondering, how can I get logs from unicorn's workers/master to know what is happening to these workers, perhaps something is segfaulting?
+
+Thx!
+
+Regards,
+
+Peter
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
