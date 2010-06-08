@@ -1,0 +1,170 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: unicorn_rails cleanup (possible fix for Rails3) pushed
+Date: Tue, 8 Jun 2010 19:20:34 +0000
+Message-ID: <20100608192034.GA2940@dcvr.yhbt.net>
+References: <AANLkTiksBxIo_PFWoiPTWi1entXZRb7D2uE-Rl7H3lbw@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1276025519 15685 80.91.229.12 (8 Jun 2010 19:31:59
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Tue, 8 Jun 2010 19:31:59 +0000 (UTC)
+Cc: Hongli Lai <hongli@phusion.nl>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Tue Jun 08 21:31:55
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <AANLkTiksBxIo_PFWoiPTWi1entXZRb7D2uE-Rl7H3lbw@mail.gmail.com>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:548
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/548>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1OM4Wd-00025g-Fz for gclrug-mongrel-unicorn@m.gmane.org; Tue, 08 Jun 2010
+ 21:31:51 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id CC42516782A0; Tue,  8 Jun 2010 15:31:50 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id EFB511858349 for <mongrel-unicorn@rubyforge.org>;
+ Tue,  8 Jun 2010 15:20:35 -0400 (EDT)
+Received: from localhost (unknown [127.0.2.5]) by dcvr.yhbt.net (Postfix)
+ with ESMTP id 047561F786; Tue,  8 Jun 2010 19:20:34 +0000 (UTC)
+
+Hongli Lai <hongli@phusion.nl> wrote:
+> Hi Eric.
+> 
+> It would appear that recent Rails 3 changes have broken unicorn_rails,
+> just like they broke Phusion Passenger. Here's a patch which fixes the
+> problem.
+> http://gist.github.com/429944
+
+Thanks Hongli, so this only affects people who remove the
+config.ru that Rails 3 creates for them?  Yikes...
+
+A few comments:
+
++  if ::Rails::VERSION::MAJOR >= 3 && ::File.exist?('config/application.rb')
++    ::File.read('config/application.rb') =~ /^module (.+)$/
+
+Maybe a more flexible regexp like this: /^module\s+([\w:]+)\s*$/ (or
+maybe even starting with: "^\s*") would be more reliable for folks who
+leave extra spaces around.
+
+Unfortunately, Ruby is not Python :)
+
+@@ -148,9 +167,9 @@ def rails_builder(daemonize)
+       else
+         use Rails::Rack::LogTailer unless daemonize
+         use Rails::Rack::Debugger if $DEBUG
++        use Rails::Rack::Static, map_path
+         map(map_path) do
+-          use Rails::Rack::Static
+-          run ActionController::Dispatcher.new
++          run rails_dispatcher
+
+Changing the call to use Rails::Rack::Static there is wrong.  map_path
+is the URI prefix (RAILS_RELATIVE_URL_ROOT) and not the static file
+path we serve from.  It appears the deprecation in Rails 3 broke some
+things and ActionDispatch::Static is configured slightly differently.
+
+Let me know if the edited patch below looks alright to you.
+
+I'll also push out a few Rails 3 tests that exercise the missing
+config.ru cases.
+
+>From 222ae0a353eda446a480e5c4b473a218304f9594 Mon Sep 17 00:00:00 2001
+From: Hongli Lai (Phusion) <hongli@phusion.nl>
+Date: Tue, 8 Jun 2010 13:22:25 +0200
+Subject: [PATCH] Fix unicorn_rails compatibility with the latest Rails 3 code
+
+This allows us to properly detect Rails 3 installations
+in cases where config.ru is not present.
+
+[ew: expanded commit message
+ fixed static file serving,
+ more flexible regexp for matching module ]
+
+ref: mid.gmane.org/AANLkTiksBxIo_PFWoiPTWi1entXZRb7D2uE-Rl7H3lbw@mail.gmail.com
+Acked-by: Eric Wong <normalperson@yhbt.net>
+---
+ bin/unicorn_rails |   26 ++++++++++++++++++++++++--
+ 1 files changed, 24 insertions(+), 2 deletions(-)
+
+diff --git a/bin/unicorn_rails b/bin/unicorn_rails
+index 45a9b11..ed235ba 100755
+--- a/bin/unicorn_rails
++++ b/bin/unicorn_rails
+@@ -109,6 +109,24 @@ end
+ 
+ ru = ARGV[0] || (File.exist?('config.ru') ? 'config.ru' : nil)
+ 
++def rails_dispatcher
++  if ::Rails::VERSION::MAJOR >= 3 && ::File.exist?('config/application.rb')
++    if ::File.read('config/application.rb') =~ /^module\s+([\w:]+)\s*$/
++      app_module = Object.const_get($1)
++      begin
++        result = app_module::Application
++      rescue NameError
++      end
++    end
++  end
++
++  if result.nil? && defined?(ActionController::Dispatcher)
++    result = ActionController::Dispatcher.new
++  end
++
++  result || abort("Unable to locate the application dispatcher class")
++end
++
+ def rails_builder(daemonize)
+   # this lambda won't run until after forking if preload_app is false
+   lambda do ||
+@@ -149,8 +167,12 @@ def rails_builder(daemonize)
+         use Rails::Rack::LogTailer unless daemonize
+         use Rails::Rack::Debugger if $DEBUG
+         map(map_path) do
+-          use Rails::Rack::Static
+-          run ActionController::Dispatcher.new
++          if defined?(ActionDispatch::Static)
++            use ActionDispatch::Static, "#{Rails.root}/public"
++          else
++            use Rails::Rack::Static
++          end
++          run rails_dispatcher
+         end
+       end
+     end.to_app
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
