@@ -1,0 +1,167 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: Read error: #<TypeError: can't modify frozen string> raised from
+ HttpParser
+Date: Tue, 8 Jun 2010 02:45:28 +0000
+Message-ID: <20100608024528.GA16631@dcvr.yhbt.net>
+References: <AANLkTim5Zd_NUWewbSLOy2cEZ1bsJSetq120DvmI79mK@mail.gmail.com>
+ <20100602202518.GA8617@dcvr.yhbt.net>
+ <AANLkTikCjTCVorHoIwsOtfSzt1Z-Mv4ZE8nf0Mqtgnqq@mail.gmail.com>
+ <20100602213815.GA23255@dcvr.yhbt.net>
+ <AANLkTimy0cLsh36A4pBoYMzZJY5wBKrxCp7rgCxyiZ53@mail.gmail.com>
+ <20100603234030.GA18377@dcvr.yhbt.net>
+ <AANLkTimuGgcwNAMcVZdViFWdF-UcW_RGyZAue7phUXps@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1275965211 32167 80.91.229.12 (8 Jun 2010 02:46:51
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Tue, 8 Jun 2010 02:46:51 +0000 (UTC)
+Cc: unicorn list <mongrel-unicorn@rubyforge.org>
+To: Augusto Becciu <augusto@jadedpixel.com>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Tue Jun 08 04:46:50
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <AANLkTimuGgcwNAMcVZdViFWdF-UcW_RGyZAue7phUXps@mail.gmail.com>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:543
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/543>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1OLopu-0001un-Ux for gclrug-mongrel-unicorn@m.gmane.org; Tue, 08 Jun 2010
+ 04:46:43 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 661E31858372; Mon,  7 Jun 2010 22:46:42 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 2EDF51858371 for <mongrel-unicorn@rubyforge.org>;
+ Mon,  7 Jun 2010 22:45:28 -0400 (EDT)
+Received: from localhost (unknown [127.0.2.5]) by dcvr.yhbt.net (Postfix)
+ with ESMTP id 45CB51F785; Tue,  8 Jun 2010 02:45:28 +0000 (UTC)
+
+Augusto Becciu <augusto@jadedpixel.com> wrote:
+> Hi Eric,
+> 
+> Thanks for the ideas.
+> 
+> Ended up adding some debugging code to unicorn that lead me to the
+> culprit of the problem. It turned out being a bug in the HttpParser.
+
+Thank you Augusto,
+
+Your explanation was good so I'll just use it as a commit message
+and credit you as the author.  See the patch below and let me know
+if everything looks alright before I push it out.
+
+I have a few small things to go over, but I'll be releasing 0.999.0
+tonight (which I hope will be the last before we finally celebrate
+have a 1.0.0 release).
+
+>From 7d2295fa774d1c98dfbde2b09d93d58712253d24 Mon Sep 17 00:00:00 2001
+From: Augusto Becciu <augusto@jadedpixel.com>
+Date: Mon, 7 Jun 2010 23:02:43 -0300
+Subject: [PATCH] http: ignore Version: header if explicitly set by client
+
+When Unicorn receives a request with a "Version" header, the
+HttpParser transforms it into "HTTP_VERSION". After that tries to add
+it to the request hash which already contains a "HTTP_VERSION" key
+with the actual http version of the request. So it tries to append the
+new value separated by a comma. But since the http version is a
+freezed constant, the TypeError exception is raised.
+
+According to the HTTP RFC
+(http://www.w3.org/Protocols/rfc2616/rfc2616-sec7.html#sec7.1) a
+"Version" header is valid. However, it's not supported in rack, since
+rack has a HTTP_VERSION env variable for the http version. So I think
+the easiest way to deal with this problem is to just ignore the header
+since it is extremely unusual. We were getting it from a crappy bot.
+
+ref: http://mid.gmane.org/AANLkTimuGgcwNAMcVZdViFWdF-UcW_RGyZAue7phUXps@mail.gmail.com
+
+Acked-by: Eric Wong <normalperson@yhbt.net>
+---
+ ext/unicorn_http/unicorn_http.rl |    9 +++++++++
+ test/unit/test_http_parser_ng.rb |   20 ++++++++++++++++++++
+ 2 files changed, 29 insertions(+), 0 deletions(-)
+
+diff --git a/ext/unicorn_http/unicorn_http.rl b/ext/unicorn_http/unicorn_http.rl
+index 264db68..aa23024 100644
+--- a/ext/unicorn_http/unicorn_http.rl
++++ b/ext/unicorn_http/unicorn_http.rl
+@@ -197,6 +197,15 @@ static void write_value(VALUE req, struct http_parser *hp,
+     assert_frozen(f);
+   }
+ 
++  /*
++   * ignore "Version" headers since they conflict with the HTTP_VERSION
++   * rack env variable.
++   */
++  if (rb_str_cmp(f, g_http_version) == 0) {
++    hp->cont = Qnil;
++    return;
++  }
++
+   e = rb_hash_aref(req, f);
+   if (NIL_P(e)) {
+     hp->cont = rb_hash_aset(req, f, v);
+diff --git a/test/unit/test_http_parser_ng.rb b/test/unit/test_http_parser_ng.rb
+index a067ac8..cb30f32 100644
+--- a/test/unit/test_http_parser_ng.rb
++++ b/test/unit/test_http_parser_ng.rb
+@@ -440,4 +440,24 @@ class HttpParserNgTest < Test::Unit::TestCase
+     end
+   end
+ 
++  def test_ignore_version_header
++    http = "GET / HTTP/1.1\r\nVersion: hello\r\n\r\n"
++    req = {}
++    assert_equal req, @parser.headers(req, http)
++    assert_equal '', http
++    expect = {
++      "SERVER_NAME" => "localhost",
++      "rack.url_scheme" => "http",
++      "REQUEST_PATH" => "/",
++      "SERVER_PROTOCOL" => "HTTP/1.1",
++      "PATH_INFO" => "/",
++      "HTTP_VERSION" => "HTTP/1.1",
++      "REQUEST_URI" => "/",
++      "SERVER_PORT" => "80",
++      "REQUEST_METHOD" => "GET",
++      "QUERY_STRING" => ""
++    }
++    assert_equal expect, req
++  end
++
+ end
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
