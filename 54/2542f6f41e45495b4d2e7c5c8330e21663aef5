@@ -1,0 +1,95 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: [ANN] unicorn 0.990.0 - inching towards 1.0
+Date: Wed, 9 Jun 2010 11:22:45 -0700
+Message-ID: <20100609182245.GB8027@dcvr.yhbt.net>
+References: <20100608095140.GB30419@dcvr.yhbt.net>
+ <E4FB514D-0056-4D59-8DD3-2B8A33CACD56@simonov.me>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1276108227 25898 80.91.229.12 (9 Jun 2010 18:30:27
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Wed, 9 Jun 2010 18:30:27 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Wed Jun 09 20:30:26
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <E4FB514D-0056-4D59-8DD3-2B8A33CACD56@simonov.me>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:557
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/557>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1OMQ2j-0001e6-Qa for gclrug-mongrel-unicorn@m.gmane.org; Wed, 09 Jun 2010
+ 20:30:26 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 35353197813C; Wed,  9 Jun 2010 14:30:25 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 71B911858346 for <mongrel-unicorn@rubyforge.org>;
+ Wed,  9 Jun 2010 14:22:46 -0400 (EDT)
+Received: from localhost (unknown [127.0.2.5]) by dcvr.yhbt.net (Postfix)
+ with ESMTP id B824F29684C; Wed,  9 Jun 2010 18:22:45 +0000 (UTC)
+
+Alexander Simonov <alex@simonov.me> wrote:
+> 
+> Hello!
+> 
+> One question: it's a normal state if i start rails app without preload
+> and after Gem.refresh all works go down by exception from Ge.refresh
+> and master process all time trying reup they.  And it's go to
+> recursion. I know it's issue of people who start app, but in any case
+> it's must be exception for stop of master process. Is i check code
+> when starts workers and if we have preload_app false method run
+> build_app!.  If we have preload_app true - then we check it before
+> start worker. 
+
+Hi Alexander,
+
+I hope I'm understanding you correctly, so you want the master process
+to die if you've misdeployed or misconfigured your app?
+
+This is one of those sharp edges of Unicorn that might be pointless
+to protect against with preload_app=false...
+
+The general rule is that you shouldn't be mucking around with Gem (or
+any other library) installations on a production server unless you're
+deploying.  And whenever you're deploying, you would always be checking
+to see you've deployed correctly anyways, so you can detect any screwups
+in the installation/deployment.
+
+Let me know if that makes sense.
+
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
