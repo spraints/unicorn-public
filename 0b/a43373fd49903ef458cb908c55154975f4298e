@@ -1,0 +1,102 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: unicorn_rails in a loop of not starting...
+Date: Wed, 9 Jun 2010 11:43:56 -0700
+Message-ID: <20100609184356.GA8875@dcvr.yhbt.net>
+References: <F28788A6-FC64-4BF9-8380-7AD68FB496D6@ingraminternet.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1276109043 31348 80.91.229.12 (9 Jun 2010 18:44:03
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Wed, 9 Jun 2010 18:44:03 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Wed Jun 09 20:44:01
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <F28788A6-FC64-4BF9-8380-7AD68FB496D6@ingraminternet.com>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:559
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/559>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1OMQFt-0000K5-DW for gclrug-mongrel-unicorn@m.gmane.org; Wed, 09 Jun 2010
+ 20:44:01 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id D67F71858375; Wed,  9 Jun 2010 14:44:00 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id C86C31858375 for <mongrel-unicorn@rubyforge.org>;
+ Wed,  9 Jun 2010 14:43:57 -0400 (EDT)
+Received: from localhost (unknown [127.0.2.5]) by dcvr.yhbt.net (Postfix)
+ with ESMTP id 144E429684C; Wed,  9 Jun 2010 18:43:57 +0000 (UTC)
+
+Philip Ingram <philip@ingraminternet.com> wrote:
+> Hi,
+> 
+> Sorry for the subject, just  not sure what is going on and how to describe it.
+> 
+> Problem:
+> -------------
+> When running unicorn_rails in my RAILS_ROOT directory (the same one where the script/server command runs fine) i get terminal printout  saying:
+> ==================
+> unicorn_rails worker[0] --path /Users/me/current_project/project -l0.0.0.0:8080 must be run inside RAILS_ROOT: #<LoadError: no such file to load -- config/boot>
+
+<snip>
+
+Hi Philip,
+
+> I am running Rails 2.3.8, Ruby 1.9.2-head and have both rack (1.1.0,
+> 1.0.1) installed, or else rails won't boot up for some silly reason.
+> (I.e., if i uninstall 1.1.0, rails cries that it needs 1.0.1).  I am
+> also running unicorn (0.990.0) (fresh install) .  All of this through
+> rvm 0.1.37.
+
+Try the prerelease on Rubygems.org: unicorn 0.990.0.5.gbfb1 `gem install
+--pre unicorn`.  Ruby 1.9.2 no longer has '.' in its default
+$LOAD_PATH, so instead of "require 'config/boot'" we have to do
+"require ::File.expand_path('config/boot')"
+
+> Am i missing some installation steps that aren't described in the
+> README/github page?  running unicorn_rails in my root directory should
+> just work right?
+
+I'm not sure which github page you're referring to without the full URL,
+but the official docs are online at http://unicorn.bogomips.org/ (and
+always distributed with the source tree).
+
+Anyways, the prerelease should help and not introduce any regressions.
+I plan on having 0.991.0 out in the next day or two.
+
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
