@@ -1,0 +1,378 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: Working directory and config.ru
+Date: Thu, 10 Jun 2010 09:58:12 +0000
+Message-ID: <20100610095812.GA8546@dcvr.yhbt.net>
+References: <AANLkTimKb7JARr_69nfVrJLvMZH3Gvs1o_KwZFLKfuxy@mail.gmail.com>
+ <20100609180431.GA8027@dcvr.yhbt.net>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1276163935 7811 80.91.229.12 (10 Jun 2010 09:58:55
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Thu, 10 Jun 2010 09:58:55 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Thu Jun 10 11:58:51
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <20100609180431.GA8027@dcvr.yhbt.net>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:563
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/563>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1OMeXC-0002d8-E6 for gclrug-mongrel-unicorn@m.gmane.org; Thu, 10 Jun 2010
+ 11:58:50 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id C26B21858368; Thu, 10 Jun 2010 05:58:49 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id CBE04185835F for <mongrel-unicorn@rubyforge.org>;
+ Thu, 10 Jun 2010 05:58:27 -0400 (EDT)
+Received: from localhost (unknown [127.0.2.5]) by dcvr.yhbt.net (Postfix)
+ with ESMTP id DA5A81F44B; Thu, 10 Jun 2010 09:58:12 +0000 (UTC)
+
+Eric Wong <normalperson@yhbt.net> wrote:
+> Pierre Baillet <oct@fotonauts.com> wrote:
+> > Hi,
+> > 
+> > I naively expected unicorn to honor the working_directory
+> > configuration directive before attempting to locate the config.ru but
+> > this does not seem to be the case. Is this behavior wanted ? From the
+> > code, I can guess that the configuration file parsing is done much
+> > later  than the current config.ru location attempt.
+> 
+> Hi Pierre,
+> 
+> Oops, definitely not wanted behavior.  Unicorn should honor
+> working_directory with regard to config.ru.  I'll start working
+> on a fix shortly, thanks for the report!
+
+I just pushed the following out with a few other cleanups.
+
+Maintaining Rainbows!/Zbatery compatibility was a bit costly in terms of
+prettiness.
+
+Overall, my initial hesitation to support "working_directory" last year
+was validated by the complexity of maintaining relative path
+compatibility across the board.
+
+I'm very glad for the integration test suite (stolen from Rainbows!)
+which allows me to write tests in my "native" language :>
+
+There'll be more tests coming when I'm more awake (and I'm actually
+developing a real Rack application which will be public Real Soon
+Now(TM), but more targeted at Rainbows!/Zbatery :)
+
+>From 4accf4449390c649bce0b1c9d84314d65fd41f8e Mon Sep 17 00:00:00 2001
+From: Eric Wong <normalperson@yhbt.net>
+Date: Thu, 10 Jun 2010 08:47:10 +0000
+Subject: [PATCH] respect "working_directory" wrt config.ru
+
+Since we added support for the "working_directory" parameter, it
+often became unclear where/when certain paths would be bound.
+
+There are some extremely nasty dependencies and ordering issues
+when doing this.  It's all pretty fragile, but works for now
+and we even have a full integration test to keep it working.
+
+I plan on cleaning this up 2.x.x to be less offensive to look
+at (Rainbows! and Zbatery are a bit tied to this at the moment).
+
+Thanks to Pierre Baillet for reporting this.
+
+ref: http://mid.gmane.org/AANLkTimKb7JARr_69nfVrJLvMZH3Gvs1o_KwZFLKfuxy@mail.gmail.com
+---
+ bin/unicorn                  |    5 +---
+ bin/unicorn_rails            |   17 +++++++++---
+ lib/unicorn.rb               |    7 ++---
+ lib/unicorn/configurator.rb  |   56 ++++++++++++++++++++++++++++++++++++++++++
+ lib/unicorn/launcher.rb      |    5 ++-
+ t/t0003-working_directory.sh |   53 +++++++++++++++++++++++++++++++++++++++
+ 6 files changed, 129 insertions(+), 14 deletions(-)
+ create mode 100755 t/t0003-working_directory.sh
+
+diff --git a/bin/unicorn b/bin/unicorn
+index beece97..2cc10b1 100755
+--- a/bin/unicorn
++++ b/bin/unicorn
+@@ -107,10 +107,7 @@ opts = OptionParser.new("", 24, '  ') do |opts|
+   opts.parse! ARGV
+ end
+ 
+-ru = ARGV[0] || "config.ru"
+-abort "configuration file #{ru} not found" unless File.exist?(ru)
+-
+-app = Unicorn.builder(ru, opts)
++app = Unicorn.builder(ARGV[0] || 'config.ru', opts)
+ options[:listeners] << "#{host}:#{port}" if set_listener
+ 
+ if $DEBUG
+diff --git a/bin/unicorn_rails b/bin/unicorn_rails
+index 2f88bc1..e9cac00 100755
+--- a/bin/unicorn_rails
++++ b/bin/unicorn_rails
+@@ -107,8 +107,6 @@ opts = OptionParser.new("", 24, '  ') do |opts|
+   opts.parse! ARGV
+ end
+ 
+-ru = ARGV[0] || (File.exist?('config.ru') ? 'config.ru' : nil)
+-
+ def rails_dispatcher
+   if ::Rails::VERSION::MAJOR >= 3 && ::File.exist?('config/application.rb')
+     if ::File.read('config/application.rb') =~ /^module\s+([\w:]+)\s*$/
+@@ -127,9 +125,20 @@ def rails_dispatcher
+   result || abort("Unable to locate the application dispatcher class")
+ end
+ 
+-def rails_builder(daemonize)
++def rails_builder(ru, opts, daemonize)
++  return Unicorn.builder(ru, opts) if ru
++
++  # allow Configurator to parse cli switches embedded in the ru file
++  Unicorn::Configurator::RACKUP.update(:file => :rails, :optparse => opts)
++
+   # this lambda won't run until after forking if preload_app is false
++  # this runs after config file reloading
+   lambda do ||
++    # Rails 3 includes a config.ru, use it if we find it after
++    # working_directory is bound.
++    ::File.exist?('config.ru') and
++      return Unicorn.builder('config.ru', opts).call
++
+     # Load Rails and (possibly) the private version of Rack it bundles.
+     begin
+       require ::File.expand_path('config/boot')
+@@ -179,7 +188,7 @@ def rails_builder(daemonize)
+   end
+ end
+ 
+-app = ru ? Unicorn.builder(ru, opts) : rails_builder(daemonize)
++app = rails_builder(ARGV[0], opts, daemonize)
+ options[:listeners] << "#{host}:#{port}" if set_listener
+ 
+ if $DEBUG
+diff --git a/lib/unicorn.rb b/lib/unicorn.rb
+index c026236..a7b0646 100644
+--- a/lib/unicorn.rb
++++ b/lib/unicorn.rb
+@@ -33,11 +33,10 @@ module Unicorn
+     # Unicorn config).  The returned lambda will be called when it is
+     # time to build the app.
+     def builder(ru, opts)
+-      if ru =~ /\.ru\z/
+-        # parse embedded command-line options in config.ru comments
+-        /^#\\(.*)/ =~ File.read(ru) and opts.parse!($1.split(/\s+/))
+-      end
++      # allow Configurator to parse cli switches embedded in the ru file
++      Unicorn::Configurator::RACKUP.update(:file => ru, :optparse => opts)
+ 
++      # always called after config file parsing, may be called after forking
+       lambda do ||
+         inner_app = case ru
+         when /\.ru$/
+diff --git a/lib/unicorn/configurator.rb b/lib/unicorn/configurator.rb
+index e4305c2..0716e64 100644
+--- a/lib/unicorn/configurator.rb
++++ b/lib/unicorn/configurator.rb
+@@ -13,6 +13,12 @@ module Unicorn
+   # nginx is also available at
+   # http://unicorn.bogomips.org/examples/nginx.conf
+   class Configurator < Struct.new(:set, :config_file, :after_reload)
++    # :stopdoc:
++    # used to stash stuff for deferred processing of cli options in
++    # config.ru after "working_directory" is bound.  Do not rely on
++    # this being around later on...
++    RACKUP = {}
++    # :startdoc:
+ 
+     # Default settings for Unicorn
+     DEFAULTS = {
+@@ -51,6 +57,8 @@ module Unicorn
+     def reload #:nodoc:
+       instance_eval(File.read(config_file), config_file) if config_file
+ 
++      parse_rackup_file
++
+       # working_directory binds immediately (easier error checking that way),
+       # now ensure any paths we changed are correctly set.
+       [ :pid, :stderr_path, :stdout_path ].each do |var|
+@@ -66,6 +74,9 @@ module Unicorn
+ 
+     def commit!(server, options = {}) #:nodoc:
+       skip = options[:skip] || []
++      if ready_pipe = RACKUP.delete(:ready_pipe)
++        server.ready_pipe = ready_pipe
++      end
+       set.each do |key, value|
+         value == :unset and next
+         skip.include?(key) and next
+@@ -411,5 +422,50 @@ module Unicorn
+       set[var] = my_proc
+     end
+ 
++    # this is called _after_ working_directory is bound.  This only
++    # parses the embedded switches in .ru files
++    # (for "rackup" compatibility)
++    def parse_rackup_file # :nodoc:
++      ru = RACKUP[:file] or return # we only return here in unit tests
++
++      # :rails means use (old) Rails autodetect
++      if ru == :rails
++        File.readable?('config.ru') or return
++        ru = 'config.ru'
++      end
++
++      File.readable?(ru) or
++        raise ArgumentError, "rackup file (#{ru}) not readable"
++
++      # it could be a .rb file, too, we don't parse those manually
++      ru =~ /\.ru\z/ or return
++
++      /^#\\(.*)/ =~ File.read(ru) or return
++      warn "ru cli opts: #{$1}"
++      RACKUP[:optparse].parse!($1.split(/\s+/))
++
++      # XXX ugly as hell, WILL FIX in 2.x (along with Rainbows!/Zbatery)
++      host, port, set_listener, options, daemonize =
++                      eval("[ host, port, set_listener, options, daemonize ]",
++                           TOPLEVEL_BINDING)
++
++      warn [ :host, :port, :set_listener, :options, :daemonize ].inspect
++      warn [ ru, host, port, set_listener, options, daemonize ].inspect
++      # XXX duplicate code from bin/unicorn{,_rails}
++      set[:listeners] << "#{host}:#{port}" if set_listener
++
++      if daemonize
++        # unicorn_rails wants a default pid path, (not plain 'unicorn')
++        if ru == :rails
++          spid = set[:pid]
++          pid('tmp/pids/unicorn.pid') if spid.nil? || spid == :unset
++        end
++        unless RACKUP[:daemonized]
++          Unicorn::Launcher.daemonize!(options)
++          RACKUP[:ready_pipe] = options.delete(:ready_pipe)
++        end
++      end
++    end
++
+   end
+ end
+diff --git a/lib/unicorn/launcher.rb b/lib/unicorn/launcher.rb
+index 5ab04c7..7f3ffa6 100644
+--- a/lib/unicorn/launcher.rb
++++ b/lib/unicorn/launcher.rb
+@@ -56,8 +56,9 @@ class Unicorn::Launcher
+       end
+     end
+     # $stderr/$stderr can/will be redirected separately in the Unicorn config
+-    Unicorn::Configurator::DEFAULTS[:stderr_path] = "/dev/null"
+-    Unicorn::Configurator::DEFAULTS[:stdout_path] = "/dev/null"
++    Unicorn::Configurator::DEFAULTS[:stderr_path] ||= "/dev/null"
++    Unicorn::Configurator::DEFAULTS[:stdout_path] ||= "/dev/null"
++    Unicorn::Configurator::RACKUP[:daemonized] = true
+   end
+ 
+ end
+diff --git a/t/t0003-working_directory.sh b/t/t0003-working_directory.sh
+new file mode 100755
+index 0000000..3faa6c0
+--- /dev/null
++++ b/t/t0003-working_directory.sh
+@@ -0,0 +1,53 @@
++#!/bin/sh
++. ./test-lib.sh
++t_plan 4 "config.ru inside alt working_directory"
++
++t_begin "setup and start" && {
++	unicorn_setup
++	rtmpfiles unicorn_config_tmp
++	rm -rf $t_pfx.app
++	mkdir $t_pfx.app
++
++	port=$(expr $listen : '[^:]*:\([0-9]\+\)')
++	host=$(expr $listen : '\([^:]*\):[0-9]\+')
++
++	cat > $t_pfx.app/config.ru <<EOF
++#\--daemonize --host $host --port $port
++use Rack::ContentLength
++use Rack::ContentType, "text/plain"
++run lambda { |env| [ 200, {}, [ "#{\$master_ppid}\\n" ] ] }
++EOF
++	# we have --host/--port in config.ru instead
++	grep -v ^listen $unicorn_config > $unicorn_config_tmp
++
++	# the whole point of this exercise
++	echo "working_directory '$t_pfx.app'" >> $unicorn_config_tmp
++
++	# allows ppid to be 1 in before_fork
++	echo "preload_app true" >> $unicorn_config_tmp
++	cat >> $unicorn_config_tmp <<\EOF
++before_fork do |server,worker|
++  $master_ppid = Process.ppid # should be zero to detect daemonization
++end
++EOF
++
++	mv $unicorn_config_tmp $unicorn_config
++
++	# rely on --daemonize switch, no & or -D
++	unicorn -c $unicorn_config
++	unicorn_wait_start
++}
++
++t_begin "hit with curl" && {
++	body=$(curl -sSf http://$listen/)
++}
++
++t_begin "killing succeeds" && {
++	kill $unicorn_pid
++}
++
++t_begin "response body ppid == 1 (daemonized)" && {
++	test "$body" -eq 1
++}
++
++t_done
+-- 
+
+Eric Wong (7):
+      launcher: get rid of backwards compatibility code
+      isolate: don't run isolate in parallel
+      Rakefile: only try rake-compiler if VERSION is defined
+      Rakefile: isolate to rbx directory
+      tests: set NO_PROXY when running tests
+      unicorn_rails: use Kernel#warn instead of $stderr.puts
+      respect "working_directory" wrt config.ru
+
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
