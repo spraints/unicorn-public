@@ -1,0 +1,92 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: Fwd: Support for Soft Timeout in Unicorn
+Date: Thu, 10 Jun 2010 18:56:21 -0700
+Message-ID: <20100611015621.GA31868@dcvr.yhbt.net>
+References: <20100603173749.GA19649@dcvr.yhbt.net>
+ <20100603182246.GB19649@dcvr.yhbt.net>
+ <AANLkTile44yxAsA3bT_nGEgLHQcCeRd5tKspdKs2rOoV@mail.gmail.com>
+ <20100603184730.GA2421@dcvr.yhbt.net>
+ <AANLkTilIJL2dP_nlqwn-Jh5a3KhQ0wL75L5Be_2ybQZr@mail.gmail.com>
+ <AANLkTimV05UjKFPJW7xFW7OTALIrQH9Qr9I2u4LBYTwe@mail.gmail.com>
+ <AANLkTimubIMS1FrgGT7gCneO-7N250eRJxQjs4LACAFl@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1276222245 19332 80.91.229.12 (11 Jun 2010 02:10:45
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Fri, 11 Jun 2010 02:10:45 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Fri Jun 11 04:10:33
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <AANLkTimubIMS1FrgGT7gCneO-7N250eRJxQjs4LACAFl@mail.gmail.com>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:565
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/565>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1OMthV-0002s6-K7 for gclrug-mongrel-unicorn@m.gmane.org; Fri, 11 Jun 2010
+ 04:10:29 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id AEAC8185834B; Thu, 10 Jun 2010 22:10:28 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 3EBBC1858112 for <mongrel-unicorn@rubyforge.org>;
+ Thu, 10 Jun 2010 21:56:22 -0400 (EDT)
+Received: from localhost (unknown [127.0.2.5]) by dcvr.yhbt.net (Postfix)
+ with ESMTP id 9C9501F511; Fri, 11 Jun 2010 01:56:21 +0000 (UTC)
+
+Pierre Baillet <oct@fotonauts.com> wrote:
+> Hello Unicorns,
+> 
+> I've manage to create a simple middleware that replaces the soft
+> timeout feature. You can have a look at it at
+> http://gist.github.com/431451
+> 
+> Note that some weird Ruby interpreter behavior breaks at least the
+> first level of the generated stacktrace (it indicates the actual
+> method where the raise happened but the wrong line number and file).
+
+You should be able to avoid spawning a new thread for every request, as
+that can get very expensive on some systems.  Maybe a global hash
+guarded by a mutex that tells the worker Thread which thread to raise
+on.  The worker thread could sleep until the next timeout registered.
+
+But then again, take care to only spawn new threads in workers (with
+preload_app=true), as threads never get carried across fork.  And
+threads may leave mutexes and such in a bad state when they vanish
+in the child.
+
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
