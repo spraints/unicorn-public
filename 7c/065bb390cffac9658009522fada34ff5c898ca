@@ -1,0 +1,90 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: unicorn_rails cleanup (possible fix for Rails3) pushed
+Date: Fri, 11 Jun 2010 20:32:09 +0000
+Message-ID: <20100611203208.GA6165@dcvr.yhbt.net>
+References: <AANLkTiksBxIo_PFWoiPTWi1entXZRb7D2uE-Rl7H3lbw@mail.gmail.com>
+ <20100608192034.GA2940@dcvr.yhbt.net>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1276291282 17996 80.91.229.12 (11 Jun 2010 21:21:22
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Fri, 11 Jun 2010 21:21:22 +0000 (UTC)
+Cc: Hongli Lai <hongli@phusion.nl>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Fri Jun 11 23:21:18
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <20100608192034.GA2940@dcvr.yhbt.net>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:569
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/569>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1ONBf7-0002lj-UE for gclrug-mongrel-unicorn@m.gmane.org; Fri, 11 Jun 2010
+ 23:21:14 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 5ABA218583C6; Fri, 11 Jun 2010 17:21:13 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 6B5BE185839F for <mongrel-unicorn@rubyforge.org>;
+ Fri, 11 Jun 2010 16:32:10 -0400 (EDT)
+Received: from localhost (unknown [127.0.2.5]) by dcvr.yhbt.net (Postfix)
+ with ESMTP id 678651F513; Fri, 11 Jun 2010 20:32:09 +0000 (UTC)
+
+Eric Wong <normalperson@yhbt.net> wrote:
+> Hongli Lai <hongli@phusion.nl> wrote:
+> > Hi Eric.
+> > 
+> > It would appear that recent Rails 3 changes have broken unicorn_rails,
+> > just like they broke Phusion Passenger. Here's a patch which fixes the
+> > problem.
+> > http://gist.github.com/429944
+> 
+> Thanks Hongli, so this only affects people who remove the
+> config.ru that Rails 3 creates for them?  Yikes...
+
+And for the completely bizzare: Rails 3 is ultra aggressive
+when searching for config.ru, it walks up the directory tree,
+even going all the way up to "/" if it can't find config.ru.
+
+I had a $HOME/config.ru leftover from a test on one of my boxes, and
+usually have my working directory in $HOME/unicorn.   This was was
+causing the unicorn_rails test for this (t0301) to fail because that
+test relies on Rails /not/ being able to find config.ru.
+
+So yes, don't leave random artifacts lying around and love strace :)
+
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
