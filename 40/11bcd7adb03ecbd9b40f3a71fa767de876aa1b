@@ -1,0 +1,154 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: [ANN] unicorn 0.990.0 - inching towards 1.0
+Date: Thu, 10 Jun 2010 18:27:00 -0700
+Message-ID: <20100611012700.GA25953@dcvr.yhbt.net>
+References: <20100608095140.GB30419@dcvr.yhbt.net>
+ <E4FB514D-0056-4D59-8DD3-2B8A33CACD56@simonov.me>
+ <20100609182245.GB8027@dcvr.yhbt.net>
+ <EFCFB26E-2D97-4DB1-AD50-141D224D9B4A@simonov.me>
+ <20100610073850.GA28455@dcvr.yhbt.net>
+ <7225A616-7181-4DAE-A2AA-D90FEE265F91@simonov.me>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1276219780 13396 80.91.229.12 (11 Jun 2010 01:29:40
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Fri, 11 Jun 2010 01:29:40 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Fri Jun 11 03:29:39
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <7225A616-7181-4DAE-A2AA-D90FEE265F91@simonov.me>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:564
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/564>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1OMt3y-0006VX-DF for gclrug-mongrel-unicorn@m.gmane.org; Fri, 11 Jun 2010
+ 03:29:38 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 86F53185836D; Thu, 10 Jun 2010 21:29:37 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 9D3E8185836B for <mongrel-unicorn@rubyforge.org>;
+ Thu, 10 Jun 2010 21:27:01 -0400 (EDT)
+Received: from localhost (unknown [127.0.2.5]) by dcvr.yhbt.net (Postfix)
+ with ESMTP id B12871F511; Fri, 11 Jun 2010 01:27:00 +0000 (UTC)
+
+Alexander Simonov <alex@simonov.me> wrote:
+> On Jun 10, 2010, at 10:38 AM, Eric Wong wrote:
+> > And again (I seem to remember saying this months ago), any time you're
+> > deploying, you should be paying extra attention to the app anyways.
+> > That means testing with actual HTTP requests, not just seeing of the
+> > process is up.  Just having a running process serving error pages is
+> > equally worthless as not running the server at all.
+> 
+> Hm.. It's makes sense.
+> But much better if it will be writing in the documentation for the future.
+
+Here's what I've pushed out, let me know if everything makes
+sense.  I think I'll release 0.991.0 in a little bit.
+
+>From f9baab18705218dae4c37c2c92d1ceea151bba8e Mon Sep 17 00:00:00 2001
+From: Eric Wong <normalperson@yhbt.net>
+Date: Thu, 10 Jun 2010 17:57:08 -0700
+Subject: [PATCH] docs: hopefully clarify preload_app=false behavior
+
+While we're at it, inform people of why they might use
+a symlink
+---
+ SIGNALS                     |    7 ++++++-
+ lib/unicorn/configurator.rb |   21 ++++++++++++++++++---
+ 2 files changed, 24 insertions(+), 4 deletions(-)
+
+diff --git a/SIGNALS b/SIGNALS
+index be96892..8851775 100644
+--- a/SIGNALS
++++ b/SIGNALS
+@@ -14,7 +14,12 @@ Unicorn and nginx.
+   will also pick up any application code changes when restarted.  If
+   "preload_app" is true, then application code changes will have no
+   effect; USR2 + QUIT (see below) must be used to load newer code in
+-  this case.
++  this case.  When reloading the application, +Gem.refresh+ will
++  be called so updated code for your application can pick up newly
++  installed RubyGems.  It is not recommended that you uninstall
++  libraries your application depends on while Unicorn is running,
++  as respawned workers may enter a spawn loop when they fail to
++  load an uninstalled dependency.
+ 
+ * INT/TERM - quick shutdown, kills all workers immediately
+ 
+diff --git a/lib/unicorn/configurator.rb b/lib/unicorn/configurator.rb
+index 71c7a8a..533e0ed 100644
+--- a/lib/unicorn/configurator.rb
++++ b/lib/unicorn/configurator.rb
+@@ -311,7 +311,22 @@ module Unicorn
+     #
+     # In addition to reloading the unicorn-specific config settings,
+     # SIGHUP will reload application code in the working
+-    # directory/symlink when workers are gracefully restarted.
++    # directory/symlink when workers are gracefully restarted when
++    # preload_app=false (the default).  As reloading the application
++    # sometimes requires RubyGems updates, +Gem.refresh+ is always
++    # called before the application is loaded (for RubyGems users).
++    #
++    # During deployments, care should _always_ be taken to ensure your
++    # applications are properly deployed and running.  Using
++    # preload_app=false (the default) means you _must_ check if
++    # your application is responding properly after a deployment.
++    # Improperly deployed applications can go into a spawn loop
++    # if the application fails to load.  While your children are
++    # in a spawn loop, it is is possible to fix an application
++    # by properly deploying all required code and dependencies.
++    # Using preload_app=true means any application load error will
++    # cause the master process to exit with an error.
++
+     def preload_app(bool)
+       case bool
+       when TrueClass, FalseClass
+@@ -344,9 +359,9 @@ module Unicorn
+       set_path(:stdout_path, path)
+     end
+ 
+-    # sets the working directory for Unicorn.  This ensures USR2 will
++    # sets the working directory for Unicorn.  This ensures SIGUSR2 will
+     # start a new instance of Unicorn in this directory.  This may be
+-    # a symlink.
++    # a symlink, a common scenario for Capistrano users.
+     def working_directory(path)
+       # just let chdir raise errors
+       path = File.expand_path(path)
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
