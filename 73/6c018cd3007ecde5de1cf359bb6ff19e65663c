@@ -1,0 +1,102 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: Issues since 0.991.0
+Date: Sat, 12 Jun 2010 18:37:33 +0000
+Message-ID: <20100612183733.GA1682@dcvr.yhbt.net>
+References: <5C960A81-3C95-4FBB-B38C-A783A483CD53@crowdstar.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1276368211 20689 80.91.229.12 (12 Jun 2010 18:43:31
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Sat, 12 Jun 2010 18:43:31 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Sat Jun 12 20:43:30
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <5C960A81-3C95-4FBB-B38C-A783A483CD53@crowdstar.com>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:572
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/572>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1ONVg1-0005A1-Ra for gclrug-mongrel-unicorn@m.gmane.org; Sat, 12 Jun 2010
+ 20:43:30 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 009EA1858378; Sat, 12 Jun 2010 14:43:28 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id A03AA1858378 for <mongrel-unicorn@rubyforge.org>;
+ Sat, 12 Jun 2010 14:37:34 -0400 (EDT)
+Received: from localhost (unknown [127.0.2.5]) by dcvr.yhbt.net (Postfix)
+ with ESMTP id E21DE1F4F5; Sat, 12 Jun 2010 18:37:33 +0000 (UTC)
+
+"Jose Avila(Tachu)" <tachu@crowdstar.com> wrote:
+> Hi Guys we currently have a farm of servers that run 0.990.0 and new ones that started running 0.991.0 Since 0.991.0 We get this error 
+> 
+> unicorn_rails worker[24] -c config/unicorn.rb -E production: symbol lookup error: /usr/lib64/ruby/gems/1.8/gems/unicorn-
+> 0.991.0/lib/unicorn_http.so: undefined symbol: rb_str_set_len
+> 
+> Any idea as to why that is happening and how we can fix it?
+
+Hi Jose,  I was too aggressive with a cleanup for Rubinius compatibility
+that I broke things for 1.8.6 (and possibly before).
+
+I've pushed out the following fix and also a 0.991.0.4.g0cb0 prerelease
+to RubyGems.org.  You can install it with "gem install --pre unicorn"
+
+Let me know how it works for you, thanks for the report!
+
+>From 0cb02efd0e2e2c80667863fd404d1fad7c63bb1f Mon Sep 17 00:00:00 2001
+From: Eric Wong <normalperson@yhbt.net>
+Date: Sat, 12 Jun 2010 18:32:12 +0000
+Subject: [PATCH] http: fix rb_str_set_len() define for 1.8.6
+
+---
+ ext/unicorn_http/ext_help.h |    1 +
+ 1 files changed, 1 insertions(+), 0 deletions(-)
+
+diff --git a/ext/unicorn_http/ext_help.h b/ext/unicorn_http/ext_help.h
+index cc157cb..3aa24a8 100644
+--- a/ext/unicorn_http/ext_help.h
++++ b/ext/unicorn_http/ext_help.h
+@@ -22,6 +22,7 @@ static void rb_18_str_set_len(VALUE str, long len)
+   RSTRING(str)->len = len;
+   RSTRING(str)->ptr[len] = '\0';
+ }
++#  define rb_str_set_len(str,len) rb_18_str_set_len(str,len)
+ #endif /* !defined(HAVE_RB_STR_SET_LEN) */
+ 
+ /* not all Ruby implementations support frozen objects (Rubinius does not) */
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
