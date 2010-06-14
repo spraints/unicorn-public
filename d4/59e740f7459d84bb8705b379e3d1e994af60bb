@@ -1,0 +1,127 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Unicorn future plans
+Date: Mon, 14 Jun 2010 12:46:25 -0700
+Message-ID: <20100614194625.GA4089@dcvr.yhbt.net>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1276544792 13427 80.91.229.12 (14 Jun 2010 19:46:32
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Mon, 14 Jun 2010 19:46:32 +0000 (UTC)
+To: mongrel-unicorn@rubyforge.org
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Mon Jun 14 21:46:31
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:573
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/573>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1OOFc6-0002zn-VI for gclrug-mongrel-unicorn@m.gmane.org; Mon, 14 Jun 2010
+ 21:46:31 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 2B055167829F; Mon, 14 Jun 2010 15:46:30 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 71ACA167829F for <mongrel-unicorn@rubyforge.org>;
+ Mon, 14 Jun 2010 15:46:26 -0400 (EDT)
+Received: from localhost (unknown [127.0.2.5]) by dcvr.yhbt.net (Postfix)
+ with ESMTP id 7E14A1F516; Mon, 14 Jun 2010 19:46:25 +0000 (UTC)
+
+Hi all,
+
+Some of you are wondering about the future of the project, especially
+since we're nearing a 1.0 release.
+
+== 1.x - bugfixes and Rack-compatibility synchronization
+
+The 1.x series will focus mainly on bug fixes and compatibility with
+Rack as it evolves.
+
+If Rack drops the rewindability requirement of "rack.input", Unicorn
+will follow ASAP and allow TeeInput to be optional middleware with
+newer Rack versions.
+
+Rubinius should be fully-supported soon, as it's already mostly working
+except for a few corner-case things Rubinius doesn't implement (issues
+filed on their bug tracker).
+
+== 2.x - the fun and crazy stuff
+
+First off, there'll be internal API cleanups + sync with
+Rainbows!/Zbatery This won't be user visible, but it'll be less ugly
+inside.
+
+=== Scalability improvements
+
+I don't know if we'll see hundreds/thousands of CPUs in a single
+application server any time soon, but 2.x will have internal changes
+that'll make us more ready for that.  It could be 5-10 years before
+massively multi-core machines are viable for web apps, but it'd
+certainly be fun to max out Unicorn on those.
+
+I'll be less shy about sacrificing portability for massive scalability.
+Correct me if I'm wrong, but Linux is the only Free kernel that scales
+to monster multicore machines right now, so I'll primarily focus on
+working with features in Linux.
+
+Currently, 8-16 cores seems to be the sweet spot (and has been for a
+while), and present-day Unicorn handles that fine as-is.
+
+=== Features (for Rainbows!, mainly)
+
+IPv6 support and SSL will come, too.   These features will mainly be to
+support Rainbows!, though some LANs could benefit from those, too.  I'll
+have to review the MRI code for those, but I'm leaning towards only
+these new features under 1.9.2+.
+
+Multi-VM (MVM, Ruby 1.9 experimental branch) support will probably
+happen only in Rainbows! rather than Unicorn.  A true fork() is still
+safer in the event of a crash (but less memory-efficient).
+
+== Miscellaneous
+
+I have no plans to provide commercial support, but I'll continue
+offering free support on the mailing list (or private email if you're
+shy).
+
+As some of you may have noticed; I don't endorse commercial products or
+services at all.  This won't change.  However, there will probably be
+more commercial support available from 3rd parties after a 1.0 release.
+
+
+Thanks for reading!
+
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
