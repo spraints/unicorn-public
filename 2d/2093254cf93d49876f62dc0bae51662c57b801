@@ -1,0 +1,129 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: Unicorn future plans
+Date: Mon, 14 Jun 2010 15:10:36 -0700
+Message-ID: <20100614221036.GB18382@dcvr.yhbt.net>
+References: <20100614194625.GA4089@dcvr.yhbt.net>
+ <4B3E0C97-2A2C-4CC8-A802-57D01F8134A3@berlin.ccc.de>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1276553563 13985 80.91.229.12 (14 Jun 2010 22:12:43
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Mon, 14 Jun 2010 22:12:43 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Tue Jun 15 00:12:42
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <4B3E0C97-2A2C-4CC8-A802-57D01F8134A3@berlin.ccc.de>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:575
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/575>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1OOHtU-0003nL-LI for gclrug-mongrel-unicorn@m.gmane.org; Tue, 15 Jun 2010
+ 00:12:36 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id B620B185835D; Mon, 14 Jun 2010 18:12:35 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 9B96A1858372 for <mongrel-unicorn@rubyforge.org>;
+ Mon, 14 Jun 2010 18:10:37 -0400 (EDT)
+Received: from localhost (unknown [127.0.2.5]) by dcvr.yhbt.net (Postfix)
+ with ESMTP id C35391F517; Mon, 14 Jun 2010 22:10:36 +0000 (UTC)
+
+John-Paul Bader <hukl@berlin.ccc.de> wrote:
+> Hey, 
+> 
+> your plans sound great except for ignoring FreeBSD ;)
+> 
+> Seriously many many Servers, including many which I administrate run
+> on FreeBSD and they do so very well. I'm not very familiar with the
+> internals of the FreeBSD Kernel but I can assure you that it runs
+> perfectly on 8 and 16 core machines and I would extremely happy if I
+> could continue to use unicorn on them.
+
+Hi John-Paul,
+
+Reread my post carefully, not much is changing for 8-16 core users.
+FreeBSD and SMP will continue to be supported.  I wasn't referring
+to SMP at all when I was talking about Linux-only bits.
+
+> It should be easier to maintain a FreeBSD version as they (FreeBSD
+> developers) tend to aim for more consistency across releases than
+> Linux. You said once that you don't run any BSD machines but I'd be
+> happy to offer you access to one of my BSD servers for testing.
+
+Thanks for the offer.  I'll keep it in mind if I need it again.
+
+> Furthermore since Mac OS X and FreeBSD share many features like kqueue
+> and many Ruby developers are running macs it would make even more
+> sense to at least care about BSD even if its not you primary platform. 
+
+I know, I've fixed some things on OSX platforms via FreeBSD (OSX scares
+me with its GUI-ness).  Keep in mind kqueue (and epoll) are worthless
+for Unicorn itself since Unicorn only handles one client at a time.
+
+However, Rainbows! can already use kqueue/epoll with EventMachine and
+Rev.
+
+> I don't want to start a flame war or say that one OS is better than
+> another. Linux is certainly great but so is FreeBSD. For the SMP part
+> I recommend the following page on freebsd.org:
+
+Again, I wasn't talking about SMP at all.   SMP works fine on current
+Unicorn and mid-sized servers.  When going to more cores, SMP itself
+is a bottleneck, not the kernel.
+
+With Unicorn 2.x, I'm targeting NUMA hardware that isn't available in
+commodity servers yet.  Currently, NUMA makes _zero_ sense in web
+application servers, but in case things change in a few years, we'll be
+ready.
+
+It may be a chicken-and-egg problem, too.  Hardware manufacturers are
+slow to commoditize NUMA because a good chunk of software can't even
+utilize SMP effectively :)
+
+> To conclude I can only say that I'm running unicorn on several FreeBSD
+> hosts and so far I couldn't be happier with it. As stated before, I'd
+> be more than happy to continue using that setup.
+
+Again, don't worry :)  You'll be able to continue using everything
+as-is.
+
+> Kindest regards and thanks for all you efforts,
+
+No problem.  Please don't top post in the future.
+
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
