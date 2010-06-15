@@ -1,0 +1,201 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.6 required=5.0 tests=FREEMAIL_FROM,
+ MSGID_FROM_MTA_HEADER,RP_MATCHES_RCVD,T_DKIM_INVALID shortcircuit=no
+ autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Russell Branca <chewbranca@gmail.com>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: Forking off the unicorn master process to create a background 
+ worker
+Date: Tue, 15 Jun 2010 10:55:54 -0700
+Message-ID: <AANLkTin3HAypERjYJ9NhC-BnVVmRjEGGEHXIECs2fSfc@mail.gmail.com>
+References: <AANLkTinpzdLFf1bWBMRqDepIYQBKeZWb_mC0n-nlPhzD@mail.gmail.com>
+ <20100526210542.GC24211@dcvr.yhbt.net>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="iso-8859-1"
+Content-Transfer-Encoding: quoted-printable
+X-Trace: dough.gmane.org 1276625993 23693 80.91.229.12 (15 Jun 2010 18:19:53
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Tue, 15 Jun 2010 18:19:53 +0000 (UTC)
+Cc: unicorn list <mongrel-unicorn@rubyforge.org>
+To: Eric Wong <normalperson@yhbt.net>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Tue Jun 15 20:19:49
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com; s=gamma;
+ h=domainkey-signature:mime-version:received:received:in-reply-to
+ :references:date:message-id:subject:from:to:cc:content-type
+ :content-transfer-encoding; bh=EttlgN0C41zQAb068g4/DQZKOulmCHMfWnmRMZvoSx4=;
+ b=sZIVhH8ZTaVwrRpBrfX+T1mXUHC2QIMZhQ+rY/3fcVc+19/RfAnSCMdcD4spwAc6Xi
+ 1eMekxE+onpUElAqCZr2UvIkjh/wvVHeN9D7qGypj3lXmp+Fmg67i4gn9QvL1siyeMNM
+ /XLMb/DQtLICVHXY9ZKNOs9ahrrtV41gVM5eQ=
+DomainKey-Signature: a=rsa-sha1; c=nofws; d=gmail.com; s=gamma;
+ h=mime-version:in-reply-to:references:date:message-id:subject:from:to
+ :cc:content-type:content-transfer-encoding;
+ b=bCB8myV9DHFXG+2bQx9uPyshR/7QezlyWHT5p1r3in12ipgJ5zobj2MV131yv6jCJS
+ awhJD+100JKhdXmQOJCv2FJ7sgacKmzwvzOYtwySRrLI5bj0hUtpyVip7LTaDYT776BE
+ ud2w3rrfz29C+zlmnU7YTxg7VJI+nInaDOMps=
+In-Reply-To: <20100526210542.GC24211@dcvr.yhbt.net>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:578
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/578>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1OOaji-0001DA-2K for gclrug-mongrel-unicorn@m.gmane.org; Tue, 15 Jun 2010
+ 20:19:46 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id A517F1858397; Tue, 15 Jun 2010 14:19:44 -0400 (EDT)
+Received: from mail-gw0-f50.google.com (mail-gw0-f50.google.com
+ [74.125.83.50]) by rubyforge.org (Postfix) with ESMTP id 0ED9D1858393 for
+ <mongrel-unicorn@rubyforge.org>; Tue, 15 Jun 2010 13:56:02 -0400 (EDT)
+Received: by gwb1 with SMTP id 1so3628713gwb.23 for
+ <mongrel-unicorn@rubyforge.org>; Tue, 15 Jun 2010 10:56:02 -0700 (PDT)
+Received: by 10.224.66.155 with SMTP id n27mr3625858qai.25.1276624554742;
+ Tue,  15 Jun 2010 10:55:54 -0700 (PDT)
+Received: by 10.229.73.193 with HTTP; Tue, 15 Jun 2010 10:55:54 -0700 (PDT)
+
+Hello Eric,
+
+
+Sorry for the delayed response, with the combination of being sick and
+heading out of town for a while, this project got put on the
+backburner. I really appreciate your response and think its a clean
+solution for what I'm trying to do. I've started back in getting the
+job queue working this week, and will hopefully have a working
+solution in the next day or two. A little more information about what
+I'm doing, I'm trying to create a centralized resque job queue server
+that each of the different applications can queue work into, so I'll
+be using redis behind resque for storing jobs and what not, which
+brings me an area I'm not sure of the best approach on. So when we hit
+the job queue endpoint in the rack app, it spawns the new worker, and
+then immediately returns the 200 ok started background job message,
+which cuts off communication back to the job queue. My plan is to save
+a status message of the result of the background task into redis, and
+have resque check that to verify the task was successful. Is there a
+better approach for returning the resulting status code with unicorn,
+or is this a reasonable approach? Thanks again for your help.
+
+
+-Russell
+
+On Wed, May 26, 2010 at 2:05 PM, Eric Wong <normalperson@yhbt.net> wrote:
+> Russell Branca <chewbranca@gmail.com> wrote:
+>> Hello,
+>>
+>> I'm trying to find an efficient way to create a new instance of a
+>> rails application to perform some background tasks without having to
+>> load up the entire rails stack every time, so I figured forking off
+>> the master process would be a good way to go. Now I can easily just
+>> increment the worker count and then send a web request in, but the new
+>> worker would be part of the main worker pool, so in the time between
+>> spawning a new worker and sending the request, another request could
+>> have come in and snagged that worker. Is it possible to create a new
+>> worker and not have it enter the main worker pool so I could access it
+>> directly?
+>
+> Hi Russell,
+>
+> You could try having an endpoint in your webapp (with authentication, or
+> have it reject env['REMOTE_ADDR'] !=3D '127.0.0.1') that runs the
+> background task for you. =A0Since it's a background app, you should
+> probably fork + Process.setsid + fork (or Process.daemon in 1.9), and
+> return an HTTP response immediately so your app can serve other
+> requests.
+>
+> The following example should be enough to get you started (totally
+> untested)
+>
+> ------------ config.ru -------------
+> require 'rack/lobster'
+>
+> map "/.seekrit_endpoint" do
+> =A0use Rack::ContentLength
+> =A0use Rack::ContentType, 'text/plain'
+> =A0run(lambda { |env|
+> =A0 =A0return [ 403, {}, [] ] if env['REMOTE_ADDR'] !=3D '127.0.0.1'
+> =A0 =A0pid =3D fork
+> =A0 =A0if pid
+> =A0 =A0 =A0Process.waitpid(pid)
+>
+> =A0 =A0 =A0# cheap way to avoid unintentional fd sharing with our childre=
+n,
+> =A0 =A0 =A0# this causes the current Unicorn worker to exit after sending
+> =A0 =A0 =A0# the response:
+> =A0 =A0 =A0# Otherwise you'd have to be careful to disconnect+reconnect
+> =A0 =A0 =A0# databases/memcached/redis/whatever (in both the parent and
+> =A0 =A0 =A0# child) to avoid unintentional sharing that'll lead to headac=
+hes
+> =A0 =A0 =A0Process.kill(:QUIT, $$)
+>
+> =A0 =A0 =A0[ 200, {}, [ "started background process\n" ] ]
+> =A0 =A0else
+> =A0 =A0 =A0# child, daemonize it so the unicorn master won't need to
+> =A0 =A0 =A0# reap it (that's the job of init)
+> =A0 =A0 =A0Process.setsid
+> =A0 =A0 =A0exit if fork
+>
+> =A0 =A0 =A0begin
+> =A0 =A0 =A0 =A0# run your background code here instead of sleeping
+> =A0 =A0 =A0 =A0sleep 5
+> =A0 =A0 =A0 =A0env["rack.logger"].info "done sleeping"
+> =A0 =A0 =A0rescue =3D> e
+> =A0 =A0 =A0 =A0env["rack.logger"].error(e.inspect)
+> =A0 =A0 =A0end
+> =A0 =A0 =A0# make sure we don't enter the normal response cycle back in t=
+he
+> =A0 =A0 =A0# worker...
+> =A0 =A0 =A0exit!(0)
+> =A0 =A0end
+> =A0})
+> end
+>
+> map "/" do
+> =A0run Rack::Lobster.new
+> end
+>
+>> I know this is not your typical use case for unicorn, and you're
+>> probably thinking there is a lot better ways to do this, however, I
+>> currently have a rails framework that powers a handful of standalone
+>> applications on a server with limited resources, and I'm trying to
+>> make a centralized queue that all the applications use, so the queue
+>> needs to be able to spawn a new worker for each of the applications
+>> efficiently, and incrementing/decrementing worker counts in unicorn is
+>> the most efficient way I've found to spawn a new rails instance.
+>
+> Yeah, it's definitely an odd case and there are ways to shoot yourself
+> in the foot with it (especially with unintentional fd sharing), but Ruby
+> exposes all the Unix process management goodies better than most
+> languages (probably better than anything else I've used).
+>
+>> Any help, suggestions or insight into this would be greatly appreciated.
+>
+> Let us know how it goes :)
+>
+> --
+> Eric Wong
+>
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
