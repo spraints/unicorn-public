@@ -1,0 +1,163 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.6 required=5.0 tests=FREEMAIL_FROM,
+ MSGID_FROM_MTA_HEADER,RP_MATCHES_RCVD,T_DKIM_INVALID shortcircuit=no
+ autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Russell Branca <chewbranca@gmail.com>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: Forking off the unicorn master process to create a background 
+ worker
+Date: Tue, 15 Jun 2010 15:51:48 -0700
+Message-ID: <AANLkTilPqmKCkcRxACMaXJB3Uch4Es6oxipV3DpIyjkV@mail.gmail.com>
+References: <AANLkTinpzdLFf1bWBMRqDepIYQBKeZWb_mC0n-nlPhzD@mail.gmail.com>
+ <20100526210542.GC24211@dcvr.yhbt.net>
+ <AANLkTin3HAypERjYJ9NhC-BnVVmRjEGGEHXIECs2fSfc@mail.gmail.com>
+ <20100615221426.GA24854@dcvr.yhbt.net>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="iso-8859-1"
+Content-Transfer-Encoding: quoted-printable
+X-Trace: dough.gmane.org 1276642662 17838 80.91.229.12 (15 Jun 2010 22:57:42
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Tue, 15 Jun 2010 22:57:42 +0000 (UTC)
+Cc: unicorn list <mongrel-unicorn@rubyforge.org>
+To: Eric Wong <normalperson@yhbt.net>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Wed Jun 16 00:57:38
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com; s=gamma;
+ h=domainkey-signature:mime-version:received:received:in-reply-to
+ :references:date:message-id:subject:from:to:cc:content-type
+ :content-transfer-encoding; bh=pyUJppdF0ooLVtyeNt6jAnFm2U0WXpcwb4oSGYsPkt8=;
+ b=F7kk+Dm2k7GnP7xRZsO+VTJWBDzZ9uNh+2yBQiXBfbBYCYbgxWkwl46dr4X97wx993
+ uuDCcJqbGYmaqCGytr+kTsjhGEFWiebohB9g6sgT42wNHm+2oerhOcAI6VXnFtKQzOsZ
+ 1mPmyrfgbMI8+WfToXE+ikws0MGHiuPG32xRo=
+DomainKey-Signature: a=rsa-sha1; c=nofws; d=gmail.com; s=gamma;
+ h=mime-version:in-reply-to:references:date:message-id:subject:from:to
+ :cc:content-type:content-transfer-encoding;
+ b=tcn/AXagmUJzjliwzc8ZxoZDCnZ4dgYo7DWMKN7Ta2JvMxm2+Uwc1vZT1qMtFGyNg2
+ 6vsN48hYc1F9YDdHKbwm815iYrPPq1ul/uaa1hqic9o4c0BQpHqDrDVT6wRADGzlpa9Y
+ sQu9ioFK8AmnuKpke1e91aGYRlH+kCveppAFc=
+In-Reply-To: <20100615221426.GA24854@dcvr.yhbt.net>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:580
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/580>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1OOf4a-00070f-Ht for gclrug-mongrel-unicorn@m.gmane.org; Wed, 16 Jun 2010
+ 00:57:36 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id D68B318583A0; Tue, 15 Jun 2010 18:57:35 -0400 (EDT)
+Received: from mail-vw0-f50.google.com (mail-vw0-f50.google.com
+ [209.85.212.50]) by rubyforge.org (Postfix) with ESMTP id 3A93F1858398 for
+ <mongrel-unicorn@rubyforge.org>; Tue, 15 Jun 2010 18:51:49 -0400 (EDT)
+Received: by vws10 with SMTP id 10so8019888vws.23 for
+ <mongrel-unicorn@rubyforge.org>; Tue, 15 Jun 2010 15:51:48 -0700 (PDT)
+Received: by 10.224.65.234 with SMTP id k42mr3772157qai.322.1276642308403; 
+ Tue, 15 Jun 2010 15:51:48 -0700 (PDT)
+Received: by 10.229.73.193 with HTTP; Tue, 15 Jun 2010 15:51:48 -0700 (PDT)
+
+On Tue, Jun 15, 2010 at 3:14 PM, Eric Wong <normalperson@yhbt.net> wrote:
+> Russell Branca <chewbranca@gmail.com> wrote:
+>> Hello Eric,
+>>
+>> Sorry for the delayed response, with the combination of being sick and
+>> heading out of town for a while, this project got put on the
+>> backburner. I really appreciate your response and think its a clean
+>> solution for what I'm trying to do. I've started back in getting the
+>> job queue working this week, and will hopefully have a working
+>> solution in the next day or two. A little more information about what
+>> I'm doing, I'm trying to create a centralized resque job queue server
+>> that each of the different applications can queue work into, so I'll
+>> be using redis behind resque for storing jobs and what not, which
+>> brings me an area I'm not sure of the best approach on. So when we hit
+>> the job queue endpoint in the rack app, it spawns the new worker, and
+>> then immediately returns the 200 ok started background job message,
+>> which cuts off communication back to the job queue. My plan is to save
+>> a status message of the result of the background task into redis, and
+>> have resque check that to verify the task was successful. Is there a
+>> better approach for returning the resulting status code with unicorn,
+>> or is this a reasonable approach? Thanks again for your help.
+>
+> Hi Russell, please don't top post, thanks.
+>
+> If you already have a queue server (and presumably a standalone app
+> processing the queue), I would probably forgo the background Unicorn
+> worker entirely.
+>
+> Based on my ancient (mid-2000s) knowledge of user-facing web
+> applications: the application should queue the job, return 200, and have
+> HTML meta refresh to constantly reload the page every few seconds.
+>
+> Hitting the reload endpoint would check the database (Redis in this
+> case) for completion, and return a new HTML page to stop the meta
+> refresh loop.
+>
+> This means you're no longer keeping a single Unicorn worker idle and
+> wasting it. =A0Nowadays you could do it with long-polling on
+> Rainbows!/Thin/Zbatery, too, but long-polling is less reliable for
+> people switching between WiFi access points. =A0The meta refresh method
+> can be a waste of power/bandwidth on the client side if the background
+> job takes a long time, though.
+>
+> I'm familiar at all with Resque or Redis, but I suspect other folks
+> on this mailing list should be able to help you flesh out the details.
+>
+> --
+> Eric Wong
+>
+
+Hi Eric,
+
+I have a queue server, but I don't have a standalone app processing
+the jobs, because I have a large number of stand alone applications on
+a single server. Right now I've got 12 separate apps running, so if I
+wanted to have a standalone app for each, that would be 12 additional
+applications in memory for handling background jobs. The whole reason
+I want to go with the unicorn worker approach for handling background
+jobs, is so I can fork off the master process as needed, avoid the
+spawning time for a normal rails instance, and only use workers as
+needed. This way I can have just a few workers running at any given
+time, rather than 1 worker for each app. The number of apps is only
+going to increase, but I want to keep the worker pool a constant. I'll
+probably just update status of completion with redis, these jobs won't
+be run by users, this is all background stuff like sending
+notifications, data analysis, feed parsing, etc etc, so I'm planning
+on just having resque initiate a request directly, and then use
+unicorn to process the task in the background.
+
+I didn't exactly follow what you meant when you were talking about a
+unicorn worker being idle, from the example config.ru you responded
+with earlier on, it looks like I can just spawn a new worker that will
+be outside of the normal worker pool to handle the job. I'm pretty
+sure this will work, I was curious about the best approach for
+returning completion status, but I think just having the worker record
+its status and exit is better than having long polling connections
+open between the job queue and the new unicorn worker.
+
+
+-Russell
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
