@@ -1,0 +1,151 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: anything left before 1.0?
+Date: Tue, 15 Jun 2010 19:27:27 -0700
+Message-ID: <20100616022727.GA29933@dcvr.yhbt.net>
+References: <20100616000907.GA28484@dcvr.yhbt.net>
+ <AANLkTikXzy9FaBOcUia1Ko-aJlSHE-M8CzA4XBCmA81E@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1276655392 19341 80.91.229.12 (16 Jun 2010 02:29:52
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Wed, 16 Jun 2010 02:29:52 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Wed Jun 16 04:29:51
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <AANLkTikXzy9FaBOcUia1Ko-aJlSHE-M8CzA4XBCmA81E@mail.gmail.com>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:584
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/584>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1OOiNv-00018D-Sh for gclrug-mongrel-unicorn@m.gmane.org; Wed, 16 Jun 2010
+ 04:29:48 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id E4AA11858381; Tue, 15 Jun 2010 22:29:46 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id AA77A1858317 for <mongrel-unicorn@rubyforge.org>;
+ Tue, 15 Jun 2010 22:27:28 -0400 (EDT)
+Received: from localhost (unknown [127.0.2.5]) by dcvr.yhbt.net (Postfix)
+ with ESMTP id 042711F519; Wed, 16 Jun 2010 02:27:27 +0000 (UTC)
+
+Andrew Grim <andrew@kongregate.com> wrote:
+> > Let us know if there's anything else missing, pipe up within the next 24
+> > hours or so...
+> >
+> Hey Eric,
+> 
+> I was hoping to spend some more time debugging myself, but since you
+> were going to release 1.0 I thought I'd get your thoughts on this.
+> Quick overview, I work for kongregate.com, one of the larger rails
+> sites, and one of the only large sites (that I know of personally)
+> running ruby 1.9.  We are currently running mostly mongrels, but I've
+> got one server testing Unicorn.  Things are mostly great, we are
+> seeing nearly 20ms improvement in average response time, which is
+> awesome.  Now to the issue.
+> 
+> SYMPTOM: The master process is killing the workers fairly frequently
+> based on the workers timing out.
+> 
+> CAUSE: I've added some logging to get the backtrace when I send a
+> SIGTERM, and it is always stuck on line 68 in http_response.rb:
+> 
+>       body.each { |chunk| socket.write(chunk) }
+> 
+> I ran some straces, and here's an example of the last few lines where
+> it gets killed:
+> 
+> 06:50:23.239931 clock_gettime(CLOCK_REALTIME, {1276523423, 239967000})
+> = 0 <0.000172>
+> 06:50:23.240213 write(12, "HTTP/1.1 200 OK\r\nDate: Mon, 14 J"...,
+> 1896) = 1896 <0.000087>
+> 06:50:23.242072 write(12, "<!DOCTYPE html PUBLIC \"-//W3C//D"...,
+> 166842) = 128000 <0.000107>
+> 06:50:23.242230 select(13, NULL, [12], NULL, NULL <unfinished ...>
+> 06:51:22.167122 +++ killed by SIGKILL +++
+> 
+> So it's writing and then (to my understanding) waiting on the socket
+> to return, but you can see that for a full 60s it isn't.
+
+Hi Andrew,
+
+The timer starts when the app is initially dispatched, not when writing
+starts.  You can check the log output from the master process (which
+usually goes to stderr_path) and see the exact time the master process
+saw before killing it.
+
+Are you using nginx (or something else) to reverse proxy?  You should
+be using nginx :)
+
+> My best guess off-hand is that the large size of the string being
+> written to the socket is causing an issue, and I have noticed that it
+> is happening primarily on requests that return larger payloads.
+
+That's unlikely.  I suspect the client you're using to hit Unicorn with
+is not reading the other end of the socket, so once the kernel buffers
+fill up, Unicorn blocks on the write.
+
+Not a real solution, but you can probably hide the problem by increasing
+the buffer sizes in the Linux kernel (net.core.wmem_max and
+net.ipv4.tcp_wmem sysctls), but the defaults are already very generous.
+
+> At the same time, it isn't that much data, so I'm a little surprised
+> it would be an issue.  I am planning on trying to split the body up
+> into smaller chunks in a rack middleware or something.
+
+I doubt the middleware would help at all.
+
+> Or I could be totally off.  Just wanted to see if you have any ideas,
+> I'm not even sure this is a Unicorn issue, definitely could be ruby
+> 1.9 bug too.
+
+I would definitely look at your _client_ (which should be nginx).
+
+You should isolate your client from other requests and strace that, too,
+and see if it's reading off the socket at the same time.  I've used
+1.9.1 pretty heavily with Rainbows! and large responses myself in
+development/testing.
+
+nginx will freeze up badly when running poorly-written Perl code with
+the embedded Perl support.  Other than that it's been very solid in my
+experience.
+
+> Sorry about the long email, but I appreciate any help you can give.
+
+No problem, let us know what you find out.
+
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
