@@ -1,0 +1,112 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: mongrel_proctitle like support in Unicorn
+Date: Thu, 17 Jun 2010 23:21:50 +0000
+Message-ID: <20100617232149.GB25862@dcvr.yhbt.net>
+References: <ae96cae30912021352l170af773k275b14377138202c@mail.gmail.com>
+ <944a03770912021404s189a3686sb8b024a21d5a7c7a@mail.gmail.com>
+ <loom.20100618T002015-365@post.gmane.org>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1276816924 13437 80.91.229.12 (17 Jun 2010 23:22:04
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Thu, 17 Jun 2010 23:22:04 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Fri Jun 18 01:22:00
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <loom.20100618T002015-365@post.gmane.org>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:589
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/589>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1OPOPI-0003bf-Gp for gclrug-mongrel-unicorn@m.gmane.org; Fri, 18 Jun 2010
+ 01:22:00 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 3883218583C6; Thu, 17 Jun 2010 19:21:59 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 1017218583BF for <mongrel-unicorn@rubyforge.org>;
+ Thu, 17 Jun 2010 19:21:52 -0400 (EDT)
+Received: from localhost (unknown [127.0.2.5]) by dcvr.yhbt.net (Postfix)
+ with ESMTP id CADFA1F4FC; Thu, 17 Jun 2010 23:21:51 +0000 (UTC)
+
+Jamie Wilkinson <jamie@tramchase.com> wrote:
+> Michael Guterl <mguterl <at> gmail.com> writes:
+> > On Wed, Dec 2, 2009 at 4:52 PM, Justin Hahn <jhahn <at> rbmtechnologies.com>
+> wrote:
+> > > Before I go off ans try cutting my own horrible monkey patch to
+> > > unicorn, has anyone tried implementing something like
+> > > mongrel_proctitle for Unicorn?
+> 
+> > There's some rack middleware out there, RackProctitle, which provides
+> > this functionality.  I have not used it with Unicorn, but I don't see
+> > why it wouldn't work.
+> > 
+> > http://coderack.org/users/arya/entries/3-rack-proctitle
+> 
+> FWIW this doesn't seem to work out-of-box with Unicorn. Eric, do you know
+> offhand if it's possible to use middleware to call unicorn's proc_name? I'd love
+> to be able to watch what my unicorns are doing in realtime
+
+That coderack link no longer works for me, but I see no reason why
+Rack::ProcTitle in rack-contrib wouldn't work (based on my reading of
+the code):
+
+http://github.com/rack/rack-contrib/blob/master/lib/rack/contrib/proctitle.rb
+
+I guess it holds onto $0 after the app is done dispatching...
+
+> Slightly related -- is it also possible to interrogate the current size of a
+> socket's backlog? (is this what Raindrops is for? It doesn't work out of box on
+> my mac, but I'd see about getting it working if it did)
+
+Yes, the backlog interrogation code is in Raindrops is very
+Linux-specific.  The shared memory counters should be reasonably
+portable to modern POSIX-ish systems (using GCC).
+
+I have no idea if similar backlog interrogation functionality exists in
+other operating systems.  I only learned of the Linux functionality
+shortly before writing Raindrops.
+
+If somebody could provide working patches for similar functionality in
+other OSes, I'd be more than happy to include them into Raindrops.
+
+> Congrats on 1.0
+
+Thanks :>
+
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
