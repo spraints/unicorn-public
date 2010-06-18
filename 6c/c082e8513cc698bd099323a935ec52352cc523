@@ -1,0 +1,177 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: Fwd: Support for Soft Timeout in Unicorn
+Date: Fri, 18 Jun 2010 21:48:34 +0000
+Message-ID: <20100618214834.GA1817@dcvr.yhbt.net>
+References: <20100603173749.GA19649@dcvr.yhbt.net>
+ <20100603182246.GB19649@dcvr.yhbt.net>
+ <AANLkTile44yxAsA3bT_nGEgLHQcCeRd5tKspdKs2rOoV@mail.gmail.com>
+ <20100603184730.GA2421@dcvr.yhbt.net>
+ <AANLkTilIJL2dP_nlqwn-Jh5a3KhQ0wL75L5Be_2ybQZr@mail.gmail.com>
+ <20100604205925.GA7361@dcvr.yhbt.net>
+ <AANLkTimT-pFr0GW8fhmhQ-9a8eI98NrzXsGBsqSn5UoJ@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1276898568 29627 80.91.229.12 (18 Jun 2010 22:02:48
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Fri, 18 Jun 2010 22:02:48 +0000 (UTC)
+Cc: Luke Melia <luke@lukemelia.com>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Sat Jun 19 00:02:44
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <AANLkTimT-pFr0GW8fhmhQ-9a8eI98NrzXsGBsqSn5UoJ@mail.gmail.com>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:592
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/592>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1OPje5-0000kc-C1 for gclrug-mongrel-unicorn@m.gmane.org; Sat, 19 Jun 2010
+ 00:02:41 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 59B2E185835D; Fri, 18 Jun 2010 18:02:40 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id C895018582E2 for <mongrel-unicorn@rubyforge.org>;
+ Fri, 18 Jun 2010 17:48:35 -0400 (EDT)
+Received: from localhost (unknown [127.0.2.5]) by dcvr.yhbt.net (Postfix)
+ with ESMTP id 58B401F50B; Fri, 18 Jun 2010 21:48:34 +0000 (UTC)
+
+Ryan Tomayko <r@tomayko.com> wrote:
+> On Fri, Jun 4, 2010 at 1:59 PM, Eric Wong <normalperson@yhbt.net> wrote:
+> > Chris Wanstrath <chris@ozmm.org> wrote:
+> >> That's what we do at GitHub. We're running Rails 2.2.2 and have a
+> >> custom config.ru, thanks to Unicorn:
+> >>
+> >> http://gist.github.com/424352
+> >
+> > By the way, how's the OobGC middleware working for you guys?
+> 
+> We rolled out the OobGC middleware along with a basic RailsBench GC
+> config (RUBY_HEAP_MIN_SLOTS, etc.). Combined, they knocked about 20ms
+> (~15%) off the average response time across the site (real traffic).
+> The impact was significantly more for requests that allocate a lot of
+> objects -- as much as 50% decreases in response time for the worst
+> offenders. We saw no noticeable increase in CPU with OobGC set to run
+> every 10 requests, and a fair increase in CPU with OobGC set to run
+> every 5 requests.
+
+Cool.  Am I correct to assume the increased CPU usage at every 5
+requests wasn't worth any performance gains you might have had?
+
+> Because I rolled this stuff out somewhat non-scientifically, I've
+> always wondered how much OobGC contributed to the overall savings vs.
+> the RailsBench GC config. Disabling the OobGC middleware but leaving
+> the RailsBench GC config in place, I get the following graph:
+> 
+> http://img.skitch.com/20100618-kihdc1cq6pjhq9rqftf8miuf6y.png
+> 
+> So we're spending ~1ms request time in GC with OobGC, and ~10ms
+> request time in GC without it.
+
+Awesome.
+
+> Here's some system load graphs for the same time period just to show
+> that OobGC has no adverse effect when set to GC every 10 requests:
+> 
+> http://img.skitch.com/20100618-qp7p8f6i2agbqbdnjbpigik1d9.png
+> 
+> I assume the RailsBench GC patches improve the effect of OobGC
+> considerably by increasing the number of objects that can be allocated
+> between GC runs, allowing more of the GC work to be deferred to
+> in-between-requests time. Here's the RailsBench config we're using
+> today, for the record:
+> 
+>     RUBY_HEAP_MIN_SLOTS=800000
+>     RUBY_HEAP_FREE_MIN=100000
+>     RUBY_HEAP_SLOTS_INCREMENT=300000
+>     RUBY_HEAP_SLOTS_GROWTH_FACTOR=1
+>     RUBY_GC_MALLOC_LIMIT=79000000
+> 
+> This is only barely tuned for us. I stole most of the numbers from the
+> Twitter and 37signals examples.
+> 
+> I've also experimented with tuning the GC specifically to take
+> advantage of OobGC:
+> 
+> https://gist.github.com/87d574a19372c6043c5f
+> 
+> # The following GC settings have been tuned for GitHub application web requests.
+> # Most settings are significantly higher than the example configs published by
+> # Twitter and 37signals. There's a couple reasons for this. First, the GitHub
+> # app has a memory footprint that's 3x-4x larger than the standard Rails app
+> # (roughly 200MB after first request compared to ~40MB-50MB). Second, because
+
+Yikes, 200MB after one request is a lot.  If you can easily find ways to
+cut that down, it should be more of a gain than the monster heap you've
+tried.
+
+> # Unicorn is such an exceptional piece of software, we're able to schedule GC
+> # to run outside the context of requests so as not to effect response times.
+> # As such, we try to allocate enough memory to service 5 requests
+> without needing
+> # GC and then run GC manually immediately after each fifth request has been
+> # served but before the process starts accepting the next connection. The result
+> # is higher memory use (~300MB per Unicorn worker process on average) and a
+> # slight increase in CPU due to forced manual GC, but better response times.
+> # ...
+> 
+> Unfortunately, the bigger heap seems to cause a largish increase in
+> the time needed for each GC, so the unicorn workers were spending too
+> much time between requests. CPU and RES increases were even more than
+> I'd expected. It also didn't eliminate in-request GC entirely as I'd
+> hoped.
+> 
+> I eventually abandoned the idea -- even if I could get it to behave,
+> it's hardly worth the 1ms it would save. I mention it here because the
+> general approach might work in situations where the base heap size is
+> a bit smaller (say < 80MB) or perhaps I'm mistuning one of the
+> parameters.
+
+So in conclusion, OobGC itself works, but too large of a heap isn't
+worth it even for a memory hungry app.
+
+I suppose having too big of a heap means it can fragment more badly.
+Making GC run more often on a smaller heap can and give similar (or
+maybe better) performance.  At best you'll get diminishing returns as
+you seem to have concluded.
+
+I have no doubt the Railsbench GC patches help.  Even with small apps,
+being able being able to set a linear growth factor on long-running
+servers is awesome.
+
+Thanks for sharing this!
+
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
