@@ -1,0 +1,101 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.6 required=5.0 tests=FREEMAIL_FROM,
+ MSGID_FROM_MTA_HEADER,RP_MATCHES_RCVD,T_DKIM_INVALID shortcircuit=no
+ autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Andreas Neuhaus <zargony@gmail.com>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: Unicorn tempfile chown problem with Ruby 1.9
+Date: Sat, 19 Jun 2010 15:38:36 +0200
+Message-ID: <AANLkTilrAyswjJjmxcq5WWjtwLt_jWg3ABWP3eVH4iB2@mail.gmail.com>
+References: <AANLkTimcWiSbWMdaf58RuipDCSgN0MncQG_u-bB55Rh9@mail.gmail.com>
+ <20100619024425.GA3132@dcvr.yhbt.net>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+X-Trace: dough.gmane.org 1276954732 3823 80.91.229.12 (19 Jun 2010 13:38:52
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Sat, 19 Jun 2010 13:38:52 +0000 (UTC)
+Cc: mongrel-unicorn@rubyforge.org
+To: Eric Wong <normalperson@yhbt.net>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Sat Jun 19 15:38:50
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com; s=gamma;
+ h=domainkey-signature:mime-version:received:received:in-reply-to
+ :references:date:message-id:subject:from:to:cc:content-type
+ :content-transfer-encoding; bh=UBJYzFlNWyGfA4cZcJmQue3fDIGvoz36HlrI03J07Yc=;
+ b=X5Mky87wknd0zrRG273vXaCQlEpCYjI+lFT/ljL6VZx50pL4tUXv+f9HfBLpUa0Ruk
+ rH1IevI/o5hvWb01zdiPUq+NtjdCVYpo8azWkdkybZ8s9EGOuYbv5nNmbFXE7c4B87X3
+ ZPaRWFExeX8IzskdUb9X6Q6apC9uvYLxLHTYg=
+DomainKey-Signature: a=rsa-sha1; c=nofws; d=gmail.com; s=gamma;
+ h=mime-version:in-reply-to:references:date:message-id:subject:from:to
+ :cc:content-type:content-transfer-encoding;
+ b=YR77jg1Ut/KxVvnivhOF66/uKxEhRnTkVa8Wn8R89MnZtlugLTv7JwKWPkFC6MkbSq
+ xHYCR0TSge8r4F9u+TI3wmTdqprimWA0tRBoD4uhGadhylFABsRVOZ733kA/evLJIyeI
+ OfhTnK8luviym4QcwVfFa8D2WKaAOq+njGS10=
+In-Reply-To: <20100619024425.GA3132@dcvr.yhbt.net>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:595
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/595>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1OPyG0-0007va-8O for gclrug-mongrel-unicorn@m.gmane.org; Sat, 19 Jun 2010
+ 15:38:48 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id C422F185836C; Sat, 19 Jun 2010 09:38:44 -0400 (EDT)
+Received: from ey-out-2122.google.com (ey-out-2122.google.com [74.125.78.24])
+ by rubyforge.org (Postfix) with ESMTP id 380D21858368 for
+ <mongrel-unicorn@rubyforge.org>; Sat, 19 Jun 2010 09:38:37 -0400 (EDT)
+Received: by ey-out-2122.google.com with SMTP id 22so285316eye.29 for
+ <mongrel-unicorn@rubyforge.org>; Sat, 19 Jun 2010 06:38:36 -0700 (PDT)
+Received: by 10.213.112.193 with SMTP id x1mr738660ebp.84.1276954716356; Sat,
+ 19 Jun 2010 06:38:36 -0700 (PDT)
+Received: by 10.213.27.136 with HTTP; Sat, 19 Jun 2010 06:38:36 -0700 (PDT)
+
+SGkgRXJpYywKCj4+IC91c3IvbG9jYWwvcnZtL2dlbXMvcnVieS0xLjkuMi1wcmV2aWV3My9nZW1z
+L3VuaWNvcm4tMS4wLjAvbGliL3VuaWNvcm4ucmI6MTg5OmluCj4+IGBjaG93bic6IE5vIHN1Y2gg
+ZmlsZSBvciBkaXJlY3RvcnkgLSAvdG1wLzAuODIxNjE0MTAyNjcwNDIzOAo+PiAoRXJybm86OkVO
+T0VOVCkKCj4gVGhpcyBpcyBhIGJ1ZyBpbiBSdWJ5IGFuZCBJJ3ZlIGZpbGVkIGEgcmVwb3J0IGFu
+ZCBwYXRjaCBpbiBSZWRtaW5lOgo+IMKgaHR0cDovL3JlZG1pbmUucnVieS1sYW5nLm9yZy9pc3N1
+ZXMvc2hvdy8zNDUxCgpUaGFua3MuIEkgc3RhcnRlZCB0byB3YXRjaCB0aGF0IHRpY2tldCB0byBz
+ZWUgd2hlcmUgaXQgZ29lcy4gSW4gdGhlCm1lYW50aW1lLCBJIHRyaWVkIHRvIHdvcmthcm91bmQg
+dGhlIHByb2JsZW0gYnkgdGVsbGluZyB1bmljb3JuIHRvCmNob3duIHRoZSB0ZW1wZmlsZSBiZWZv
+cmUgaXQncyB1bmxpbmtlZCAod2hpY2ggbG9va3MgbGlrZSBpdCB3b3JrcwpmaW5lIGZvciBub3cp
+LiBodHRwOi8vZ2lzdC5naXRodWIuY29tLzQ0NDkwMQoKPiBVbmljb3JuIG5lZWRzIHRvIGZjaG1v
+ZCgyKSBpdCBhcyB0aGUgcmVndWxhciB1c2VyIGZvciB0aGUgaGVhcnRiZWF0Cj4gZnVuY3Rpb25h
+bGl0eSB0byB3b3JrIChtYXN0ZXIgcHJvY2VzcyBjb250aW51ZXMgdG8gcnVuIGFzIHJvb3QKPiBp
+ZiBzdGFydGVkIGFzIHJvb3QpLgo+IElzIFVuaWNvcm4gYWN0dWFsbHkgYWJsZSB0byBzZXJ2ZSBy
+ZXF1ZXN0cyB3aGVuIHlvdSByZW1vdmVkIHRtcC5jaG93bj8KPiBVbmRlciBMaW51eCwgZmNobW9k
+KCkgZG9lc24ndCB3b3JrIHdpdGhvdXQgb3duZXJzaGlwIG9mIHRoZSBmaWxlLgoKWW91J3JlIHJp
+Z2h0LCBpdCBkb2Vzbid0IHdvcmsgaWYgdG1wLmNob3duIGlzIHJlbW92ZWQuIEZvcgpjb252ZW5p
+ZW5jZSwgSSBhbHdheXMgdHJpZWQgaXQgb24gbXkgbG9jYWwgbWFjaGluZSBhcyBhIHVzZXIgYW5k
+CmNob3duJ2VkIHRvIG15IG93biB1c2VyIHRvIHRyaWdnZXIgdGhlIHByb2JsZW0uIFRoaXMgd2F5
+IEkgY291bGQgdGVzdAp0aGluZ3Mgd2l0aG91dCBydW5uaW5nIGl0IGFzIHJvb3QuIFdoZW4gcnVu
+bmluZyB1bmljb3JuIHdpdGggdG1wLmNob3duCnJlbW92ZWQgYXMgcm9vdCwgaXQgdGhyb3dzIEVQ
+RVJNIGVycm9ycyBhcyB5b3UgZXhwZWN0ZWQuCgpyZWdhcmRzLApBbmRyZWFzIE5ldWhhdXMKX19f
+X19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX18KVW5pY29ybiBtYWls
+aW5nIGxpc3QgLSBtb25ncmVsLXVuaWNvcm5AcnVieWZvcmdlLm9yZwpodHRwOi8vcnVieWZvcmdl
+Lm9yZy9tYWlsbWFuL2xpc3RpbmZvL21vbmdyZWwtdW5pY29ybgpEbyBub3QgcXVvdGUgc2lnbmF0
+dXJlcyAobGlrZSB0aGlzIG9uZSkgb3IgdG9wIHBvc3Qgd2hlbiByZXBseWluZwo=
+
