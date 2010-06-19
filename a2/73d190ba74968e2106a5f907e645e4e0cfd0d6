@@ -1,0 +1,119 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.6 required=5.0 tests=FREEMAIL_FROM,
+ MSGID_FROM_MTA_HEADER,RP_MATCHES_RCVD,T_DKIM_INVALID shortcircuit=no
+ autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Andreas Neuhaus <zargony@gmail.com>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Unicorn tempfile chown problem with Ruby 1.9
+Date: Sat, 19 Jun 2010 02:19:18 +0200
+Message-ID: <AANLkTimcWiSbWMdaf58RuipDCSgN0MncQG_u-bB55Rh9@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1276907074 18935 80.91.229.12 (19 Jun 2010 00:24:34
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Sat, 19 Jun 2010 00:24:34 +0000 (UTC)
+To: mongrel-unicorn@rubyforge.org
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Sat Jun 19 02:24:33
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com; s=gamma;
+ h=domainkey-signature:mime-version:received:received:date:message-id
+ :subject:from:to:content-type;
+ bh=+TBi9yrOtHY3fN6Fyd5ozNGRBqeYw8VrIIsQ+lhY1lQ=;
+ b=FRVDMA6K0SQpPzc/ev+q8+reGj4VgcWLANvTiv3tGQaqF8Vyb5O3qNV7i1fTVh9rzr
+ I9CQ9UQqkVVMWbgFC6iSg6XYc9Zn5IHgM79RWdpSrxheZI8AlLaoQC7v3v+8Nfy4HWRF
+ sTOLPOE2EatxR8ERGby871jN7uIL9PsX4VNRM=
+DomainKey-Signature: a=rsa-sha1; c=nofws; d=gmail.com; s=gamma;
+ h=mime-version:date:message-id:subject:from:to:content-type;
+ b=VUtqlXzH1nV0/jN48HY9gRLozl6W3XHcIpcjM5jLDmKQHduiczqYFmwHubtaUrXZye
+ r/9cl1kD8EJuTJGzhpJ4sCVktKWM9fNvirn/SNAOoHpKMd8qiA7oLGcMnJ3se4KQ21fg
+ 34oCg+2znMbUy2jkfcLkfglsoYZ/aKLU4PWhU=
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:593
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/593>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1OPlrM-0000Qi-GL for gclrug-mongrel-unicorn@m.gmane.org; Sat, 19 Jun 2010
+ 02:24:32 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id C4C551858357; Fri, 18 Jun 2010 20:24:31 -0400 (EDT)
+Received: from ey-out-2122.google.com (ey-out-2122.google.com [74.125.78.27])
+ by rubyforge.org (Postfix) with ESMTP id 500231858375 for
+ <mongrel-unicorn@rubyforge.org>; Fri, 18 Jun 2010 20:19:19 -0400 (EDT)
+Received: by ey-out-2122.google.com with SMTP id 22so227942eye.29 for
+ <mongrel-unicorn@rubyforge.org>; Fri, 18 Jun 2010 17:19:18 -0700 (PDT)
+Received: by 10.213.20.142 with SMTP id f14mr87571ebb.46.1276906758075; Fri, 
+ 18 Jun 2010 17:19:18 -0700 (PDT)
+Received: by 10.213.27.136 with HTTP; Fri, 18 Jun 2010 17:19:18 -0700 (PDT)
+
+Hi everybody,
+
+I ran into a problem with unicorn today. Using Ruby 1.9.2-preview3
+(compiled by rvm) and a unicorn config that has a "user" statement to
+let workers run under a different user, unicorn fails to start any
+worker process:
+
+/usr/local/rvm/gems/ruby-1.9.2-preview3/gems/unicorn-1.0.0/lib/unicorn.rb:189:in
+`chown': No such file or directory - /tmp/0.8216141026704238
+(Errno::ENOENT)
+	from /usr/local/rvm/gems/ruby-1.9.2-preview3/gems/unicorn-1.0.0/lib/unicorn.rb:189:in
+`user'
+	from /usr/local/rvm/gems/ruby-1.9.2-preview3/gems/unicorn-1.0.0/lib/unicorn.rb:664:in
+`init_worker_process'
+	from /usr/local/rvm/gems/ruby-1.9.2-preview3/gems/unicorn-1.0.0/lib/unicorn.rb:681:in
+`worker_loop'
+	from /usr/local/rvm/gems/ruby-1.9.2-preview3/gems/unicorn-1.0.0/lib/unicorn.rb:598:in
+`block (2 levels) in spawn_missing_workers'
+
+>From what I see, Worker#user tries to chown the unlinked worker
+tempfile (in unicorn.rb:189), which fails with Ruby 1.9.2, but seems
+to work fine with Ruby 1.8.7. The problem happened to me on an Ubuntu
+server, but I was able to reproduce it locally on OSX.
+
+How to reproduce:
+- create a simple rack app, like
+class Hello; def call (env); [200, { 'Content-Type' => 'text/plain' },
+['Hello!']]; end; end
+run Hello.new
+- create a unicorn.conf.rb with a user statement that switches to the
+current user
+user 'andy'
+- run "unicorn -c unicorn.conf.rb" on Ruby 1.9.2
+- watch workers failing to start
+
+I'm not that deep into unicorn's internals, but since the worker
+tempfile is unlinked anyway, does it actually make sense to still call
+chown on it? Removing tmp.chown in Worker#user solved this for me.
+
+Please cc replies since I'm not subscribed to the list, thanks.
+
+regards,
+Andreas Neuhaus
+http://zargony.com/
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
