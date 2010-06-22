@@ -1,0 +1,122 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups:
+ gmane.comp.lang.ruby.unicorn.general,gmane.comp.lang.ruby.mongrel.general
+Subject: Re: [Mongrel] scaling unicorn
+Date: Mon, 21 Jun 2010 17:16:32 -0700
+Message-ID: <20100622001632.GA10082@dcvr.yhbt.net>
+References: <AANLkTilv4e_DPDKy440xotrlE7ucFIFXs74uHyGrzCKL@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1277165803 22367 80.91.229.12 (22 Jun 2010 00:16:43
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Tue, 22 Jun 2010 00:16:43 +0000 (UTC)
+Cc: mongrel-users@rubyforge.org
+To: mongrel-unicorn@rubyforge.org
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Tue Jun 22 02:16:42
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <AANLkTilv4e_DPDKy440xotrlE7ucFIFXs74uHyGrzCKL@mail.gmail.com>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:597
+ gmane.comp.lang.ruby.mongrel.general:5880
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/597>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1OQrAO-0007iy-1K for gclrug-mongrel-unicorn@m.gmane.org; Tue, 22 Jun 2010
+ 02:16:40 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 157A51858354; Mon, 21 Jun 2010 20:16:39 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 49BD91858354; Mon, 21 Jun 2010 20:16:33 -0400 (EDT)
+Received: from localhost (unknown [127.0.2.5]) by dcvr.yhbt.net (Postfix)
+ with ESMTP id BAB5E1F523; Tue, 22 Jun 2010 00:16:32 +0000 (UTC)
+
+snacktime <snacktime@gmail.com> wrote:
+> Interested in some feeback on this (does it sound right?), or maybe
+> this might be of interest to others.
+
+Hi Chris,
+
+I think you meant to post this to the mongrel-unicorn@rubyforge.org
+list, not mongrel-users@rubyforge.org :>
+
+> We are launching a new facebook app in a couple weeks and we did some
+> load testing over the weekend on our unicorn web cluster.  The servers
+> are 8 way xeon's with 24gb ram.  Our app ended up being primarily cpu
+> bound.  So far the sweet spot for the number of unicorns seems to be
+> around 40.  This seemed to yield the most requests per second without
+> overloading the server or hitting memory bandwidth issues.  The
+> backlog is at the somaxconn default of 128, I'm still not sure if we
+> will bump that up or not.
+
+The default backlog we try to specify is actually 1024 (same as
+Mongrel).  But it's always a murky value anyways, as it's
+kernel/sysctl-dependent.  With Unix domain sockets, some folks use
+crazy values like 2048 to look better on synthetic benchmarks :)
+
+> Increasing the number of unicorns beyond a
+> certain point resulted in a noticable drop in the requests per second
+> the server could handle.   I'm pretty sure the cause is the box
+> running out of memory bandwidth.  The load average and resource usage
+> in general (except for memory) would keep going down but so did the
+> requests per second.  At 80 unicorns the requests per second dropped
+> by more then half.  I'm going to disable hyperthreading and rerun some
+> of the tests to see what impact that has.
+
+That's "8 way xeon" _before_ hyperthreading, right?  Which family of
+Xeons are you using, the Pentium4-based crap or the awesome new ones?
+
+How much memory is each Unicorn worker using for your app?
+
+40 workers for 8 physical cores sounds reasonable.  Depending on the
+app, I think the reasonable range is anywhere from 2-8 workers per
+physical core.  More if you're (unfortunately) limited by external
+network calls, but since you claim to be CPU bound, less.
+
+Do you have actual performance numbers you're able to share?
+Mean/median request times/rates would be very useful.  If your requests
+run very quickly, you may be limited by contention with the accept()
+syscall on the listen socket, too.
+
+I assume you're using nginx as the proxy, is this with Unix domain
+sockets or TCP sockets?  Unix domain sockets should give a small
+performance over TCP if it's all on the same box.
+
+With TCP, you should also check to see you have enough local ports
+available if you're hitting extremely high (and probably unrealistic :)
+request rates.
+
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
