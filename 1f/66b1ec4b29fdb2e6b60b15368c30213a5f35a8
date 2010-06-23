@@ -1,0 +1,139 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: scaling unicorn
+Date: Wed, 23 Jun 2010 09:32:35 +0000
+Message-ID: <20100623093235.GB19233@dcvr.yhbt.net>
+References: <AANLkTilv4e_DPDKy440xotrlE7ucFIFXs74uHyGrzCKL@mail.gmail.com>
+ <20100622001632.GA10082@dcvr.yhbt.net>
+ <F596AC52-4CD1-4543-9B04-7A19762995DC@tramchase.com>
+ <20100622045346.GA23710@dcvr.yhbt.net>
+ <AANLkTilWNicXuA0N5ouCvt3Pt1Wl0Fu9PEX_GQApzQn4@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1277285985 12391 80.91.229.12 (23 Jun 2010 09:39:45
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Wed, 23 Jun 2010 09:39:45 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Wed Jun 23 11:39:43
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <AANLkTilWNicXuA0N5ouCvt3Pt1Wl0Fu9PEX_GQApzQn4@mail.gmail.com>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:607
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/607>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1ORMQo-00021A-Ff for gclrug-mongrel-unicorn@m.gmane.org; Wed, 23 Jun 2010
+ 11:39:42 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id C9E63185837A; Wed, 23 Jun 2010 05:39:41 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 022F11858374 for <mongrel-unicorn@rubyforge.org>;
+ Wed, 23 Jun 2010 05:32:35 -0400 (EDT)
+Received: from localhost (unknown [127.0.2.5]) by dcvr.yhbt.net (Postfix)
+ with ESMTP id 84BF41F43D; Wed, 23 Jun 2010 09:32:35 +0000 (UTC)
+
+snacktime <snacktime@gmail.com> wrote:
+> >> Somewhat related -- I've been meaning to discuss the finer points of
+> >> backlog tuning.
+> >>
+> >> I've been experimenting with the multi-server socket+TCP megaunicorn
+> >> configuration from your CDT:
+> >> http://rubyforge.org/pipermail/mongrel-unicorn/2009-September/000033.html
+> 
+> So I'm in the position of launching a web app in a couple of weeks
+> that is pretty much guaranteed to get huge traffic.  I'm working with
+> ops people who are very good but this is not how they would normally
+> setup load balancing and scale out.  I'm having a meeting with our
+> network ops lead tomorrow to talk about this.  I like the idea of this
+> approach, it seems like it gives you more fine grained control over
+> how much load you put on individual servers as well as how individual
+> requests are handled.  But I'm not too keen on using something like
+> this at scale when we simply don't have the chance to test it out at a
+> smaller scale.  I have yet to see anyone with this setup running at
+> scale.  That of course doesn't mean it's not a great idea, only that I
+> doubt our ops guys are going to want to be the first.  They are
+> already overworked as it is:)
+
+No worries.  Don't ever feel obligated to try something you're not
+comfortable with.  Heck, it took months before anybody besides myself
+was comfortable with Unicorn.
+
+> So assuming we will scale out the 'normal' way by not having a short
+> backlog, any info on how to manage that?   Should we control the
+> backlog queue in nginx (not sure exactly how I would do that) or via
+> the listen backlog?  I was looking around last night and couldn't find
+> a way to actually poll the listen backlog queue size.
+
+nginx lets you specify a backlog=num with the "listen" directive
+much like Unicorn does (Unicorn steals most configuration parameter
+names/options from nginx):
+
+  http://wiki.nginx.org/NginxHttpCoreModule#listen
+
+If you use Linux, you can poll the current listen queue
+using Raindrops (http://raindrops.bogomips.org/), the ss(8) utility,
+or parsing /proc/net/tcp and/or /proc/net/unix.  Unfortunately,
+checking the listen queue for Unix domain sockets is expensive,
+Raindrops and ss(8) both need to parse /proc/net/unix because
+that info isn't available via netlink.
+
+> Also, any ideas on how you would practically manage this type of load
+> balancing setup?  Seems like you would have some type of 'reserve'
+> cluster for requests that hit the listen backlog, and when you start
+> seeing too much traffic going to the reserve, you add more servers to
+> your main pool.  How else would you manage the configuration for
+> something like this when you are working with 100 - 200 servers?  You
+> can't be changing the nginx configs every time you add servers, that's
+> just not practical.
+
+I've never tried this setup, so what Jamie said :)
+
+One extra note, 100-200 hosts in an upstream {} block makes a very long
+nginx config file.  You could use ERB or something else to template,
+but based on a previous reading of the nginx source code, you can
+also setup a round-robin DNS entry for all the servers.
+
+nginx only does DNS lookups for upstreams at load time.  For round-robin
+DNS entries, nginx adds an entry for every IP address a name resolves
+to, so just specify the one DNS name in the upstream block instead of
+the list of IP(s).
+
+Just remember to HUP the nginxes (or if you're forgetful, make an
+occasional cronjob to HUP them) when you make DNS changes and add/remove
+a box.
+
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
