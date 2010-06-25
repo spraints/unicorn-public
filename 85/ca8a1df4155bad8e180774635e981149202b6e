@@ -1,0 +1,166 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: test failure on Mac OSX
+Date: Fri, 25 Jun 2010 11:35:18 -0700
+Message-ID: <20100625183518.GA32646@dcvr.yhbt.net>
+References: <AANLkTimu7M4wWrVxSijwu_qJI4b0JTkYlhl25eDHHu8W@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1277491386 24319 80.91.229.12 (25 Jun 2010 18:43:06
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Fri, 25 Jun 2010 18:43:06 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Fri Jun 25 20:43:00
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <AANLkTimu7M4wWrVxSijwu_qJI4b0JTkYlhl25eDHHu8W@mail.gmail.com>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:611
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/611>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1OSDrf-0002GH-R4 for gclrug-mongrel-unicorn@m.gmane.org; Fri, 25 Jun 2010
+ 20:43:00 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 1ABEC185837C; Fri, 25 Jun 2010 14:42:59 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 101D31858344 for <mongrel-unicorn@rubyforge.org>;
+ Fri, 25 Jun 2010 14:35:18 -0400 (EDT)
+Received: from localhost (unknown [127.0.2.5]) by dcvr.yhbt.net (Postfix)
+ with ESMTP id 4AE801F4EA; Fri, 25 Jun 2010 18:35:18 +0000 (UTC)
+
+Andrew Milkowski <andrewmilkowski@gmail.com> wrote:
+> Hi there,
+> 
+> ran to a snag building unicorn from sources (git master at
+> git://git.bogomips.org/unicorn.git)
+> 
+>   1) Failure:
+> : test_working_directory_rel_path_config_file(ExecTest)
+> [test/exec/test_exec.rb:106]:
+> : <"/var/folders/gy/gyjECZCGGxKv3I3mRTmhB++++TI/-Tmp-/unicorn_exec_test20100625-1679-1x3ks9d-0">
+> expected but was
+> : <"/private/var/folders/gy/gyjECZCGGxKv3I3mRTmhB++++TI/-Tmp-/unicorn_exec_test20100625-1679-1x3ks9d-0">.
+
+Hi Andrew,
+
+Not being an OSX user, I had to look this up, but apparently /var on OSX
+is a symlink to /private/var?  Weird...
+
+We have to work around a similar issue for upgrades in Capistrano
+deployments by updating ENV['PWD'], might as well do it here.
+
+I've just pushed out the following patch, which is a more thorough test
+anyways:
+
+>From cf63db66bca9acfd3416ab8fc8a7fd4f07927342 Mon Sep 17 00:00:00 2001
+From: Eric Wong <normalperson@yhbt.net>
+Date: Fri, 25 Jun 2010 11:29:13 -0700
+Subject: [PATCH] test-exec: prefer ENV['PWD'] in working_directory tests
+
+We do an extra check in the application dispatch to ensure
+ENV['PWD'] is set correctly to match Dir.pwd (even if the
+string path is different) as this is required for Capistrano
+deployments.
+
+These tests should now pass under OSX where /var is apparently
+a symlink to /private/var.
+---
+ test/exec/test_exec.rb |   29 +++++++++++++++++------------
+ 1 files changed, 17 insertions(+), 12 deletions(-)
+
+diff --git a/test/exec/test_exec.rb b/test/exec/test_exec.rb
+index 9830683..1d24ca3 100644
+--- a/test/exec/test_exec.rb
++++ b/test/exec/test_exec.rb
+@@ -54,6 +54,20 @@ before_fork do |server, worker|
+ end
+   EOS
+ 
++  WORKING_DIRECTORY_CHECK_RU = <<-EOS
++use Rack::ContentLength
++run lambda { |env|
++  pwd = ENV['PWD']
++  a = ::File.stat(pwd)
++  b = ::File.stat(Dir.pwd)
++  if (a.ino == b.ino && a.dev == b.dev)
++    [ 200, { 'Content-Type' => 'text/plain' }, [ pwd ] ]
++  else
++    [ 404, { 'Content-Type' => 'text/plain' }, [] ]
++  end
++}
++  EOS
++
+   def setup
+     @pwd = Dir.pwd
+     @tmpfile = Tempfile.new('unicorn_exec_test')
+@@ -87,10 +101,7 @@ end
+     File.unlink(other.path)
+     Dir.mkdir(other.path)
+     File.open("config.ru", "wb") do |fp|
+-      fp.syswrite <<EOF
+-use Rack::ContentLength
+-run proc { |env| [ 200, { 'Content-Type' => 'text/plain' }, [ Dir.pwd ] ] }
+-EOF
++      fp.syswrite WORKING_DIRECTORY_CHECK_RU
+     end
+     FileUtils.cp("config.ru", other.path + "/config.ru")
+     Dir.chdir(@tmpdir)
+@@ -138,10 +149,7 @@ EOF
+     File.unlink(other.path)
+     Dir.mkdir(other.path)
+     File.open("config.ru", "wb") do |fp|
+-      fp.syswrite <<EOF
+-use Rack::ContentLength
+-run proc { |env| [ 200, { 'Content-Type' => 'text/plain' }, [ Dir.pwd ] ] }
+-EOF
++      fp.syswrite WORKING_DIRECTORY_CHECK_RU
+     end
+     FileUtils.cp("config.ru", other.path + "/config.ru")
+     tmp = Tempfile.new('unicorn.config')
+@@ -177,10 +185,7 @@ EOF
+     File.unlink(other.path)
+     Dir.mkdir(other.path)
+     File.open("config.ru", "wb") do |fp|
+-      fp.syswrite <<EOF
+-use Rack::ContentLength
+-run proc { |env| [ 200, { 'Content-Type' => 'text/plain' }, [ Dir.pwd ] ] }
+-EOF
++      fp.syswrite WORKING_DIRECTORY_CHECK_RU
+     end
+     FileUtils.cp("config.ru", other.path + "/config.ru")
+     system('mkfifo', "#{other.path}/fifo")
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
