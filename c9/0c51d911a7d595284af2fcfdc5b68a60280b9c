@@ -1,0 +1,95 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: [PATCH] Show the current working directory in the proc title
+Date: Fri, 2 Jul 2010 22:29:34 +0000
+Message-ID: <20100702222934.GA22624@dcvr.yhbt.net>
+References: <20100702205004.GI4248@jeremyevans.local>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1278109787 28865 80.91.229.12 (2 Jul 2010 22:29:47
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Fri, 2 Jul 2010 22:29:47 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Sat Jul 03 00:29:46
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <20100702205004.GI4248@jeremyevans.local>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:615
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/615>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1OUojv-0006QZ-NI for gclrug-mongrel-unicorn@m.gmane.org; Sat, 03 Jul 2010
+ 00:29:43 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id B0531185837B; Fri,  2 Jul 2010 18:29:42 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 25CC1185837B for <mongrel-unicorn@rubyforge.org>;
+ Fri,  2 Jul 2010 18:29:35 -0400 (EDT)
+Received: from localhost (unknown [127.0.2.5]) by dcvr.yhbt.net (Postfix)
+ with ESMTP id 451B61F513; Fri,  2 Jul 2010 22:29:35 +0000 (UTC)
+
+Jeremy Evans <code@jeremyevans.net> wrote:
+> This is helpful if you run a server with many web apps in separate
+> directories all running unicorn, as it allows you to easily see
+> which processes are tied to which app.
+
+Hi Jeremy,
+
+I recommend using absolute paths with -c/--config-file and allowing
+users to opt-in to it (everybody should be using a Unicorn config
+file in production).
+
+Having an extra working directory path in there hurts people on smaller
+terminals[1].  With -c, users have more control of what their
+command-line looks like without having something forced on them.
+
+I can't see myself accepting this patch right now for the above reasons.
+On the other hand, I don't see any reason to alter the way proc_name is
+used in the future, so monkey patching here is fine.
+
+I'm sure there'll always be folks that will want something different in
+$0 (as evidenced by Rack::Contrib::ProcTitle and like).
+
+
+[1] - I try to be considerate of on-call folks working from mobile
+      phones or netbooks and/or bad net connections.  There's even
+      a test in test_exec.rb to ensure the help output text can fit
+      in standard 80x24 ANSI terminals.  Personally, I refuse to use
+      a terminals wider than 80 columns (actually, I would've
+      preferred the world standardized on a 64-column wrap)
+
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
