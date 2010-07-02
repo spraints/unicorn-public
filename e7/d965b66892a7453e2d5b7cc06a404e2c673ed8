@@ -1,0 +1,104 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.7 required=5.0 tests=MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Jeremy Evans <code@jeremyevans.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: [PATCH] Show the current working directory in the proc title
+Date: Fri, 2 Jul 2010 13:50:04 -0700
+Message-ID: <20100702205004.GI4248@jeremyevans.local>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1278105084 16282 80.91.229.12 (2 Jul 2010 21:11:24
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Fri, 2 Jul 2010 21:11:24 +0000 (UTC)
+To: mongrel-unicorn@rubyforge.org
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Fri Jul 02 23:11:22
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+X-Greylist: delayed 1263 seconds by postgrey-1.31 at rubyforge.org; Fri, 02
+ Jul 2010 17:11:14 EDT
+Content-Disposition: inline
+User-Agent: Mutt/1.5.20 (2009-06-14)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:614
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/614>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1OUnW5-000367-6T for gclrug-mongrel-unicorn@m.gmane.org; Fri, 02 Jul 2010
+ 23:11:21 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id F157A1858379; Fri,  2 Jul 2010 17:11:17 -0400 (EDT)
+Received: from mail.jeremyevans.net (mail.jeremyevans.net [99.25.134.9]) by
+ rubyforge.org (Postfix) with ESMTP id 7AB531858379 for
+ <mongrel-unicorn@rubyforge.org>; Fri,  2 Jul 2010 17:11:13 -0400 (EDT)
+Received: from speedstar.jeremyevans.local (root@speedstar.jeremyevans.local
+ [192.168.1.2]) by mail.jeremyevans.net (8.14.3/8.14.3) with ESMTP id
+ o62Ko4Wn008542 (version=TLSv1/SSLv3 cipher=DHE-DSS-AES256-SHA bits=256
+ verify=NO) for <mongrel-unicorn@rubyforge.org>; Fri, 2 Jul 2010 13:50:04
+ -0700 (PDT)
+Received: from speedstar.jeremyevans.local
+ (jeremy@localhost.jeremyevans.local [127.0.0.1]) by
+ speedstar.jeremyevans.local (8.14.3/8.14.3) with ESMTP id o62Ko4TB012832 for
+ <mongrel-unicorn@rubyforge.org>; Fri, 2 Jul 2010 13:50:04 -0700 (PDT)
+Received: (from jeremy@localhost) by speedstar.jeremyevans.local
+ (8.14.3/8.14.3/Submit) id o62Ko4sb021881 for mongrel-unicorn@rubyforge.org;
+ Fri, 2 Jul 2010 13:50:04 -0700 (PDT)
+
+>From 7aec3c7f83430900e91f7df854577f1bac5e7c3a Mon Sep 17 00:00:00 2001
+From: Jeremy Evans <code@jeremyevans.net>
+Date: Fri, 2 Jul 2010 13:46:15 -0700
+Subject: [PATCH] Show the current working directory in the proc title
+
+This is helpful if you run a server with many web apps in separate
+directories all running unicorn, as it allows you to easily see
+which processes are tied to which app.
+---
+ lib/unicorn.rb |    4 ++--
+ 1 files changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/lib/unicorn.rb b/lib/unicorn.rb
+index a7b0646..a764cd7 100644
+--- a/lib/unicorn.rb
++++ b/lib/unicorn.rb
+@@ -811,8 +811,8 @@ module Unicorn
+     end
+ 
+     def proc_name(tag)
+-      $0 = ([ File.basename(START_CTX[0]), tag
+-            ]).concat(START_CTX[:argv]).join(' ')
++      $0 = ([ File.basename(START_CTX[0]), File.basename(START_CTX[:cwd]),
++              tag ]).concat(START_CTX[:argv]).join(' ')
+     end
+ 
+     def redirect_io(io, path)
+-- 
+1.7.0.5
+
+
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
