@@ -1,0 +1,118 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: [PATCH] Show the current working directory in the proc title
+Date: Mon, 5 Jul 2010 23:34:39 +0000
+Message-ID: <20100705233439.GA28789@dcvr.yhbt.net>
+References: <20100702205004.GI4248@jeremyevans.local>
+ <20100702222934.GA22624@dcvr.yhbt.net>
+ <AANLkTintT4vHGEdueuG45_RwJqFCToHi5pm2-WKDSUMz@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1278373101 1290 80.91.229.12 (5 Jul 2010 23:38:21
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Mon, 5 Jul 2010 23:38:21 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Tue Jul 06 01:38:19
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <AANLkTintT4vHGEdueuG45_RwJqFCToHi5pm2-WKDSUMz@mail.gmail.com>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:617
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/617>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1OVvEt-00061X-53 for gclrug-mongrel-unicorn@m.gmane.org; Tue, 06 Jul 2010
+ 01:38:15 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 14BCE1858357; Mon,  5 Jul 2010 19:38:14 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 913121858344 for <mongrel-unicorn@rubyforge.org>;
+ Mon,  5 Jul 2010 19:34:41 -0400 (EDT)
+Received: from localhost (unknown [127.0.2.5]) by dcvr.yhbt.net (Postfix)
+ with ESMTP id 19BB41F500; Mon,  5 Jul 2010 23:34:40 +0000 (UTC)
+
+Jeremy Evans <jeremyevans0@gmail.com> wrote:
+> I see in the NEWS entry for 0.95.1 that you do recommend an absolute
+> path for the -c/--config-file option, but it may be beneficial to
+> mention this in the man page or other parts of the documentation.
+
+Agreed, thanks Jeremy!
+
+>From d7695c25c5e3b1c90e63bf15a5c5fdf68bfd0c34 Mon Sep 17 00:00:00 2001
+From: Eric Wong <normalperson@yhbt.net>
+Date: Mon, 5 Jul 2010 23:14:40 +0000
+Subject: [PATCH] doc: recommend absolute paths for -c/--config-file
+
+Suggested-by: Jeremy Evans
+ref: http://mid.gmane.org/AANLkTintT4vHGEdueuG45_RwJqFCToHi5pm2-WKDSUMz@mail.gmail.com
+---
+ Documentation/unicorn.1.txt       |    3 +++
+ Documentation/unicorn_rails.1.txt |    7 +++++--
+ 2 files changed, 8 insertions(+), 2 deletions(-)
+
+diff --git a/Documentation/unicorn.1.txt b/Documentation/unicorn.1.txt
+index 24df7ab..c20a570 100644
+--- a/Documentation/unicorn.1.txt
++++ b/Documentation/unicorn.1.txt
+@@ -36,6 +36,9 @@ with rackup(1) but strongly discouraged.
+     implemented as a Ruby DSL, so Ruby code may executed.
+     See the RDoc/ri for the *Unicorn::Configurator* class for the full
+     list of directives available from the DSL.
++    Using an absolute path for for CONFIG_FILE is recommended as it
++    makes multiple instances of Unicorn easily distinguishable when
++    viewing ps(1) output.
+ 
+ -D, \--daemonize
+ :   Run daemonized in the background.  The process is detached from
+diff --git a/Documentation/unicorn_rails.1.txt b/Documentation/unicorn_rails.1.txt
+index 267e425..f426b07 100644
+--- a/Documentation/unicorn_rails.1.txt
++++ b/Documentation/unicorn_rails.1.txt
+@@ -34,8 +34,11 @@ as much as possible.
+ -c, \--config-file CONFIG_FILE
+ :   Path to the Unicorn-specific config file.  The config file is
+     implemented as a Ruby DSL, so Ruby code may executed.
+-    See the RDoc/ri for the *Unicorn::Configurator* class for the
+-    full list of directives available from the DSL.
++    See the RDoc/ri for the *Unicorn::Configurator* class for the full
++    list of directives available from the DSL.
++    Using an absolute path for for CONFIG_FILE is recommended as it
++    makes multiple instances of Unicorn easily distinguishable when
++    viewing ps(1) output.
+ 
+ -D, \--daemonize
+ :   Run daemonized in the background.  The process is detached from
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
