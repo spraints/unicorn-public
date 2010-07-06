@@ -1,0 +1,87 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.6 required=5.0 tests=FREEMAIL_FROM,
+ MSGID_FROM_MTA_HEADER,RP_MATCHES_RCVD,T_DKIM_INVALID shortcircuit=no
+ autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Mark Davidson <chemosh9@gmail.com>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: [Rails 3] Unicorn log output
+Date: Tue, 6 Jul 2010 10:20:21 +0200
+Message-ID: <AANLkTin0AJpl3RBIu8ha2r-3wYK-v_89ndqVgbJ7HgJG@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1278404529 11921 80.91.229.12 (6 Jul 2010 08:22:09
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Tue, 6 Jul 2010 08:22:09 +0000 (UTC)
+To: mongrel-unicorn@rubyforge.org
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Tue Jul 06 10:22:08
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com; s=gamma;
+ h=domainkey-signature:mime-version:received:received:date:message-id
+ :subject:from:to:content-type;
+ bh=l+KGxmpE+WOrjHlikdEwE7IrtrcqkwxM6L2J9mrSbWQ=;
+ b=kht05WQstm69KotqHW6etzR0W9YrUyupfp0NmRvASJVBwyrAuMMwWIzsY+LYdbV1UU
+ 5etYWTAHsX1wMrqZO3bERJyFDW9iH++Bjr1y0PlfGCG+Up+FD23PWYuC05s2KbMBtfZe
+ Q1Gg2lxhjhkEK0vlT452ElaLnsNYOnjciOc0E=
+DomainKey-Signature: a=rsa-sha1; c=nofws; d=gmail.com; s=gamma;
+ h=mime-version:date:message-id:subject:from:to:content-type;
+ b=gsxnfAkl+h2gDNPwQpNYSibvS5isYeIIvC/g4W/NAfzxDYtJRsf3BQgWB0ExE47K/A
+ YI5fGPMjVvJjdFwnDzGfALdALi/ATBmkvxoFgeGFj6KiS09KSAb5FGbY0hMtDCBPQtOy
+ h0Modh5lt4LLGDsunDNHahyP3AQxqwmVc06xU=
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:619
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/619>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1OW3Pq-0006cT-Tw for gclrug-mongrel-unicorn@m.gmane.org; Tue, 06 Jul 2010
+ 10:22:07 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id BBC23185837F; Tue,  6 Jul 2010 04:22:03 -0400 (EDT)
+Received: from mail-fx0-f50.google.com (mail-fx0-f50.google.com
+ [209.85.161.50]) by rubyforge.org (Postfix) with ESMTP id 7BA261858112 for
+ <mongrel-unicorn@rubyforge.org>; Tue,  6 Jul 2010 04:20:22 -0400 (EDT)
+Received: by fxm9 with SMTP id 9so4922766fxm.23 for
+ <mongrel-unicorn@rubyforge.org>; Tue, 06 Jul 2010 01:20:21 -0700 (PDT)
+Received: by 10.239.181.79 with SMTP id l15mr295814hbg.97.1278404421368; Tue,
+ 06 Jul 2010 01:20:21 -0700 (PDT)
+Received: by 10.239.133.17 with HTTP; Tue, 6 Jul 2010 01:20:21 -0700 (PDT)
+
+I'm just getting started with Rails 3 but noticed that unicorn doesn't
+tail the development log which makes sense since its not specifically
+for rails. I got the development log back using Rails::Rack::LogTailer
+and got rid of the Rack request log by setting `stderr_path` to
+/dev/null in the unicorn config file. That basically gives me the same
+behavior as unicorn_rails on 2.3.8.
+
+Is there a better or preferred way of doing this? Can Rack's default
+request log be disabled? I wonder why it goes to stderr anyway, cause
+the request log isn't exactly an error?
+
+Cheers.
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
