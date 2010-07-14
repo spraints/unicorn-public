@@ -1,0 +1,126 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.6 required=5.0 tests=AWL,FREEMAIL_FROM,
+ MSGID_FROM_MTA_HEADER,RP_MATCHES_RCVD,T_DKIM_INVALID shortcircuit=no
+ autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Lawrence Pit <lawrence.pit@gmail.com>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: [ANN] unicorn 1.0.1 and 1.1.2 - fix rollbacks
+Date: Wed, 14 Jul 2010 10:13:52 +1000
+Message-ID: <4C3D0140.6080806@gmail.com>
+References: <20100713201945.GB16925@dcvr.yhbt.net>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"; Format="flowed"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1279066445 25231 80.91.229.12 (14 Jul 2010 00:14:05
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Wed, 14 Jul 2010 00:14:05 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Wed Jul 14 02:14:03
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com; s=gamma;
+ h=domainkey-signature:received:received:message-id:date:from
+ :user-agent:mime-version:to:subject:references:in-reply-to
+ :content-type:content-transfer-encoding;
+ bh=BZ3erjIH0CpyS0bGTuU/D683FkMtnZLe8QlKl+OqOU4=;
+ b=CNWGrbZ3ASZR3JvK+VAlCPmJacPGXS1zQkwdSTnb7wR0SXPeCLlNtfxwSg8bRcHR3w
+ EQ6g2ej8OhUxWl8mc8Z9+t2aMfAUmgQY/Jp0owmKuo5rleoQr3myMsEdRnxR/5es7Qxj
+ 5SUxLFAXODV9n7E0Tg+hksJsRG+nwGWceMC60=
+DomainKey-Signature: a=rsa-sha1; c=nofws; d=gmail.com; s=gamma;
+ h=message-id:date:from:user-agent:mime-version:to:subject:references
+ :in-reply-to:content-type:content-transfer-encoding;
+ b=pf5lTShImqEgkVMhi0hKD/mILbxo1FwkO5OyqDzedE5wmRwbcY/rn/nNmky/r/DqIG
+ 54h35qcDhYHfzbqff/Pu1Fpi/xIawd02tBrrdFtyV9L9IPeVOSxLW+ZWLn/KE3NbTv+c
+ Vt7hsPll8xXUgiHrziPXx8r1/nau67H5RqN6s=
+User-Agent: Thunderbird 2.0.0.24 (Macintosh/20100228)
+In-Reply-To: <20100713201945.GB16925@dcvr.yhbt.net>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:637
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/637>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1OYpbu-0001LK-Oo for gclrug-mongrel-unicorn@m.gmane.org; Wed, 14 Jul 2010
+ 02:14:03 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id DA7D21858370; Tue, 13 Jul 2010 20:14:01 -0400 (EDT)
+Received: from mail-px0-f178.google.com (mail-px0-f178.google.com
+ [209.85.212.178]) by rubyforge.org (Postfix) with ESMTP id 3F9DF185836C for
+ <mongrel-unicorn@rubyforge.org>; Tue, 13 Jul 2010 20:13:57 -0400 (EDT)
+Received: by pxi5 with SMTP id 5so3643193pxi.23 for
+ <mongrel-unicorn@rubyforge.org>; Tue, 13 Jul 2010 17:13:57 -0700 (PDT)
+Received: by 10.114.93.2 with SMTP id q2mr19293892wab.40.1279066436886; Tue,
+ 13 Jul 2010 17:13:56 -0700 (PDT)
+Received: from copa.local ([124.149.45.23]) by mx.google.com with ESMTPS id
+ s5sm94528618wak.0.2010.07.13.17.13.54 (version=TLSv1/SSLv3 cipher=RC4-MD5);
+ Tue, 13 Jul 2010 17:13:55 -0700 (PDT)
+
+Hi Eric,
+
+Thanks mate. Unfortunately this still doesn't seem to work for me.
+
+I went through the process manually, you can see a transcript at 
+http://pastie.org/1043347.txt
+The indented text is what I see appearing in the unicorn stderr.log.
+
+As you can see it reports two errors during the process, saying 
+unicorn.pid is stale.
+
+I wonder whether this is because in my unicorn config file I mention:
+
+pid "/var/www/staging/current/tmp/pids/unicorn.pid"
+
+whereas in your back_out_of_upgrade test you don't have such a line?
+
+
+
+Cheers,
+Lawrence
+
+> Changes:
+>
+> Theses release fix a long-standing bug where the original PID
+> file is not restored when rolling back from a USR2 upgrade.
+> Presumably most upgrades aren't rolled back, so it took over a
+> year to notice this issue.  Thanks to Lawrence Pit for
+> discovering and reporting this issue.
+>
+> About Unicorn:
+>
+> Unicorn is an HTTP server for Rack applications designed to only serve
+> fast clients on low-latency, high-bandwidth connections and take
+> advantage of features in Unix/Unix-like kernels.  Slow clients should
+> only be served by placing a reverse proxy capable of fully buffering
+> both the the request and response in between Unicorn and slow clients.
+>
+> * http://unicorn.bogomips.org/
+> * mongrel-unicorn@rubyforge.org
+> * git://git.bogomips.org/unicorn.git
+>
+>   
+
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
