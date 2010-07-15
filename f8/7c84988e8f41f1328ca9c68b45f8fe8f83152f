@@ -1,0 +1,93 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.7 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Richard Penwell <almightylinuxgod@me.com>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Problem with x-www-form-urlencoded
+Date: Thu, 15 Jul 2010 16:46:49 -0400
+Message-ID: <8039D754-4B3C-42FC-B7EA-642C27940897@me.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1279230467 31398 80.91.229.12 (15 Jul 2010 21:47:47
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Thu, 15 Jul 2010 21:47:47 +0000 (UTC)
+To: mongrel-unicorn@rubyforge.org
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Thu Jul 15 23:47:46
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+X-Greylist: delayed 3608 seconds by postgrey-1.31 at rubyforge.org; Thu, 15
+ Jul 2010 17:47:30 EDT
+X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 spamscore=0
+ ipscore=0 phishscore=0 bulkscore=0 adultscore=0 classifier=spam adjust=0
+ reason=mlx engine=6.0.2-1004200000 definitions=main-1007150104
+X-Proofpoint-Virus-Version: vendor=fsecure
+ engine=2.50.10432:5.0.10011,1.0.148,0.0.0000
+ definitions=2010-07-15_05:2010-07-15, 2010-07-15, 1970-01-01 signatures=0
+X-Mailer: Apple Mail (2.1081)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:644
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/644>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1OZWHN-0001sg-4D for gclrug-mongrel-unicorn@m.gmane.org; Thu, 15 Jul 2010
+ 23:47:41 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 772C01678318; Thu, 15 Jul 2010 17:47:40 -0400 (EDT)
+Received: from asmtpout030.mac.com (asmtpout030.mac.com [17.148.16.105]) by
+ rubyforge.org (Postfix) with ESMTP id 6FB3A1858346 for
+ <mongrel-unicorn@rubyforge.org>; Thu, 15 Jul 2010 17:47:29 -0400 (EDT)
+Received: from [172.16.7.64] ([209.113.158.226]) by asmtp030.mac.com (Sun
+ Java(tm) System Messaging Server 6.3-8.01 (built Dec 16 2008; 32bit)) with
+ ESMTPSA id <0L5M00A549Q2S240@asmtp030.mac.com> for
+ mongrel-unicorn@rubyforge.org; Thu, 15 Jul 2010 13:46:52 -0700 (PDT)
+
+Howdy all,
+
+I'm having a strange issue after moving from Thin to Unicon.  One of the form values being posted is not showing up in our request, below you can see a Rails log entry and notice that there is no parameter 'messageID' but it shows in the 'action_dispatch.request.request_parameters' collection.
+
+Has anyone else seen this, and is there a solution?
+
+Started POST "/smsGatewayClient/notifyMultimediaMessageDelivered" for 10.244.90.114 at Thu Jul 15 13:39:26 -0700 2010
+  Processing by MessagesController#discovered as */*
+  Parameters: {"deliveryResponse"=>"<?xml version=\"1.0\"?>\r\n<env:Envelope xmlns:env=\"http://schemas.xmlsoap.org/soap/envelope/\">\r\n<env:Header>\r\n<mm7:TransactionID xmlns:mm7=\"http://www.3gpp.org/ftp/Specs/archive/23_series/23.140/schema/REL-6-MM7-1-4\" env:mustUnderstand=\"1\">0AB1A686B00E00002010000101</mm7:TransactionID>\r\n</env:Header>\r\n<env:Body>\r\n<DeliveryReportReq xmlns=\"http://www.3gpp.org/ftp/Specs/archive/23_series/23.140/schema/REL-6-MM7-1-4\">\r\n<MM7Version>6.8.0</MM7Version>\r\n<MessageID>0AB1A686B00E000020100001</MessageID>\r\n<Recipient>\r\n<Number>6178331496</Number>\r\n</Recipient>\r\n<Sender>\r\n<ShortCode>78000</ShortCode>\r\n</Sender>\r\n<Date>2010-07-15T20:38:55+00:00</Date>\r\n<MMStatus>Retrieved</MMStatus>\r\n<UACapabilities UAProf=\"rim9530v1\"\r\n Ti
+ meStamp=\"2010-07-15T20:38:55+00:00\" />\r\n</DeliveryReportReq>\r\n</env:Body>\r\n</env:Envelope>", "destination"=>"tel:6178331496", "method"=>"post", "clientTransactionID"=>"21qb7g71m72i5l
+ 21ks6t85q3t5sc\">", "serviceCode"=>"78000", "outputState"=>"C", "charset"=>"UTF-8\", \"SERVER_PROTOCOL\"=>\"HTTP/1.0\", \"action_dispatch.secret_token\"=>\"REDACTED\", \"rack.run_once\"=>false, \"rack.version\"=>[1, 1], \"SERVER_SOFTWARE\"=>\"Unicorn 1.1.2\", \"PATH_INFO\"=>\"/smsGatewayClient/notifyMultimediaMessageDelivered\", \"REMOTE_ADDR\"=>\"127.0.0.1\", \"action_dispatch.request.path_parameters\"=>{:action=>\"index\", :controller=>\"forward\", :url=>\"notifyMultimediaMessageDelivered\"}, \"SCRIPT_NAME\"=>\"\", \"action_dispatch.parameter_filter\"=>[:password], \"rack.multithread\"=>false, \"HTTP_VERSION\"=>\"HTTP/1.0\", \"action_dispatch.request.request_parameters\"=>{\"deliveryResponse\"=>\"<?xml version=\\\"1.0\\\"?>\\r\\n<env:Envelope xmlns:env=\\\"http://schemas.xmlsoap.org/soa
+ p/envelope/\\\">\\r\\n<env:Header>\\r\\n<mm7:TransactionID xmlns:mm7=\\\"http://www.3gpp.org/ftp/Specs/archive/23_series/23.140/schema/REL-6-MM7-1-4\\\" env:mustUnderstand=\\\"1\\\">0AB1A686
+ B00E00002010000101</mm7:TransactionID>\\r\\n</env:Header>\\r\\n<env:Body>\\r\\n<DeliveryReportReq xmlns=\\\"http://www.3gpp.org/ftp/Specs/archive/23_series/23.140/schema/REL-6-MM7-1-4\\\">\\r\\n<MM7Version>6.8.0</MM7Version>\\r\\n<MessageID>0AB1A686B00E000020100001</MessageID>\\r\\n<Recipient>\\r\\n<Number>6178331496</Number>\\r\\n</Recipient>\\r\\n<Sender>\\r\\n<ShortCode>78000</ShortCode>\\r\\n</Sender>\\r\\n<Date>2010-07-15T20:38:55 00:00</Date>\\r\\n<MMStatus>Retrieved</MMStatus>\\r\\n<UACapabilities UAProf=\\\"rim9530v1\\\"\\r\\n TimeStamp=\\\"2010-07-15T20:38:55 00:00\\\" />\\r\\n</DeliveryReportReq>\\r\\n</env:Body>\\r\\n</env:Envelope>\", \"messageID\"=>\"1s2oqbn15s4j3t2jbsgft72ijqh9\", \"destination\"=>\"tel:6178331496\", \"clientTransactionID\"=>\"21qb7g71m72i5l21ks6t85q3t5sc\",
+  \"serviceCode\"=>\"78000\", \"outputState\"=>\"C\"}, \"rack.request.form_vars\"=>\"messageID=1s2oqbn15s4j3t2jbsgft72ijqh9", "#<struct Unicorn::TeeInput socket"=>"nil, req={\"action_dispatch
+ .request.formats\"=>[#<Mime::Type:0xb7476474 @synonyms=[\"application/xhtml xml\"], @symbol=:html, @string=\"text/html\">], \"action_dispatch.request.parameters\"=>{\"deliveryResponse\"=>\"<?xml version=\\\"1.0\\\"?>\\r\\n<env:Envelope xmlns:env=\\\"http://schemas.xmlsoap.org/soap/envelope/\\\">\\r\\n<env:Header>\\r\\n<mm7:TransactionID xmlns:mm7=\\\"http://www.3gpp.org/ftp/Specs/archive/23_series/23.140/schema/REL-6-MM7-1-4\\\" env:mustUnderstand=\\\"1\\\">0AB1A686B00E00002010000101</mm7:TransactionID>\\r\\n</env:Header>\\r\\n<env:Body>\\r\\n<DeliveryReportReq xmlns=\\\"http://www.3gpp.org/ftp/Specs/archive/23_series/23.140/schema/REL-6-MM7-1-4\\\">\\r\\n<MM7Version>6.8.0</MM7Version>\\r\\n<MessageID>0AB1A686B00E000020100001</MessageID>\\r\\n<Recipient>\\r\\n<Number>6178331496</Number>\\
+ r\\n</Recipient>\\r\\n<Sender>\\r\\n<ShortCode>78000</ShortCode>\\r\\n</Sender>\\r\\n<Date>2010-07-15T20:38:55 00:00</Date>\\r\\n<MMStatus>Retrieved</MMStatus>\\r\\n<UACapabilities UAProf=\\
+ \"rim9530v1\\\"\\r\\n TimeStamp=\\\"2010-07-15T20:38:55 00:00\\\" />\\r\\n</DeliveryReportReq>\\r\\n</env:Body>\\r\\n</env:Envelope>\", \"messageID\"=>\"1s2oqbn15s4j3t2jbsgft72ijqh9\", \"destination\"=>\"tel:6178331496\", \"sender\"=>\"6178331496\", \"action\"=>\"index\", \"url\"=>\"notifyMultimediaMessageDelivered\", \"clientTransactionID\"=>\"21qb7g71m72i5l21ks6t85q3t5sc\", \"serviceCode\"=>\"78000\", \"outputState\"=>\"C\", \"controller\"=>\"forward\"}, \"rack.session\"=>{\"session_id\"=>\"b059b627561cc047dd7ab3e7e8de0baf\"}, \"rack.logger\"=>#<Logger:0xb7a21590 @logdev=#<Logger::LogDevice:0xb7a214dc @shift_age=0, @filename=\"log/unicorn.log\", @mutex=#<Logger::LogDevice::LogDeviceMutex:0xb7a214b4 @mon_waiting_queue=[], @mon_entering_queue=[], @mon_count=0, @mon_owner=nil>, @dev=#<File
+ :log/unicorn.log>, @shift_size=1048576>, @formatter=#<Logger::SimpleFormatter:0xb6f3bcfc @datetime_format=nil>, @level=0, @default_formatter=#<Logger::Formatter:0xb7a21504 @datetime_format=n
+ il>, @progname=nil>, \"SERVER_NAME\"=>\"cdngw.g8wave.com\", \"HTTP_HOST\"=>\"cdngw.g8wave.com\", \"action_dispatch.remote_ip\"=>#<ActionDispatch::RemoteIp::RemoteIpGetter:0xb703cb74 @trusted_proxies=/(^127\\.0\\.0\\.1$|^(10|172\\.(1[6-9]|2[0-9]|30|31)|192\\.168)\\.)/i, @check_ip_spoofing=true, @env={...}>, \"rack.url_scheme\"=>\"http\", \"CONTENT_LENGTH\"=>\"1332\", \"HTTP_USER_AGENT\"=>\"Jakarta Commons-HttpClient/3.0\", \"HTTP_X_REAL_IP\"=>\"10.244.90.114\", \"REQUEST_PATH\"=>\"/smsGatewayClient/notifyMultimediaMessageDelivered\", \"action_dispatch.request.query_parameters\"=>{\"sender\"=>\"6178331496\"}, \"rack.errors\"=>#<File:log/unicorn.stderr.log>, \"CONTENT_TYPE\"=>\"application/x-www-form-urlencoded"}
+
+Eternally grateful,
+
+R
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
