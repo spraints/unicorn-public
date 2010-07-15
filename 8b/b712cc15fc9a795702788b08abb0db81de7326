@@ -1,0 +1,101 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.7 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Richard Penwell <almightylinuxgod@me.com>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: Problem with x-www-form-urlencoded
+Date: Thu, 15 Jul 2010 18:30:35 -0400
+Message-ID: <6A2DBCB2-916B-49DD-A513-360494AAA73E@me.com>
+References: <8039D754-4B3C-42FC-B7EA-642C27940897@me.com>
+ <20100715221402.GA31045@dcvr.yhbt.net>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1279233147 8663 80.91.229.12 (15 Jul 2010 22:32:27
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Thu, 15 Jul 2010 22:32:27 +0000 (UTC)
+Cc: unicorn list <mongrel-unicorn@rubyforge.org>
+To: Eric Wong <normalperson@yhbt.net>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Fri Jul 16 00:32:26
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 spamscore=0
+ ipscore=0 phishscore=0 bulkscore=0 adultscore=0 classifier=spam adjust=0
+ reason=mlx engine=6.0.2-1004200000 definitions=main-1007150113
+X-Proofpoint-Virus-Version: vendor=fsecure
+ engine=2.50.10432:5.0.10011,1.0.148,0.0.0000
+ definitions=2010-07-15_06:2010-07-16, 2010-07-15, 1970-01-01 signatures=0
+In-reply-to: <20100715221402.GA31045@dcvr.yhbt.net>
+X-Mailer: iPhone Mail (8A293)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:646
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/646>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1OZWyg-0002FG-8z for gclrug-mongrel-unicorn@m.gmane.org; Fri, 16 Jul 2010
+ 00:32:26 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 5A2371858361; Thu, 15 Jul 2010 18:32:25 -0400 (EDT)
+Received: from asmtpout028.mac.com (asmtpout028.mac.com [17.148.16.103]) by
+ rubyforge.org (Postfix) with ESMTP id DED751858354 for
+ <mongrel-unicorn@rubyforge.org>; Thu, 15 Jul 2010 18:32:20 -0400 (EDT)
+Received: from [10.92.95.210] (mobile-166-137-138-038.mycingular.net
+ [166.137.138.38]) by asmtp028.mac.com (Sun Java(tm) System Messaging Server
+ 6.3-8.01 (built Dec 16 2008; 32bit)) with ESMTPSA id
+ <0L5M002WNEL58360@asmtp028.mac.com> for mongrel-unicorn@rubyforge.org; Thu,
+ 15 Jul 2010 15:31:58 -0700 (PDT)
+
+So I discovered this was a problem whereby request.body.to_s behaves differently.  I wonder if TeeStream should define to_s as an alias for read?
+
+Sent from my iPhone
+
+On Jul 15, 2010, at 6:14 PM, Eric Wong <normalperson@yhbt.net> wrote:
+
+> Richard Penwell <almightylinuxgod@me.com> wrote:
+>> Howdy all,
+> 
+>> I'm having a strange issue after moving from Thin to Unicon.  One of
+>> the form values being posted is not showing up in our request, below
+>> you can see a Rails log entry and notice that there is no parameter
+>> 'messageID' but it shows in the
+>> 'action_dispatch.request.request_parameters' collection.
+> 
+> Hi Richard,  Which versions of Rails and Rack are you using?
+> 
+> There's a chance Thin and Unicorn could be loading different
+> versions of Rack and we might be hitting a bug in one version
+> of Rack.
+> 
+>> Has anyone else seen this, and is there a solution?
+> 
+> I haven't seen nor looked into this myself, but I've heard some talk of
+> multipart oddness in the Rack mailing list
+> 
+> -- 
+> Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
