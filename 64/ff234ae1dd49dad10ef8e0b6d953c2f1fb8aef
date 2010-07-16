@@ -1,0 +1,116 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.7 required=5.0 tests=MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Richard Penwell <almightylinuxgod@me.com>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: Problem with x-www-form-urlencoded
+Date: Fri, 16 Jul 2010 09:17:56 -0400
+Message-ID: <D14AC7ED-5323-44C3-AAF8-2F1B48D7516A@me.com>
+References: <8039D754-4B3C-42FC-B7EA-642C27940897@me.com>
+ <20100715221402.GA31045@dcvr.yhbt.net>
+ <6A2DBCB2-916B-49DD-A513-360494AAA73E@me.com>
+ <20100715224026.GB31045@dcvr.yhbt.net>
+ <7A69579A-CFCF-4FA0-896B-0D3F97191FE7@me.com>
+ <20100716075458.GB30751@dcvr.yhbt.net>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1279287323 2809 80.91.229.12 (16 Jul 2010 13:35:23
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Fri, 16 Jul 2010 13:35:23 +0000 (UTC)
+Cc: unicorn list <mongrel-unicorn@rubyforge.org>
+To: Eric Wong <normalperson@yhbt.net>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Fri Jul 16 15:35:19
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 spamscore=0
+ ipscore=0 phishscore=0 bulkscore=0 adultscore=0 classifier=spam adjust=0
+ reason=mlx engine=6.0.2-1004200000 definitions=main-1007160046
+X-Proofpoint-Virus-Version: vendor=fsecure
+ engine=2.50.10432:5.0.10011,1.0.148,0.0.0000
+ definitions=2010-07-16_01:2010-07-16, 2010-07-16, 1970-01-01 signatures=0
+In-reply-to: <20100716075458.GB30751@dcvr.yhbt.net>
+X-Mailer: Apple Mail (2.1081)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:657
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/657>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1OZl4Q-0001lW-LS for gclrug-mongrel-unicorn@m.gmane.org; Fri, 16 Jul 2010
+ 15:35:18 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 108F5185837E; Fri, 16 Jul 2010 09:35:18 -0400 (EDT)
+Received: from asmtpout027.mac.com (asmtpout027.mac.com [17.148.16.102]) by
+ rubyforge.org (Postfix) with ESMTP id 66726185837E for
+ <mongrel-unicorn@rubyforge.org>; Fri, 16 Jul 2010 09:18:12 -0400 (EDT)
+Received: from [172.16.7.64] ([209.113.158.226]) by asmtp027.mac.com (Sun
+ Java(tm) System Messaging Server 6.3-8.01 (built Dec 16 2008; 32bit)) with
+ ESMTPSA id <0L5N00CWJJLWX290@asmtp027.mac.com> for
+ mongrel-unicorn@rubyforge.org; Fri, 16 Jul 2010 06:17:58 -0700 (PDT)
+
+I have used request.body.read as it's only a HTTP form post from an external provider of a fixed size.
+
+Thank you so much, I suppose I figured it out when I noticed that most of those quotes were escaped...
+
+R
+
+On Jul 16, 2010, at 3:54 AM, Eric Wong wrote:
+
+> Richard Penwell <almightylinuxgod@me.com> wrote:
+>> On Jul 15, 2010, at 6:40 PM, Eric Wong <normalperson@yhbt.net> wrote:
+>>> Richard Penwell <almightylinuxgod@me.com> wrote:
+>>>> So I discovered this was a problem whereby request.body.to_s behaves
+>>>> differently.  I wonder if TeeStream should define to_s as an alias for
+>>>> read?
+>>> 
+>>> to_s isn't defined by any version of the Rack spec.
+>>> 
+>>> It's horrible practice to use it, too, since it could be a big upload
+>>> that uses all your memory.
+>>> 
+>>> What are you using that does request.body.to_s?  Can you change it?
+>>> 
+>> We have an application that forwards requests to staging, dev or
+>> production.  So it takes the body of the request and forwards it
+>> along...
+> 
+> (top-posting corrected)
+> 
+> I would always make it use a read/write loop with some fixed chunk size.
+> 
+> If you don't care about memory usage or if you have nginx properly
+> configured to reject large requests (the default of 1M is actually quite
+> reasonable), then use "request.body.read" instead since that's the
+> supported way to use all Rack apps/middlewares.  You can try your apps
+> with Rack::Lint middleware loaded during development/testing to catch
+> these things.
+> 
+> -- 
+> Eric Wong
+
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
