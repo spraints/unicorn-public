@@ -1,0 +1,99 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: Problem with x-www-form-urlencoded
+Date: Fri, 16 Jul 2010 07:54:59 +0000
+Message-ID: <20100716075458.GB30751@dcvr.yhbt.net>
+References: <8039D754-4B3C-42FC-B7EA-642C27940897@me.com>
+ <20100715221402.GA31045@dcvr.yhbt.net>
+ <6A2DBCB2-916B-49DD-A513-360494AAA73E@me.com>
+ <20100715224026.GB31045@dcvr.yhbt.net>
+ <7A69579A-CFCF-4FA0-896B-0D3F97191FE7@me.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1279268265 526 80.91.229.12 (16 Jul 2010 08:17:45
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Fri, 16 Jul 2010 08:17:45 +0000 (UTC)
+Cc: unicorn list <mongrel-unicorn@rubyforge.org>
+To: Richard Penwell <almightylinuxgod@me.com>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Fri Jul 16 10:17:43
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <7A69579A-CFCF-4FA0-896B-0D3F97191FE7@me.com>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:654
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/654>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1OZg75-0004md-3c for gclrug-mongrel-unicorn@m.gmane.org; Fri, 16 Jul 2010
+ 10:17:43 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 1CBBD185836B; Fri, 16 Jul 2010 04:17:41 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 412681858317 for <mongrel-unicorn@rubyforge.org>;
+ Fri, 16 Jul 2010 03:55:01 -0400 (EDT)
+Received: from localhost (unknown [127.0.2.5]) by dcvr.yhbt.net (Postfix)
+ with ESMTP id B930F1F44B; Fri, 16 Jul 2010 07:54:59 +0000 (UTC)
+
+Richard Penwell <almightylinuxgod@me.com> wrote:
+> On Jul 15, 2010, at 6:40 PM, Eric Wong <normalperson@yhbt.net> wrote:
+> > Richard Penwell <almightylinuxgod@me.com> wrote:
+> >> So I discovered this was a problem whereby request.body.to_s behaves
+> >> differently.  I wonder if TeeStream should define to_s as an alias for
+> >> read?
+> > 
+> > to_s isn't defined by any version of the Rack spec.
+> > 
+> > It's horrible practice to use it, too, since it could be a big upload
+> > that uses all your memory.
+> > 
+> > What are you using that does request.body.to_s?  Can you change it?
+> > 
+> We have an application that forwards requests to staging, dev or
+> production.  So it takes the body of the request and forwards it
+> along...
+
+(top-posting corrected)
+
+I would always make it use a read/write loop with some fixed chunk size.
+
+If you don't care about memory usage or if you have nginx properly
+configured to reject large requests (the default of 1M is actually quite
+reasonable), then use "request.body.read" instead since that's the
+supported way to use all Rack apps/middlewares.  You can try your apps
+with Rack::Lint middleware loaded during development/testing to catch
+these things.
+
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
