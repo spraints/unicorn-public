@@ -1,0 +1,105 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.7 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: hukl <hukl@berlin.ccc.de>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Autokill Workers which have grown too big
+Date: Fri, 30 Jul 2010 16:11:31 +0200
+Message-ID: <4C52DD93.1090900@berlin.ccc.de>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="windows-1252"; Format="flowed"
+Content-Transfer-Encoding: quoted-printable
+X-Trace: dough.gmane.org 1280500487 21220 80.91.229.12 (30 Jul 2010 14:34:47
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Fri, 30 Jul 2010 14:34:47 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Fri Jul 30 16:34:44
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+X-Greylist: delayed 428 seconds by postgrey-1.31 at rubyforge.org; Fri, 30
+ Jul 2010 10:18:44 EDT
+User-Agent: Postbox 1.1.5 (Macintosh/20100613)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:658
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/658>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1Oeqfb-0007qX-Lt for gclrug-mongrel-unicorn@m.gmane.org; Fri, 30 Jul 2010
+ 16:34:43 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 76BB31678319; Fri, 30 Jul 2010 10:34:42 -0400 (EDT)
+Received: from post.medienhaus.udk-berlin.de (post.medienhaus.udk-berlin.de
+ [194.95.202.25]) by rubyforge.org (Postfix) with ESMTP id 6F4F2185831A for
+ <mongrel-unicorn@rubyforge.org>; Fri, 30 Jul 2010 10:18:43 -0400 (EDT)
+Received: from spam.local (unknown [127.0.1.2]) by
+ post.medienhaus.udk-berlin.de (Postfix) with ESMTP id A949F25D8C1D for
+ <mongrel-unicorn@rubyforge.org>; Fri, 30 Jul 2010 16:11:32 +0200 (CEST)
+Received: from post.medienhaus.udk-berlin.de ([194.95.202.25]) by spam.local
+ (spam.local [127.0.1.2]) (amavisd-new, port 10024) with LMTP id RxwzY0eujgAC
+ for <mongrel-unicorn@rubyforge.org>; Fri, 30 Jul 2010 16:11:32 +0200 (CEST)
+Received: from eight.intern.artcom.de (unknown [212.222.115.166]) by
+ post.medienhaus.udk-berlin.de (Postfix) with ESMTPSA id 50CE025D8C08 for
+ <mongrel-unicorn@rubyforge.org>; Fri, 30 Jul 2010 16:11:32 +0200 (CEST)
+
+Hey,
+
+
+at Euruko 2010 I saw a presentation where Florian Hanke presented parts =
+
+of a unicorn config which killed workers once they've used up too much =
+
+memory.
+
+The snipped looks like this:
+
+RackResponder =3D lambda do |env|
+   possibly_commit_harakiri ...
+end
+
+# Commit Harakiri/Seppuku, kill yourself. #
+def possibly_commit_harakiri
+   return unless commit_harakiri?
+   Process.kill =93KILL=94, Process.pid
+end
+
+Now I couldn't find anything about that RackResponder part on the web =
+
+and was hoping that Florian himself or somebody else on the list could =
+
+clue me in how that works.
+
+Also I'd like to know if there is a way to get the current memory =
+
+footprint of a worker other than something like:
+
+%x(ps -o rss=3D -p #{Process.pid}).to_i
+
+Kind regards,
+
+John
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
