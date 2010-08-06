@@ -1,0 +1,137 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: Number of simultaneous clients
+Date: Fri, 6 Aug 2010 14:05:48 -0700
+Message-ID: <20100806210548.GA21336@dcvr.yhbt.net>
+References: <AANLkTik4YPRjHBiL_x0tbDuh+NzLYf5HAkd4RfQYG4er@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1281128962 30895 80.91.229.12 (6 Aug 2010 21:09:22
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Fri, 6 Aug 2010 21:09:22 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Fri Aug 06 23:09:20
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <AANLkTik4YPRjHBiL_x0tbDuh+NzLYf5HAkd4RfQYG4er@mail.gmail.com>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:665
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/665>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1OhUAH-0001HY-RF for gclrug-mongrel-unicorn@m.gmane.org; Fri, 06 Aug 2010
+ 23:09:18 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 5035F197828C; Fri,  6 Aug 2010 17:09:16 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 4E74A185836B for <mongrel-unicorn@rubyforge.org>;
+ Fri,  6 Aug 2010 17:05:49 -0400 (EDT)
+Received: from localhost (unknown [127.0.2.5]) by dcvr.yhbt.net (Postfix)
+ with ESMTP id 0D8091F500; Fri,  6 Aug 2010 21:05:49 +0000 (UTC)
+
+Pierre Baillet <oct@fotopedia.com> wrote:
+> Hello,
+> 
+> We've working on some improvement on our caching system and while
+> testing it, I encountered errors between Varnish and Unicorn. Namely,
+> Varnish claims that there is no backend connection and will not send
+> any data from Unicorn.
+> 
+> After some investigations (tcpdump), I found out that sometimes, I got
+> no reply from my backend server. See for example this complete
+> conversation between my Varnish server and my Unicorn server:
+> 
+> GET /items/422qq2nh931gk-aqXuxXfs/esi/card/sitemap/nil.xml/http HTTP/1.1
+> Accept: */*
+> Host: www.testing.ftnz.net
+> X-Forwarded-For: 127.0.0.1
+> Accept-Encoding: identity
+> X-Ftn-Is-Logged: no
+> X-Varnish: 1063393845
+> 
+> 
+> Yes, that's all. The last packet sent by the backend is an ACK to the
+> data packet sent by Varnish.
+
+Hi Pierre,
+
+Do you have any timeouts configured Varnish that would cause it to not
+wait if Unicorn is overloaded?
+
+Can you strace/truss the Unicorn process and see if it's actually
+accepting that particular request and doing something with it?
+
+Also, enable access logs for Unicorn (Rack::CommonLogger or Clogger[1])
+and see if the requests are actually going through it.
+
+To make it easier to track Varnish requests, you can easily customize
+the Clogger format to include the X-Varnish header by adding
+$http_x_varnish (or any other header) to the :format parameter:
+
+  use Clogger,
+        :format => Clogger::Format::Combined + ' $http_x_varnish',
+        :logger => ::File.open("/path/to/log", "ab")
+  run MyApp.new
+
+[1] - http://clogger.rubyforge.org/
+
+> This happens when I really overload the Varnish with incoming
+> requests. I suspect it opens a lot of connection to our backend. But I
+> fail to see why Unicorn would not reply (even at a slow rate). Of
+> course, the issue can be reproduced more or less easily. Trying to
+> reproduce the issue by directly hitting the Unicorn has not succeeded.
+> 
+> Any thoughts ? Cheers,
+
+What's your listen :backlog parameter set to?
+
+If the backlog fills up (the actual value inside the kernel is usually
+higher than what we set it to), then the kernel will start rejecting
+connections.  You got an ACK for one particular request, but perhaps
+others are not getting it...
+
+We default the listen backlog to 1024 which is pretty high, but for
+benchmarking some apps you can increase that.  In Linux, you may need
+to increase the net.core.somaxconn sysctl, too.
+
+Keep in mind that if you through enough load at *anything*, it'll get
+overloaded and stop working well.
+
+For nginx users, I recommend using fail_timeout=0 so nginx will always
+try requests anyways (it's cheap) and never mark it as down for any
+period.
+
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
