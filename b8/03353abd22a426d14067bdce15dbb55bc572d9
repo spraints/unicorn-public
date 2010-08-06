@@ -1,0 +1,100 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.7 required=5.0 tests=MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Pierre Baillet <oct@fotopedia.com>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Number of simultaneous clients
+Date: Fri, 6 Aug 2010 16:11:42 +0200
+Message-ID: <AANLkTik4YPRjHBiL_x0tbDuh+NzLYf5HAkd4RfQYG4er@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1281105161 10296 80.91.229.12 (6 Aug 2010 14:32:41
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Fri, 6 Aug 2010 14:32:41 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Fri Aug 06 16:32:38
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+X-Greylist: delayed 349 seconds by postgrey-1.31 at rubyforge.org; Fri, 06
+ Aug 2010 10:17:41 EDT
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:664
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/664>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1OhNyQ-0002nu-Fo for gclrug-mongrel-unicorn@m.gmane.org; Fri, 06 Aug 2010
+ 16:32:38 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 3264D185837B; Fri,  6 Aug 2010 10:32:37 -0400 (EDT)
+Received: from exprod7og102.obsmtp.com (exprod7og102.obsmtp.com
+ [64.18.2.157]) by rubyforge.org (Postfix) with SMTP id 5B00D185837A for
+ <mongrel-unicorn@rubyforge.org>; Fri,  6 Aug 2010 10:17:41 -0400 (EDT)
+Received: from source ([209.85.215.51]) by exprod7ob102.postini.com
+ ([64.18.6.12]) with SMTP ID DSNKTFwZhBKcYGGvDnLMx/5sUVZ1+LSQUDmL@postini.com;
+ Fri, 06 Aug 2010 07:17:41 PDT
+Received: by ewy21 with SMTP id 21so3649614ewy.24 for
+ <mongrel-unicorn@rubyforge.org>; Fri, 06 Aug 2010 07:17:39 -0700 (PDT)
+Received: by 10.213.32.17 with SMTP id a17mr8897988ebd.11.1281103902470; Fri,
+ 06 Aug 2010 07:11:42 -0700 (PDT)
+Received: by 10.14.48.77 with HTTP; Fri, 6 Aug 2010 07:11:42 -0700 (PDT)
+
+Hello,
+
+We've working on some improvement on our caching system and while
+testing it, I encountered errors between Varnish and Unicorn. Namely,
+Varnish claims that there is no backend connection and will not send
+any data from Unicorn.
+
+After some investigations (tcpdump), I found out that sometimes, I got
+no reply from my backend server. See for example this complete
+conversation between my Varnish server and my Unicorn server:
+
+GET /items/422qq2nh931gk-aqXuxXfs/esi/card/sitemap/nil.xml/http HTTP/1.1
+Accept: */*
+Host: www.testing.ftnz.net
+X-Forwarded-For: 127.0.0.1
+Accept-Encoding: identity
+X-Ftn-Is-Logged: no
+X-Varnish: 1063393845
+
+
+Yes, that's all. The last packet sent by the backend is an ACK to the
+data packet sent by Varnish.
+
+This happens when I really overload the Varnish with incoming
+requests. I suspect it opens a lot of connection to our backend. But I
+fail to see why Unicorn would not reply (even at a slow rate). Of
+course, the issue can be reproduced more or less easily. Trying to
+reproduce the issue by directly hitting the Unicorn has not succeeded.
+
+Any thoughts ? Cheers,
+-- 
+Pierre Baillet <oct@fotopedia.com>
+http://www.fotopedia.com/
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
