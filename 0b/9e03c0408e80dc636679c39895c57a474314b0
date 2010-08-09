@@ -1,0 +1,180 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: [ANN] 1.9 users: socket_dontwait - MSG_DONTWAIT socket methods
+Date: Mon, 9 Aug 2010 15:54:29 -0700
+Message-ID: <20100809225429.GB12996@dcvr.yhbt.net>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1281394813 25541 80.91.229.12 (9 Aug 2010 23:00:13
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Mon, 9 Aug 2010 23:00:13 +0000 (UTC)
+To: mongrel-unicorn@rubyforge.org
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Tue Aug 10 01:00:11
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:666
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/666>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1OibKF-0005GZ-KX for gclrug-mongrel-unicorn@m.gmane.org; Tue, 10 Aug 2010
+ 01:00:11 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id F1B1F1858386; Mon,  9 Aug 2010 19:00:10 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id F16CD185837B for <mongrel-unicorn@rubyforge.org>;
+ Mon,  9 Aug 2010 18:54:29 -0400 (EDT)
+Received: from localhost (unknown [127.0.2.5]) by dcvr.yhbt.net (Postfix)
+ with ESMTP id 7D3FA1F763; Mon,  9 Aug 2010 22:54:29 +0000 (UTC)
+
+Hi all,
+
+I initially announced[1] this on the Rainbows! mailing list since
+Rainbows! is more experimental in nature, but I've been running this for
+a few days with real traffic (with Rainbows!) and it seems safe enough
+for less crazy people to use :)
+
+If you're using Ruby 1.9.1, then this library includes a fix for
+errno getting zeroed and hitting rb_bug() during rb_sys_fail()
+This is fixed in Ruby trunk r27401, but 1.9.1 doesn't have this.
+
+This library is a drop-in replacement that reimplements several IO
+methods with replacements using MSG_DONTWAIT for BasicSocket.  This
+allows us to avoid unnecessary system calls and GVL bouncing.
+
+[1] - http://mid.gmane.org/20100803091847.GC3255@dcvr.yhbt.net
+
+The rest of the README below:
+
+We've reimplemented the +readpartial+, +read_nonblock+,
++write_nonblock+, +read+ and +write+ instance methods normally inherited
+from the IO class directly into BasicSocket with socket-specific system
+calls and flags.
+
+This library is only intended for Ruby 1.9 and will not build with other
+versions of Ruby.  This only supports operating systems with the
+non-POSIX MSG_DONTWAIT flag for send(2) and recv(2) syscalls.
+
+This library is considered EXPERIMENTAL.  If successful, we'll see about
+getting them integrated into the standard Ruby socket library.
+
+== Features
+
+* Avoid use of fcntl(2) to set O_NONBLOCK in favor of MSG_DONTWAIT when
+  using non-blocking I/O.  We _unset_ O_NONBLOCK if we need to block
+  and release the GVL instead of relying on select(2).
+
+* Avoids select(2) entirely in favor of blocking I/O when the
+  GVL is released.  This allows using file descriptor numbers higher
+  than 1023 without overflowing select(2) buffers.
+
+* BasicSocket#read uses recv(2) with MSG_WAITALL to avoid extra system
+  calls for larger reads.
+
+* Thread and signal-safe, releases the GVL for all blocking operations
+  and retries if system calls are interrupted.
+
+* Includes a 1.9.1-specific workaround to preserve errno after reacquiring
+  the GVL.  This is
+  {fixed}[http://redmine.ruby-lang.org/repositories/diff/ruby-19?rev=27401]
+  in newer versions of Ruby.
+
+* Falls back to line-buffered IO if needed (not recommended).
+
+== Bugs/Caveats
+
+* We ignore taint/$SAFE checks, we'll support it if there's demand,
+  but we doubt there is...
+
+* Does not support 1.9 encoding filters.  1.9 defaults all sockets to
+  Encoding::BINARY anyways, so this should not be noticeable to code
+  that leaves socket encodings untouched.
+
+* Does not support write buffering in userspace.  Ruby defaults all
+  sockets to "IO#sync = true", anyways so this does not affect code
+  that leaves the default setting untouched.
+
+* Avoid using line-buffered IO on sockets (IO#gets, IO#each_line),
+  nearly all of the features of this library are cancelled out when
+  the line-buffering fallback is used.
+
+== Install
+
+If you're using a packaged Ruby distribution, make sure you have a C
+compiler and the matching Ruby development libraries and headers.
+You need Ruby 1.9 to install socket_dontwait.  Previous versions of
+Ruby will NOT be supported.
+
+If you use RubyGems:
+
+    gem install socket_dontwait
+
+Otherwise grab the latest tarball from:
+
+http://bogomips.org/socket_dontwait/files/
+
+Unpack it, and run "ruby setup.rb"
+
+== Development
+
+You can get the latest source via git from the following locations:
+
+  git://git.bogomips.org/socket_dontwait.git
+  git://repo.or.cz/socket_dontwait.git (mirror)
+
+You may browse the code from the web and download the latest snapshot
+tarballs here:
+
+* http://git.bogomips.org/cgit/socket_dontwait.git (cgit)
+* http://repo.or.cz/w/socket_dontwait.git (gitweb)
+
+Inline patches (from "git format-patch") to the mailing list are
+preferred because they allow code review and comments in the reply to
+the patch.
+
+We will adhere to mostly the same conventions for patch submissions as
+git itself.  See the Documentation/SubmittingPatches document
+distributed with git on on patch submission guidelines to follow.  Just
+don't email the git mailing list or maintainer with socket_dontwait
+patches.
+
+== Contact/Bug Reports/Feedback/Patches/Pull-Requests
+
+This was originally created for the Rainbows! project (but may be used by
+others), so we'll reuse their mailing list at
+{rainbows-talk@rubyforge.org}[mailto:rainbows-talk@rubyforge.org].
+
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
