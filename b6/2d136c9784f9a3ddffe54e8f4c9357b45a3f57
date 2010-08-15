@@ -1,0 +1,96 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.6 required=5.0 tests=FREEMAIL_FROM,
+ MSGID_FROM_MTA_HEADER,RP_MATCHES_RCVD,T_DKIM_INVALID shortcircuit=no
+ autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Surendra Singhi <singhi.surendra@gmail.com>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: unicorn behind apache with file uploads
+Date: Sun, 15 Aug 2010 21:20:33 +0530
+Message-ID: <AANLkTinqP0P4HQLdRL+tLjAs4M=dXY=_ysd-z+n3qrdy@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1281887952 30030 80.91.229.12 (15 Aug 2010 15:59:12
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Sun, 15 Aug 2010 15:59:12 +0000 (UTC)
+To: mongrel-unicorn@rubyforge.org
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Sun Aug 15 17:59:11
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com; s=gamma;
+ h=domainkey-signature:mime-version:received:received:date:message-id
+ :subject:from:to:content-type;
+ bh=0esRPlpusIpr9WUcGkmg/KVD3PVkW0gV6PEm4CppSFQ=;
+ b=fcrr1cnUIbUu7ZjFGoT7xGWPLP10q9m8vQLeeT5FXvFHg/A+sNGpzdFcy8JsIaUOha
+ q+U8KKo+PKUK5HRny94+NFHLAaKvpA2Mc0yxEq6RbjqBWTR9BlaEcrhSOOdx28uSdGLi
+ CLkzywrqAs8hNibVdNJ1DdeY1Lwun3QYcTOaA=
+DomainKey-Signature: a=rsa-sha1; c=nofws; d=gmail.com; s=gamma;
+ h=mime-version:date:message-id:subject:from:to:content-type;
+ b=jCMgS6loDBwtMsvi+TTmz1nfv2r++yAjYVknoJ2w7wR9mXQMXvgsnynIri0AlNp7/r
+ B+RvFezXiItuja0+JXf4wIhakSSpmt0YnaPVvxwM/dQIKWVLzAorV4z8Tbtf66XUOv/3
+ XpF/DHwFBn9D3j2aRX/KrKTkOlA5TBGd9i8R4=
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:668
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/668>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1Okfc6-0008Si-Nr for gclrug-mongrel-unicorn@m.gmane.org; Sun, 15 Aug 2010
+ 17:59:11 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 82E9D19782CD; Sun, 15 Aug 2010 11:59:09 -0400 (EDT)
+Received: from mail-qw0-f50.google.com (mail-qw0-f50.google.com
+ [209.85.216.50]) by rubyforge.org (Postfix) with ESMTP id 7B1541858354 for
+ <mongrel-unicorn@rubyforge.org>; Sun, 15 Aug 2010 11:50:33 -0400 (EDT)
+Received: by qwa26 with SMTP id 26so4623330qwa.23 for
+ <mongrel-unicorn@rubyforge.org>; Sun, 15 Aug 2010 08:50:33 -0700 (PDT)
+Received: by 10.224.110.193 with SMTP id o1mr2547767qap.298.1281887433048;
+ Sun, 15 Aug 2010 08:50:33 -0700 (PDT)
+Received: by 10.229.49.195 with HTTP; Sun, 15 Aug 2010 08:50:33 -0700 (PDT)
+
+Hi,
+
+For one of our apps we switched to unicorn from mongrel.
+The unicorn server use to run behind an apache with timeout of 300sec,
+as sometime the customer may do a large file upload.
+
+After we made the switch we started getting lots of
+Unicorn::ClientShutdown occurred in photos#flash_upload
+bytes_read=2762663 (pr some other number)
+We were not able to recreate it in our tests, but support was getting
+customer emails, that the files upload is not working.
+It finally forced us to switch back to mongrel.
+
+I know a fully buffering reverse proxy like nginx is advised as
+reverse proxy for unicorn, but apache has been serving us well, and we
+don't want to change it.
+Any idea what can be going wrong, or why was unicorn throwing these errors?
+
+Thanks!
+-- 
+Surendra
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
