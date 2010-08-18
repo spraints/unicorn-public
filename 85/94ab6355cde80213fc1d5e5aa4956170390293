@@ -1,0 +1,93 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: javascript disappears
+Date: Wed, 18 Aug 2010 16:34:00 -0700
+Message-ID: <20100818233400.GA11128@dcvr.yhbt.net>
+References: <AANLkTimi_P9G9Gp0M+rHPjsUQfG8FPDAXoMoxcqMx8Lv@mail.gmail.com>
+ <20100818011444.GA14052@dcvr.yhbt.net>
+ <AANLkTinWs+WM9sd1796S2YpEsbLTQa_1V6xbBQG_LL6=@mail.gmail.com>
+ <20100818024540.GA29950@dcvr.yhbt.net>
+ <AANLkTikvpbqX9UZjM1tMbZYNqBZGHZGUL9P-JDak49of@mail.gmail.com>
+ <20100818071410.GB29950@dcvr.yhbt.net>
+ <AANLkTinP7=NJY8X2zZiyyh=nhJohdnCjRyNVf=vKqOfO@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1282174748 5620 80.91.229.12 (18 Aug 2010 23:39:08
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Wed, 18 Aug 2010 23:39:08 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Thu Aug 19 01:39:06
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <AANLkTinP7=NJY8X2zZiyyh=nhJohdnCjRyNVf=vKqOfO@mail.gmail.com>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:683
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/683>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1OlsDn-0003bg-DD for gclrug-mongrel-unicorn@m.gmane.org; Thu, 19 Aug 2010
+ 01:39:03 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id D5B65197828C; Wed, 18 Aug 2010 19:39:02 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id D068F1858386 for <mongrel-unicorn@rubyforge.org>;
+ Wed, 18 Aug 2010 19:34:01 -0400 (EDT)
+Received: from localhost (unknown [127.0.2.5]) by dcvr.yhbt.net (Postfix)
+ with ESMTP id 05D7D1F500; Wed, 18 Aug 2010 23:34:01 +0000 (UTC)
+
+Jimmy Soho <jimmy.soho@gmail.com> wrote:
+> PS. II: While I trying out various things I found that if I modified
+> the before_exec hook, then deployed that code, send USR2, then it
+> executes the before_exec hook of the old master, not the new master.
+> So I then had to send a USR2 a second time to see the new code in
+> before_exec taking effect. Is that intentional behaviour?
+
+Yes.  USR2 doesn't reload the config file before by default.  Send a HUP
+before USR2 if you want it to reload the config file.  Just keep in mind
+if you add any new dependencies on your new deploy and HUP, things could
+break, too, especially if you're using "preload_app true".
+
+> PS. III: Haven't tested it yet, but in case a USR2 fails, and unicorn
+> reverts back to the old master, does the old master then have the new
+> environment variable values? Or does it run the before_exec hook again
+> for the old master?
+
+The old master doesn't get affected by environment (or any other local)
+changes in before_exec.  before_exec only runs in the new master
+process, so it can only affect the new master process (unless it sends
+signals to the old master).
+
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
