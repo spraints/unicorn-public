@@ -1,0 +1,101 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: javascript disappears
+Date: Tue, 17 Aug 2010 18:14:44 -0700
+Message-ID: <20100818011444.GA14052@dcvr.yhbt.net>
+References: <AANLkTimi_P9G9Gp0M+rHPjsUQfG8FPDAXoMoxcqMx8Lv@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1282094813 18415 80.91.229.12 (18 Aug 2010 01:26:53
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Wed, 18 Aug 2010 01:26:53 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Wed Aug 18 03:26:50
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <AANLkTimi_P9G9Gp0M+rHPjsUQfG8FPDAXoMoxcqMx8Lv@mail.gmail.com>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:676
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/676>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1OlXQX-0007Ih-M9 for gclrug-mongrel-unicorn@m.gmane.org; Wed, 18 Aug 2010
+ 03:26:49 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 2DE2419782F8; Tue, 17 Aug 2010 21:26:49 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id D4FD31858363 for <mongrel-unicorn@rubyforge.org>;
+ Tue, 17 Aug 2010 21:14:44 -0400 (EDT)
+Received: from localhost (unknown [127.0.2.5]) by dcvr.yhbt.net (Postfix)
+ with ESMTP id 628371F500; Wed, 18 Aug 2010 01:14:44 +0000 (UTC)
+
+Jimmy Soho <jimmy.soho@gmail.com> wrote:
+> Hi All,
+> 
+> When I deploy new code I always go through the USR2 - QUIT process.
+> However, after a few deployments it seems our base javascript file is
+> missing. I've experienced this a few times now. We use rails 2.3.8,
+> and have something like this in our layouts file:
+> 
+> <%= javascript_include_tag 'webtoolkit', 'jquery', 'jquery.metadata',
+> 'jquery.url_utils', 'jquery.form', 'jquery.hotkeys',
+> 'jquery.livequery', 'application', :cache => 'base'  %>
+> 
+> When it's missing it doesn't matter how often I kill with USR2 / QUIT,
+> it won't appear. If I stop the unicorn master process completely and
+> then start again, then it does create the base.js file again.
+> 
+> Anyone experienced this as well?  Anyone know what could be the reason
+> for this?
+
+Hi Jimmy,   Are you deploying with Capistrano and you originally started
+Unicorn in a working_directory that no longer exists on the filesystem?
+
+Under Linux, you can check the working directory of any process
+with `ls -l /proc/$PID/cwd`
+
+That's the only thing I can think of at the moment.
+
+In your other email:
+> I get the feeling that memory from the previous master/workers somehow
+> isn't released and is used by the new unicorn master and/or worker
+> processes.
+
+Shouldn't be possible unless your OS is broken.  A more likely
+explanation is that Unicorn process is pinned to the working
+directory of an old deploy.
+
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
