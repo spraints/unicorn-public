@@ -1,0 +1,105 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: running unicorn under rvm
+Date: Tue, 17 Aug 2010 18:08:50 -0700
+Message-ID: <20100818010850.GA14094@dcvr.yhbt.net>
+References: <AANLkTimQRE-sAyd0X9xpPUmjj6QGJdYPcu3SKkaLwCqM@mail.gmail.com>
+ <20100817035202.GA2570@dcvr.yhbt.net>
+ <AANLkTim3YJOG4fnsE6nLfygEo_7u4h6Haoo118ck-9JQ@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1282093840 13363 80.91.229.12 (18 Aug 2010 01:10:40
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Wed, 18 Aug 2010 01:10:40 +0000 (UTC)
+Cc: unicorn list <mongrel-unicorn@rubyforge.org>
+To: Joseph McDonald <superjoe@gmail.com>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Wed Aug 18 03:10:36
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <AANLkTim3YJOG4fnsE6nLfygEo_7u4h6Haoo118ck-9JQ@mail.gmail.com>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:675
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/675>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1OlXAp-0003Kw-RM for gclrug-mongrel-unicorn@m.gmane.org; Wed, 18 Aug 2010
+ 03:10:36 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 22FA119782DB; Tue, 17 Aug 2010 21:10:33 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id AD4681858363 for <mongrel-unicorn@rubyforge.org>;
+ Tue, 17 Aug 2010 21:08:51 -0400 (EDT)
+Received: from localhost (unknown [127.0.2.5]) by dcvr.yhbt.net (Postfix)
+ with ESMTP id A996F1F500; Wed, 18 Aug 2010 01:08:50 +0000 (UTC)
+
+Joseph McDonald <superjoe@gmail.com> wrote:
+> I'm sure I'm running the right version of unicorn.
+> what's weird is if I remove the reference to TOPLEVEL_BINDING, it works, i.e.:
+> 
+>  host, port, set_listener, options, daemonize =
+>                     eval("[ host, port, set_listener, options, daemonize ]")
+> 
+> works, it gets the right port from the config.ru file.
+
+Hm... I'm stumped.  However, you're really encouraging me to pause other
+projects, work on 2.0 and release it this week/weekend :)  I suppose
+some of the crazier 2.0 stuff I proposed can wait until 3.x.
+
+> my config.ru file looks like"
+> #\ -w -p 4452
+> require './mystuff'
+> run Sinatra::Application
+> 
+> another strange thing:  I need to add the "./"  in front of mystuff,
+> but when i'm not using rvm (rvm use system), I don't need to do that.
+
+Odd... needing the './' feels like it's using Ruby 1.9.2 or later...
+Can you print out RUBY_VERSION in there to be certain?
+
+I just tried rvm for the first time with a fresh user/home directory on my
+system and everything works as expected with 1.8.7 (it just picked p302, not
+p299, but that shouldn't make a difference...).
+
+> I'm curious if anyone else is using unicorn with rvm and not having
+> this problem.  I'm guessing it's something weird with my system, but
+> not sure.
+
+If you have root on your machine, just try creating a new user and start
+with a blank $HOME.  I often do that to narrow things down when
+debugging/testing code and don't feel like going all the way with chroot
+or VM.
+
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
