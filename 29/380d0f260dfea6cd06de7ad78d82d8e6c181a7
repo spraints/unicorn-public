@@ -1,0 +1,106 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: javascript disappears
+Date: Wed, 18 Aug 2010 00:14:10 -0700
+Message-ID: <20100818071410.GB29950@dcvr.yhbt.net>
+References: <AANLkTimi_P9G9Gp0M+rHPjsUQfG8FPDAXoMoxcqMx8Lv@mail.gmail.com>
+ <20100818011444.GA14052@dcvr.yhbt.net>
+ <AANLkTinWs+WM9sd1796S2YpEsbLTQa_1V6xbBQG_LL6=@mail.gmail.com>
+ <20100818024540.GA29950@dcvr.yhbt.net>
+ <AANLkTikvpbqX9UZjM1tMbZYNqBZGHZGUL9P-JDak49of@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1282116424 13903 80.91.229.12 (18 Aug 2010 07:27:04
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Wed, 18 Aug 2010 07:27:04 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Wed Aug 18 09:27:01
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <AANLkTikvpbqX9UZjM1tMbZYNqBZGHZGUL9P-JDak49of@mail.gmail.com>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:681
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/681>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1Old36-0001nD-K9 for gclrug-mongrel-unicorn@m.gmane.org; Wed, 18 Aug 2010
+ 09:27:00 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 972FA19782CD; Wed, 18 Aug 2010 03:26:59 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 8D8F518582E2 for <mongrel-unicorn@rubyforge.org>;
+ Wed, 18 Aug 2010 03:14:12 -0400 (EDT)
+Received: from localhost (unknown [127.0.2.5]) by dcvr.yhbt.net (Postfix)
+ with ESMTP id 7EB9A1F4F1; Wed, 18 Aug 2010 07:14:11 +0000 (UTC)
+
+Jimmy Soho <jimmy.soho@gmail.com> wrote:
+> If I now peek in /proc/31761/environ then I notice these:
+> 
+>   GEM_HOME=/srv/app/releases/20100818022900/vendor/bundler_gems
+>   PATH=/srv/app/releases/20100818022900/vendor/bundler_gems/bin:[... etc.]
+>   GEM_PATH=/srv/app/releases/20100818022900/vendor/bundler_gems
+>   BUNDLE_GEMFILE=/srv/app/releases/20100818022900/Gemfile
+> 
+> which are all pointing to the working directory I pruned. Hence the
+> message about Gemfile not found I guess.
+> 
+> Any suggestions how / when to update those environment variables with
+> correct values?
+
+Aha!  I believe there's an option for Bundler to use the /srv/app/shared
+directory with Capistrano.  That's probably your best option.
+
+> > Other folks here may have more experience with Capistrano+Unicorn,
+> > maybe they have portable recipes they can share.
+> 
+> Maybe it's more a gem and/or bundler thing?  Though it seems like a
+> general issue to me that environment variables can have references to
+> old working directories, which need to be updated if you restart
+> Unicorn with USR2 all the time.  Is this something Unicorn could
+> possibly take care off?
+
+You can also try force the environment variables with the
+before_exec hook in your config file:
+
+  before_exec do |server|
+    ENV['GEM_HOME'] = '/srv/app/current/vendor/bundler_gems'
+  end
+
+But I think the best option is to use a shared directory for Bundler
+since it should speed up deploys, too.  On the other hand, maybe Bundler
+should be taught to respect symlink directories...
+
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
