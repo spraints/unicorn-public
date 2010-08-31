@@ -1,0 +1,95 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: Hello excellent friends
+Date: Mon, 30 Aug 2010 23:17:08 -0700
+Message-ID: <20100831061708.GA26170@dcvr.yhbt.net>
+References: <2D00600E-51CB-49E4-ACD0-238FE9DB783A@gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1283237102 4271 80.91.229.12 (31 Aug 2010 06:45:02
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Tue, 31 Aug 2010 06:45:02 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Tue Aug 31 08:45:01
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <2D00600E-51CB-49E4-ACD0-238FE9DB783A@gmail.com>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:692
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/692>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1OqKaY-0001Mj-RK for gclrug-mongrel-unicorn@m.gmane.org; Tue, 31 Aug 2010
+ 08:44:59 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id F23BC185837B; Tue, 31 Aug 2010 02:44:57 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 823C7185838A for <mongrel-unicorn@rubyforge.org>;
+ Tue, 31 Aug 2010 02:17:09 -0400 (EDT)
+Received: from localhost (unknown [127.0.2.5]) by dcvr.yhbt.net (Postfix)
+ with ESMTP id 4DBE32057E; Tue, 31 Aug 2010 06:17:08 +0000 (UTC)
+
+Curtis <curtis.schofield@gmail.com> wrote:
+> I have read your tun in article and I have tried to make sysctl
+> changes - the benchmarks are not very significant. I love how well the
+> signals are laid out and how excellently unicorn responds to them - I
+> am hoping to get back to mongrel like performance . We were using
+> nginx to haproxy to 32 mongrels
+> 
+> No I have set up a unix domain socket with 2mb send and receive buffer
+> and a backlog of 2048 - I didn't see a change with the send receive
+> buffer tuning and I have yet to try a smaller backlog to see. If that
+> helps. Any info?
+
+Hi, I'm not sure what size of requests and responses you get, but 2mb
+seems like a lot, especially for requests (unless you handle a lot of
+big uploads).
+
+Even with large requests/responses, huge buffers means more pressure on
+the kernel allocator and you're also hurting CPU cache locality.  So
+larger buffers can hurt performance as well as help, I'll make a note of
+that in the documentation.
+
+The backlog shouldn't change performance much.  A larger one can let you
+withstand short traffic bursts and increase reliability while
+benchmarking.
+
+> I am tuning for osx in dev and centos5 in production. Thank you for
+> your great work cleaning mongrel into a first class unix friend.
+
+You're welcome!
+
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
