@@ -1,0 +1,89 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.6 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD,T_DKIM_INVALID shortcircuit=no autolearn=unavailable
+ version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Jamie Wilkinson <jamie@tramchase.com>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: synchronous restart
+Date: Tue, 31 Aug 2010 11:30:19 -0700
+Message-ID: <9ADECA6F-ED48-467D-8826-2C94BF42B18A@tramchase.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0 (Apple Message framework v1081)
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1283279436 25474 80.91.229.12 (31 Aug 2010 18:30:36
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Tue, 31 Aug 2010 18:30:36 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Tue Aug 31 20:30:34
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com; s=gamma;
+ h=domainkey-signature:received:received:sender:from:content-type
+ :content-transfer-encoding:subject:date:message-id:to:mime-version :x-mailer;
+ bh=2zLc7ZfCjw0cwMDoN10KTszdWJ0wQccexi7VIA1LdOA=;
+ b=Jkw5MrAR68bE1yo3z8EglAPXs6U08z3rPjeKZ/8Q3PJopGxsKrR323Yub5UF+De+sD
+ ZyC5zppnvga19t5ik/xYvrmE+710XnWhvqvpXF1n80cTJNqrAv0QIIDNqiVhNe8N1Ora
+ UNpmw/EKH+7nzzgV51d28P5y9kr0rT2qZFNt4=
+DomainKey-Signature: a=rsa-sha1; c=nofws; d=gmail.com; s=gamma;
+ h=sender:from:content-type:content-transfer-encoding:subject:date
+ :message-id:to:mime-version:x-mailer;
+ b=Hi9/BpqkwNqplFnC8qo5/wVe/lyiBXTX66XFVS0odr51QKQ2yEeSHpag6Z/sjs1rLN
+ pLW9t6W88pOsEcX0EufIpqIJbpsYVNGAeOTG0afocpdurZ+gjISIprhETFtScbf7faYk
+ tWGT6bppYi4WDDQ3g0OT6ge3pTrFZUaSEvqXo=
+X-Mailer: Apple Mail (2.1081)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:693
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/693>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1OqVbO-000547-1Y for gclrug-mongrel-unicorn@m.gmane.org; Tue, 31 Aug 2010
+ 20:30:34 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id C24B5185836F; Tue, 31 Aug 2010 14:30:32 -0400 (EDT)
+Received: from mail-pz0-f50.google.com (mail-pz0-f50.google.com
+ [209.85.210.50]) by rubyforge.org (Postfix) with ESMTP id AD7851858357 for
+ <mongrel-unicorn@rubyforge.org>; Tue, 31 Aug 2010 14:30:23 -0400 (EDT)
+Received: by pzk28 with SMTP id 28so3350120pzk.23 for
+ <mongrel-unicorn@rubyforge.org>; Tue, 31 Aug 2010 11:30:22 -0700 (PDT)
+Received: by 10.142.166.18 with SMTP id o18mr2888396wfe.191.1283279422146;
+ Tue, 31 Aug 2010 11:30:22 -0700 (PDT)
+Received: from [10.0.1.31] (173-13-169-18-sfba.hfc.comcastbusiness.net
+ [173.13.169.18]) by mx.google.com with ESMTPS id
+ j5sm2605087wff.20.2010.08.31.11.30.20 (version=TLSv1/SSLv3 cipher=RC4-MD5);
+ Tue, 31 Aug 2010 11:30:20 -0700 (PDT)
+
+Has anyone tried to synchronously restart their unicorns, to ensure that things restart OK?
+
+I imagine I could write a script that sent USR2 and then watched the log for a successful before exiting, but I dream there is something more MAGICAL
+
+
+Yours in mythical web servers,
+
+-jamie
+
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
