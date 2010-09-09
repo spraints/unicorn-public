@@ -1,0 +1,108 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.7 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eirik Dentz Sinclair <eirik@efficiency20.com>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Unicorn fails to restart gracefully on capistrano deploy
+Date: Thu, 9 Sep 2010 16:28:19 -0700
+Message-ID: <162ABE91-E653-45BE-B611-AF6C2B37CC4B@efficiency20.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0 (Apple Message framework v1081)
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1284074913 21378 80.91.229.12 (9 Sep 2010 23:28:33
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Thu, 9 Sep 2010 23:28:33 +0000 (UTC)
+Cc: tech <tech@efficiency20.com>
+To: mongrel-unicorn@rubyforge.org
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Fri Sep 10 01:28:31
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+X-Mailer: Apple Mail (2.1081)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:700
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/700>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1OtqXf-00038W-9W for gclrug-mongrel-unicorn@m.gmane.org; Fri, 10 Sep 2010
+ 01:28:31 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id A4F3519782CD; Thu,  9 Sep 2010 19:28:29 -0400 (EDT)
+Received: from mail-pw0-f50.google.com (mail-pw0-f50.google.com
+ [209.85.160.50]) by rubyforge.org (Postfix) with ESMTP id 47A48185836B for
+ <mongrel-unicorn@rubyforge.org>; Thu,  9 Sep 2010 19:28:23 -0400 (EDT)
+Received: by pwj7 with SMTP id 7so869760pwj.23 for
+ <mongrel-unicorn@rubyforge.org>; Thu, 09 Sep 2010 16:28:22 -0700 (PDT)
+Received: by 10.114.113.9 with SMTP id l9mr173376wac.109.1284074902503; Thu,
+ 09 Sep 2010 16:28:22 -0700 (PDT)
+Received: from [10.0.1.11] ([76.246.63.157]) by mx.google.com with ESMTPS id
+ c24sm3202283wam.7.2010.09.09.16.28.20 (version=TLSv1/SSLv3 cipher=RC4-MD5);
+ Thu, 09 Sep 2010 16:28:21 -0700 (PDT)
+
+First off thanks very much for all the hard work on unicorn. Alas, we've encountered an issue where unicorn fails to spawn new workers that have loaded the incoming revision on a capistrano deploy. I'm not entirely sure the issue is due to unicorn as it appears that bundler was responsible for a similar issue in the past: http://github.com/carlhuda/bundler/issues/issue/259/#comment_180830
+
+But presumably bundler has corrected that issue and any help in sorting out the issue would be greatly appreciated. 
+
+We are following EngineYard's instructions for loading unicorn via bundle exec: http://docs.engineyard.com/appcloud/howtos/cutomization/customize-unicorn
+
+So far we've tried deploying with the unicorn config set to both "preload_app true" and "preload_app false".
+(unicorn.rb being used: https://gist.github.com/9a208e3d1d1e44161018)
+
+When "preload_app true" is used the "uninitialized constant Prefix::OurCustomApi (NameError)" log entry/stacktrace appears once. And the workers never load the incoming code. So while the incoming code is in place and the symlinks are all updated we're still running the previous revision until a unicorn stop/start or reload is sent.
+
+When "preload_app false" is used the "uninitialized constant Prefix::OurCustomApi (NameError)" log entry/stacktrace is written to the unicorn.stderr.log continuously as it keeps trying to respawn workers in a loop. This goes on until a unicorn stop command is sent. Then a unicorn start can be used to load the incoming revision successfully.
+
+The common deployment stack and versions follow:
+
+Capistrano 2.5.19
+Bundler 1.0.0rc6
+Rails 2.3.8
+Unicorn 1.0.1 (tested under unicorn 1.1.3 with same results)
+
+The deployments differ as follows:
+
+The deployed versioned directory is 20100830230613
+The incoming versioned directory is 20100902192111
+
+Code in version 20100830230613 uses our_custom_api.gem version 1.0 via the Gemfile
+Code in version 20100830230613 uses the constant OurCustomApi in config/initializers/our_custom_api.rb
+
+Code in version 20100902192111 uses prefix_our_custom_api.gem version 2.0 via the Gemfile
+Code in version 20100902192111 uses the constant Prefix::OurCustomApi in config/initializers/our_custom_api.rb
+
+The relevant relevant unicorn.stderr.log can be found below and appear to show some sort of issue where both versioned directories are being loaded into the same process?
+
+Unicorn 1.0.1:
+https://gist.github.com/ddc852b23617fc8584e0
+
+Unicorn 1.1.3:
+https://gist.github.com/6314ea0e14ff78b4e8dc
+
+Thanks in advance,
+
+Eirik Dentz Sinclair
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
