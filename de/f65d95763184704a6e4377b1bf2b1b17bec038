@@ -1,0 +1,123 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: Unicorn fails to restart gracefully on capistrano deploy
+Date: Wed, 15 Sep 2010 14:52:03 -0700
+Message-ID: <20100915215203.GA26305@dcvr.yhbt.net>
+References: <5F1A02DB-CBDA-4302-9E26-8050C2D72433@efficiency20.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1284588185 24269 80.91.229.12 (15 Sep 2010 22:03:05
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Wed, 15 Sep 2010 22:03:05 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Thu Sep 16 00:03:03
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <5F1A02DB-CBDA-4302-9E26-8050C2D72433@efficiency20.com>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:706
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/706>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1Ow04E-0002pM-Ba for gclrug-mongrel-unicorn@m.gmane.org; Thu, 16 Sep 2010
+ 00:03:02 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id A94EF1678316; Wed, 15 Sep 2010 18:03:01 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id E59661678316 for <mongrel-unicorn@rubyforge.org>;
+ Wed, 15 Sep 2010 17:52:03 -0400 (EDT)
+Received: from localhost (unknown [127.0.2.5]) by dcvr.yhbt.net (Postfix)
+ with ESMTP id 501EA1F973; Wed, 15 Sep 2010 21:52:03 +0000 (UTC)
+
+Eirik Dentz Sinclair <eirik@efficiency20.com> wrote:
+> Lawrence, Jamie
+> 
+> Thanks very much for your responses.
+> 
+> The before_exec block in Lawrence's gist was just what was needed. Not sure how many others are using Capistrano and bundler, but seems like that before_exec block would be a good addition to this page: http://unicorn.bogomips.org/Sandbox.html
+> 
+> Thanks again for the help.
+
+Thanks for confirming the fix.  I've updated the Sandbox document
+with the following patch.
+
+Patches/pull-requests to the mailing list for documentation are very
+much appreciated, especially for Bundler and maybe other things I don't
+use myself.  Lets try to treat the in-source documentation much like a
+wiki, except anybody who grabs the source also has the latest up-to-date
+docs ready for offline reading (and readable without a web browser :)
+
+>From 1a75966a5d1a1f6307ed3386e2f91a28bbb72ca0 Mon Sep 17 00:00:00 2001
+From: Eric Wong <normalperson@yhbt.net>
+Date: Wed, 15 Sep 2010 14:42:54 -0700
+Subject: [PATCH] doc: update Sandbox document for Bundler
+
+Thanks to Lawrence Pit, Jamie Wilkinson, and Eirik Dentz Sinclair.
+
+ref: mid.gmane.org/4C8986DA.7090603@gmail.com
+ref: mid.gmane.org/5F1A02DB-CBDA-4302-9E26-8050C2D72433@efficiency20.com
+---
+ Sandbox |    9 +++++++++
+ 1 files changed, 9 insertions(+), 0 deletions(-)
+
+diff --git a/Sandbox b/Sandbox
+index d2f7590..d101106 100644
+--- a/Sandbox
++++ b/Sandbox
+@@ -24,6 +24,9 @@ this:
+ Then use HUP to reload, and then continue with the USR2+QUIT upgrade
+ sequence.
+ 
++Environment variable pollution when exec-ing a new process (with USR2)
++is the primary issue with sandboxing tools such as Bundler and Isolate.
++
+ == Bundler
+ 
+ === Running
+@@ -42,6 +45,12 @@ This is no longer be an issue as of bundler 0.9.17
+ 
+ ref: http://mid.gmane.org/8FC34B23-5994-41CC-B5AF-7198EF06909E@tramchase.com
+ 
++=== Other ENV pollution issues
++
++You may need to set or reset BUNDLE_GEMFILE, GEM_HOME, GEM_PATH and PATH
++environment variables in the before_exec hook as illustrated by
++http://gist.github.com/534668
++
+ == Isolate
+ 
+ === Running
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
