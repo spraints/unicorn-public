@@ -1,0 +1,115 @@
+From ew@dcvr.yhbt.net  Mon May  5 07: 07:34 2014
+Return-Path: <ew@dcvr.yhbt.net>
+X-Original-To: pi+piham
+Delivered-To: pi+piham@dcvr.yhbt.net
+Received: by dcvr.yhbt.net (Postfix, from userid 1000) id 9C6D420CB8; Mon,  5
+ May 2014 07:00:42 +0000 (UTC)
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: *
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=1.0 required=3.0 tests=AWL,HK_RANDOM_FROM,
+ MSGID_FROM_MTA_HEADER shortcircuit=no autolearn=no version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson-rMlxZR9MS24@public.gmane.org>
+Newsgroups:
+ gmane.comp.lang.ruby.rainbows.general,gmane.comp.lang.ruby.unicorn.general
+Subject: [ANN] kgio library / RubyGem
+Date: Mon, 27 Sep 2010 20:03:02 -0700
+Message-ID: <20100928030302.GA3452@dcvr.yhbt.net>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1285643462 14052 80.91.229.12 (28 Sep 2010 03:11:02
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Tue, 28 Sep 2010 03:11:02 +0000 (UTC)
+To: mongrel-unicorn-GrnCvJ7WPxnNLxjTenLetw@public.gmane.org,
+ rainbows-talk-GrnCvJ7WPxnNLxjTenLetw@public.gmane.org
+Original-X-From:
+ rainbows-talk-bounces-GrnCvJ7WPxnNLxjTenLetw@public.gmane.org Tue Sep 28
+ 05:11:00 2010
+Envelope-to: gclrrg-rainbows-talk@m.gmane.org
+X-Original-To: rainbows-talk-GrnCvJ7WPxnNLxjTenLetw@public.gmane.org
+Delivered-To: rainbows-talk-GrnCvJ7WPxnNLxjTenLetw@public.gmane.org
+Content-Disposition: inline
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: rainbows-talk-GrnCvJ7WPxnNLxjTenLetw@public.gmane.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <rainbows-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/rainbows-talk>,
+ <mailto:rainbows-talk-request-GrnCvJ7WPxnNLxjTenLetw@public.gmane.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/rainbows-talk>
+List-Post: <rainbows-public@bogomips.org>
+List-Help:
+ <mailto:rainbows-talk-request-GrnCvJ7WPxnNLxjTenLetw@public.gmane.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/rainbows-talk>,
+ <mailto:rainbows-talk-request-GrnCvJ7WPxnNLxjTenLetw@public.gmane.org?subject=subscribe>
+Original-Sender:
+ rainbows-talk-bounces-GrnCvJ7WPxnNLxjTenLetw@public.gmane.org
+Errors-To: rainbows-talk-bounces-GrnCvJ7WPxnNLxjTenLetw@public.gmane.org
+Xref: news.gmane.org gmane.comp.lang.ruby.rainbows.general:137
+ gmane.comp.lang.ruby.unicorn.general:710
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.rainbows.general/137>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from
+ <rainbows-talk-bounces-GrnCvJ7WPxnNLxjTenLetw@public.gmane.org>) id
+ 1P0Qaq-0007Pj-GF for gclrrg-rainbows-talk@m.gmane.org; Tue, 28 Sep 2010
+ 05:11:00 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 9EB23197833E; Mon, 27 Sep 2010 23:10:57 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id B76F11858373; Mon, 27 Sep 2010 23:03:02 -0400 (EDT)
+Received: from localhost (unknown [127.0.2.5]) by dcvr.yhbt.net (Postfix)
+ with ESMTP id 482D01FC24; Tue, 28 Sep 2010 03:03:02 +0000 (UTC)
+
+Hello all,
+
+I've released kgio, a kinder, gentler I/O library for Ruby.  Some of its
+features are useful for Unicorn, and all of it is useful for Rainbows!
+
+I intend to make kgio a requirement for both Unicorn and
+Rainbows!/Zbatery.  I'm comfortable with the code, but extra testers and
+extra eyes to review it would be helpful (it's nearly all C).
+
+There were several factors leading the creation of this library:
+
+  1. The performance loss from Ruby 1.9.2 due to extending exceptions
+     with IO::Wait{Read,Writ}able is annoying.  While it's partly
+     fixed[1] and fixable[2] for 1.9.3, it could be a while before
+     1.9.3 is available.  Unicorn currently does non-blocking accept
+     very aggressively.
+
+  2. (Rainbows! only) Slicing partially written strings for
+     non-blocking I/O in gets painful with Ruby 1.9, it's much easier
+     (at least for me) to do this in C and kgio_trywrite allows
+     exactly that, returning the unwritten portion of a string.
+
+  3. (Rainbows! only) It offers hooks for using alternative
+     methods to switch execution contexts (experience taken from
+     building the FiberSpawn/FiberPool modules).
+
+  4. (philosophical) I've never considered EAGAIN/EINPROGRESS
+     "exceptional" conditions when explicitly doing non-blocking
+     I/O, and thus unworthy of raising exceptions.
+
+
+kgio currently passes all tests on on Linux 2.6 (1.9.{1,2},
+1.8.{6,7}, rbx 1.1) and FreeBSD 7.0 (1.8.7).
+
+	http://unicorn.bogomips.org/kgio/
+	git://git.bogomips.org/kgio.git
+	http://git.bogomips.org/cgit/kgio.git
+
+[1] - http://thread.gmane.org/gmane.comp.lang.ruby.core/30854
+[2] - http://thread.gmane.org/gmane.comp.lang.ruby.core/31801
+
+-- 
+Eric Wong
+_______________________________________________
+Rainbows! mailing list - rainbows-talk-GrnCvJ7WPxnNLxjTenLetw@public.gmane.org
+http://rubyforge.org/mailman/listinfo/rainbows-talk
+Do not quote signatures (like this one) or top post when replying
+
