@@ -1,0 +1,120 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.6 required=5.0 tests=FREEMAIL_FROM,
+ MSGID_FROM_MTA_HEADER,RP_MATCHES_RCVD,T_DKIM_INVALID shortcircuit=no
+ autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: =?UTF-8?B?UnViw6luIETDoXZpbGE=?= <ruben.grunge84@gmail.com>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Unicorn doesn't reload the app after the HUP signal
+Date: Fri, 1 Oct 2010 19:57:42 -0500
+Message-ID: <AANLkTinNN9uyYxfotnKa3nUBr18DMF+j=zZoPiyKKVV3@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1285981291 21604 80.91.229.12 (2 Oct 2010 01:01:31
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Sat, 2 Oct 2010 01:01:31 +0000 (UTC)
+To: mongrel-unicorn@rubyforge.org
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Sat Oct 02 03:01:30
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com; s=gamma;
+ h=domainkey-signature:mime-version:received:received:date:message-id
+ :subject:from:to:content-type;
+ bh=DLzXVujuZYiccAAfJAbM5Inmn0PAef5AkDybxkQeCIU=;
+ b=eftOQPrMTyhmUx3jCBA/4hhmfUoyj57OWye47zLma1rValcBWniXWSZIkraCYoGi1i
+ SoyfkdfKrKFrZ2M7CRuCgks2+IVfOILfUt+q4o5APPEXXIsz/OpRsJnH+ihjXO4LlUVH
+ it0lJqkRYu/V/mcrQtMU7eqRn6xHljRyGRYSs=
+DomainKey-Signature: a=rsa-sha1; c=nofws; d=gmail.com; s=gamma;
+ h=mime-version:date:message-id:subject:from:to:content-type;
+ b=nt/hyYcOmNiltdJrRcWZ1/MZba4hp5EJdIJfN0TCY9KxJzcrfUVyIJiLz0t+CuoqLK
+ 4yZQcM/6fJyQdVcLge5PXIlh1m32HqMnQqOfIvQDmD2tjgAAA+aT8dM1vlOp1ZaYr3NR
+ Cv+sjJBzCT0Cd4RW3+gTgT4J3yG5kblX4ps9s=
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:712
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/712>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1P1qTf-0002cy-9V for gclrug-mongrel-unicorn@m.gmane.org; Sat, 02 Oct 2010
+ 03:01:27 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id D49CE1858354; Fri,  1 Oct 2010 21:01:23 -0400 (EDT)
+Received: from mail-bw0-f50.google.com (mail-bw0-f50.google.com
+ [209.85.214.50]) by rubyforge.org (Postfix) with ESMTP id 31FCB1858346 for
+ <mongrel-unicorn@rubyforge.org>; Fri,  1 Oct 2010 20:57:43 -0400 (EDT)
+Received: by bwz17 with SMTP id 17so3199300bwz.23 for
+ <mongrel-unicorn@rubyforge.org>; Fri, 01 Oct 2010 17:57:42 -0700 (PDT)
+Received: by 10.204.81.215 with SMTP id y23mr4588998bkk.78.1285981062463;
+ Fri, 01 Oct 2010 17:57:42 -0700 (PDT)
+Received: by 10.204.45.217 with HTTP; Fri, 1 Oct 2010 17:57:42 -0700 (PDT)
+
+Hi folks, I've experimented a problem while deploying my app, I've
+sent the HUP signal to the master process, I've checked everything is
+ok: new master and workers are spawned and the old ones are
+killed(I've checked the PIDs), but the new code deployed isn't
+reflected in the living site, so I've to stop and start again unicorn
+in order to see the new changes, here is my unicorn config:
+
+rails_env = ENV['RAILS_ENV'] || 'production'
+worker_processes (rails_env == 'production' ? 3 : 1)
+preload_app true
+timeout 30
+listen File.expand_path(File.join(__FILE__,
+"../../tmp/sockets/unicorn.sock")), :backlog => 2048
+
+if GC.respond_to?(:copy_on_write_friendly=)
+  GC.copy_on_write_friendly = true
+end
+
+before_fork do |server, worker|
+  old_pid = RAILS_ROOT + '/tmp/pids/unicorn.pid.oldbin'
+  if File.exists?(old_pid) && server.pid != old_pid
+    begin
+      Process.kill("QUIT", File.read(old_pid).to_i)
+    rescue Errno::ENOENT, Errno::ESRCH
+      # someone else did our job for us
+    end
+  end
+end
+
+after_fork do |server, worker|
+  ActiveRecord::Base.establish_connection
+  begin
+    worker.user('peruautos', 'www-data') if Process.euid == 0
+  rescue => e
+    if RAILS_ENV == 'development'
+      STDERR.puts "couldn't change user, oh well"
+    else
+      raise e
+    end
+  end
+end
+
+I'm using unicorn 1.1.2 and rack 1.0.1
+
+Regards.
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
