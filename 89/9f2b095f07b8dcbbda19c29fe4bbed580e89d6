@@ -1,0 +1,93 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: Unicorn doesn't reload the app after the HUP signal
+Date: Sat, 2 Oct 2010 01:13:50 -0700
+Message-ID: <20101002081350.GA13954@dcvr.yhbt.net>
+References: <AANLkTinNN9uyYxfotnKa3nUBr18DMF+j=zZoPiyKKVV3@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="iso-8859-1"
+Content-Transfer-Encoding: quoted-printable
+X-Trace: dough.gmane.org 1286007244 27581 80.91.229.12 (2 Oct 2010 08:14:04
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Sat, 2 Oct 2010 08:14:04 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Sat Oct 02 10:14:02
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <AANLkTinNN9uyYxfotnKa3nUBr18DMF+j=zZoPiyKKVV3@mail.gmail.com>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:713
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/713>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1P1xEF-0007Ux-AA for gclrug-mongrel-unicorn@m.gmane.org; Sat, 02 Oct 2010
+ 10:13:59 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 1B35618582EE; Sat,  2 Oct 2010 04:13:58 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id BDF6A18582E2 for <mongrel-unicorn@rubyforge.org>;
+ Sat,  2 Oct 2010 04:13:51 -0400 (EDT)
+Received: from localhost (unknown [127.0.2.5]) by dcvr.yhbt.net (Postfix)
+ with ESMTP id B2E7F1F977; Sat,  2 Oct 2010 08:13:50 +0000 (UTC)
+
+Rub=E9n D=E1vila <ruben.grunge84@gmail.com> wrote:
+> Hi folks, I've experimented a problem while deploying my app, I've
+> sent the HUP signal to the master process, I've checked everything is
+> ok: new master and workers are spawned and the old ones are
+> killed(I've checked the PIDs), but the new code deployed isn't
+> reflected in the living site, so I've to stop and start again unicorn
+> in order to see the new changes, here is my unicorn config:
+> =
+
+> rails_env =3D ENV['RAILS_ENV'] || 'production'
+> worker_processes (rails_env =3D=3D 'production' ? 3 : 1)
+> preload_app true
+> timeout 30
+> listen File.expand_path(File.join(__FILE__,
+> "../../tmp/sockets/unicorn.sock")), :backlog =3D> 2048
+
+Hi Rub=E9n,
+
+Are you using cap or something else that makes symlinks during
+deployment?  It could've been started in an old release directory while
+it didn't have the "current" symlink pointing to it.  You can work
+around this by putting:
+
+  working_directory "/path/to/app/current"
+
+in your config file.
+
+<snip>
+
+> I'm using unicorn 1.1.2 and rack 1.0.1
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
