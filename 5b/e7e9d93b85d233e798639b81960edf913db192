@@ -1,0 +1,92 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.7 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Jordan Ritter <jpr5@darkridge.com>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Problem with binding UNIX listeners before checking PID
+Date: Sat, 2 Oct 2010 09:38:02 -0700
+Message-ID: <8D95A44B-A098-43BE-B532-7D74BD957F31@darkridge.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0 (Apple Message framework v1081)
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1286038176 14075 80.91.229.12 (2 Oct 2010 16:49:36
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Sat, 2 Oct 2010 16:49:36 +0000 (UTC)
+To: mongrel-unicorn@rubyforge.org
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Sat Oct 02 18:49:35
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+X-Greylist: delayed 504 seconds by postgrey-1.31 at rubyforge.org; Sat, 02
+ Oct 2010 12:46:31 EDT
+X-Mailer: Apple Mail (2.1081)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:714
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/714>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1P25HC-0008OW-1C for gclrug-mongrel-unicorn@m.gmane.org; Sat, 02 Oct 2010
+ 18:49:34 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 346701858267; Sat,  2 Oct 2010 12:49:33 -0400 (EDT)
+Received: from mail.darkridge.com (apropos.darkridge.com [72.51.42.155]) by
+ rubyforge.org (Postfix) with ESMTP id C04801858267 for
+ <mongrel-unicorn@rubyforge.org>; Sat,  2 Oct 2010 12:46:31 -0400 (EDT)
+Received: from [10.0.42.101] (c-98-210-158-77.hsd1.ca.comcast.net
+ [98.210.158.77]) (using TLSv1 with cipher AES128-SHA (128/128 bits)) (No
+ client certificate requested) (Authenticated sender: jpr5) by
+ mail.darkridge.com (Postfix) with ESMTPSA id 6A8686580F4 for
+ <mongrel-unicorn@rubyforge.org>; Sat,  2 Oct 2010 09:38:03 -0700 (PDT)
+
+Howdy.
+
+I have lately been frustrated by the following use case:
+
+	1. Run nginx/unicorn in production, listening on a UNIX socket with a defined pid file.  Things run good. 
+	2. Someone pushes code, unicorn restarts just fine, workers are all up and running.  
+	3. But someone is suspicious, or maybe they forget which box they're logged into, so they invoke unicorn manually.  Same directory, same settings.
+
+	4. It looks like the pid file check kicked in, because unicorn refuses to boot - hey, it's already running, bugger off.  great.
+	5. BUT, this happened *after* the listener processing: the manually-invoked unicorn unlinks the real unicorn master's unix listener, so it's left dead in the water and everybody loses.  
+
+unicorn master doesn't know its listener is actually gone (but lsof shows open unix socket fd, netstat shows unix socket still present, so cursory investigation is misleading), but nginx keeps spewing ECONNREFUSEDs because the unix socket it's hitting belongs to that accidental unicorn instance that already decided not to stick around.
+
+I think this is effectively about a behavioral difference in Unicorn::SocketHelper#bind_listen around the handling of UNIX vs. TCP sockets (this doesn't happen with TCP sockets because there's no unlink/disconnect step), and the fact that HttpServer#start evaluates the listener config before the PID path/config.
+
+Now I see comments in and around HttpServer#initialize talking about races wrt binding to the listener and whatnot, and being newish to the codebase I admit I haven't yet fully absorbed all the considerations at play. 
+
+But I think it's fair to say that killing the listener(s) (in the UNIX socket case) before discovering you shouldn't have run in the first place (from the PID file) qualifies as buggy/bad/broken behavior.  
+
+I might suggest simply swapping their processing order in #start, but given the complexity of in-place restarts and other race considerations, I have doubts solving this would be that easy.
+
+Any thoughts/ideas?
+
+cheers,
+--jordan
+
+
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
