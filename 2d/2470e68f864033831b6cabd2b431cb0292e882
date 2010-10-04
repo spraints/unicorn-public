@@ -1,0 +1,219 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: [PATCH] avoid unlinking actively listening sockets
+Date: Mon, 4 Oct 2010 04:22:58 +0000
+Message-ID: <20101004042258.GA30932@dcvr.yhbt.net>
+References: <8D95A44B-A098-43BE-B532-7D74BD957F31@darkridge.com>
+ <20101004041713.GA28709@dcvr.yhbt.net>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1286166403 12958 80.91.229.12 (4 Oct 2010 04:26:43
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Mon, 4 Oct 2010 04:26:43 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Mon Oct 04 06:26:42
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <20101004041713.GA28709@dcvr.yhbt.net>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:718
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/718>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1P2cdM-0007Og-BE for gclrug-mongrel-unicorn@m.gmane.org; Mon, 04 Oct 2010
+ 06:26:40 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id C55AE19783B7; Mon,  4 Oct 2010 00:26:39 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id F06FE1858368 for <mongrel-unicorn@rubyforge.org>;
+ Mon,  4 Oct 2010 00:22:58 -0400 (EDT)
+Received: from localhost (unknown [127.0.2.5]) by dcvr.yhbt.net (Postfix)
+ with ESMTP id 6ADDF1F974; Mon,  4 Oct 2010 04:22:58 +0000 (UTC)
+
+While we've always unlinked dead sockets from nuked/leftover
+processes, blindly unlinking them can cause unnecessary failures
+when an active process is already listening on them.  We now
+make a simple connect(2) check to ensure the socket is not in
+use before unlinking it.
+
+Thanks to Jordan Ritter for the detailed bug report leading to
+this fix.
+
+ref: http://mid.gmane.org/8D95A44B-A098-43BE-B532-7D74BD957F31@darkridge.com
+---
+
+  Eric Wong <normalperson@yhbt.net> wrote:
+  > A simpler check would be to use connect(2) (but not make any HTTP request)
+  > to see if the socket is alive.  Patch coming.
+
+  s/simpler/better/
+
+  Also pushed out to "master".  I guess a 1.1.4 release with this fix
+  only is on the way since there isn't much else to release, yet.
+
+ lib/unicorn/socket_helper.rb    |   10 ++++-
+ t/t0011-active-unix-socket.sh   |   79 +++++++++++++++++++++++++++++++++++++++
+ test/unit/test_socket_helper.rb |    9 ++++-
+ 3 files changed, 95 insertions(+), 3 deletions(-)
+ create mode 100644 t/t0011-active-unix-socket.sh
+
+diff --git a/lib/unicorn/socket_helper.rb b/lib/unicorn/socket_helper.rb
+index 9a155e1..1d03eab 100644
+--- a/lib/unicorn/socket_helper.rb
++++ b/lib/unicorn/socket_helper.rb
+@@ -111,8 +111,14 @@ module Unicorn
+       sock = if address[0] == ?/
+         if File.exist?(address)
+           if File.socket?(address)
+-            logger.info "unlinking existing socket=#{address}"
+-            File.unlink(address)
++            begin
++              UNIXSocket.new(address).close
++              # fall through, try to bind(2) and fail with EADDRINUSE
++              # (or succeed from a small race condition we can't sanely avoid).
++            rescue Errno::ECONNREFUSED
++              logger.info "unlinking existing socket=#{address}"
++              File.unlink(address)
++            end
+           else
+             raise ArgumentError,
+                   "socket=#{address} specified but it is not a socket!"
+diff --git a/t/t0011-active-unix-socket.sh b/t/t0011-active-unix-socket.sh
+new file mode 100644
+index 0000000..6f9ac53
+--- /dev/null
++++ b/t/t0011-active-unix-socket.sh
+@@ -0,0 +1,79 @@
++#!/bin/sh
++. ./test-lib.sh
++t_plan 11 "existing UNIX domain socket check"
++
++read_pid_unix () {
++	x=$(printf 'GET / HTTP/1.0\r\n\r\n' | \
++	    socat - UNIX:$unix_socket | \
++	    tail -1)
++	test -n "$x"
++	y="$(expr "$x" : '\([0-9]\+\)')"
++	test x"$x" = x"$y"
++	test -n "$y"
++	echo "$y"
++}
++
++t_begin "setup and start" && {
++	rtmpfiles unix_socket unix_config
++	rm -f $unix_socket
++	unicorn_setup
++	grep -v ^listen < $unicorn_config > $unix_config
++	echo "listen '$unix_socket'" >> $unix_config
++	unicorn -D -c $unix_config pid.ru
++	unicorn_wait_start
++	orig_master_pid=$unicorn_pid
++}
++
++t_begin "get pid of worker" && {
++	worker_pid=$(read_pid_unix)
++	t_info "worker_pid=$worker_pid"
++}
++
++t_begin "fails to start with existing pid file" && {
++	rm -f $ok
++	unicorn -D -c $unix_config pid.ru || echo ok > $ok
++	test x"$(cat $ok)" = xok
++}
++
++t_begin "worker pid unchanged" && {
++	test x"$(read_pid_unix)" = x$worker_pid
++	> $r_err
++}
++
++t_begin "fails to start with listening UNIX domain socket bound" && {
++	rm $ok $pid
++	unicorn -D -c $unix_config pid.ru || echo ok > $ok
++	test x"$(cat $ok)" = xok
++	> $r_err
++}
++
++t_begin "worker pid unchanged (again)" && {
++	test x"$(read_pid_unix)" = x$worker_pid
++}
++
++t_begin "nuking the existing Unicorn succeeds" && {
++	kill -9 $unicorn_pid $worker_pid
++	while kill -0 $unicorn_pid
++	do
++		sleep 1
++	done
++	check_stderr
++}
++
++t_begin "succeeds in starting with leftover UNIX domain socket bound" && {
++	test -S $unix_socket
++	unicorn -D -c $unix_config pid.ru
++	unicorn_wait_start
++}
++
++t_begin "worker pid changed" && {
++	test x"$(read_pid_unix)" != x$worker_pid
++}
++
++t_begin "killing succeeds" && {
++	kill $unicorn_pid
++}
++
++t_begin "no errors" && check_stderr
++
++t_done
+diff --git a/test/unit/test_socket_helper.rb b/test/unit/test_socket_helper.rb
+index bbce359..c6d0d42 100644
+--- a/test/unit/test_socket_helper.rb
++++ b/test/unit/test_socket_helper.rb
+@@ -101,7 +101,14 @@ class TestSocketHelper < Test::Unit::TestCase
+ 
+   def test_bind_listen_unix_rebind
+     test_bind_listen_unix
+-    new_listener = bind_listen(@unix_listener_path)
++    new_listener = nil
++    assert_raises(Errno::EADDRINUSE) do
++      new_listener = bind_listen(@unix_listener_path)
++    end
++    assert_nothing_raised do
++      File.unlink(@unix_listener_path)
++      new_listener = bind_listen(@unix_listener_path)
++    end
+     assert UNIXServer === new_listener
+     assert new_listener.fileno != @unix_listener.fileno
+     assert_equal sock_name(new_listener), sock_name(@unix_listener)
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
