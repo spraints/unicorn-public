@@ -1,0 +1,113 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: Unicorn Signal Handling Shared for Other Servers
+Date: Mon, 4 Oct 2010 05:41:24 +0000
+Message-ID: <20101004054124.GA31068@dcvr.yhbt.net>
+References: <AANLkTikMSD=-1BwLe_Dtu6ybCOABcFkVk_ZU9pDP2D8K@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1286171012 25387 80.91.229.12 (4 Oct 2010 05:43:32
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Mon, 4 Oct 2010 05:43:32 +0000 (UTC)
+Cc: Ben Curren <ben@outright.com>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Mon Oct 04 07:43:30
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <AANLkTikMSD=-1BwLe_Dtu6ybCOABcFkVk_ZU9pDP2D8K@mail.gmail.com>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:719
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/719>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1P2dpi-0001wK-2W for gclrug-mongrel-unicorn@m.gmane.org; Mon, 04 Oct 2010
+ 07:43:30 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 6C410197833E; Mon,  4 Oct 2010 01:43:29 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id C30551858361 for <mongrel-unicorn@rubyforge.org>;
+ Mon,  4 Oct 2010 01:41:25 -0400 (EDT)
+Received: from localhost (unknown [127.0.2.5]) by dcvr.yhbt.net (Postfix)
+ with ESMTP id ED9161F974; Mon,  4 Oct 2010 05:41:24 +0000 (UTC)
+
+Ben Curren <ben@outright.com> wrote:
+> I was curious if anyone has attempted to, or is interested, it ripping
+> out Unicorn's signal handling and daemon code to make it possible to
+> share with other Ruby Servers. I really love have 0 down time deploys
+> and would love to have this in workling, thrift or other custom
+> servers we have written. I'm more than willing to fork the code and
+> take stab at it but wanted to check with the group to see if something
+> has already been attempted. I'm not the type who likes to reinvent the
+> wheel.
+
+Hi Ben,
+
+I recall some attempts to make libraries around what Unicorn did a year
+ago when Unicorn started picking up more press.  I'm not sure how far
+any of them got and can't remember the names, but October/November 2009
+was the time frame.
+
+Personally, I think the core Ruby methods around Unix APIs are
+"just right" and extra wrappers either:
+
+  a) take away needed flexibility
+     (no, I don't want umask 0000 with my daemonize())
+
+  b) require as much effort to learn as the Unix APIs
+     (Process.daemon() in 1.9, really?)
+
+The Unix APIs themselves are well-documented in manpages, textbooks,
+and needless to say, useful outside of Ruby[1].
+
+Ruby already does a great job of hiding the tedious, more painful parts
+of the original C APIs from you.  Things like trap(signal, &block),
+IO.select, and exceptions (vs writing error check for *everything*)
+already make life much easier than before.
+
+
+For Unicorn (and Rainbows!) development, one huge (maybe the biggest)
+factor in trusting it is having integration tests that
+start/stop/restart/thrash/nuke the server in various ways a user would.
+The test suite hits signal handling logic, directory changes, process
+creation/reaping, log file rotation, pid files, etc.  Some parts of the
+test suite are ugly (test_exec.rb), but nevertheless effective at
+finding bugs.
+
+
+[1] - I'll admit to being reasonably experienced with Unix programming
+      and worked on several daemons before I picked up Ruby.
+
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
