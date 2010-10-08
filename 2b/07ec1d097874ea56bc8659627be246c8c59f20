@@ -1,0 +1,97 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: internal API changes in Unicorn 2.x
+Date: Fri, 8 Oct 2010 14:37:30 -0700
+Message-ID: <20101008213730.GA30777@dcvr.yhbt.net>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1286574347 17992 80.91.229.12 (8 Oct 2010 21:45:47
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Fri, 8 Oct 2010 21:45:47 +0000 (UTC)
+To: mongrel-unicorn@rubyforge.org
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Fri Oct 08 23:45:46
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:725
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/725>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1P4Kl4-0006oM-14 for gclrug-mongrel-unicorn@m.gmane.org; Fri, 08 Oct 2010
+ 23:45:42 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 0EDD21858378; Fri,  8 Oct 2010 17:45:40 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 0AA041858375 for <mongrel-unicorn@rubyforge.org>;
+ Fri,  8 Oct 2010 17:37:31 -0400 (EDT)
+Received: from localhost (unknown [127.0.2.5]) by dcvr.yhbt.net (Postfix)
+ with ESMTP id E17461F500; Fri,  8 Oct 2010 21:37:30 +0000 (UTC)
+
+Here's a non-exhaustive list of internal API changes for Unicorn 2.x.
+
+This will NOT affect most users, only those who use/rely on the
+undocumented API which we've never recommended people to use.
+
+This mainly affects Rainbows!  development.  Nearly all of these changes
+are to make life easier for Rainbows! which Unicorn 2.x is intended to
+support.
+
+* Util.tmpio -> TmpIO.new
+
+* HttpParser and HttpRequest become the same class
+  - not finalized, yet, one name will go away, probably in 3.x
+  - the Rack "env" hash and "buf" String buffer belong
+    to the C struct since they're always used together
+  - the outward API should be mostly compatible with 1.1.x
+  - PARSER, BUF, REQ constants removed from HttpRequest,
+    the new HttpParser holds all these on a per-socket basis
+  - HttpParser#parse method added to work on the env/buf
+    elements
+
+* TeeInput.new takes only two parameters, socket and the
+  parser/request object
+
+* HttpRequest::LOCALHOST constant removed, use Kgio::LOCALHOST
+
+* RACK_INPUT and REMOTE_ADDR constants moved from Const to HttpRequest
+  since they're unused outside of HttpRequest
+
+
+If there are other apps/libraries who depend on some things we changed
+and you really can't have it any other way, we _may_ try to accomodate
+you if it's not too much effort.
+
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
