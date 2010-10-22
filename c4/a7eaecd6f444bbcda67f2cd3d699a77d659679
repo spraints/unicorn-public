@@ -1,0 +1,116 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: 502 bad gateway on nginx with recv() failed
+Date: Fri, 22 Oct 2010 14:14:46 -0700
+Message-ID: <20101022211446.GA22603@dcvr.yhbt.net>
+References: <AANLkTimDFC1KRSKATDWSnhDay9esLmMHObx7V4FXGb_z@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1287785021 23336 80.91.229.12 (22 Oct 2010 22:03:41
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Fri, 22 Oct 2010 22:03:41 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Sat Oct 23 00:03:37
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <AANLkTimDFC1KRSKATDWSnhDay9esLmMHObx7V4FXGb_z@mail.gmail.com>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:734
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/734>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1P9Pi5-0000oR-AN for gclrug-mongrel-unicorn@m.gmane.org; Sat, 23 Oct 2010
+ 00:03:37 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 4C779197846B; Fri, 22 Oct 2010 18:03:34 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 3E88519782CD for <mongrel-unicorn@rubyforge.org>;
+ Fri, 22 Oct 2010 17:14:46 -0400 (EDT)
+Received: from localhost (unknown [127.0.2.5]) by dcvr.yhbt.net (Postfix)
+ with ESMTP id 63E461F531; Fri, 22 Oct 2010 21:14:46 +0000 (UTC)
+
+Naresh V <nareshov@gmail.com> wrote:
+> Hi,
+> 
+> I'm serving the puppetmaster application with its config.ru through
+> unicorn - proxied by nginx.
+> I'm using unix sockets, 4 workers, and 2048 backlog.
+> 
+> The clients - after their typical "puppet run" - send back a report to
+> the master in YAML.
+> Some clients whose reports tend to be large (close to 2mb) get a 502
+> bad gateway error and error out.
+> 
+> nginx log:
+> 
+> 2010/10/22 14:20:27 [error] 19461#0: *17115 recv() failed (104:
+> Connection reset by peer) while reading response header from upstream,
+> client: 1x.yy.zz.x4, server: , request: "PUT /production/report/nagios
+> HTTP/1.1", upstream:
+> "http://unix:/tmp/.sock:/production/report/nagios", host:
+> "puppet:8140"
+
+Hi Naresh, do you see anything in the Unicorn stderr log file?
+
+Is the 2mb report part of the response or request?  Unicorn should
+have no problems accepting large requests (Rainbows! defaults the
+client_max_body_size to 1mb, just like nginx).
+
+It could be Unicorn's internal (default 60s) timeout kicking
+in because puppet is slowly reading/generating the 2mb body.
+
+Also, which version of Unicorn and nginx is this?
+
+> I was getting the same thing earlier when I had unicorn listening on
+> TCP sockets instead of UNIX sockets. And I had a lot of connections in
+> TIME_WAIT:
+> 
+> tcp        0      0 127.0.0.1:8141              127.0.0.1:54507
+>      TIME_WAIT   -
+> tcp        0      0 127.0.0.1:8141              127.0.0.1:57322
+>      TIME_WAIT   -
+> 
+> Fluctuating all the way from 20 to 800. A quick restart of nginx
+> tended to bring the number down.
+
+Having many TIME_WAIT sockets is normal and expected when you're
+starting/stopping lots of TCP connections.  It's nothing to worry about
+unless you get several thousands of requests/second, and then you should
+apply tcp_tw_reuse/tcp_tw_recycle as mentioned in
+http://unicorn.bogomips.org/TUNING.html (or switch to UNIX domain
+sockets and use nginx for keepalive).
+
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
