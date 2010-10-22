@@ -1,0 +1,109 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.6 required=5.0 tests=FREEMAIL_FROM,
+ MSGID_FROM_MTA_HEADER,RP_MATCHES_RCVD,T_DKIM_INVALID shortcircuit=no
+ autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Naresh V <nareshov@gmail.com>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: 502 bad gateway on nginx with recv() failed
+Date: Sat, 23 Oct 2010 01:20:19 +0530
+Message-ID: <AANLkTimDFC1KRSKATDWSnhDay9esLmMHObx7V4FXGb_z@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1287780244 4455 80.91.229.12 (22 Oct 2010 20:44:04
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Fri, 22 Oct 2010 20:44:04 +0000 (UTC)
+To: mongrel-unicorn@rubyforge.org
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Fri Oct 22 22:44:01
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com; s=gamma;
+ h=domainkey-signature:mime-version:received:received:date:message-id
+ :subject:from:to:content-type;
+ bh=86fuho0U/NdeVzxS4lTxQR6XtTS3vYrDFi9WLLp0igk=;
+ b=FvHy62NofHDh0cUSjWhFvJxWq32kjioVIz8zPjtTrialnubwHC6UKueAphtIUHvnS7
+ NiZ4j7GHhw+Aq23l32CLz4cPsIFhHo9UKeaHdrPCdjOcyf6sulQMI67WtZ3qVcuwAJs3
+ Burk0EQcLU2hV0k6y7Ej0ztl+cT7JdLXhcXH4=
+DomainKey-Signature: a=rsa-sha1; c=nofws; d=gmail.com; s=gamma;
+ h=mime-version:date:message-id:subject:from:to:content-type;
+ b=fy7PN8FRJ/IOhuXRDgteD9d40d2oh4KTQu5aa1s1zuqOZHl6xLeC+c4pfWOAVcIeTy
+ TZX5bHYhnXebalnJCn97jwfYCSp7iPWup9WteH3Bp6RBbLoIBhsrtLV6YIoEpWaKZuYa
+ Z++T0mhvVWM6n+nC1XTZLDWgHzmZKUPHWoU7U=
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:733
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/733>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1P9OT2-00062s-Iu for gclrug-mongrel-unicorn@m.gmane.org; Fri, 22 Oct 2010
+ 22:44:00 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 8BDF91978478; Fri, 22 Oct 2010 16:43:59 -0400 (EDT)
+Received: from mail-bw0-f50.google.com (mail-bw0-f50.google.com
+ [209.85.214.50]) by rubyforge.org (Postfix) with ESMTP id D2A0A1858354 for
+ <mongrel-unicorn@rubyforge.org>; Fri, 22 Oct 2010 15:50:40 -0400 (EDT)
+Received: by bwz17 with SMTP id 17so440115bwz.23 for
+ <mongrel-unicorn@rubyforge.org>; Fri, 22 Oct 2010 12:50:40 -0700 (PDT)
+Received: by 10.204.112.129 with SMTP id w1mr2432781bkp.204.1287777019439;
+ Fri, 22 Oct 2010 12:50:19 -0700 (PDT)
+Received: by 10.204.85.97 with HTTP; Fri, 22 Oct 2010 12:50:19 -0700 (PDT)
+
+Hi,
+
+I'm serving the puppetmaster application with its config.ru through
+unicorn - proxied by nginx.
+I'm using unix sockets, 4 workers, and 2048 backlog.
+
+The clients - after their typical "puppet run" - send back a report to
+the master in YAML.
+Some clients whose reports tend to be large (close to 2mb) get a 502
+bad gateway error and error out.
+
+nginx log:
+
+2010/10/22 14:20:27 [error] 19461#0: *17115 recv() failed (104:
+Connection reset by peer) while reading response header from upstream,
+client: 1x.yy.zz.x4, server: , request: "PUT /production/report/nagios
+HTTP/1.1", upstream:
+"http://unix:/tmp/.sock:/production/report/nagios", host:
+"puppet:8140"
+
+I was getting the same thing earlier when I had unicorn listening on
+TCP sockets instead of UNIX sockets. And I had a lot of connections in
+TIME_WAIT:
+
+tcp        0      0 127.0.0.1:8141              127.0.0.1:54507
+     TIME_WAIT   -
+tcp        0      0 127.0.0.1:8141              127.0.0.1:57322
+     TIME_WAIT   -
+
+Fluctuating all the way from 20 to 800. A quick restart of nginx
+tended to bring the number down.
+
+
+-Naresh V.
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
