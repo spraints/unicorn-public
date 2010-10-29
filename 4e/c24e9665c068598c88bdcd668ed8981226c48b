@@ -1,0 +1,99 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: stop/start workers "by need"
+Date: Fri, 29 Oct 2010 10:40:51 -0700
+Message-ID: <20101029174051.GA25861@dcvr.yhbt.net>
+References: <201010291516.31851.antonvesnin@gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1288385393 32239 80.91.229.12 (29 Oct 2010 20:49:53
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Fri, 29 Oct 2010 20:49:53 +0000 (UTC)
+Cc: mongrel-unicorn@rubyforge.org
+To: "Anton A. Vesnin" <antonvesnin@gmail.com>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Fri Oct 29 22:49:52
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <201010291516.31851.antonvesnin@gmail.com>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:741
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/741>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1PBvtX-0005u7-Id for gclrug-mongrel-unicorn@m.gmane.org; Fri, 29 Oct 2010
+ 22:49:51 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 9F0BB19782D4; Fri, 29 Oct 2010 16:49:48 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id DA3F2185837F for <mongrel-unicorn@rubyforge.org>;
+ Fri, 29 Oct 2010 13:40:52 -0400 (EDT)
+Received: from localhost (unknown [127.0.2.5]) by dcvr.yhbt.net (Postfix)
+ with ESMTP id DB5F51F68D; Fri, 29 Oct 2010 17:40:51 +0000 (UTC)
+
+"Anton A. Vesnin" <antonvesnin@gmail.com> wrote:
+> Hello to everybody.
+> I making shared hosting for rails and rack applications. For app. server i 
+> userd phusion passenger, but after some issues with that, want to migrate to 
+> unicorn. 
+> 
+> Is there any way to make unicorn stop all workers and start them on first 
+> request? It'll be really great to have this opportunity. 
+
+Hi Anton, there's no current way to do this.
+
+Unlike Apache/Passenger, Unicorn should only be tuned for backend
+requirements, never to actual connected clients.  Unicorn isn't too
+different from prefork Apache when serving requests, it's just the
+"marketing" for Unicorn focuses _very_ strongly on its limitations :)
+
+On a memory-constrained box, maybe tailing logs or similar and sending
+TTIN/TTOU signals to increment/decrement workers as needed can work.  A
+smarter version of this would even recognize which endpoints are more/less
+expensive and tune the workers accordingly.
+
+A dumb version of this would just be a cronjob that
+increments/decrements worker depending on the time of day.  If you're
+running batch processes at off hours, maybe the dumb version is all you
+need :)
+
+I'm strongly against having this logic in Unicorn itself since apps
+behave wildly differently depending on how they're implemented.  And
+most deployments I've supported over the years were better off with
+fixed/dedicated resources and letting the OS manage things.
+
+> Reply with Cc:, pleace. Thank you.
+
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
