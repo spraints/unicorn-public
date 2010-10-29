@@ -1,0 +1,88 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.6 required=5.0 tests=FREEMAIL_FROM,
+ MSGID_FROM_MTA_HEADER,RP_MATCHES_RCVD,T_DKIM_INVALID shortcircuit=no
+ autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: "Anton A. Vesnin" <antonvesnin@gmail.com>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: stop/start workers "by need"
+Date: Fri, 29 Oct 2010 15:16:29 +0400
+Message-ID: <201010291516.31851.antonvesnin@gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="windows-1251"
+Content-Transfer-Encoding: base64
+X-Trace: dough.gmane.org 1288361783 19788 80.91.229.12 (29 Oct 2010 14:16:23
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Fri, 29 Oct 2010 14:16:23 +0000 (UTC)
+To: mongrel-unicorn@rubyforge.org
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Fri Oct 29 16:16:20
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com; s=gamma;
+ h=domainkey-signature:received:received:from:to:subject:date
+ :user-agent:mime-version:content-type:content-transfer-encoding :message-id;
+ bh=s1IFPKOTvyjsLslyqaSXovymk2SzOm9EYRIT9fncVb4=;
+ b=Jj8TaIcX8UQn6CCwBlSVG6H2zbbDkGncvDbB58rFE543qdWLXJ0vSD37i+i2wPiZvJ
+ GxUw3FaBBLCqxVcKZ/MawDOw5Gq7y3V6lGKoC302rX11D7thGHdszV0uBs0/Q9aN+Bvg
+ 5D6ZmkWKsu97PqE6EBDwG9u4Heyu4Zky6z+7o=
+DomainKey-Signature: a=rsa-sha1; c=nofws; d=gmail.com; s=gamma;
+ h=from:to:subject:date:user-agent:mime-version:content-type
+ :content-transfer-encoding:message-id;
+ b=bTrsmzo6YpTPA8t9lBPzGCVsiZonE4LxzP//bnBFl8bjsZ+5XbfRH9Z3GUCpRF4AaM
+ WYZNwb4RUqitOjRVtJqWLqhFyMe98z6cT5+eGuoOLvPyzDw6BUT1jRLJhdjZN1rR8ZDw
+ opZyn3txfu0/c8OuUzaikuxCHIHatp4hjVkS4=
+User-Agent: KMail/1.13.5 (Linux/2.6.35-trunk-686; KDE/4.4.5; i686; ; )
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:739
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/739>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1PBpkf-0003Es-5t for gclrug-mongrel-unicorn@m.gmane.org; Fri, 29 Oct 2010
+ 16:16:17 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 43C341678310; Fri, 29 Oct 2010 10:16:16 -0400 (EDT)
+Received: from mail-ew0-f50.google.com (mail-ew0-f50.google.com
+ [209.85.215.50]) by rubyforge.org (Postfix) with ESMTP id 8619A1858363 for
+ <mongrel-unicorn@rubyforge.org>; Fri, 29 Oct 2010 07:16:37 -0400 (EDT)
+Received: by ewy5 with SMTP id 5so1869905ewy.23 for
+ <mongrel-unicorn@rubyforge.org>; Fri, 29 Oct 2010 04:16:37 -0700 (PDT)
+Received: by 10.213.7.12 with SMTP id b12mr1201345ebb.76.1288350997460; Fri,
+ 29 Oct 2010 04:16:37 -0700 (PDT)
+Received: from arakkis.localnet (ip-95-221-5-7.bb.netbynet.ru [95.221.5.7])
+ by mx.google.com with ESMTPS id w20sm1607219eeh.18.2010.10.29.04.16.35
+ (version=TLSv1/SSLv3 cipher=RC4-MD5); Fri, 29 Oct 2010 04:16:36 -0700 (PDT)
+
+SGVsbG8gdG8gZXZlcnlib2R5LgpJIG1ha2luZyBzaGFyZWQgaG9zdGluZyBmb3IgcmFpbHMgYW5k
+IHJhY2sgYXBwbGljYXRpb25zLiBGb3IgYXBwLiBzZXJ2ZXIgaSAKdXNlcmQgcGh1c2lvbiBwYXNz
+ZW5nZXIsIGJ1dCBhZnRlciBzb21lIGlzc3VlcyB3aXRoIHRoYXQsIHdhbnQgdG8gbWlncmF0ZSB0
+byAKdW5pY29ybi4gCgpJcyB0aGVyZSBhbnkgd2F5IHRvIG1ha2UgdW5pY29ybiBzdG9wIGFsbCB3
+b3JrZXJzIGFuZCBzdGFydCB0aGVtIG9uIGZpcnN0IApyZXF1ZXN0PyBJdCdsbCBiZSByZWFsbHkg
+Z3JlYXQgdG8gaGF2ZSB0aGlzIG9wcG9ydHVuaXR5LiAKCj5ObyBzdWJzY3JpcHRpb24gaXMgbmVl
+ZGVkIHRvIHBvc3QgdG8gdGhlIG1haWxpbmcgbGlzdCwgbGV0IHVzIGtub3cgdGhhdCB3ZSAKbmVl
+ZCB0byBDYzogcmVwbGllcyB0byB5b3UgaWYgeW91knJlIHVuc3Vic2NyaWJlZC4KUmVwbHkgd2l0
+aCBDYzosIHBsZWFjZS4gVGhhbmsgeW91LgoKLS0KV2l0aCBiZXN0IHJlZ2FyZHMuCl9fX19fX19f
+X19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fClVuaWNvcm4gbWFpbGluZyBs
+aXN0IC0gbW9uZ3JlbC11bmljb3JuQHJ1Ynlmb3JnZS5vcmcKaHR0cDovL3J1Ynlmb3JnZS5vcmcv
+bWFpbG1hbi9saXN0aW5mby9tb25ncmVsLXVuaWNvcm4KRG8gbm90IHF1b3RlIHNpZ25hdHVyZXMg
+KGxpa2UgdGhpcyBvbmUpIG9yIHRvcCBwb3N0IHdoZW4gcmVwbHlpbmcK
+
