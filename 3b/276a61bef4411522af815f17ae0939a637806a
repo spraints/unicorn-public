@@ -1,0 +1,169 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.6 required=5.0 tests=AWL,FREEMAIL_FROM,
+ MSGID_FROM_MTA_HEADER,RP_MATCHES_RCVD,UNPARSEABLE_RELAY shortcircuit=no
+ autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Marcelo de Moraes Serpa <fullofcaffeine@gmail.com>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: AMQP and Unicorn (mq gem)
+Date: Tue, 9 Nov 2010 17:57:26 +0000 (UTC)
+Message-ID: <loom.20101109T184430-639@post.gmane.org>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1289329354 12944 80.91.229.12 (9 Nov 2010 19:02:34
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Tue, 9 Nov 2010 19:02:34 +0000 (UTC)
+To: mongrel-unicorn@rubyforge.org
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Tue Nov 09 20:02:30
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+X-Greylist: delayed 906 seconds by postgrey-1.31 at rubyforge.org; Tue, 09
+ Nov 2010 13:15:19 EST
+X-Injected-Via-Gmane: http://gmane.org/
+Original-Lines: 90
+Original-X-Complaints-To: usenet@dough.gmane.org
+X-Gmane-NNTP-Posting-Host: sea.gmane.org
+User-Agent: Loom/3.14 (http://gmane.org/)
+X-Loom-IP: 189.182.162.32 (Mozilla/5.0 (Macintosh; U; Intel Mac OS X 10_6_4;
+ en-us) AppleWebKit/533.17.8 (KHTML, like Gecko) Version/5.0.1
+ Safari/533.17.8)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:746
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/746>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1PFtSc-00065S-Nb for gclrug-mongrel-unicorn@m.gmane.org; Tue, 09 Nov 2010
+ 20:02:27 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 1233D18583BB; Tue,  9 Nov 2010 14:02:26 -0500 (EST)
+Received: from lo.gmane.org (lo.gmane.org [80.91.229.12]) by rubyforge.org
+ (Postfix) with ESMTP id 20F1218583AE for <mongrel-unicorn@rubyforge.org>;
+ Tue,  9 Nov 2010 13:15:19 -0500 (EST)
+Received: from list by lo.gmane.org with local (Exim 4.69) (envelope-from
+ <gclrug-mongrel-unicorn@m.gmane.org>) id 1PFsUH-0003PR-Jm for
+ mongrel-unicorn@rubyforge.org; Tue, 09 Nov 2010 19:00:06 +0100
+Received: from dsl-189-182-162-32-dyn.prod-infinitum.com.mx
+ ([dsl-189-182-162-32-dyn.prod-infinitum.com.mx]) by main.gmane.org with esmtp
+ (Gmexim 0.1 (Debian)) id 1AlnuQ-0007hv-00 for
+ <mongrel-unicorn@rubyforge.org>; Tue, 09 Nov 2010 19:00:05 +0100
+Received: from fullofcaffeine by dsl-189-182-162-32-dyn.prod-infinitum.com.mx
+ with local (Gmexim 0.1 (Debian)) id 1AlnuQ-0007hv-00 for
+ <mongrel-unicorn@rubyforge.org>; Tue, 09 Nov 2010 19:00:05 +0100
+
+Hi all,
+
+I'm having issues with Unicorn and connecting to 
+RabbitMQ using the tmm1-amqp gem.
+
+ I've tried lots of  approaches.
+
+The classic initializer with Thread.new { EM.run } 
+for the Rails app and even tried using 
+the Qusion library. 
+
+ (https://github.com/danielsdeleo/qusion)
+
+I've made a simple mod to Qusion for it to monkey patch 
+unicorn too. 
+
+The code looks like:
+
+/vendor/plugins/qusion/lib/amqp.rb
+
+module AMQP
+  def self.start_web_dispatcher(amqp_settings={})
+    @settings = settings.merge(amqp_settings)
+    case Qusion::ServerSpy.server_type
+    when :passenger
+      PhusionPassenger.on_event(:starting_worker_process) do |forked| 
+        if forked
+          EM.kill_reactor
+          Thread.current[:mq], @conn = nil, nil
+        end 
+        Thread.new { start }
+        die_gracefully_on_signal
+      end
+    when :standard
+      Thread.new { start }
+      die_gracefully_on_signal
+    when :evented
+      die_gracefully_on_signal
+    when :none # << HERE
+      Thread.new { start }
+      die_gracefully_on_signal
+    else
+      raise ArgumentError, "AMQP#start_web_dispatcher
+ requires an argument of 
+[:standard|:evented|:passenger|:none]"
+    end
+  end
+  
+  def self.die_gracefully_on_signal
+    Signal.trap("INT")  { AMQP.stop { EM.stop } }
+    Signal.trap("TERM") { AMQP.stop { EM.stop } }
+  end
+end
+
+See the :none case? It used to be empty and return nil. 
+
+Now it has the same behavior as the non-
+evented :standard server. 
+
+The problem is that the "server_spy" wasn't 
+recognizing Unicorn. So far so 
+good.
+
+Originally, the AMQP/Qusion conf goes into config/environment.rb
+
+   config.after_initialize do
+      
+      Qusion.start(:user => 'guest',:pass => 'mypass') 
+ end
+
+
+However, when I publish messages to the queue,
+ it just isn't posted. It silently fails. 
+
+I've then tried to put this on config/unicorn.rb:
+
+before_fork do |server,worker|
+ Qusion.start(:user => 'guest',:pass => 'mypass')
+ MQ.new.queue('jobs').publish('hey!')
+end
+
+And the hey! message is posted. 
+
+However, it only works from here, the MQ.new.queue on the app code 
+fails silently.
+
+Any ideas on what might be happenig?
+
+
+
+
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
