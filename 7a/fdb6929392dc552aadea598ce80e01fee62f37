@@ -1,0 +1,181 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: AMQP and Unicorn (mq gem)
+Date: Wed, 10 Nov 2010 08:55:06 +0800
+Message-ID: <20101110005506.GA25886@dcvr.yhbt.net>
+References: <loom.20101109T184430-639@post.gmane.org>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1289352480 21326 80.91.229.12 (10 Nov 2010 01:28:00
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Wed, 10 Nov 2010 01:28:00 +0000 (UTC)
+Cc: Marcelo de Moraes Serpa <fullofcaffeine@gmail.com>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Wed Nov 10 02:27:55
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <loom.20101109T184430-639@post.gmane.org>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:747
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/747>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1PFzTf-0008Mi-2u for gclrug-mongrel-unicorn@m.gmane.org; Wed, 10 Nov 2010
+ 02:27:55 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 1354618583B8; Tue,  9 Nov 2010 20:27:53 -0500 (EST)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id BD62618583B7 for <mongrel-unicorn@rubyforge.org>;
+ Tue,  9 Nov 2010 19:55:05 -0500 (EST)
+Received: from localhost (unknown [127.0.2.5]) by dcvr.yhbt.net (Postfix)
+ with ESMTP id 2747C1F875; Wed, 10 Nov 2010 00:55:04 +0000 (UTC)
+
+Marcelo de Moraes Serpa <fullofcaffeine@gmail.com> wrote:
+> Hi all,
+> 
+> I'm having issues with Unicorn and connecting to 
+> RabbitMQ using the tmm1-amqp gem.
+> 
+>  I've tried lots of  approaches.
+> 
+> The classic initializer with Thread.new { EM.run } 
+> for the Rails app and even tried using 
+> the Qusion library. 
+> 
+>  (https://github.com/danielsdeleo/qusion)
+> 
+> I've made a simple mod to Qusion for it to monkey patch 
+> unicorn too. 
+> 
+> The code looks like:
+> 
+> /vendor/plugins/qusion/lib/amqp.rb
+> 
+> module AMQP
+>   def self.start_web_dispatcher(amqp_settings={})
+>     @settings = settings.merge(amqp_settings)
+>     case Qusion::ServerSpy.server_type
+>     when :passenger
+>       PhusionPassenger.on_event(:starting_worker_process) do |forked| 
+
+<side note>maybe adding a similar hook to Unicorn for library/app authors
+to use would be a good idea.</side note>
+
+>         if forked
+>           EM.kill_reactor
+>           Thread.current[:mq], @conn = nil, nil
+>         end 
+>         Thread.new { start }
+>         die_gracefully_on_signal
+>       end
+>     when :standard
+>       Thread.new { start }
+>       die_gracefully_on_signal
+>     when :evented
+>       die_gracefully_on_signal
+>     when :none # << HERE
+>       Thread.new { start }
+>       die_gracefully_on_signal
+>     else
+>       raise ArgumentError, "AMQP#start_web_dispatcher
+>  requires an argument of 
+> [:standard|:evented|:passenger|:none]"
+>     end
+>   end
+>   
+>   def self.die_gracefully_on_signal
+>     Signal.trap("INT")  { AMQP.stop { EM.stop } }
+>     Signal.trap("TERM") { AMQP.stop { EM.stop } }
+>   end
+
+Registering a standard at_exit {} block in the Unicorn
+after_fork hook would be a good idea than trapping INT
+and TERM, which Unicorn uses.
+
+> end
+> 
+> See the :none case? It used to be empty and return nil. 
+> 
+> Now it has the same behavior as the non-
+> evented :standard server. 
+> 
+> The problem is that the "server_spy" wasn't 
+> recognizing Unicorn. So far so 
+> good.
+> 
+> Originally, the AMQP/Qusion conf goes into config/environment.rb
+> 
+>    config.after_initialize do
+>       
+>       Qusion.start(:user => 'guest',:pass => 'mypass') 
+>  end
+> 
+> 
+> However, when I publish messages to the queue,
+>  it just isn't posted. It silently fails. 
+> 
+> I've then tried to put this on config/unicorn.rb:
+> 
+> before_fork do |server,worker|
+>  Qusion.start(:user => 'guest',:pass => 'mypass')
+>  MQ.new.queue('jobs').publish('hey!')
+> end
+> 
+> And the hey! message is posted. 
+> 
+> However, it only works from here, the MQ.new.queue on the app code 
+> fails silently.
+> 
+> Any ideas on what might be happenig?
+
+Is preload_app true?  Then you're probably trying to share sockets
+across processes and confusing EM or AMQP.
+
+Instead of using before_fork above, you should probably
+be using after_fork:
+
+  before_fork do |server,worker|
+    Qusion.start(:user => 'guest',:pass => 'mypass')
+    MQ.new.queue('jobs').publish('hey!')
+  end
+
+I'm not very familiar with AMQP, but the Unicorn process is strictly an
+AMQP sender/client and doesn't listen as a server on a port, right?
+If so, the above before_fork config *should* work for you.
+
+Let us know how it goes!
+
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
