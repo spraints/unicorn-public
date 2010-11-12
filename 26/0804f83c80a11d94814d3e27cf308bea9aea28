@@ -1,0 +1,91 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: error when HUP'ing unicorn
+Date: Fri, 12 Nov 2010 14:56:34 -0800
+Message-ID: <20101112225634.GA16277@dcvr.yhbt.net>
+References: <1113C85A-16C6-4197-B0C3-29F89B506E17@me.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1289603857 7598 80.91.229.12 (12 Nov 2010 23:17:37
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Fri, 12 Nov 2010 23:17:37 +0000 (UTC)
+Cc: unicorn list <mongrel-unicorn@rubyforge.org>
+To: Grant Heffernan <heffergm@me.com>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Sat Nov 13 00:17:32
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <1113C85A-16C6-4197-B0C3-29F89B506E17@me.com>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:750
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/750>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1PH2s8-0002wV-Ib for gclrug-mongrel-unicorn@m.gmane.org; Sat, 13 Nov 2010
+ 00:17:32 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id D1642167831D; Fri, 12 Nov 2010 18:17:31 -0500 (EST)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id A492418583BB for <mongrel-unicorn@rubyforge.org>;
+ Fri, 12 Nov 2010 17:56:52 -0500 (EST)
+Received: from localhost (unknown [127.0.2.5]) by dcvr.yhbt.net (Postfix)
+ with ESMTP id ADBCE1F50E; Fri, 12 Nov 2010 22:56:34 +0000 (UTC)
+
+Grant Heffernan <heffergm@me.com> wrote:
+> Anyone come across this one before?
+> 
+> Refreshing Gem list
+
+> error reloading config_file=/data/servers/patch-fe-apache/conf/unicorn.rb: TypeError can't convert Hash into Integer /opt/bcs/packages/ruby-gems-1.8/lib/site_ruby/1.8/rubygems/source_index.rb:89:in `read'
+
+Which version of RubyGems are you using?  Looking at my RubyGems 1.3.7 install,
+I see this:
+
+  88      spec_code = if defined? Encoding then
+  89                    File.read file_name, :encoding => 'UTF-8'
+  90                  else
+  91                    File.read file_name
+  92                  end.untaint
+
+I bet you have an "Encoding" constant defined by your application, and
+that's tricking RubyGems into thinking you're running Ruby 1.9, which
+you're not.  You don't get this error the first time you load your code
+because it hasn't loaded your Encoding constant, yet, but HUP will cause
+RubyGems to refresh its list of gems.
+
+So rename whatever you're calling "Encoding" since it confuses RubyGems
+and will break under Ruby 1.9
+
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
