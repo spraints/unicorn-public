@@ -1,0 +1,134 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.7 required=5.0 tests=MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: "Alexander Dymo" <adymo@pluron.com>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Dedicated queues for long-running requests with single unicorn
+ master: question and a possible solution
+Date: Fri, 26 Nov 2010 01:06:03 +0200
+Message-ID: <op.vmq04dqsaya692@macbook-air-borys-dymo.local>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"; Format="flowed"; DelSp="yes"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1290728477 13855 80.91.229.12 (25 Nov 2010 23:41:17
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Thu, 25 Nov 2010 23:41:17 +0000 (UTC)
+To: mongrel-unicorn@rubyforge.org
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Fri Nov 26 00:41:12
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+User-Agent: Opera Mail/10.63 (MacIntel)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:766
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/766>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1PLlR9-0000Nw-NU for gclrug-mongrel-unicorn@m.gmane.org; Fri, 26 Nov 2010
+ 00:41:11 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 70477185834E; Thu, 25 Nov 2010 18:41:08 -0500 (EST)
+Received: from mail-yx0-f178.google.com (mail-yx0-f178.google.com
+ [209.85.213.178]) by rubyforge.org (Postfix) with ESMTP id 290C618582E2 for
+ <mongrel-unicorn@rubyforge.org>; Thu, 25 Nov 2010 18:06:08 -0500 (EST)
+Received: by yxe42 with SMTP id 42so732326yxe.23 for
+ <mongrel-unicorn@rubyforge.org>; Thu, 25 Nov 2010 15:06:08 -0800 (PST)
+Received: by 10.150.220.3 with SMTP id s3mr3855544ybg.292.1290726368035; Thu,
+ 25 Nov 2010 15:06:08 -0800 (PST)
+Received: from macbook-air-borys-dymo.local (c-24-5-131-7.hsd1.ca.comcast.net
+ [24.5.131.7]) by mx.google.com with ESMTPS id
+ q4sm2142384yba.2.2010.11.25.15.06.06 (version=TLSv1/SSLv3 cipher=RC4-MD5);
+ Thu, 25 Nov 2010 15:06:07 -0800 (PST)
+
+Hey,
+I have two major types of requests for my app:
+- long-running (10 sec and more, I can differentiate them by url)
+- normal (less than 1 sec)
+
+Question is: I'd like to setup the server in a way that:
+1) normal requests are served by 15 unicorn workers
+2) long-running requests are served by additional 5 unicorn workers with  
+their own queue
+
+Separate queue for long-running requests is to prevent people who run long  
+requests
+consume all workers (for example: hit refresh 20 times or just do too many  
+valid but long requests).
+
+Here's the possible solution I came up with and it seems to work.
+What do you think about it? Does it have problems I didn't think of?
+Are there better ways to do the same thing?
+
+
+My solution so far:
+- in nginx:
+   - create two upstream servers
+   - configure nginx to pass long-running request to a long-running upstream
+
+   upstream unicorn {
+     server unix:/tmp/unicorn.sock;
+   }
+   upstream long_requests_unicorn {
+     server unix:/tmp/long_requests_unicorn.sock;
+   }
+   server {
+     location ~ ^/(long_request_url1|long_request_url2) {
+       if (!-f $request_filename) {
+         proxy_pass http://long_requests_unicorn;
+         break;
+       }
+     }
+     if (!-f $request_filename) {
+       proxy_pass http://unicorn;
+       break;
+     }
+   }
+
+- in unicorn configuration file:
+   - listen to both sockets in master
+   - after forking a child, close the socket it doesn't need to listen to
+
+   worker_processes 20
+   listen File.join('/tmp/unicorn.sock')
+   listen File.join('/tmp/long_requests_unicorn.sock')
+
+   def assign_to_queue(server, worker)
+     queue = case worker.nr
+       when  0...15 then '/tmp/unicorn.sock'
+       when 15...20 then '/tmp/long_requests_unicorn.sock'
+       else raise "Can't find queue for the worker ##{worker.nr}"
+     end
+
+     server.listeners = Unicorn::HttpServer::LISTENERS.find_all do |io|
+       server.send(:sock_name, io) == queue
+     end
+   end
+
+   after_fork do |server, worker|
+     assign_to_queue(server, worker)
+   end
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
