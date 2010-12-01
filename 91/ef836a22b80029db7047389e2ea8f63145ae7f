@@ -1,0 +1,86 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.7 required=5.0 tests=MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Pierre <oct@fotopedia.com>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Unicorn and HAProxy, 500 Internal errors after checks
+Date: Wed, 1 Dec 2010 12:59:31 +0100
+Message-ID: <AANLkTim=DQ7qKBK-r6WKW5P4kvjm8neELKA0BQ-xB6UL@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1291207102 24193 80.91.229.12 (1 Dec 2010 12:38:22
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Wed, 1 Dec 2010 12:38:22 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Wed Dec 01 13:38:18
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+X-Greylist: delayed 396 seconds by postgrey-1.31 at rubyforge.org; Wed, 01
+ Dec 2010 07:06:13 EST
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:768
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/768>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1PNlwu-0004Go-Ej for gclrug-mongrel-unicorn@m.gmane.org; Wed, 01 Dec 2010
+ 13:38:16 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 8C7241858378; Wed,  1 Dec 2010 07:38:10 -0500 (EST)
+Received: from exprod7og106.obsmtp.com (exprod7og106.obsmtp.com
+ [64.18.2.165]) by rubyforge.org (Postfix) with SMTP id 1A41C1858378 for
+ <mongrel-unicorn@rubyforge.org>; Wed,  1 Dec 2010 07:06:12 -0500 (EST)
+Received: from source ([209.85.215.171]) by exprod7ob106.postini.com
+ ([64.18.6.12]) with SMTP ID DSNKTPY6NHAEBRCUpGQL5gKmNPIHJonzUX46@postini.com;
+ Wed, 01 Dec 2010 04:06:13 PST
+Received: by eyg5 with SMTP id 5so4741593eyg.30 for
+ <mongrel-unicorn@rubyforge.org>; Wed, 01 Dec 2010 04:06:11 -0800 (PST)
+Received: by 10.14.47.197 with SMTP id t45mr7112065eeb.22.1291204772018; Wed,
+ 01 Dec 2010 03:59:32 -0800 (PST)
+Received: by 10.14.126.20 with HTTP; Wed, 1 Dec 2010 03:59:31 -0800 (PST)
+
+Hi,
+
+This morning, while checking for a correct deployment, we found out
+that the Unicorns we are using were sending 500 Internal errors very
+frequently to the HAProxy that sits in front of them. After some
+investigation, It turned out that HAProxy checks the backend by
+opening and closing a connection to the unicorn. Unfortunately the
+Unicorns we use ( v 0.990.0 ) will try to reply to this probe by a
+500, resulting in the error being sent to the HAProxy when the proxy
+has already close the connection. I think Unicorn should refrain from
+sending an error in this case. There is no visible side effect,
+excepted that there are a "lot" of 500s running on the wire that
+nobody will ever read. Also, these errors are not sent in the Unicorn
+log, making it quite difficult to understand what's going on :-)
+
+Cheers,
+--
+Pierre <oct@fotopedia.com>
+Server Shepherd at http://www.fotopedia.com/
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
