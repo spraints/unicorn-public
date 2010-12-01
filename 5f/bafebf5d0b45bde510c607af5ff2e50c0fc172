@@ -1,0 +1,117 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: Unicorn and HAProxy, 500 Internal errors after checks
+Date: Wed, 1 Dec 2010 19:58:59 +0000
+Message-ID: <20101201195858.GD12001@dcvr.yhbt.net>
+References: <AANLkTim=DQ7qKBK-r6WKW5P4kvjm8neELKA0BQ-xB6UL@mail.gmail.com>
+ <20101201165207.GC12001@dcvr.yhbt.net>
+ <AANLkTimHFP7H+2FoEoe48gky4s8Z_BSUrmFLV41juP5F@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1291234956 9664 80.91.229.12 (1 Dec 2010 20:22:36
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Wed, 1 Dec 2010 20:22:36 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Wed Dec 01 21:22:32
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <AANLkTimHFP7H+2FoEoe48gky4s8Z_BSUrmFLV41juP5F@mail.gmail.com>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:773
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/773>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1PNtC8-0005C3-TQ for gclrug-mongrel-unicorn@m.gmane.org; Wed, 01 Dec 2010
+ 21:22:29 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 2190E167831B; Wed,  1 Dec 2010 15:22:28 -0500 (EST)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id B58D5185837E for <mongrel-unicorn@rubyforge.org>;
+ Wed,  1 Dec 2010 14:58:59 -0500 (EST)
+Received: from localhost (unknown [127.0.2.5]) by dcvr.yhbt.net (Postfix)
+ with ESMTP id 1477C1F677; Wed,  1 Dec 2010 19:58:59 +0000 (UTC)
+
+Pierre <oct@fotopedia.com> wrote:
+> On Wed, Dec 1, 2010 at 5:52 PM, Eric Wong <normalperson@yhbt.net> wrote:
+> > Hi Pierre, HAProxy should be configured to send proper HTTP checks and
+> > not just TCP connection checks, the problem will go away then.
+> 
+> I understood this could be fixed this way and we will probably do that
+> soon. However, I think this is also the responsibility of Unicorn not
+> to reply anything when there's no request or at least log the error
+> somewhere :)
+
+I'm not sure how Unicorn is actually replying to anything, does HAProxy
+write *anything* to the socket?
+
+Logging those bad connections is another DoS vector I'd rather avoid,
+and for connections where nothing is written, not even possible...
+
+If you have the TCP_DEFER_ACCEPT (Linux) or accept filters (FreeBSD),
+it's highly likely the Unicorn would never see the connection if the
+client never wrote to it.
+
+> > Also, I
+> > can not recommend HAProxy unless you're certain all your clients are on
+> > a LAN and can be trusted to never trickle uploads nor reading large
+> > responses.
+> 
+> While I understand that uploads are very complicated to handle on the
+> stack (even nginx can be confused at upload sometimes), HAProxy proved
+> it was very good at managing tons of connections and high volume
+> traffic from the Internet. All the more so as it allows a very high
+> level of redundancy at a very small cost that cannot be achieved
+> simply otherwise. Do you have any pointers about your worrying
+> non-recommendation of HAProxy ?
+
+HAProxy starts writing request bodies to Unicorn as soon as the upload
+starts, which means the Unicorn process will be bounded by the speed of
+the original client connection.  If multiple clients upload slowly,
+then you'll end up hogging many Unicorn workers.
+
+nginx can also limit the size of client uploads (default 1M) to prevent
+unnecessary I/O.
+
+If you serve large responses that can't fit in kernel socket buffers,
+then Unicorn will get stuck writing out to a client that isn't reading
+fast enough.
+
+AFAIK, HAProxy also does not yet maintain keep-alive connections to
+clients, whereas nginx does. Keep-alive is important to client browsers,
+they can halve their active connections to a site if keep-alive is
+supported.
+
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
