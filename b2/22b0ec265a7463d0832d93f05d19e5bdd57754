@@ -1,0 +1,116 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: Unicorn and HAProxy, 500 Internal errors after checks
+Date: Thu, 2 Dec 2010 04:59:11 +0000
+Message-ID: <20101202045911.GA2688@dcvr.yhbt.net>
+References: <AANLkTim=DQ7qKBK-r6WKW5P4kvjm8neELKA0BQ-xB6UL@mail.gmail.com>
+ <20101201165207.GC12001@dcvr.yhbt.net>
+ <AANLkTimHFP7H+2FoEoe48gky4s8Z_BSUrmFLV41juP5F@mail.gmail.com>
+ <20101201195858.GD12001@dcvr.yhbt.net> <4CF6EB6B.1070603@gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1291265963 1911 80.91.229.12 (2 Dec 2010 04:59:23
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Thu, 2 Dec 2010 04:59:23 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Thu Dec 02 05:59:19
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <4CF6EB6B.1070603@gmail.com>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:775
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/775>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1PO1GJ-00073d-Ab for gclrug-mongrel-unicorn@m.gmane.org; Thu, 02 Dec 2010
+ 05:59:19 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 6E5BB1858385; Wed,  1 Dec 2010 23:59:18 -0500 (EST)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 443E41858364 for <mongrel-unicorn@rubyforge.org>;
+ Wed,  1 Dec 2010 23:59:12 -0500 (EST)
+Received: from localhost (unknown [127.0.2.5]) by dcvr.yhbt.net (Postfix)
+ with ESMTP id 993C51F7CE; Thu,  2 Dec 2010 04:59:11 +0000 (UTC)
+
+Lawrence Pit <lawrence.pit@gmail.com> wrote:
+> Eric Wong <normalperson@yhbt.net> wrote:
+>> HAProxy starts writing request bodies to Unicorn as soon as the upload
+>> starts,
+>
+> Is that also true when the nginx upload module is used? (assuming nginx  
+> sits between HAProxy and the unicorns, otherwise it doesn't make sense  
+> anyways). Unicorn is only hit after the complete upload is finished by  
+> nginx. I would assume this wouldn't be different if HAProxy is put in  
+> front of all the nginx servers.
+
+I would setup a test and confirm.  You can do this trivially with the
+following Rack app:
+
+  use Rack::ContentLength
+  use Rack::ContentType
+  run lambda { |env|
+    input = env['rack.input']
+    buf = input.each do |line|
+      # each line is printed as Unicorn receives it,
+      # if Unicorn is behind nginx, the times for each
+      # line should be roughly/exactly the same.
+      puts "#{Time.now} #{line.inspect}"
+    end
+    [ 200, {}, [] ]
+  }
+
+And then telnetting or netcatting to your frontend, and typing the
+following (no leading spaces, use a proper hostname for vhosts):
+
+  PUT / HTTP/1.1
+  Host: example.com
+  Content-Length: 6
+
+...and then hit Enter a few times while watching your Unicorn
+terminal/logs.  If you delay between hitting the Enter nginx
+should be buffering that.
+
+> keep-alive options are in HAProxy since 1.4
+>
+> There is further new development on this front if you're using SSL. See  
+> the first quick news section at http://haproxy.1wt.eu/ :
+>
+> "The main advantage over the x-forwarded-for patch is that it now  
+> supports keep-alive"
+
+Cool.
+
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
