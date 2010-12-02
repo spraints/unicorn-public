@@ -1,0 +1,132 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.7 required=5.0 tests=MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Pierre <oct@fotopedia.com>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: Unicorn and HAProxy, 500 Internal errors after checks
+Date: Thu, 2 Dec 2010 09:38:38 +0100
+Message-ID: <AANLkTimHCSGv9c-a9y+zN42_Gf+csTHQ+e5wh8OvKib9@mail.gmail.com>
+References: <AANLkTim=DQ7qKBK-r6WKW5P4kvjm8neELKA0BQ-xB6UL@mail.gmail.com>
+ <20101201165207.GC12001@dcvr.yhbt.net>
+ <AANLkTimHFP7H+2FoEoe48gky4s8Z_BSUrmFLV41juP5F@mail.gmail.com>
+ <20101201195858.GD12001@dcvr.yhbt.net>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1291280759 22937 80.91.229.12 (2 Dec 2010 09:05:59
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Thu, 2 Dec 2010 09:05:59 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Thu Dec 02 10:05:45
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+In-Reply-To: <20101201195858.GD12001@dcvr.yhbt.net>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:776
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/776>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1PO56m-0007Fl-CM for gclrug-mongrel-unicorn@m.gmane.org; Thu, 02 Dec 2010
+ 10:05:44 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 51705185831A; Thu,  2 Dec 2010 04:05:41 -0500 (EST)
+Received: from exprod7og102.obsmtp.com (exprod7og102.obsmtp.com
+ [64.18.2.157]) by rubyforge.org (Postfix) with SMTP id 9212C185834E for
+ <mongrel-unicorn@rubyforge.org>; Thu,  2 Dec 2010 03:38:39 -0500 (EST)
+Received: from source ([209.85.215.173]) by exprod7ob102.postini.com
+ ([64.18.6.12]) with SMTP ID DSNKTPdbDuTBluCGKI61h1oo2VWsCfutt+ls@postini.com;
+ Thu, 02 Dec 2010 00:38:39 PST
+Received: by mail-ey0-f173.google.com with SMTP id 25so4461047eya.4 for
+ <mongrel-unicorn@rubyforge.org>; Thu, 02 Dec 2010 00:38:38 -0800 (PST)
+Received: by 10.14.119.1 with SMTP id m1mr8422727eeh.1.1291279118597; Thu, 02
+ Dec 2010 00:38:38 -0800 (PST)
+Received: by 10.14.126.20 with HTTP; Thu, 2 Dec 2010 00:38:38 -0800 (PST)
+
+Hello,
+
+On Wed, Dec 1, 2010 at 8:58 PM, Eric Wong <normalperson@yhbt.net> wrote:
+> Pierre <oct@fotopedia.com> wrote:
+>> On Wed, Dec 1, 2010 at 5:52 PM, Eric Wong <normalperson@yhbt.net> wrote:
+>> > Hi Pierre, HAProxy should be configured to send proper HTTP checks and
+>> > not just TCP connection checks, the problem will go away then.
+>>
+>> I understood this could be fixed this way and we will probably do that
+>> soon. However, I think this is also the responsibility of Unicorn not
+>> to reply anything when there's no request or at least log the error
+>> somewhere :)
+>
+> I'm not sure how Unicorn is actually replying to anything, does HAProxy
+> write *anything* to the socket?
+>
+
+It does. To reproduce the behavior, start a unicorn, start a sniffing
+tool (ngrep for example), connect to the unicorn and disconnect
+immediately:
+
+Connecting endpoint:
+
+[08:22][virtual] root@infrabox:~# telnet localhost 2002
+Trying 127.0.0.1...
+Connected to infrabox.virtual.ftnz.net.
+Escape character is '^]'.
+^]
+telnet> quit
+Connection closed.
+
+Sniffing Console:
+
+[08:22][virtual] root@infrabox:~# ngrep "" port 2002 -d lo
+interface: lo (127.0.0.0/255.0.0.0)
+filter: (ip or ip6) and ( port 2002 )
+#####
+T 127.0.0.1:2002 -> 127.0.0.1:42874 [AFP]
+  HTTP/1.1 500 Internal Server Error....
+#
+
+
+Further packet inspection reveals that the 500 Internal Server Error
+is sent after the telnet has sent a FIN packet which means it will
+just be discarded. I understand logging it could be a DoS vector, but
+you must admit that seing 500's from the server without any obvious
+reason can be frightening at first.
+
+Re HAProxy, and to complete Laurence reply from my point of view,
+
+> If you serve large responses that can't fit in kernel socket buffers,
+> then Unicorn will get stuck writing out to a client that isn't reading
+> fast enough.
+
+That can definitely be a problem in that case. To work around that we
+use a cache in the stack above the lower level of HAProxy (we have two
+other levels of HAProxy in the stack).
+
+Cheers,
+-- 
+Pierre <oct@fotopedia.com>
+Server Shepherd at http://www.fotopedia.com/
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
