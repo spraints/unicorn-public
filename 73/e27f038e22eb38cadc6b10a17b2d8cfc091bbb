@@ -1,0 +1,101 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: Unicorn and HAProxy, 500 Internal errors after checks
+Date: Thu, 2 Dec 2010 17:39:59 +0000
+Message-ID: <20101202173959.GA24132@dcvr.yhbt.net>
+References: <AANLkTim=DQ7qKBK-r6WKW5P4kvjm8neELKA0BQ-xB6UL@mail.gmail.com>
+ <20101201165207.GC12001@dcvr.yhbt.net>
+ <AANLkTimHFP7H+2FoEoe48gky4s8Z_BSUrmFLV41juP5F@mail.gmail.com>
+ <20101201195858.GD12001@dcvr.yhbt.net>
+ <AANLkTimHCSGv9c-a9y+zN42_Gf+csTHQ+e5wh8OvKib9@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1291312017 7084 80.91.229.12 (2 Dec 2010 17:46:57
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Thu, 2 Dec 2010 17:46:57 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Thu Dec 02 18:46:53
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <AANLkTimHCSGv9c-a9y+zN42_Gf+csTHQ+e5wh8OvKib9@mail.gmail.com>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:777
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/777>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1PODF6-0005PU-HG for gclrug-mongrel-unicorn@m.gmane.org; Thu, 02 Dec 2010
+ 18:46:52 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 10586185836C; Thu,  2 Dec 2010 12:46:48 -0500 (EST)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 04383185834E for <mongrel-unicorn@rubyforge.org>;
+ Thu,  2 Dec 2010 12:40:00 -0500 (EST)
+Received: from localhost (unknown [127.0.2.5]) by dcvr.yhbt.net (Postfix)
+ with ESMTP id AC2141F97A; Thu,  2 Dec 2010 17:39:59 +0000 (UTC)
+
+Pierre <oct@fotopedia.com> wrote:
+> On Wed, Dec 1, 2010 at 8:58 PM, Eric Wong <normalperson@yhbt.net> wrote:
+> > I'm not sure how Unicorn is actually replying to anything, does HAProxy
+> > write *anything* to the socket?
+> 
+> It does. To reproduce the behavior, start a unicorn, start a sniffing
+> tool (ngrep for example), connect to the unicorn and disconnect
+> immediately:
+> 
+> Connecting endpoint:
+> 
+> [08:22][virtual] root@infrabox:~# telnet localhost 2002
+> Trying 127.0.0.1...
+> Connected to infrabox.virtual.ftnz.net.
+> Escape character is '^]'.
+> ^]
+> telnet> quit
+> Connection closed.
+
+Hi, you started writing an HTTP message ("quit" can be a valid HTTP
+method name) and disconnected; don't do that.
+
+> Further packet inspection reveals that the 500 Internal Server Error
+> is sent after the telnet has sent a FIN packet which means it will
+> just be discarded. I understand logging it could be a DoS vector, but
+> you must admit that seing 500's from the server without any obvious
+> reason can be frightening at first.
+
+You can enable Ruby debugging (pass '-d' to unicorn) to see exactly
+which exception you got.  Really, it shouldn't matter, you should be
+sending real HTTP requests for health checks.
+
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
