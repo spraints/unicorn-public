@@ -1,0 +1,87 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: listen backlog
+Date: Thu, 2 Dec 2010 18:39:19 -0800
+Message-ID: <20101203023919.GA4411@dcvr.yhbt.net>
+References: <AANLkTikJT29C36cBW6-evhAVVpJxbF09JiGo_b08aQGg@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1291346652 22174 80.91.229.12 (3 Dec 2010 03:24:12
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Fri, 3 Dec 2010 03:24:12 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Fri Dec 03 04:24:07
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <AANLkTikJT29C36cBW6-evhAVVpJxbF09JiGo_b08aQGg@mail.gmail.com>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:782
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/782>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1POMFj-0006y8-DW for gclrug-mongrel-unicorn@m.gmane.org; Fri, 03 Dec 2010
+ 04:24:07 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 816E618582EE; Thu,  2 Dec 2010 22:24:04 -0500 (EST)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 0352218581B2 for <mongrel-unicorn@rubyforge.org>;
+ Thu,  2 Dec 2010 21:39:19 -0500 (EST)
+Received: from localhost (unknown [127.0.2.5]) by dcvr.yhbt.net (Postfix)
+ with ESMTP id 41D0B1F97B; Fri,  3 Dec 2010 02:39:19 +0000 (UTC)
+
+ghazel@gmail.com wrote:
+> I found this thread
+> http://rubyforge.org/pipermail/mongrel-unicorn/2009-September/000031.html
+> after googling for the same error located in my nginx error log.
+> 
+> Is there some way to discover the current queue length of the backlog?
+> Increasing the maximum size to 2048 "worked" for me as well, but
+> obviously clients sit in the queue for a long time. If I could monitor
+> queue length I could get some idea of when I have insufficient unicorn
+> workers before the delay gets very high or requests fail.
+
+If you're using Linux, you can use Raindrops[1] to interrogate
+via inet_diag or parse /proc/net/{tcp,unix} yourself.
+
+You can run Raindrops separate/standalone script:
+http://git.bogomips.org/cgit/raindrops.git/tree/examples/linux-tcp-listener-stats.rb
+
+Or use it as middleware (see webpage):
+http://raindrops.bogomips.org/
+
+git clone git://git.bogomips.org/raindrops
+
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
