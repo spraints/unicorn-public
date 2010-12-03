@@ -1,0 +1,88 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.6 required=5.0 tests=FREEMAIL_FROM,
+ MSGID_FROM_MTA_HEADER,RP_MATCHES_RCVD,T_DKIM_INVALID shortcircuit=no
+ autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: ghazel@gmail.com
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: listen backlog
+Date: Thu, 2 Dec 2010 17:35:23 -0800
+Message-ID: <AANLkTikJT29C36cBW6-evhAVVpJxbF09JiGo_b08aQGg@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1291341180 9026 80.91.229.12 (3 Dec 2010 01:53:00
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Fri, 3 Dec 2010 01:53:00 +0000 (UTC)
+To: mongrel-unicorn@rubyforge.org
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Fri Dec 03 02:52:55
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com; s=gamma;
+ h=domainkey-signature:received:mime-version:received:from:date
+ :message-id:subject:to:content-type;
+ bh=VgWsPa0JDYV0Pv8sX07kivAA1YwXSLQKVMzD8s4W3qw=;
+ b=gzp3iiPAES9TpKFTKpOTvq3tMEeSL/FM8FMyjtFWDr43pZs3f4ZKyLA+u+p2P4OCsg
+ xBCNrU/KnICWCZ31WEJadGz9UVQOiiXo94bpiQa4gApuz4v3auZc76OD14CDowj884yL
+ caHt5mYu1lCaT2EEKpo36RIewZFVXbUMFILNg=
+DomainKey-Signature: a=rsa-sha1; c=nofws; d=gmail.com; s=gamma;
+ h=mime-version:from:date:message-id:subject:to:content-type;
+ b=wOXp7IiZN1zYhqWIqNHwYRSPxKaAPicjTQU7qJgJLKoY++/C9E/LuyFIqThluwTyik
+ S6QL81fRn4+CCeGDhqpzB0RlTWRii4JaHM6PRSmJIfGArKUiyztpnyli9401tEyCC/3F
+ pMWy7aUVw1s8MgPQbDNpdCGdV152f8U65kdbc=
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:780
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/780>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1POKpT-0002vl-C0 for gclrug-mongrel-unicorn@m.gmane.org; Fri, 03 Dec 2010
+ 02:52:55 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id D2CAE18581B2; Thu,  2 Dec 2010 20:52:54 -0500 (EST)
+Received: from mail-qy0-f178.google.com (mail-qy0-f178.google.com
+ [209.85.216.178]) by rubyforge.org (Postfix) with ESMTP id 30DD91858267 for
+ <mongrel-unicorn@rubyforge.org>; Thu,  2 Dec 2010 20:35:46 -0500 (EST)
+Received: by qyk33 with SMTP id 33so9614724qyk.2 for
+ <mongrel-unicorn@rubyforge.org>; Thu, 02 Dec 2010 17:35:46 -0800 (PST)
+Received: by 10.224.67.78 with SMTP id q14mr651297qai.314.1291340145208; Thu,
+ 02 Dec 2010 17:35:45 -0800 (PST)
+Received: by 10.220.16.68 with HTTP; Thu, 2 Dec 2010 17:35:23 -0800 (PST)
+
+I found this thread
+http://rubyforge.org/pipermail/mongrel-unicorn/2009-September/000031.html
+after googling for the same error located in my nginx error log.
+
+Is there some way to discover the current queue length of the backlog?
+Increasing the maximum size to 2048 "worked" for me as well, but
+obviously clients sit in the queue for a long time. If I could monitor
+queue length I could get some idea of when I have insufficient unicorn
+workers before the delay gets very high or requests fail.
+
+Thanks in advance!
+
+-Greg
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
