@@ -1,0 +1,110 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: Unicorn and HAProxy, 500 Internal errors after checks
+Date: Mon, 6 Dec 2010 10:39:24 -0800
+Message-ID: <20101206183924.GA8320@dcvr.yhbt.net>
+References: <AANLkTim=DQ7qKBK-r6WKW5P4kvjm8neELKA0BQ-xB6UL@mail.gmail.com>
+ <20101201165207.GC12001@dcvr.yhbt.net>
+ <AANLkTimHFP7H+2FoEoe48gky4s8Z_BSUrmFLV41juP5F@mail.gmail.com>
+ <20101201195858.GD12001@dcvr.yhbt.net>
+ <AANLkTimHCSGv9c-a9y+zN42_Gf+csTHQ+e5wh8OvKib9@mail.gmail.com>
+ <20101202173959.GA24132@dcvr.yhbt.net>
+ <AANLkTik-esWafg2F4fBk+Ks5wDzL-4a7dtjYCUvbnN9J@mail.gmail.com>
+ <20101204233838.GA11629@dcvr.yhbt.net>
+ <5BF35DCB-342A-4902-8DF0-B961A08F9E7F@slofith.org>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1291662435 6645 80.91.229.12 (6 Dec 2010 19:07:15
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Mon, 6 Dec 2010 19:07:15 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Mon Dec 06 20:07:11
+ 2010
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <5BF35DCB-342A-4902-8DF0-B961A08F9E7F@slofith.org>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:795
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/795>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1PPgP0-0004vX-Ja for gclrug-mongrel-unicorn@m.gmane.org; Mon, 06 Dec 2010
+ 20:07:10 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 3CBFE1858376; Mon,  6 Dec 2010 14:07:07 -0500 (EST)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id A01311858376 for <mongrel-unicorn@rubyforge.org>;
+ Mon,  6 Dec 2010 13:39:24 -0500 (EST)
+Received: from localhost (unknown [127.0.2.5]) by dcvr.yhbt.net (Postfix)
+ with ESMTP id BBC001F97C; Mon,  6 Dec 2010 18:39:23 +0000 (UTC)
+
+russell muetzelfeldt <russm-rubyforge@slofith.org> wrote:
+> On 05/12/2010, at 10:38 AM, Eric Wong wrote:
+> > Pierre <oct@fotopedia.com> wrote:
+> >> On Thu, Dec 2, 2010 at 6:39 PM, Eric Wong <normalperson@yhbt.net> wrote:
+> >>> Pierre <oct@fotopedia.com> wrote:
+> >>>> Connecting endpoint:
+> >>>> 
+> >>>> [08:22][virtual] root@infrabox:~# telnet localhost 2002
+> >>>> Trying 127.0.0.1...
+> >>>> Connected to infrabox.virtual.ftnz.net.
+> >>>> Escape character is '^]'.
+> >>>> ^]
+> >>>> telnet> quit
+> >>>> Connection closed.
+> >>> 
+> >>> Hi, you started writing an HTTP message ("quit" can be a valid HTTP
+> >>> method name) and disconnected; don't do that.
+> >> 
+> >> No, quit is typed in the telnet console and not in the network stream.
+> > 
+> > Are you sure?  With my telnet, "quit" definitely goes out to the server
+> > since you're already connected.
+
+> he connects, then sends an escape ("^]") to the telnet process, then
+> types "quit" at the prompt the telnet process shows to tell the local
+> telnet process to close the connection.
+
+Ah, I missed the "^]" :x
+
+> the connection *might* see some traffic in attempted telnet option
+> negotiation (unless the server end initiates that - I forget), but the
+> "quit" string isn't transmitted to the remote end.
+
+Due to TCP_DEFER_ACCEPT, older Linux kernels won't even wake up Unicorn.
+Newer ones treat the TCP_DEFER_ARGUMENT as a timeout but it's just a
+quick EOFError.
+
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
