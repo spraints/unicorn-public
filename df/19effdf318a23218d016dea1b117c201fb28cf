@@ -1,0 +1,164 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: [PATCH] close client socket after closing response body
+Date: Wed, 5 Jan 2011 23:20:01 -0800
+Message-ID: <20110106072001.GA28721@dcvr.yhbt.net>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1294300116 14588 80.91.229.12 (6 Jan 2011 07:48:36
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Thu, 6 Jan 2011 07:48:36 +0000 (UTC)
+To: mongrel-unicorn@rubyforge.org
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Thu Jan 06 08:48:29
+ 2011
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:807
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/807>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1PakaD-0003Yq-8p for gclrug-mongrel-unicorn@m.gmane.org; Thu, 06 Jan 2011
+ 08:48:29 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id D1748185838D; Thu,  6 Jan 2011 02:48:27 -0500 (EST)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 70B2D185838D for <mongrel-unicorn@rubyforge.org>;
+ Thu,  6 Jan 2011 02:20:02 -0500 (EST)
+Received: from localhost (unknown [127.0.2.5]) by dcvr.yhbt.net (Postfix)
+ with ESMTP id B19ED1F876; Thu,  6 Jan 2011 07:20:00 +0000 (UTC)
+
+I am wondering if there are any apps affected by this bug (and
+perhaps keeping people from switching Unicorn).
+
+It's a fairly esoteric case, so I probably won't make another release
+until tomorrow (sleepy now, will probably screw something else up
+or realize something else is broken :)
+
+Anyways it's pushed out to master and 1.1.x-stable in case people
+want^Wneed it *right* *now*:
+
+>From b72a86f66c722d56a6d77ed1d2779ace6ad103ed Mon Sep 17 00:00:00 2001
+From: Eric Wong <normalperson@yhbt.net>
+Date: Wed, 5 Jan 2011 22:39:03 -0800
+Subject: [PATCH] close client socket after closing response body
+
+Response bodies may capture the block passed to each
+and save it for body.close, so don't close the socket
+before we have a chance to call body.close
+---
+ lib/unicorn/http_response.rb |    1 -
+ lib/unicorn/http_server.rb   |    1 +
+ t/t0018-write-on-close.sh    |   23 +++++++++++++++++++++++
+ t/write-on-close.ru          |   11 +++++++++++
+
+ (Unnecessary unit test case omitted for email)
+ test/unit/test_response.rb   |   18 +++++++++---------
+
+ 5 files changed, 44 insertions(+), 10 deletions(-)
+ create mode 100755 t/t0018-write-on-close.sh
+ create mode 100644 t/write-on-close.ru
+
+diff --git a/lib/unicorn/http_response.rb b/lib/unicorn/http_response.rb
+index 3a03cd6..62b3ee9 100644
+--- a/lib/unicorn/http_response.rb
++++ b/lib/unicorn/http_response.rb
+@@ -38,7 +38,6 @@ module Unicorn::HttpResponse
+     end
+ 
+     body.each { |chunk| socket.write(chunk) }
+-    socket.close # flushes and uncorks the socket immediately
+     ensure
+       body.respond_to?(:close) and body.close
+   end
+diff --git a/lib/unicorn/http_server.rb b/lib/unicorn/http_server.rb
+index e2a4db7..3a6e51e 100644
+--- a/lib/unicorn/http_server.rb
++++ b/lib/unicorn/http_server.rb
+@@ -538,6 +538,7 @@ class Unicorn::HttpServer
+     end
+     @request.headers? or headers = nil
+     http_response_write(client, status, headers, body)
++    client.close # flush and uncork socket immediately, no keepalive
+   rescue => e
+     handle_error(client, e)
+   end
+diff --git a/t/t0018-write-on-close.sh b/t/t0018-write-on-close.sh
+new file mode 100755
+index 0000000..3afefea
+--- /dev/null
++++ b/t/t0018-write-on-close.sh
+@@ -0,0 +1,23 @@
++#!/bin/sh
++. ./test-lib.sh
++t_plan 4 "write-on-close tests for funky response-bodies"
++
++t_begin "setup and start" && {
++	unicorn_setup
++	unicorn -D -c $unicorn_config write-on-close.ru
++	unicorn_wait_start
++}
++
++t_begin "write-on-close response body succeeds" && {
++	test xGoodbye = x"$(curl -sSf http://$listen/)"
++}
++
++t_begin "killing succeeds" && {
++	kill $unicorn_pid
++}
++
++t_begin "check stderr" && {
++	check_stderr
++}
++
++t_done
+diff --git a/t/write-on-close.ru b/t/write-on-close.ru
+new file mode 100644
+index 0000000..54a2f2e
+--- /dev/null
++++ b/t/write-on-close.ru
+@@ -0,0 +1,11 @@
++class WriteOnClose
++  def each(&block)
++    @callback = block
++  end
++
++  def close
++    @callback.call "7\r\nGoodbye\r\n0\r\n\r\n"
++  end
++end
++use Rack::ContentType, "text/plain"
++run(lambda { |_| [ 200, [%w(Transfer-Encoding chunked)], WriteOnClose.new ] })
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
