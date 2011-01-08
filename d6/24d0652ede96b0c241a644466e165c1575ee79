@@ -1,0 +1,128 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: Thread.current
+Date: Fri, 7 Jan 2011 18:57:20 -0800
+Message-ID: <20110108025720.GA16042@dcvr.yhbt.net>
+References: <AANLkTi=OKoLcLDCXacgXOa+nCST0oNt6_i4JKLbKMK7B@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1294456173 7156 80.91.229.12 (8 Jan 2011 03:09:33
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Sat, 8 Jan 2011 03:09:33 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Sat Jan 08 04:09:26
+ 2011
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <AANLkTi=OKoLcLDCXacgXOa+nCST0oNt6_i4JKLbKMK7B@mail.gmail.com>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:810
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/810>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1PbPBG-0007nc-CQ for gclrug-mongrel-unicorn@m.gmane.org; Sat, 08 Jan 2011
+ 04:09:26 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 867EE185838A; Fri,  7 Jan 2011 22:09:25 -0500 (EST)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id BC1CE1858357 for <mongrel-unicorn@rubyforge.org>;
+ Fri,  7 Jan 2011 21:57:21 -0500 (EST)
+Received: from localhost (unknown [127.0.2.5]) by dcvr.yhbt.net (Postfix)
+ with ESMTP id 100D51F794; Sat,  8 Jan 2011 02:57:21 +0000 (UTC)
+
+Jimmy Soho <jimmy.soho@gmail.com> wrote:
+> Hi All,
+> 
+> Having an akward noob moment... I have unicorn_rails (1.1.5) running
+> with 2 workers, with rails 2.3.10 in development mode. In
+> environment.rb at the bottom I have this line of code:
+> 
+>     puts "#{Time.current} #{Thread.current.object_id}: #{Thread.current.keys.inspect}"
+
+Add the PID ($$), too:
+
+   puts "#{Time.current} #$$ #{Thread.current.object_id}: #{Thread.current.keys.inspect}"
+
+> In a simple controller I have this:
+> 
+>    def index
+>      puts "#{Time.current} #{Thread.current.object_id}: #{Thread.current.keys.inspect}"
+>      sleep 5
+>      puts "#{Time.current} #{Thread.current.object_id}: #{Thread.current.keys.inspect}"
+>      render :text => "foo"
+>    end
+> 
+> In window 1 I tail log/unicorn.log.
+> In windows 2 and 3 I start at about the same time:  curl http://localhost:3000
+> 
+> The output is this:
+> 
+> 2011-01-08 01:53:56 UTC 2148444460: [:__inspect_key__, :i18n_config,
+> :__recursive_key__]
+> worker=1 ready
+> 2011-01-08 01:53:56 UTC 2148444460: [:__inspect_key__, :i18n_config,
+> :__recursive_key__]
+> worker=0 ready
+> 2011-01-08 01:53:57 UTC 2148444460: [:__inspect_key__, :i18n_config,
+> :__recursive_key__]
+> 2011-01-08 01:53:59 UTC 2148444460: [:__inspect_key__, :i18n_config,
+> :__recursive_key__]
+> 2011-01-08 01:54:02 UTC 2148444460: [:__inspect_key__, :i18n_config,
+> :__recursive_key__]
+> 2011-01-08 01:54:04 UTC 2148444460: [:__inspect_key__, :i18n_config,
+> :__recursive_key__]
+> 
+> Looking at the timings the 2 requests seem to have been handled in
+> parallel, as expected.
+
+Yes, that's because you have two worker *processes*
+
+> However, the Thread.current value within those parallel requests is
+> always the same.
+
+Just a lucky coincidence :)
+
+> Are two separate requests not handled by different threads? How does
+> that work??
+
+Threads (and any other object) object_ids are unique to each process.
+They are not unique within all the processes of a machine.
+
+When dealing with native threads under Linux, gettid() is a non-portable
+Linux syscall to get the unique identifier of a thread throughout the
+entire system.  That's the only way I know of if you want a single
+unique identifier (and of course prepending the PID to it).
+
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
