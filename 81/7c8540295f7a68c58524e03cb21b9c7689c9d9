@@ -1,0 +1,97 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: Thread.current
+Date: Tue, 11 Jan 2011 15:12:27 -0800
+Message-ID: <20110111231227.GA27058@dcvr.yhbt.net>
+References: <AANLkTi=OKoLcLDCXacgXOa+nCST0oNt6_i4JKLbKMK7B@mail.gmail.com>
+ <AANLkTimO5-0aq7Vw2fP+Fka+Uo88ESBwLWav9fRdcZCZ@mail.gmail.com>
+ <AANLkTinNKpijHor6qbKwmpMXx+qqH4XYXVvxEtNOZwS5@mail.gmail.com>
+ <AANLkTim=ymsUHz8KN5niEV6kwJaMtOQyuMny-CqDSqgb@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1294787905 15852 80.91.229.12 (11 Jan 2011 23:18:25
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Tue, 11 Jan 2011 23:18:25 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Wed Jan 12 00:18:20
+ 2011
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <AANLkTim=ymsUHz8KN5niEV6kwJaMtOQyuMny-CqDSqgb@mail.gmail.com>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:814
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/814>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1PcnTo-0003ko-JD for gclrug-mongrel-unicorn@m.gmane.org; Wed, 12 Jan 2011
+ 00:18:20 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id ED4EC19782DB; Tue, 11 Jan 2011 18:18:19 -0500 (EST)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 28E4C1858381 for <mongrel-unicorn@rubyforge.org>;
+ Tue, 11 Jan 2011 18:12:28 -0500 (EST)
+Received: from localhost (unknown [127.0.2.5]) by dcvr.yhbt.net (Postfix)
+ with ESMTP id 841651F50E; Tue, 11 Jan 2011 23:12:27 +0000 (UTC)
+
+Jimmy Soho <jimmy.soho@gmail.com> wrote:
+> Hi,
+> 
+> Some more questions still:
+> 
+> It seems a worker uses the exact same thread to handle each request.
+
+Correct.
+
+> Is that guaranteed to happen for the lifetime of a worker? Or are
+> there cases where a unicorn worker might spin a new thread to handle
+> the next requests?
+
+Unicorn itself is always single-threaded and never spawns new threads.
+
+> If the same thread is always used, isn't that a potential issue when
+> programmers use thread local variables, which are not reset at the
+> next request?  (I know, the usage of thread local variables is not
+> recommended, but take a random rails project, go into their $GEM_HOME
+> and do grep -r Thread.current . , see what I mean..)
+
+Thats the problem of those libraries/apps, not Unicorn.
+
+They can try Rainbows! using the :ThreadSpawn option which behaves much
+like Mongrel 1, but uses Rainbows! in production that I know of.
+
+The Rack +env+ hash is the safe/universal way to store request-local
+variables across different web servers.
+
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
