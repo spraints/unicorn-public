@@ -1,0 +1,98 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.7 required=5.0 tests=MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Jordan Ritter <jpr5@darkridge.com>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: Thread.current
+Date: Tue, 11 Jan 2011 15:12:51 -0800
+Message-ID: <EB96E69A-F9E3-4A29-994B-A8D35273DCDB@darkridge.com>
+References: <AANLkTi=OKoLcLDCXacgXOa+nCST0oNt6_i4JKLbKMK7B@mail.gmail.com>
+ <AANLkTimO5-0aq7Vw2fP+Fka+Uo88ESBwLWav9fRdcZCZ@mail.gmail.com>
+ <AANLkTinNKpijHor6qbKwmpMXx+qqH4XYXVvxEtNOZwS5@mail.gmail.com>
+ <AANLkTim=ymsUHz8KN5niEV6kwJaMtOQyuMny-CqDSqgb@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0 (Apple Message framework v1082)
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1294789845 24310 80.91.229.12 (11 Jan 2011 23:50:45
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Tue, 11 Jan 2011 23:50:45 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Wed Jan 12 00:50:39
+ 2011
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+X-Greylist: delayed 517 seconds by postgrey-1.31 at rubyforge.org; Tue, 11
+ Jan 2011 18:21:32 EST
+In-Reply-To: <AANLkTim=ymsUHz8KN5niEV6kwJaMtOQyuMny-CqDSqgb@mail.gmail.com>
+X-Mailer: Apple Mail (2.1082)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:815
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/815>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1Pcnz4-0003N9-ON for gclrug-mongrel-unicorn@m.gmane.org; Wed, 12 Jan 2011
+ 00:50:39 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 11551167831B; Tue, 11 Jan 2011 18:50:38 -0500 (EST)
+Received: from mail.darkridge.com (apropos.darkridge.com [72.51.42.155]) by
+ rubyforge.org (Postfix) with ESMTP id 5C0D118581F3 for
+ <mongrel-unicorn@rubyforge.org>; Tue, 11 Jan 2011 18:21:32 -0500 (EST)
+Received: from [172.16.1.125] (unknown [204.14.158.34]) (using TLSv1 with
+ cipher AES128-SHA (128/128 bits)) (No client certificate requested)
+ (Authenticated sender: jpr5) by mail.darkridge.com (Postfix) with ESMTPSA id
+ 9FD70658093 for <mongrel-unicorn@rubyforge.org>; Tue, 11 Jan 2011 15:12:51
+ -0800 (PST)
+
+Unicorn is purely about employing a multi-process model, not a multi-thread model; it specifically avoids spawning threads to handle inbound requests.   In fact, I'll bet that inside each request, Thread.current == Thread.main.
+
+Separate from Unicorn, when running a rack-compatilbe app in multithreaded mode (the default when the app is invoked directly via rackup + config.ru), there's no guarantee about which thread will service a given request.  This fact may not matter to you, depending on what you're trying to do.
+
+That said, you *could* use Thread local storage for per-request storage in either unicorn or multithreaded situations, so long as you wiped your storage at the beginning/end of each request -- but that's a crappy idiom, even if it might be "common" (don't know what you're referring to offhand).  Can't suggest a more appropriate pattern without knowing more about what you're actually trying to do.
+
+cheers,
+--jordan
+
+On Jan 11, 2011, at 2:52 PM, Jimmy Soho wrote:
+
+> Hi,
+> 
+> Some more questions still:
+> 
+> It seems a worker uses the exact same thread to handle each request.
+> 
+> Is that guaranteed to happen for the lifetime of a worker? Or are
+> there cases where a unicorn worker might spin a new thread to handle
+> the next requests?
+> 
+> If the same thread is always used, isn't that a potential issue when
+> programmers use thread local variables, which are not reset at the
+> next request?  (I know, the usage of thread local variables is not
+> recommended, but take a random rails project, go into their $GEM_HOME
+> and do grep -r Thread.current . , see what I mean..)
+> 
+
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
