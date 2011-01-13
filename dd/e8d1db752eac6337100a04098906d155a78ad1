@@ -1,0 +1,100 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: Thread.current
+Date: Thu, 13 Jan 2011 04:26:36 +0000
+Message-ID: <20110113042636.GA8264@dcvr.yhbt.net>
+References: <AANLkTi=OKoLcLDCXacgXOa+nCST0oNt6_i4JKLbKMK7B@mail.gmail.com>
+ <AANLkTimO5-0aq7Vw2fP+Fka+Uo88ESBwLWav9fRdcZCZ@mail.gmail.com>
+ <AANLkTinNKpijHor6qbKwmpMXx+qqH4XYXVvxEtNOZwS5@mail.gmail.com>
+ <AANLkTim=ymsUHz8KN5niEV6kwJaMtOQyuMny-CqDSqgb@mail.gmail.com>
+ <EB96E69A-F9E3-4A29-994B-A8D35273DCDB@darkridge.com>
+ <AANLkTi=k6R_r6GMm0G4498djaQguLdA=Xtk3-3jsC_3R@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1294893839 31922 80.91.229.12 (13 Jan 2011 04:43:59
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Thu, 13 Jan 2011 04:43:59 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Thu Jan 13 05:43:55
+ 2011
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <AANLkTi=k6R_r6GMm0G4498djaQguLdA=Xtk3-3jsC_3R@mail.gmail.com>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:817
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/817>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1PdF2R-00008M-8V for gclrug-mongrel-unicorn@m.gmane.org; Thu, 13 Jan 2011
+ 05:43:55 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id C17E21858363; Wed, 12 Jan 2011 23:43:53 -0500 (EST)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 0DEB91858344 for <mongrel-unicorn@rubyforge.org>;
+ Wed, 12 Jan 2011 23:26:37 -0500 (EST)
+Received: from localhost (unknown [127.0.2.5]) by dcvr.yhbt.net (Postfix)
+ with ESMTP id 020341F7E7; Thu, 13 Jan 2011 04:26:37 +0000 (UTC)
+
+Jimmy Soho <jimmy.soho@gmail.com> wrote:
+> Take for example activesupport's usage of Time.zone. Under water this
+> is set in a thread local var. If you set Time.zone in one request, but
+> not in the next request, using unicorn the next request will use the
+> time zone of the previous request. Using rack or mongrel (in
+> multithreaded mode) you don't have this issue perse (though they have
+> other issues then).
+> 
+> Same for the i18n gem and it's usage of the I18n.locale value, which
+> is also set in a thread local var.
+> 
+> So yeah, unfortunately I have to take into account this "crappy idiom"
+> and need to know exactly which thread local vars are set by all the
+> components we use, and determine which of those must be reset before
+> each request.
+
+You can probably just write a trivial middleware to clear all
+keys in Thread.current before every request.  Or play around with
+Rainbows! with a single-threaded ThreadSpawn:
+
+cat >> unicorn.conf.rb <<EOF
+Rainbows! do
+  use :ThreadSpawn
+  worker_connections 1
+  keepalive_timeout 0
+end
+EOF
+
+And then just run "rainbows" instead of "unicorn".
+
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
