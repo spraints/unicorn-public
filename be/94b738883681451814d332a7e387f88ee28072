@@ -1,0 +1,109 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.6 required=5.0 tests=AWL,FREEMAIL_FROM,
+ MSGID_FROM_MTA_HEADER,RP_MATCHES_RCVD,T_DKIM_INVALID shortcircuit=no
+ autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: ghazel@gmail.com
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Unicorn 3.3.1 "Too many open files" error in kgio_tryaccept
+Date: Thu, 13 Jan 2011 13:20:51 -0800
+Message-ID: <AANLkTinjgdSmt=_T9PUWTf3t0rW9TdWNxWbYQe81gVse@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1294955693 15349 80.91.229.12 (13 Jan 2011 21:54:53
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Thu, 13 Jan 2011 21:54:53 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Thu Jan 13 22:54:50
+ 2011
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com; s=gamma;
+ h=domainkey-signature:mime-version:from:date:message-id:subject:to
+ :content-type; bh=kSU/vC8GGO6iyLm2T2bABS9m9UH4P8HsjdXtH2KHkYQ=;
+ b=vn1g8n+8TskxLIwJfWepOPOa8N0YnMm9Zvm1D08UKgnAaoCMtJSeRcjMLTOtt/q4Yy
+ n9WbAx2QQ6NVRLtQlGbv02rCSxvcp/ktSKWu+zW5NkijOLof5xNmp4shEvlrmHrgkOgQ
+ HmzU4nLLMD/4SOwOesnsS3sX7yJAeFqL0vUOk=
+DomainKey-Signature: a=rsa-sha1; c=nofws; d=gmail.com; s=gamma;
+ h=mime-version:from:date:message-id:subject:to:content-type;
+ b=PhEog7hnlbQ2EwdYIyN+2xqiJOAVNSsP6aSxLvUUvMOMV+iVBebSvetniVS+mo7lIt
+ Clu3qdTJ4EdLIH9tIhiegs4LK9JfdR8XkaHB8l1qgyrWqEYHHl0GuL5gq02mj+MEOh0/
+ vBs30cXep208lJG2+H9oYkj7OOIdMlzTgdeLg=
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:819
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/819>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1PdV84-00016j-Uw for gclrug-mongrel-unicorn@m.gmane.org; Thu, 13 Jan 2011
+ 22:54:49 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 2086619782DC; Thu, 13 Jan 2011 16:54:48 -0500 (EST)
+Received: from mail-qy0-f178.google.com (mail-qy0-f178.google.com
+ [209.85.216.178]) by rubyforge.org (Postfix) with ESMTP id 970461858356 for
+ <mongrel-unicorn@rubyforge.org>; Thu, 13 Jan 2011 16:21:12 -0500 (EST)
+Received: by qyk33 with SMTP id 33so2263624qyk.2 for
+ <mongrel-unicorn@rubyforge.org>; Thu, 13 Jan 2011 13:21:12 -0800 (PST)
+Received: by 10.224.60.132 with SMTP id p4mr2533098qah.267.1294953671885;
+ Thu, 13 Jan 2011 13:21:11 -0800 (PST)
+Received: by 10.220.199.132 with HTTP; Thu, 13 Jan 2011 13:20:51 -0800 (PST)
+
+Strange error which took down my server today:
+
+Unhandled listen loop exception #<Errno::EMFILE: Too many open files - accept>.
+/usr/local/ruby-enterprise-1.8.7-2010.01/lib/ruby/gems/1.8/gems/unicorn-3.3.1/lib/unicorn/http_server.rb:606:in
+`kgio_tryaccept'
+/usr/local/ruby-enterprise-1.8.7-2010.01/lib/ruby/gems/1.8/gems/unicorn-3.3.1/lib/unicorn/http_server.rb:606:in
+`worker_loop'
+/usr/local/ruby-enterprise-1.8.7-2010.01/lib/ruby/gems/1.8/gems/unicorn-3.3.1/lib/unicorn/http_server.rb:605:in
+`each'
+/usr/local/ruby-enterprise-1.8.7-2010.01/lib/ruby/gems/1.8/gems/unicorn-3.3.1/lib/unicorn/http_server.rb:605:in
+`worker_loop'
+...
+
+My unicorn.stderr.log is 7.6GB, and I rotate it every day...
+
+
+Before all that started I got:
+
+Read error: #<IOError: closed stream>
+/usr/local/ruby-enterprise-1.8.7-2010.01/lib/ruby/gems/1.8/gems/unicorn-3.3.1/lib/unicorn/http_response.rb:37:in
+`write'
+/usr/local/ruby-enterprise-1.8.7-2010.01/lib/ruby/gems/1.8/gems/unicorn-3.3.1/lib/unicorn/http_response.rb:37:in
+`http_response_write'
+/usr/local/ruby-enterprise-1.8.7-2010.01/lib/ruby/gems/1.8/gems/unicorn-3.3.1/lib/unicorn/http_server.rb:540:in
+`process_client'
+/usr/local/ruby-enterprise-1.8.7-2010.01/lib/ruby/gems/1.8/gems/unicorn-3.3.1/lib/unicorn/http_server.rb:607:in
+`worker_loop'
+/usr/local/ruby-enterprise-1.8.7-2010.01/lib/ruby/gems/1.8/gems/unicorn-3.3.1/lib/unicorn/http_server.rb:605:in
+`each'
+/usr/local/ruby-enterprise-1.8.7-2010.01/lib/ruby/gems/1.8/gems/unicorn-3.3.1/lib/unicorn/http_server.rb:605:in
+`worker_loop'
+
+But the servers seemed to be basically operating at that point.
+
+-Greg
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
