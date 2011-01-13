@@ -1,0 +1,106 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: Unicorn 3.3.1 "Too many open files" error in kgio_tryaccept
+Date: Thu, 13 Jan 2011 23:06:09 +0000
+Message-ID: <20110113230609.GA1519@dcvr.yhbt.net>
+References: <AANLkTinjgdSmt=_T9PUWTf3t0rW9TdWNxWbYQe81gVse@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1294959986 4014 80.91.229.12 (13 Jan 2011 23:06:26
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Thu, 13 Jan 2011 23:06:26 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Fri Jan 14 00:06:20
+ 2011
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <AANLkTinjgdSmt=_T9PUWTf3t0rW9TdWNxWbYQe81gVse@mail.gmail.com>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:820
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/820>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1PdWFH-0008WO-7u for gclrug-mongrel-unicorn@m.gmane.org; Fri, 14 Jan 2011
+ 00:06:19 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 2DE911858356; Thu, 13 Jan 2011 18:06:18 -0500 (EST)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 932DA1858354 for <mongrel-unicorn@rubyforge.org>;
+ Thu, 13 Jan 2011 18:06:10 -0500 (EST)
+Received: from localhost (unknown [127.0.2.5]) by dcvr.yhbt.net (Postfix)
+ with ESMTP id BB5781F4F5; Thu, 13 Jan 2011 23:06:09 +0000 (UTC)
+
+ghazel@gmail.com wrote:
+> Strange error which took down my server today:
+> 
+> Unhandled listen loop exception #<Errno::EMFILE: Too many open files - accept>.
+> ...
+> 
+> My unicorn.stderr.log is 7.6GB, and I rotate it every day...
+> 
+> Before all that started I got:
+> 
+> Read error: #<IOError: closed stream>
+> /usr/local/ruby-enterprise-1.8.7-2010.01/lib/ruby/gems/1.8/gems/unicorn-3.3.1/lib/unicorn/http_response.rb:37:in
+> 
+> But the servers seemed to be basically operating at that point.
+
+Weird.  I have many questions:
+
+Are you processing uploads at all?
+
+Is nginx in front of Unicorn?
+
+Do you open a lot of files in your application and never close them?[1]
+
+How does lsof output look for your workers?
+
+Can you check any exception capturing/logging middleware you have
+for any other errors that may be swallowed? (especially
+while reading env["rack.input"])
+
+I changed the socket close ordering for 3.3.1 to workaround an esoteric
+"bug", but I don't see how this could happen right now...
+
+Does this happen with 3.3.0?
+
+Or 1.1.6? hiswhich has the same "bugfix" as 3.3.1.
+
+
+Also, is anybody else having this problem?
+
+[1] - GC should be able to cleanup open files on MRI/REE anyways
+
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
