@@ -1,0 +1,113 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: Unicorn 3.3.1 "Too many open files" error in kgio_tryaccept
+Date: Fri, 14 Jan 2011 09:17:47 +0000
+Message-ID: <20110114091747.GC30950@dcvr.yhbt.net>
+References: <AANLkTinjgdSmt=_T9PUWTf3t0rW9TdWNxWbYQe81gVse@mail.gmail.com>
+ <20110113230609.GA1519@dcvr.yhbt.net>
+ <AANLkTi=xs0CmL58e2SdtzVYQeo8n8YMhLCuc+bf-27nk@mail.gmail.com>
+ <20110114024753.GA2453@dcvr.yhbt.net>
+ <AANLkTi=MQXXFM-iFeCN5wVea+U0z2NJkkNKXsJknuiNh@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="iso-8859-1"
+Content-Transfer-Encoding: quoted-printable
+X-Trace: dough.gmane.org 1294997670 19395 80.91.229.12 (14 Jan 2011 09:34:30
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Fri, 14 Jan 2011 09:34:30 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Fri Jan 14 10:34:26
+ 2011
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <AANLkTi=MQXXFM-iFeCN5wVea+U0z2NJkkNKXsJknuiNh@mail.gmail.com>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:824
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/824>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1Pdg34-0000Of-Fb for gclrug-mongrel-unicorn@m.gmane.org; Fri, 14 Jan 2011
+ 10:34:22 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 8D9A81858344; Fri, 14 Jan 2011 04:34:21 -0500 (EST)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 5BAEE1858344 for <mongrel-unicorn@rubyforge.org>;
+ Fri, 14 Jan 2011 04:17:49 -0500 (EST)
+Received: from localhost (unknown [127.0.2.5]) by dcvr.yhbt.net (Postfix)
+ with ESMTP id 233D91F760; Fri, 14 Jan 2011 09:17:48 +0000 (UTC)
+
+ghazel@gmail.com wrote:
+> On Thu, Jan 13, 2011 at 6:47 PM, Eric Wong <normalperson@yhbt.net> wrote:
+> > ghazel@gmail.com wrote:
+> >> On Thu, Jan 13, 2011 at 3:06 PM, Eric Wong <normalperson@yhbt.net> wro=
+te:
+> >> > ghazel@gmail.com wrote:
+> >> > How does lsof output look for your workers?
+> >>
+> >> Hm. The workers seem to be at 80-90 file descriptors each. I did catch
+> >> one at 787 (!) with mostly handles to a geoip database from the geoip
+> >> gem, but they got collected pretty quickly. Perhaps that's the cause!
+> >
+> > OK, that's a fairly likely cause of EMFILE.
+> >
+> > A tip for geoip users:
+> >
+> > =A0Install the io-extra gem to get IO.pread. =A0This allows you to reuse
+> > =A0the same file descriptor with geoip automatically between any number
+> > =A0of threads/processes without reopening it.
+> =
+
+> Fascinating. Google tells be you've been down this road before. My
+> code previously was doing:
+> def get_city(ip)
+>   GeoIP.new("/path/to/geo.dat").city(ip)
+> end
+> =
+
+> Which seems to create one fd per call (and leave it for the GC to
+> cleanup). What's the new proposed interface if io-extra is installed?
+> Keep a global GeoIP object somewhere? My fix was to stuff it in to
+> Thread.current, but obviously that has one fd per thread.
+
+Yes, with io-extra, just define a constant somewhere and use it in any
+thread/process at any time.  No need to deal with locks or after_fork
+hooks in Unicorn at all, either, pread() is just that awesome :)
+
+    GEO_DB =3D GeoIP.new("/path/to/geo.dat")
+
+    def get_city(ip)
+      GEO_DB.city(ip)
+    end
+
+-- =
+
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
