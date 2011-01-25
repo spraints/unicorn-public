@@ -1,0 +1,98 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: "Read error: #<IOError: closed stream>" and uploads
+Date: Mon, 24 Jan 2011 19:17:57 -0800
+Message-ID: <20110125031757.GA6871@dcvr.yhbt.net>
+References: <061729D0-F2FD-4ABE-9AE7-418C81C2F467@gmail.com>
+ <20110124005909.GA24994@dcvr.yhbt.net> <20110124181919.GA24783@dcvr.yhbt.net>
+ <BE4CE2A9-B804-4EFE-9F68-8E8253B4B82D@gmail.com>
+ <20110125005152.GB1921@dcvr.yhbt.net>
+ <C83FE4C4-F4FB-48BC-8FC6-4E1B1B26F2D8@gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1295928061 3496 80.91.229.12 (25 Jan 2011 04:01:01
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Tue, 25 Jan 2011 04:01:01 +0000 (UTC)
+Cc: Alexey Bondar <alexey.bondar@gmail.com>
+To: mongrel-unicorn@rubyforge.org
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Tue Jan 25 05:00:57
+ 2011
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <C83FE4C4-F4FB-48BC-8FC6-4E1B1B26F2D8@gmail.com>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:831
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/831>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1Pha5Q-0001Dq-3k for gclrug-mongrel-unicorn@m.gmane.org; Tue, 25 Jan 2011
+ 05:00:56 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id E5AC6185839E; Mon, 24 Jan 2011 23:00:54 -0500 (EST)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 9F02118582E2 for <mongrel-unicorn@rubyforge.org>;
+ Mon, 24 Jan 2011 22:17:58 -0500 (EST)
+Received: from localhost (unknown [127.0.2.5]) by dcvr.yhbt.net (Postfix)
+ with ESMTP id 01D6F1F7E4; Tue, 25 Jan 2011 03:17:57 +0000 (UTC)
+
+Alexey Bondar <alexey.bondar@gmail.com> wrote:
+> On Jan 25, 2011, at 03:51 , Eric Wong wrote:
+> > Wait, nginx buffered the body to disk when client_body_buffer_size is
+> > 128mb and you have trouble with a 150kb request?
+> 
+> Oops, my fault: not body_buffer_size, but client_max_body_size.  client_body_buffer_size is 128k.
+> 
+> As I understand, in this case nginx should buffer whole request body, before sending to backend? 
+
+Yes, nginx always buffers the whole request body
+
+> >> Same issue with 1.1.x
+> > 
+> > OK.  Which timeout exactly are you hitting in nginx?  
+> 
+> Logs: 
+> 2011/01/23 21:09:05 [warn] 79095#0: *261 a client request body is buffered to a temporary file /var/spool/nginx-client-body/3/00/0000000003
+
+<snip>
+
+> 2011/01/23 21:09:35 [error] 79095#0: *261 upstream timed out (60: Operation timed out) while sending request to upstream
+
+<snip>
+
+Very strange.  Do you process env["rack.input"] directly from your app
+or do you let Rails/Rack handle everything?
+
+This probably won't help, but can you try increasing the
+proxy_send_timeout in nginx?  What's your Unicorn timeout?
+
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
