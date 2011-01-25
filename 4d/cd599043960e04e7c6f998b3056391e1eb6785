@@ -1,0 +1,119 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: [PATCH] KNOWN_ISSUES: FreeBSD 8 and sendfile can be buggy
+Date: Tue, 25 Jan 2011 13:33:27 -0800
+Message-ID: <20110125213327.GA9272@dcvr.yhbt.net>
+References: <20110125005152.GB1921@dcvr.yhbt.net>
+ <C83FE4C4-F4FB-48BC-8FC6-4E1B1B26F2D8@gmail.com>
+ <20110125031757.GA6871@dcvr.yhbt.net>
+ <25C1DE1D-59D2-4E80-92E6-FDC0897814BA@gmail.com>
+ <20110125035334.GB8124@dcvr.yhbt.net>
+ <41BA1BA1-3DB7-45C2-8503-17026080D04A@gmail.com>
+ <20110125041044.GA10853@dcvr.yhbt.net>
+ <C5FE59F4-1083-4E89-BAD3-970CF0BCB745@gmail.com>
+ <20110125045451.GB10853@dcvr.yhbt.net>
+ <5F765353-9348-4264-84FE-B639FB198868@gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1295991220 3486 80.91.229.12 (25 Jan 2011 21:33:40
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Tue, 25 Jan 2011 21:33:40 +0000 (UTC)
+Cc: Alexey Bondar <alexey.bondar@gmail.com>
+To: mongrel-unicorn@rubyforge.org
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Tue Jan 25 22:33:35
+ 2011
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <5F765353-9348-4264-84FE-B639FB198868@gmail.com>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:835
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/835>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1PhqW6-0003JE-Rp for gclrug-mongrel-unicorn@m.gmane.org; Tue, 25 Jan 2011
+ 22:33:35 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 76025185838C; Tue, 25 Jan 2011 16:33:31 -0500 (EST)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 999AD1858361 for <mongrel-unicorn@rubyforge.org>;
+ Tue, 25 Jan 2011 16:33:28 -0500 (EST)
+Received: from localhost (unknown [127.0.2.5]) by dcvr.yhbt.net (Postfix)
+ with ESMTP id BE97A29680B; Tue, 25 Jan 2011 21:33:27 +0000 (UTC)
+
+Alexey Bondar <alexey.bondar@gmail.com> wrote:
+> On Jan 25, 2011, at 07:54 , Eric Wong wrote:
+> > Alexey Bondar <alexey.bondar@gmail.com> wrote:
+> >> Hm. Yeah, direct access works well. 
+> >> Uh, what can be wrong with nginx config in this case? :(
+> > 
+> > I would trim your config down the the bare minimum and use the defaults
+> > wherever you can.  Then start adding things back in and see what broke
+> > it.
+> 
+> Maxim Dounin from nginx mail list says that this issue caused by some issues with sendfile in
+> FreeBSD 8. 
+> 
+> After setting sendfile to off uploads works well. 
+> 
+> You can add this info to known 3rd party issues. :)
+
+Thanks Alexey!
+
+>From 8ac0ae45a04f5f121f323c182403ef6eb0d8aa18 Mon Sep 17 00:00:00 2001
+From: Eric Wong <normalperson@yhbt.net>
+Date: Tue, 25 Jan 2011 13:30:21 -0800
+Subject: [PATCH] KNOWN_ISSUES: FreeBSD 8 and sendfile can be buggy
+
+Reported by Alexey Bondar.
+---
+ KNOWN_ISSUES |    4 ++++
+ 1 files changed, 4 insertions(+), 0 deletions(-)
+
+diff --git a/KNOWN_ISSUES b/KNOWN_ISSUES
+index bc3dac5..95f4e43 100644
+--- a/KNOWN_ISSUES
++++ b/KNOWN_ISSUES
+@@ -6,6 +6,10 @@ acceptable solution.  Those issues are documented here.
+ * For notes on sandboxing tools such as Bundler or Isolate,
+   see the {Sandbox}[link:Sandbox.html] page.
+ 
++* nginx with "sendfile on" under FreeBSD 8 is broken when
++  uploads are buffered to disk.  Disabling sendfile is required to
++  work around this bug which should be fixed in newer versions of FreeBSD.
++
+ * Under Ruby 1.9.1, methods like Array#shuffle and Array#sample will
+   segfault if called after forking.  This is fixed in trunk (r26936) and
+   should be backported to the next 1.9.1 stable release (after p378).
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
