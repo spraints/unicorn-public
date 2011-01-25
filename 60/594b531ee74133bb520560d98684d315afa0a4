@@ -1,0 +1,117 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: [PATCH] examples/nginx.conf: use try_files directive
+Date: Tue, 25 Jan 2011 14:09:50 -0800
+Message-ID: <20110125220950.GA11505@dcvr.yhbt.net>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1295993530 16104 80.91.229.12 (25 Jan 2011 22:12:10
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Tue, 25 Jan 2011 22:12:10 +0000 (UTC)
+To: mongrel-unicorn@rubyforge.org
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Tue Jan 25 23:12:06
+ 2011
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:836
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/836>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1Phr7N-0003EB-HF for gclrug-mongrel-unicorn@m.gmane.org; Tue, 25 Jan 2011
+ 23:12:05 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id D304F1858344; Tue, 25 Jan 2011 17:12:04 -0500 (EST)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 129B1185831A for <mongrel-unicorn@rubyforge.org>;
+ Tue, 25 Jan 2011 17:09:50 -0500 (EST)
+Received: from localhost (unknown [127.0.2.5]) by dcvr.yhbt.net (Postfix)
+ with ESMTP id 7E45F29680B; Tue, 25 Jan 2011 22:09:50 +0000 (UTC)
+
+I'm lazy but I finally updated from using nginx 0.6.x myself for
+http://unicorn.bogomips.org/ and http://bogomips.org/unicorn.git
+to 0.8.54...
+
+>From 09afcf2ce9fc89d77b6b282bbf00a78c73741a4b Mon Sep 17 00:00:00 2001
+From: Eric Wong <normalperson@yhbt.net>
+Date: Tue, 25 Jan 2011 13:58:29 -0800
+Subject: [PATCH] examples/nginx.conf: use try_files directive
+
+This feature is in nginx 0.7.x and 0.8.x and optimized
+better than the "if" directive in nginx.conf
+
+ref: http://wiki.nginx.org/Pitfalls
+ref: http://wiki.nginx.org/IfIsEvil
+---
+ examples/nginx.conf |   18 +++++++++++-------
+ 1 files changed, 11 insertions(+), 7 deletions(-)
+
+diff --git a/examples/nginx.conf b/examples/nginx.conf
+index 70d1851..52ec245 100644
+--- a/examples/nginx.conf
++++ b/examples/nginx.conf
+@@ -98,7 +98,16 @@ http {
+     # path for static files
+     root /path/to/app/current/public;
+ 
+-    location / {
++    # Prefer to serve static files directly from nginx to avoid unnecessary
++    # data copies from the application server.
++    #
++    # try_files directive appeared in in nginx 0.7.27 and has stabilized
++    # over time.  Older versions of nginx (e.g. 0.6.x) requires
++    # "if (!-f $request_filename)" which was less efficient:
++    # http://bogomips.org/unicorn.git/tree/examples/nginx.conf?id=v3.3.1#n127
++    try_files $uri/index.html $uri.html $uri @app;
++
++    location @app {
+       # an HTTP header important enough to have its own Wikipedia entry:
+       #   http://en.wikipedia.org/wiki/X-Forwarded-For
+       proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+@@ -122,12 +131,7 @@ http {
+       # clients, really.
+       # proxy_buffering off;
+ 
+-      # Try to serve static files from nginx, no point in making an
+-      # *application* server like Unicorn/Rainbows! serve static files.
+-      if (!-f $request_filename) {
+-        proxy_pass http://app_server;
+-        break;
+-      }
++      proxy_pass http://app_server;
+     }
+ 
+     # Rails error pages
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
