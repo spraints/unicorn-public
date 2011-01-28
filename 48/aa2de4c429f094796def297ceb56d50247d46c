@@ -1,0 +1,103 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: Kernel.srand after_fork
+Date: Fri, 28 Jan 2011 18:14:20 +0000
+Message-ID: <20110128181420.GA29648@dcvr.yhbt.net>
+References: <AANLkTimTpPATTpkoD2EYA2eM1+5OzCN=WxnCygQmJdhn@mail.gmail.com>
+ <20110128102649.GB25922@dcvr.yhbt.net>
+ <AANLkTi=oxD_J1dsE2iM35S2Y=Wc+6-mwFk5gC1n6K1n=@mail.gmail.com>
+ <20110128175111.GA18352@dcvr.yhbt.net>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1296238473 21991 80.91.229.12 (28 Jan 2011 18:14:33
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Fri, 28 Jan 2011 18:14:33 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Fri Jan 28 19:14:28
+ 2011
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <20110128175111.GA18352@dcvr.yhbt.net>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:840
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/840>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1Pisq4-000100-GY for gclrug-mongrel-unicorn@m.gmane.org; Fri, 28 Jan 2011
+ 19:14:28 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id AA9D4185837B; Fri, 28 Jan 2011 13:14:27 -0500 (EST)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 4FF4C1858379 for <mongrel-unicorn@rubyforge.org>;
+ Fri, 28 Jan 2011 13:14:21 -0500 (EST)
+Received: from localhost (unknown [127.0.2.5]) by dcvr.yhbt.net (Postfix)
+ with ESMTP id B52C21F6A1; Fri, 28 Jan 2011 18:14:20 +0000 (UTC)
+
+Eric Wong <normalperson@yhbt.net> wrote:
+> ghazel@gmail.com wrote:
+> > So, calling Kernel.srand in after_fork will fix the 1.8 bug and the
+> > 1.9.1 bug and work fine on 1.9.2?
+
+Just reported the bug to ruby-core and pushed this out:
+
+>From f4caf6b6bdea902abaadd3c04b2af94f056c4ff1 Mon Sep 17 00:00:00 2001
+From: Eric Wong <normalperson@yhbt.net>
+Date: Fri, 28 Jan 2011 18:11:26 +0000
+Subject: [PATCH] KNOWN_ISSUES: document broken RNG+fork in newer Ruby 1.8
+
+Reported by: ghazel@gmail.com
+
+ref: <AANLkTimTpPATTpkoD2EYA2eM1+5OzCN=WxnCygQmJdhn@mail.gmail.com>
+---
+ KNOWN_ISSUES |    5 +++++
+ 1 files changed, 5 insertions(+), 0 deletions(-)
+
+diff --git a/KNOWN_ISSUES b/KNOWN_ISSUES
+index f218b83..259681d 100644
+--- a/KNOWN_ISSUES
++++ b/KNOWN_ISSUES
+@@ -3,6 +3,11 @@
+ Occasionally odd {issues}[link:ISSUES.html] arise without a transparent or
+ acceptable solution.  Those issues are documented here.
+ 
++* Under some versions of Ruby 1.8, it is necessary to call +srand+ in an
++  after_fork hook to get correct random number generation.
++
++  See http://redmine.ruby-lang.org/issues/show/4338
++
+ * For notes on sandboxing tools such as Bundler or Isolate,
+   see the {Sandbox}[link:Sandbox.html] page.
+ 
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
