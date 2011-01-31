@@ -1,0 +1,109 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: Multiple master processes
+Date: Mon, 31 Jan 2011 18:08:15 +0000
+Message-ID: <20110131180815.GA17643@dcvr.yhbt.net>
+References: <87ei7te76x.wl%tils@tils.net>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1296505543 18165 80.91.229.12 (31 Jan 2011 20:25:43
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Mon, 31 Jan 2011 20:25:43 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Mon Jan 31 21:25:38
+ 2011
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <87ei7te76x.wl%tils@tils.net>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:843
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/843>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1Pk0Je-00011j-CY for gclrug-mongrel-unicorn@m.gmane.org; Mon, 31 Jan 2011
+ 21:25:38 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id A74B21858389; Mon, 31 Jan 2011 15:25:37 -0500 (EST)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 0014A1858381 for <mongrel-unicorn@rubyforge.org>;
+ Mon, 31 Jan 2011 13:08:16 -0500 (EST)
+Received: from localhost (unknown [127.0.2.5]) by dcvr.yhbt.net (Postfix)
+ with ESMTP id CF06F1F76E; Mon, 31 Jan 2011 18:08:15 +0000 (UTC)
+
+Tilmann Singer <tils@tils.net> wrote:
+> Hi,
+> 
+> I'm seeing the following output of ps after starting unicorn, which as
+> I understand it means that there are multiple master processes
+> running, each with its own pid. Is that normal behaviour or is there
+> something wrong with my setup?
+
+It's normal behavior for Linux 2.4.x + Ruby 1.9, don't worry about it.
+
+> $ ps xf|grep 4002
+>  8022 ?        S      0:00 unicorn master -c config/unicorn.rb -E production -p 4002 -D                                         
+>  8024 ?        S      0:00  \_ unicorn master -c config/unicorn.rb -E production -p 4002 -D                                         
+> 26743 ?        S      0:00  |   \_ unicorn master -c config/unicorn.rb -E production -p 4002 -D                                         
+> 26734 ?        S      0:22  \_ unicorn worker[0] -c config/unicorn.rb -E production -p 4002 -D                                      
+> 26736 ?        S      0:00  |   \_ unicorn worker[0] -c config/unicorn.rb -E production -p 4002 -D                                      
+> 26739 ?        S      0:00  |       \_ unicorn worker[0] -c config/unicorn.rb -E production -p 4002 -D                                      
+> 26737 ?        S      0:22  \_ unicorn worker[2] -c config/unicorn.rb -E production -p 4002 -D                                      
+> 26740 ?        S      0:00  |   \_ unicorn worker[2] -c config/unicorn.rb -E production -p 4002 -D                                      
+> 26741 ?        S      0:00  |       \_ unicorn worker[2] -c config/unicorn.rb -E production -p 4002 -D                                      
+> 26742 ?        S      0:21  \_ unicorn worker[1] -c config/unicorn.rb -E production -p 4002 -D                                      
+> 26744 ?        S      0:00      \_ unicorn worker[1] -c config/unicorn.rb -E production -p 4002 -D                                      
+> 26745 ?        S      0:00          \_ unicorn worker[1] -c config/unicorn.rb -E production -p 4002 -D                                      
+> $ cat tmp/pids/unicorn.pid
+> 8022
+> 
+> This is on Linux 2.4.27, ruby 1.9.2
+
+With LinuxThreads in 2.4, the native threads used by Ruby 1.9 each had a
+unique PID and /proc entry whereas with NPTL in 2.6 hides the top-level
+entries of tasks that weren't processes (still visible in
+/proc/$pid/task/*)
+
+"tasks" are just the in-kernel representation of either processes and
+native threads in all Linux versions.  They're created via the same
+system call, clone(2), so pthread_create() and fork() are just wrappers
+around clone() with different arguments.  It's just 2.4 had fewer
+options for clone() that made it weirder and less POSIX-conformant.
+
+The pthreads(7) manpage has more details on the differences between NPTL
+and LinuxThreads.
+
+Wow, I didn't realize people ran the latest Rubies on 2.4.x!
+
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
