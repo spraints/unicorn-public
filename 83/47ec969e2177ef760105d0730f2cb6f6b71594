@@ -1,0 +1,86 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: Request queue length
+Date: Sun, 6 Feb 2011 19:02:35 +0000
+Message-ID: <20110206190235.GA8794@dcvr.yhbt.net>
+References: <4D4EAA23.2050802@mrtech.ru>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1297020484 21260 80.91.229.12 (6 Feb 2011 19:28:04
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Sun, 6 Feb 2011 19:28:04 +0000 (UTC)
+Cc: Troex Nevelin <list@mrtech.ru>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Sun Feb 06 20:28:00
+ 2011
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <4D4EAA23.2050802@mrtech.ru>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:849
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/849>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1PmAH9-0000Ro-LH for gclrug-mongrel-unicorn@m.gmane.org; Sun, 06 Feb 2011
+ 20:27:59 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id B451E1858346; Sun,  6 Feb 2011 14:27:58 -0500 (EST)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id AFE2A1858361 for <mongrel-unicorn@rubyforge.org>;
+ Sun,  6 Feb 2011 14:02:36 -0500 (EST)
+Received: from localhost (unknown [127.0.2.5]) by dcvr.yhbt.net (Postfix)
+ with ESMTP id DF08329686F; Sun,  6 Feb 2011 19:02:35 +0000 (UTC)
+
+Troex Nevelin <list@mrtech.ru> wrote:
+> Is there a way to get the number of requests that are currently awaiting  
+> to be executed by my rails app by unicorn?
+>
+> Or there is no queue in unicorn and I should look for this information  
+> somewhere in nginx or other front-end server?
+
+The queue is in the kernel and controlled by the listen(2) syscall.
+If you're in Linux, you can inspect this with Raindrops[1] or just
+read the output of ss(8) or /proc/net/tcp.  I don't know how to do
+this in non-Linux kernels.
+
+All TCP servers actually have this queue, so you can use ss(8),
+/proc/net/tcp or raindrops to inspect this queue in nginx, too.
+
+
+[1] http://raindrops.bogomips.org/
+    I've found this example surprisingly useful, too:
+    http://raindrops.bogomips.org/examples/linux-tcp-listener-stats.rb
+
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
