@@ -1,0 +1,109 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.7 required=5.0 tests=MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Troex Nevelin <list@mrtech.ru>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: Request queue length
+Date: Fri, 11 Feb 2011 22:52:54 +0300
+Message-ID: <4D559396.3070109@mrtech.ru>
+References: <4D4EAA23.2050802@mrtech.ru>
+ <20110206190235.GA8794@dcvr.yhbt.net>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"; Format="flowed"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1297455658 6818 80.91.229.12 (11 Feb 2011 20:20:58
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Fri, 11 Feb 2011 20:20:58 +0000 (UTC)
+To: mongrel-unicorn@rubyforge.org
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Fri Feb 11 21:20:54
+ 2011
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.2.13)
+ Gecko/20101208 Lightning/1.0b2 Thunderbird/3.1.7
+In-Reply-To: <20110206190235.GA8794@dcvr.yhbt.net>
+X-Greylist: Sender IP whitelisted, not delayed by milter-greylist-4.0
+ (mx.nora.it-orbita.ru [80.93.50.210]); Fri, 11 Feb 2011 19:53:00 +0000 (UTC)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:850
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/850>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1PnzU6-00088f-4b for gclrug-mongrel-unicorn@m.gmane.org; Fri, 11 Feb 2011
+ 21:20:54 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id AEB811858346; Fri, 11 Feb 2011 15:20:52 -0500 (EST)
+Received: from mx.nora.it-orbita.ru (mx0.it-orbita.ru [80.93.50.210]) by
+ rubyforge.org (Postfix) with ESMTP id BA7D218581B2 for
+ <mongrel-unicorn@rubyforge.org>; Fri, 11 Feb 2011 14:53:01 -0500 (EST)
+Received: from mail.nora.it-orbita.ru (nora.it-orbita.ru [80.93.49.61]) by
+ mx.nora.it-orbita.ru (underworld-mx) with ESMTP/inet id p1BJqwO4006110 for
+ <mongrel-unicorn@rubyforge.org>; Fri, 11 Feb 2011 19:53:00 GMT
+Received: from [10.0.9.159] ([195.191.158.5]) (authenticated with PLAIN as
+ list@mrtech.ru) by mail.nora.it-orbita.ru (underworld-user) with ESMTP/inet
+ id p1BJqwdd006107 (using TLSv1/SSLv3 with cipher DHE-RSA-AES256-SHA/256
+ verify NOT) for <mongrel-unicorn@rubyforge.org>; Fri, 11 Feb 2011 19:52:58
+ GMT
+
+On 02/06/2011 10:02 PM, Eric Wong wrote:
+> [1] http://raindrops.bogomips.org/
+>      I've found this example surprisingly useful, too:
+>      http://raindrops.bogomips.org/examples/linux-tcp-listener-stats.rb
+
+Thank a lot for this link, I also found a lot of interesting. I'm 
+currently using thin (rails2.3 on ruby1.8), but thinking to try unicorn 
+on next update.
+I was monitoring nginx and thin using raindrops:
+
+Nginx:
+# ./linux-tcp-listener-stats.rb -d 1 80.93.53.99:80
+             address     active     queued
+      80.93.53.99:80        929          0
+      80.93.53.99:80        984          0
+      80.93.53.99:80        978          0
+      80.93.53.99:80        941          0
+
+Nginx is almost always shows that all sockets are active (~1000) and 
+queued sometimes I can see 1 or 2. As I understand that means that nginx 
+is fast and works well.
+
+
+Thin:
+# ./linux-tcp-listener-stats.rb -d 1 10.0.0.1:4000
+             address     active     queued
+       10.0.0.1:4000         21          8
+       10.0.0.1:4000         21          9
+       10.0.0.1:4000         21         10
+       10.0.0.1:4000         23          0
+       10.0.0.1:4000          1          0
+       10.0.0.1:4000          0          0
+       10.0.0.1:4000          2          0
+
+What can you say about these numbers? Actually I don't understand the 
+'active' table. As I thought thin or unicorn can serv only one request 
+at a time because ruby/rails works like forks, so what means this 'active'?
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
