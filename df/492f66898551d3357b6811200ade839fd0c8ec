@@ -1,0 +1,121 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: Forking for background processing with rails/unicorn
+Date: Wed, 16 Feb 2011 09:41:43 -0800
+Message-ID: <20110216174143.GA8070@dcvr.yhbt.net>
+References: <AANLkTi=h707_pUPovtSdsrBAG-sSVEVJXgfysSWCwTAJ@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1297878160 21258 80.91.229.12 (16 Feb 2011 17:42:40
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Wed, 16 Feb 2011 17:42:40 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Wed Feb 16 18:42:35
+ 2011
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <AANLkTi=h707_pUPovtSdsrBAG-sSVEVJXgfysSWCwTAJ@mail.gmail.com>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:854
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/854>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1PplOc-0004LG-4I for gclrug-mongrel-unicorn@m.gmane.org; Wed, 16 Feb 2011
+ 18:42:34 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 1B5D31858357; Wed, 16 Feb 2011 12:42:33 -0500 (EST)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id BA5321858357 for <mongrel-unicorn@rubyforge.org>;
+ Wed, 16 Feb 2011 12:41:45 -0500 (EST)
+Received: from localhost (unknown [127.0.2.5]) by dcvr.yhbt.net (Postfix)
+ with ESMTP id BDBBF1F89F; Wed, 16 Feb 2011 17:41:44 +0000 (UTC)
+
+Brian Underwood <bunderwood@rbmtechnologies.com> wrote:
+> In the Rails 3 application that I support, we sometimes fork during a
+> web request in order to do background processing behind the scenes
+> without the user (and the browser connection) to wait for it to
+> finish.  I realize that a better method would be to have a queue of
+> jobs to be processed (I even created a gem called job_boss which works
+> well for our case), but it will take us a while to get there, so I'm
+> trying to fix this for now.
+> 
+> The problem that I'm finding is that, when I fork, the HTTP connection
+> doesn't close.  IE doesn't handle this as well and the browser is left
+> sitting, waiting for the child process to finish rather than being
+> redirected.  This functionality worked fine in our application when we
+> were using Rails 2.3.5 and Unicorn 1.1.3, but broke when we moved to
+> Rails 3 and Unicorn 3.0.0 (we've since moved to Unicorn 3.4.0 and the
+> problem remains, I had some hope that Unicorn 3.3.1 might have
+> addressed it).
+
+I'm not able to reproduce any difference between 1.x and 3.x in this
+regard in forking behavior.  I know that the client socket is never
+closed on fork by default, so there's probably something else in your
+app that changed...
+
+> I've been able to solve this problem temporarily by closing two file
+> descriptors manually (#3 and, depending on the version of Rails #6 or
+> #7).  Obviously this is not ideal.  I found the UNICORN_FD environment
+> variable when looking through the Unicorn source, but that only seems
+> to indicate #3.  Where might #6/#7 be coming from?
+
+Whatever is in UNICORN_FD is the listener socket (probably 3), so 6/7 is
+probably the client socket, but you should normally close everything in
+the forked child for background processing.
+
+The IO.closefrom method in the io-extra[1] gem will get everything
+including descriptors opened without a corresponding Ruby object.
+If you know everything uses Ruby IO, then walking ObjectSpace works,
+too:
+
+  # close everything except stdin, stdout and stderr
+  ObjectSpace.each_object(IO) { |s|
+    begin
+      s.close if s.fileno > 2
+    rescue IOError, Errno::EBADF
+      # EBADF can come from duplicate IOs due to FD inheritance
+    end
+  }
+
+> Is there some way
+> that I can determine these without hard-coding the FD #?
+
+lsof or scanning /proc/$$/fd (Linux), but if you have any open socket
+connections (memcached/activerecord/net-http-persistent/etc...), you
+should close all of those and restart them if necessary in the child.
+
+[1] http://rubyforge.org/projects/shards
+
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
