@@ -1,0 +1,107 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: [PATCH] tee_input: remove old *BSD stdio workaround
+Date: Fri, 25 Feb 2011 17:59:56 +0000
+Message-ID: <20110225175956.GA29500@dcvr.yhbt.net>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1298658084 22191 80.91.229.12 (25 Feb 2011 18:21:24
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Fri, 25 Feb 2011 18:21:24 +0000 (UTC)
+To: mongrel-unicorn@rubyforge.org
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Fri Feb 25 19:21:20
+ 2011
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:858
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/858>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1Pt2I2-00043D-4V for gclrug-mongrel-unicorn@m.gmane.org; Fri, 25 Feb 2011
+ 19:21:18 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 4DE4A1858356; Fri, 25 Feb 2011 13:21:17 -0500 (EST)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id E2C631858356 for <mongrel-unicorn@rubyforge.org>;
+ Fri, 25 Feb 2011 12:59:57 -0500 (EST)
+Received: from localhost (unknown [127.0.2.5]) by dcvr.yhbt.net (Postfix)
+ with ESMTP id EE7C51F8A3; Fri, 25 Feb 2011 17:59:56 +0000 (UTC)
+
+Heads up, I just pushed this out to unicorn.git and it'll be in the
+next Unicorn release.
+
+>From cc7e65a1aa1bacc9658a687140011e999be6e3e7 Mon Sep 17 00:00:00 2001
+From: Eric Wong <normalperson@yhbt.net>
+Date: Fri, 25 Feb 2011 17:54:24 +0000
+Subject: [PATCH] tee_input: remove old *BSD stdio workaround
+
+Ruby 1.8.* users should get the latest Ruby 1.8.7 anyways since
+they contain critical bugfixes.  We don't keep workarounds
+forever since the root problem is fixed/worked-around in
+upstream and people have had more than a year to upgrade Ruby.
+---
+ KNOWN_ISSUES             |    4 ++++
+ lib/unicorn/tee_input.rb |    1 -
+ 2 files changed, 4 insertions(+), 1 deletions(-)
+
+diff --git a/KNOWN_ISSUES b/KNOWN_ISSUES
+index 259681d..35dc9f3 100644
+--- a/KNOWN_ISSUES
++++ b/KNOWN_ISSUES
+@@ -8,6 +8,10 @@ acceptable solution.  Those issues are documented here.
+ 
+   See http://redmine.ruby-lang.org/issues/show/4338
+ 
++* On Ruby 1.8 prior to Ruby 1.8.7-p248, *BSD platforms have a broken
++  stdio that causes failure for file uploads larger than 112K.  Upgrade
++  your version of Ruby or continue using Unicorn 1.x/3.4.x.
++
+ * For notes on sandboxing tools such as Bundler or Isolate,
+   see the {Sandbox}[link:Sandbox.html] page.
+ 
+diff --git a/lib/unicorn/tee_input.rb b/lib/unicorn/tee_input.rb
+index 6d37f87..637c583 100644
+--- a/lib/unicorn/tee_input.rb
++++ b/lib/unicorn/tee_input.rb
+@@ -120,7 +120,6 @@ private
+   def tee(buffer)
+     if buffer && buffer.size > 0
+       @tmp.write(buffer)
+-      @tmp.seek(0, IO::SEEK_END) # workaround FreeBSD/OSX + MRI 1.8.x bug
+     end
+     buffer
+   end
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
