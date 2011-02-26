@@ -1,0 +1,97 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.7 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Troex Nevelin <list@mrtech.ru>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: Request queue length
+Date: Sat, 26 Feb 2011 16:12:39 +0300
+Message-ID: <4D68FC47.7050606@mrtech.ru>
+References: <4D4EAA23.2050802@mrtech.ru>
+ <20110206190235.GA8794@dcvr.yhbt.net>	<4D559396.3070109@mrtech.ru>
+ <20110211212036.GA26634@dcvr.yhbt.net> <4D56AE2B.1040107@mrtech.ru>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"; Format="flowed"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1298726561 27372 80.91.229.12 (26 Feb 2011 13:22:41
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Sat, 26 Feb 2011 13:22:41 +0000 (UTC)
+To: mongrel-unicorn@rubyforge.org
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Sat Feb 26 14:22:32
+ 2011
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.2.13)
+ Gecko/20101208 Lightning/1.0b2 Thunderbird/3.1.7
+In-Reply-To: <4D56AE2B.1040107@mrtech.ru>
+X-Greylist: Sender IP whitelisted, not delayed by milter-greylist-4.0
+ (mx.nora.it-orbita.ru [80.93.50.210]); Sat, 26 Feb 2011 13:12:46 +0000 (UTC)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:859
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/859>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1PtK6R-0004lu-E7 for gclrug-mongrel-unicorn@m.gmane.org; Sat, 26 Feb 2011
+ 14:22:31 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id D47D0185836C; Sat, 26 Feb 2011 08:22:29 -0500 (EST)
+Received: from mx.nora.it-orbita.ru (mx0.it-orbita.ru [80.93.50.210]) by
+ rubyforge.org (Postfix) with ESMTP id A334E185836B for
+ <mongrel-unicorn@rubyforge.org>; Sat, 26 Feb 2011 08:12:49 -0500 (EST)
+Received: from mail.nora.it-orbita.ru (nora.it-orbita.ru [80.93.49.61]) by
+ mx.nora.it-orbita.ru (underworld-mx) with ESMTP/inet id p1QDCjQB016579 for
+ <mongrel-unicorn@rubyforge.org>; Sat, 26 Feb 2011 13:12:46 GMT
+Received: from [192.168.1.197] ([195.191.158.5]) (authenticated with PLAIN as
+ list@mrtech.ru) by mail.nora.it-orbita.ru (underworld-user) with ESMTP/inet
+ id p1QDCiEq016576 (using TLSv1/SSLv3 with cipher DHE-RSA-AES256-SHA/256
+ verify NOT) for <mongrel-unicorn@rubyforge.org>; Sat, 26 Feb 2011 13:12:45
+ GMT
+
+On 02/12/2011 06:58 PM, Troex Nevelin wrote:
+> Currently I use thin 10 instances and pass 10 sockets to nginx. I forgot
+> that unicorn uses only one socket to communicate with frontend :)
+> What I really want to track with unicorn is to see how many clients are
+> really waiting in queue. I hope if I ran 10 unicorn instances and
+> monitor socket during peak load I'll see 10 active and the queue will be
+> the real queue :)
+> As you showed me above that thin can take requests 'on hold' and that is
+> why I didn't understand the active number bigger than 1 with thin.
+>
+> I'll post the results here, when I migrate to unicorn.
+
+
+We've moved to unicorn and I embeded Raindrops as middleware into our 
+rails app, now I'm able to get some stats using /_raindrops url:
+http://www.kinokopilka.tv/_raindrops
+
+calling: 4
+writing: 174
+/var/www/kk/current/tmp/sockets/unicorn.sock active: 5
+/var/www/kk/current/tmp/sockets/unicorn.sock queued: 0
+
+The last 2 lines I undersand, that is what I wanted to get. But what 
+about 'calling' and 'writing', what does these numbers says?
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
