@@ -1,0 +1,101 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: [RFC/PATCH] Bundler/Sandbox documentation updates
+Date: Mon, 7 Mar 2011 20:40:31 -0800
+Message-ID: <20110308044031.GA12532@dcvr.yhbt.net>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1299563036 16573 80.91.229.12 (8 Mar 2011 05:43:56
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Tue, 8 Mar 2011 05:43:56 +0000 (UTC)
+To: mongrel-unicorn@rubyforge.org
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Tue Mar 08 06:43:52
+ 2011
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:864
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/864>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1Pwpi0-0000fy-1e for gclrug-mongrel-unicorn@m.gmane.org; Tue, 08 Mar 2011
+ 06:43:48 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 9DAB8167815E; Tue,  8 Mar 2011 00:43:44 -0500 (EST)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id A21A6185838C for <mongrel-unicorn@rubyforge.org>;
+ Mon,  7 Mar 2011 23:40:32 -0500 (EST)
+Received: from localhost (unknown [127.0.2.5]) by dcvr.yhbt.net (Postfix)
+ with ESMTP id AD7D5296808; Tue,  8 Mar 2011 04:40:31 +0000 (UTC)
+
+I started playing around with Bundler 1.0.10 today and noticed it's
+quite different than previous versions (based on my limited experiences)
+and the out-of-the-box experience is pretty good regarding (lack of)
+ENV pollution.
+
+Can any more experienced Bundler (and possibly Capistrano) users
+comment on the below changes and see if they make sense?
+
+Thanks in advance!
+
+diff --git a/Sandbox b/Sandbox
+index d101106..46dfb91 100644
+--- a/Sandbox
++++ b/Sandbox
+@@ -45,11 +45,20 @@ This is no longer be an issue as of bundler 0.9.17
+ 
+ ref: http://mid.gmane.org/8FC34B23-5994-41CC-B5AF-7198EF06909E@tramchase.com
+ 
++=== BUNDLE_GEMFILE for Capistrano users
++
++You may need to set or reset the BUNDLE_GEMFILE environment variable in
++the before_exec hook:
++
++        before_exec do |server|
++          ENV["BUNDLE_GEMFILE"] = "/path/to/app/current/Gemfile"
++        end
++
+ === Other ENV pollution issues
+ 
+-You may need to set or reset BUNDLE_GEMFILE, GEM_HOME, GEM_PATH and PATH
+-environment variables in the before_exec hook as illustrated by
+-http://gist.github.com/534668
++If you're using an older Bundler version (0.9.x), you may need to set or
++reset GEM_HOME, GEM_PATH and PATH environment variables in the
++before_exec hook as illustrated by http://gist.github.com/534668
+ 
+ == Isolate
+ 
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
