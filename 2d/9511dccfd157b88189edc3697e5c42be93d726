@@ -1,0 +1,93 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: [RFC/PATCH] Bundler/Sandbox documentation updates
+Date: Thu, 10 Mar 2011 00:52:27 +0000
+Message-ID: <20110310005227.GA1002@dcvr.yhbt.net>
+References: <20110308044031.GA12532@dcvr.yhbt.net>
+ <4D7758E7.6020505@gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1299721339 8086 80.91.229.12 (10 Mar 2011 01:42:19
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Thu, 10 Mar 2011 01:42:19 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Thu Mar 10 02:42:15
+ 2011
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <4D7758E7.6020505@gmail.com>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:868
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/868>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1PxUtJ-0007G5-Mj for gclrug-mongrel-unicorn@m.gmane.org; Thu, 10 Mar 2011
+ 02:42:13 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id F150C185836B; Wed,  9 Mar 2011 20:42:12 -0500 (EST)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 4883B185836B for <mongrel-unicorn@rubyforge.org>;
+ Wed,  9 Mar 2011 19:52:28 -0500 (EST)
+Received: from localhost (unknown [127.0.2.5]) by dcvr.yhbt.net (Postfix)
+ with ESMTP id B657E1F6A7; Thu, 10 Mar 2011 00:52:27 +0000 (UTC)
+
+Lawrence Pit <lawrence.pit@gmail.com> wrote:
+> Hi Eric,
+>
+> I tested this out:
+
+Thanks for taking your time to test.
+
+> - in the before_exec and after_fork I log PATH GEM_HOME GEM_PATH  
+> BUNDLE_GEMFILE for inspection after deployment
+>
+> - deploy latest release, make sure to shutdown unicorn, then start cleanly
+>
+> - prune all releases, except the last one
+>
+> - deploy latest release again (which only sets the BUNDLE_GEMFILE env var)
+>
+> I've tried this a few times, and everytime I get something like this:
+>
+> https://gist.github.com/331b0decab62fd58483c
+
+Yikes, it looks like the UNICORN_FD env is getting clobbered somehow.
+Not sure what could be causing that.
+
+> If I revert back to setting the GEM_HOME, GEM_PATH and PATH in the  
+> before_exec it works fine.
+
+Which Bundler version is this with?
+
+> PS. When deploying I use USR2 followed by QUIT
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
