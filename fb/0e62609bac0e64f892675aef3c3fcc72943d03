@@ -1,0 +1,131 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.6 required=5.0 tests=FREEMAIL_FROM,
+ MSGID_FROM_MTA_HEADER,RP_MATCHES_RCVD,T_DKIM_INVALID shortcircuit=no
+ autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Clifton King <cliftonk@gmail.com>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: Memcache reset on rails 2.3 with preload
+Date: Thu, 10 Mar 2011 14:48:22 -0600
+Message-ID: <AANLkTik_90ERYfZgQp0PSWZ6DQE54jQvtWjqZbL+2-ZS@mail.gmail.com>
+References: <4D790788.8010305@mrtech.ru>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1299792257 23557 80.91.229.12 (10 Mar 2011 21:24:17
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Thu, 10 Mar 2011 21:24:17 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Thu Mar 10 22:24:12
+ 2011
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com; s=gamma;
+ h=domainkey-signature:mime-version:reply-to:in-reply-to:references
+ :date:message-id:subject:from:to:content-type;
+ bh=hC/J7VtiD5xCqBapEd/lk5AxogxnckLPiYho93OwVcU=;
+ b=Sn3i9f2Bvg54jqAOohDO2Ox5YtJzd2ciDChayTnF+txlxhkAgh8i22ANRjreMriKdC
+ rFdC8JE8jWnXhxJaIxWlDFLWxpn8b325pF7d6pZ60v99jjzshrtD4gsjmFruaWblNB4S
+ ytl/5eg5tLv9s5AIt3UFFIrwttZ9/cp3qbFVw=
+DomainKey-Signature: a=rsa-sha1; c=nofws; d=gmail.com; s=gamma;
+ h=mime-version:reply-to:in-reply-to:references:date:message-id
+ :subject:from:to:content-type;
+ b=lLtEyslULZZx6U/DCFZbDeExzkBFOEO5W4ZB9D8EDAr9x4cbWp+79f3gpfrmwfJJme
+ ba974VhvtenUW6y6J0yUYujqhUbwjuVBvWYJ5e0qrDpgHRxNUJUj47TaWgn675fb45XM
+ ZXfNwqtH017a5DQ7OcM1nS8PR/KZWIs2xUo/M=
+In-Reply-To: <4D790788.8010305@mrtech.ru>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:872
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/872>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1PxnL9-0007uc-6t for gclrug-mongrel-unicorn@m.gmane.org; Thu, 10 Mar 2011
+ 22:24:11 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 149233C8039; Thu, 10 Mar 2011 16:24:06 -0500 (EST)
+Received: from mail-vx0-f178.google.com (mail-vx0-f178.google.com
+ [209.85.220.178]) by rubyforge.org (Postfix) with ESMTP id 316FF1D780F6 for
+ <mongrel-unicorn@rubyforge.org>; Thu, 10 Mar 2011 15:48:23 -0500 (EST)
+Received: by vxb37 with SMTP id 37so2490594vxb.23 for
+ <mongrel-unicorn@rubyforge.org>; Thu, 10 Mar 2011 12:48:22 -0800 (PST)
+Received: by 10.220.53.133 with SMTP id m5mr2114086vcg.204.1299790102690;
+ Thu, 10 Mar 2011 12:48:22 -0800 (PST)
+Received: by 10.220.202.4 with HTTP; Thu, 10 Mar 2011 12:48:22 -0800 (PST)
+
+I opt to use this gem: https://github.com/fauna/memcached
+
+I use the following settings in my environment:
+
+  $memcached         = Memcached::Rails.new(cache_server,
+                                            :namespace       => "os-",
+                                            :tcp_nodelay     => true,
+  # disable nagle algorithm
+                                            :no_block        => true)
+  # dont block on writes
+
+ActionController::Base.cache_store                = :mem_cache_store, $memcached
+  $session_memcached = Memcached::Rails.new(cache_server,
+                                            :namespace       => "os-",
+                                            :tcp_nodelay     => true,
+  # disable nagle algorithm
+                                            :no_block        => true)
+  ActionController::Base.cache_store                =
+:mem_cache_store, $memcached
+  ActionController::Base.session_store              = :mem_cache_store
+  ActionController::Base.session_options[:cache]    = $session_memcached
+
+
+in after_fork i have
+
+$memcached.reset
+$session_memcached.reset
+
+
+Clifton
+
+On Thu, Mar 10, 2011 at 11:16 AM, Troex Nevelin <list@mrtech.ru> wrote:
+> What is a right code for resetting memcache connection in after_fork for
+> Rails 2.3 with "preload_app true" on REE?
+>
+> The only configurations about memcache in my app are:
+>
+> config/initializers/session_store.rb:
+> ActionController::Base.session_store = :mem_cache_store
+>
+> config/environment.rb:
+> config.cache_store = :mem_cache_store
+>
+>
+> I tried:
+> Rails.cache.reset
+>
+> But it fails to start, looks like this code is for Rails3 only
+> _______________________________________________
+> Unicorn mailing list - mongrel-unicorn@rubyforge.org
+> http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+> Do not quote signatures (like this one) or top post when replying
+>
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
