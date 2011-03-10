@@ -1,0 +1,101 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: [RFC/PATCH] Bundler/Sandbox documentation updates
+Date: Thu, 10 Mar 2011 13:29:03 -0800
+Message-ID: <20110310212903.GB7801@dcvr.yhbt.net>
+References: <20110308044031.GA12532@dcvr.yhbt.net>
+ <4D7758E7.6020505@gmail.com> <20110310005227.GA1002@dcvr.yhbt.net>
+ <4D7845C6.2070301@gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1299793996 958 80.91.229.12 (10 Mar 2011 21:53:16
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Thu, 10 Mar 2011 21:53:16 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Thu Mar 10 22:53:11
+ 2011
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <4D7845C6.2070301@gmail.com>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:875
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/875>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1PxnnD-0005CL-Gb for gclrug-mongrel-unicorn@m.gmane.org; Thu, 10 Mar 2011
+ 22:53:11 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id DD5211858363; Thu, 10 Mar 2011 16:53:10 -0500 (EST)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 0FC76185835A for <mongrel-unicorn@rubyforge.org>;
+ Thu, 10 Mar 2011 16:29:03 -0500 (EST)
+Received: from localhost (unknown [127.0.2.5]) by dcvr.yhbt.net (Postfix)
+ with ESMTP id 9249B1F6A6; Thu, 10 Mar 2011 21:29:03 +0000 (UTC)
+
+Lawrence Pit <lawrence.pit@gmail.com> wrote:
+> Eric Wong <normalperson@yhbt.net> wrote:
+>> I've tried this a few times, and everytime I get something like this:
+>>> https://gist.github.com/331b0decab62fd58483c
+>> Yikes, it looks like the UNICORN_FD env is getting clobbered somehow.
+>> Not sure what could be causing that.
+>>
+>>> If I revert back to setting the GEM_HOME, GEM_PATH and PATH in the
+>>> before_exec it works fine.
+
+> >  Which Bundler version is this with?
+>
+> Bundler 1.0.10
+
+Odd, I actually used this in my Rainbows! config file to switch an
+Isolate deploy to Bundler (1.0.10) yesterday.   Everything for Rainbows!
+applies to Unicorn, too).
+
+  # switching from Isolate to Bundler:
+  if ENV["GEM_HOME"] =~ %r{/isolate/}
+    ENV.delete "GEM_HOME"
+    ENV.delete "GEM_PATH"
+    # don't need anything else in $PATH for a web server
+    ENV["PATH"] = "/home/ew/ruby-1.9.2/bin"
+
+    # START_CTX is considered a stable interface in Unicorn
+    start_ctx = Unicorn::HttpServer::START_CTX
+    start_ctx[0] = "bundle"
+
+    # it's even possible to use USR2 to switch between Unicorn and
+    # Rainbows! without any downtime :)
+    start_ctx[:argv] = %w(exec rainbows).concat(start_ctx[:argv])
+  end
+
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
