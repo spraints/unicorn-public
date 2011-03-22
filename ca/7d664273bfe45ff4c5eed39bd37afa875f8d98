@@ -1,0 +1,107 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: unicorn 1.1.x never-ending listen loop IOError exceptions
+Date: Tue, 22 Mar 2011 14:39:05 -0700
+Message-ID: <20110322213905.GA23207@dcvr.yhbt.net>
+References: <AANLkTin18jkoaMkj-kZf-Seqw8hz8aEQ0bZqL_Jf79xo@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1300837744 5460 80.91.229.12 (22 Mar 2011 23:49:04
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Tue, 22 Mar 2011 23:49:04 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Wed Mar 23 00:49:01
+ 2011
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <AANLkTin18jkoaMkj-kZf-Seqw8hz8aEQ0bZqL_Jf79xo@mail.gmail.com>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:888
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/888>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1Q2BJs-0003EW-Ht for gclrug-mongrel-unicorn@m.gmane.org; Wed, 23 Mar 2011
+ 00:49:00 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 66C2318582EE; Tue, 22 Mar 2011 19:48:57 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id CAB33185835A for <mongrel-unicorn@rubyforge.org>;
+ Tue, 22 Mar 2011 17:39:04 -0400 (EDT)
+Received: from localhost (unknown [127.0.2.5]) by dcvr.yhbt.net (Postfix)
+ with ESMTP id 221BE1F6A6; Tue, 22 Mar 2011 21:39:04 +0000 (UTC)
+
+David Nghiem <david@zendesk.com> wrote:
+> We run unicorn 1.1.5 behind nginx under Ruby Enterprise Edition
+> 2011.02.  We're using UNIX sockets instead of TCP sockets.
+> 
+> Once in a while, one worker will throw exceptions in a loop, taking up
+> lots of CPU and log space.  Killing the worker removes the problem.
+> Other workers are not affected.
+> 
+> Here's the exception:
+> 
+> E, [2011-01-10T10:13:13.518795 #15209] ERROR -- : Unhandled listen
+> loop exception #<IOError: closed stream>.
+> E, [2011-01-10T10:13:13.518881 #15209] ERROR -- :
+> /data/zendesk/releases/alpha/vendor/bundle/ruby/1.8/gems/unicorn-1.1.5/lib/unicorn.rb:732:in
+> `select'
+> 
+> I don't get any other exceptions.  I've found other people have this
+> "IOError: closed stream" error coupled with "Errno::EMFILE" but we
+> have plenty of file-descriptors left.
+
+No Errno::EBADF errors at all?
+
+> Here's an lsof dump of the worker:
+> 
+> COMMAND   PID    USER   FD   TYPE             DEVICE        SIZE    NODE NAME
+
+<snip>  It looks like log reopening failed, below:
+
+> ruby    15209 zendesk    1w   REG              252,0           0
+> 3015360 /data/zendesk/log/unicorn.stdout.log
+> ruby    15209 zendesk    2w   REG              252,0       24585
+> 3015203 /data/zendesk/log/unicorn.stderr.log-20110110 (deleted)
+> ruby    15209 zendesk    3w   REG              252,0 61617590073
+> 3015097 /data/zendesk/log/unicorn.log-20110110 (deleted)
+
+Permissions issue during log rotation?  Are you doing "killall -USR1
+unicorn" by any chance or sending a bunch of USR1 signals faster than
+unicorn can process them?
+
+Try just sending one USR1 to the master process and letting the master
+signal the workers.
+
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
