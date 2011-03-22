@@ -1,0 +1,300 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.7 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: David Nghiem <david@zendesk.com>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: unicorn 1.1.x never-ending listen loop IOError exceptions
+Date: Tue, 22 Mar 2011 12:19:36 -0700
+Message-ID: <AANLkTin18jkoaMkj-kZf-Seqw8hz8aEQ0bZqL_Jf79xo@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1300823398 20351 80.91.229.12 (22 Mar 2011 19:49:58
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Tue, 22 Mar 2011 19:49:58 +0000 (UTC)
+To: mongrel-unicorn@rubyforge.org
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Tue Mar 22 20:49:54
+ 2011
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:887
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/887>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1Q27aT-0003Xs-Bv for gclrug-mongrel-unicorn@m.gmane.org; Tue, 22 Mar 2011
+ 20:49:53 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 52FE2185836C; Tue, 22 Mar 2011 15:49:52 -0400 (EDT)
+Received: from mail-vx0-f178.google.com (mail-vx0-f178.google.com
+ [209.85.220.178]) by rubyforge.org (Postfix) with ESMTP id EE198185835A for
+ <mongrel-unicorn@rubyforge.org>; Tue, 22 Mar 2011 15:19:36 -0400 (EDT)
+Received: by vxc11 with SMTP id 11so7590095vxc.23 for
+ <mongrel-unicorn@rubyforge.org>; Tue, 22 Mar 2011 12:19:36 -0700 (PDT)
+Received: by 10.52.67.103 with SMTP id m7mr5658260vdt.178.1300821576352; Tue,
+ 22 Mar 2011 12:19:36 -0700 (PDT)
+Received: by 10.52.160.36 with HTTP; Tue, 22 Mar 2011 12:19:36 -0700 (PDT)
+
+We run unicorn 1.1.5 behind nginx under Ruby Enterprise Edition
+2011.02.  We're using UNIX sockets instead of TCP sockets.
+
+Once in a while, one worker will throw exceptions in a loop, taking up
+lots of CPU and log space.  Killing the worker removes the problem.
+Other workers are not affected.
+
+Here's the exception:
+
+E, [2011-01-10T10:13:13.518795 #15209] ERROR -- : Unhandled listen
+loop exception #<IOError: closed stream>.
+E, [2011-01-10T10:13:13.518881 #15209] ERROR -- :
+/data/zendesk/releases/alpha/vendor/bundle/ruby/1.8/gems/unicorn-1.1.5/lib/unicorn.rb:732:in
+`select'
+/data/zendesk/releases/alpha/vendor/bundle/ruby/1.8/gems/unicorn-1.1.5/lib/unicorn.rb:732:in
+`worker_loop'
+/data/zendesk/releases/alpha/vendor/bundle/ruby/1.8/gems/newrelic_rpm-2.13.1/lib/new_relic/control/../agent/instrumentation/unicorn_instrumentation.rb:7:in
+`call'
+/data/zendesk/releases/alpha/vendor/bundle/ruby/1.8/gems/newrelic_rpm-2.13.1/lib/new_relic/control/../agent/instrumentation/unicorn_instrumentation.rb:7:in
+`worker_loop'
+/data/zendesk/releases/alpha/vendor/bundle/ruby/1.8/gems/unicorn-1.1.5/lib/unicorn.rb:603:in
+`spawn_missing_workers'
+/data/zendesk/releases/alpha/vendor/bundle/ruby/1.8/gems/unicorn-1.1.5/lib/unicorn.rb:600:in
+`fork'
+/data/zendesk/releases/alpha/vendor/bundle/ruby/1.8/gems/unicorn-1.1.5/lib/unicorn.rb:600:in
+`spawn_missing_workers'
+/data/zendesk/releases/alpha/vendor/bundle/ruby/1.8/gems/unicorn-1.1.5/lib/unicorn.rb:596:in
+`each'
+/data/zendesk/releases/alpha/vendor/bundle/ruby/1.8/gems/unicorn-1.1.5/lib/unicorn.rb:596:in
+`spawn_missing_workers'
+/data/zendesk/releases/alpha/vendor/bundle/ruby/1.8/gems/unicorn-1.1.5/lib/unicorn.rb:610:in
+`maintain_worker_count'
+/data/zendesk/releases/alpha/vendor/bundle/ruby/1.8/gems/unicorn-1.1.5/lib/unicorn.rb:407:in
+`join'
+/data/zendesk/releases/alpha/vendor/bundle/ruby/1.8/gems/unicorn-1.1.5/lib/unicorn.rb:395:in
+`loop'
+/data/zendesk/releases/alpha/vendor/bundle/ruby/1.8/gems/unicorn-1.1.5/lib/unicorn.rb:395:in
+`join'
+/data/zendesk/releases/alpha/vendor/bundle/ruby/1.8/gems/unicorn-1.1.5/lib/unicorn.rb:29:in
+`run'
+/data/zendesk/releases/alpha/vendor/bundle/ruby/1.8/gems/unicorn-1.1.5/bin/unicorn_rails:210
+/data/zendesk/releases/alpha/vendor/bundle/ruby/1.8/bin/unicorn_rails:19:in
+`load'
+/data/zendesk/releases/alpha/vendor/bundle/ruby/1.8/bin/unicorn_rails:19
+
+I don't get any other exceptions.  I've found other people have this
+"IOError: closed stream" error coupled with "Errno::EMFILE" but we
+have plenty of file-descriptors left.
+
+Here's an lsof dump of the worker:
+
+COMMAND   PID    USER   FD   TYPE             DEVICE        SIZE    NODE NAME
+ruby    15209 zendesk  cwd    DIR              252,0        4096
+2940970 /data/zendesk/releases/alpha
+ruby    15209 zendesk  rtd    DIR                8,1        4096       2 /
+ruby    15209 zendesk  txt    REG                8,1     2831149
+246513 /usr/local/rvm/rubies/ree-1.8.7-2010.02/bin/ruby
+ruby    15209 zendesk  mem    REG                8,1       10192
+146145 /usr/lib/gconv/ISO8859-1.so
+ruby    15209 zendesk  mem    REG                8,1       22848
+263831 /lib/libnss_dns-2.9.so
+ruby    15209 zendesk  mem    REG                8,1        9760
+260915 /lib/libnss_mdns4_minimal.so.2
+ruby    15209 zendesk  mem    REG                8,1       43472
+263939 /lib/libnss_nis-2.9.so
+ruby    15209 zendesk  mem    REG                8,1       35632
+263929 /lib/libnss_compat-2.9.so
+ruby    15209 zendesk  mem    REG                8,1       51616
+263934 /lib/libnss_files-2.9.so
+ruby    15209 zendesk  mem    REG              252,0       35772
+3377231 /data/zendesk/releases/alpha/vendor/bundle/ruby/1.8/gems/em-http-request-0.2.7/lib/em_buffer.so
+ruby    15209 zendesk  mem    REG              252,0       45360
+3377237 /data/zendesk/releases/alpha/vendor/bundle/ruby/1.8/gems/em-http-request-0.2.7/lib/http11_client.so
+ruby    15209 zendesk  mem    REG              252,0     1175256
+3377180 /data/zendesk/releases/alpha/vendor/bundle/ruby/1.8/gems/eventmachine-0.12.10/lib/rubyeventmachine.so
+ruby    15209 zendesk  mem    REG                8,1       35184
+155430 /usr/lib/sasl2/libntlm.so.2.0.22
+ruby    15209 zendesk  mem    REG                8,1       18672
+155418 /usr/lib/sasl2/libanonymous.so.2.0.22
+ruby    15209 zendesk  mem    REG                8,1       18672
+155421 /usr/lib/sasl2/libcrammd5.so.2.0.22
+ruby    15209 zendesk  mem    REG                8,1       18640
+155433 /usr/lib/sasl2/libplain.so.2.0.22
+ruby    15209 zendesk  mem    REG                8,1       18640
+155427 /usr/lib/sasl2/liblogin.so.2.0.22
+ruby    15209 zendesk  mem    REG                8,1     1297736
+140958 /usr/lib/libdb-4.6.so
+ruby    15209 zendesk  mem    REG                8,1       22616
+155410 /usr/lib/sasl2/libsasldb.so.2.0.22
+ruby    15209 zendesk  mem    REG                8,1       52000
+155424 /usr/lib/sasl2/libdigestmd5.so.2.0.22
+ruby    15209 zendesk  mem    REG                8,1       88824
+263949 /lib/libresolv-2.9.so
+ruby    15209 zendesk  mem    REG                8,1      105760
+139781 /usr/lib/libsasl2.so.2.0.22
+ruby    15209 zendesk  mem    REG              252,0     4110920
+3384825 /data/zendesk/releases/alpha/vendor/bundle/ruby/1.8/gems/memcached-0.20.1/lib/rlibmemcached.so
+ruby    15209 zendesk  mem    REG                8,1       97168
+263938 /lib/libnsl-2.9.so
+ruby    15209 zendesk  mem    REG                8,1     2086600
+145819 /usr/lib/libmysqlclient.so.15.0.0
+ruby    15209 zendesk  mem    REG              252,0      169011
+3385005 /data/zendesk/releases/alpha/vendor/bundle/ruby/1.8/gems/mysql-2.8.1/lib/mysql_api.so
+ruby    15209 zendesk  mem    REG              252,0      150950
+3401474 /data/zendesk/releases/alpha/vendor/bundle/ruby/1.8/gems/yajl-ruby-0.7.6/lib/yajl_ext.so
+ruby    15209 zendesk  mem    REG              252,0       29311
+3367472 /data/zendesk/releases/alpha/vendor/bundle/ruby/1.8/gems/SystemTimer-1.2/lib/system_timer_native.so
+ruby    15209 zendesk  mem    REG                8,1       13144
+260768 /lib/libgpg-error.so.0.3.0
+ruby    15209 zendesk  mem    REG                8,1      422664
+260765 /lib/libgcrypt.so.11.4.4
+ruby    15209 zendesk  mem    REG                8,1     1425368
+141140 /usr/lib/libxml2.so.2.6.32
+ruby    15209 zendesk  mem    REG                8,1      233152
+439848 /usr/lib/libxslt.so.1.1.24
+ruby    15209 zendesk  mem    REG                8,1       80792
+439847 /usr/lib/libexslt.so.0.8.13
+ruby    15209 zendesk  mem    REG              252,0      417564
+3385563 /data/zendesk/releases/alpha/vendor/bundle/ruby/1.8/gems/nokogiri-1.4.1/lib/nokogiri/nokogiri.so
+ruby    15209 zendesk  mem    REG                8,1       14220
+252540 /usr/local/rvm/rubies/ree-1.8.7-2010.02/lib/ruby/1.8/x86_64-linux/digest/md5.so
+ruby    15209 zendesk  mem    REG                8,1       42715
+252537 /usr/local/rvm/rubies/ree-1.8.7-2010.02/lib/ruby/1.8/x86_64-linux/racc/cparse.so
+ruby    15209 zendesk  mem    REG              252,0      121676
+3465790 /data/zendesk/releases/alpha/vendor/bundle/ruby/1.8/gems/json-1.4.6/ext/json/ext/json/ext/generator.so
+ruby    15209 zendesk  mem    REG              252,0       52561
+3465795 /data/zendesk/releases/alpha/vendor/bundle/ruby/1.8/gems/json-1.4.6/ext/json/ext/json/ext/parser.so
+ruby    15209 zendesk  mem    REG              252,0       20227
+3401531 /data/zendesk/releases/alpha/vendor/bundle/ruby/1.8/gems/fast_xs-0.7.3/lib/fast_xs.so
+ruby    15209 zendesk  mem    REG                8,1       46499
+255504 /usr/local/rvm/rubies/ree-1.8.7-2010.02/lib/ruby/site_ruby/1.8/x86_64-linux/iconv.so
+ruby    15209 zendesk  mem    REG                8,1      139431
+247137 /usr/local/rvm/rubies/ree-1.8.7-2010.02/lib/ruby/1.8/x86_64-linux/bigdecimal.so
+ruby    15209 zendesk  mem    REG                8,1      433200
+247152 /usr/local/rvm/rubies/ree-1.8.7-2010.02/lib/ruby/1.8/x86_64-linux/nkf.so
+ruby    15209 zendesk  mem    REG              252,0      106488
+3531787 /data/zendesk/releases/alpha/vendor/bundle/ruby/1.8/gems/unicorn-1.1.5/lib/unicorn_http.so
+ruby    15209 zendesk  mem    REG                8,1       53645
+247158 /usr/local/rvm/rubies/ree-1.8.7-2010.02/lib/ruby/1.8/x86_64-linux/strscan.so
+ruby    15209 zendesk  mem    REG                8,1      128208
+247138 /usr/local/rvm/rubies/ree-1.8.7-2010.02/lib/ruby/1.8/x86_64-linux/socket.so
+ruby    15209 zendesk  mem    REG                8,1       12144
+247141 /usr/local/rvm/rubies/ree-1.8.7-2010.02/lib/ruby/1.8/x86_64-linux/fcntl.so
+ruby    15209 zendesk  mem    REG                8,1      329504
+260852 /lib/libssl.so.0.9.8
+ruby    15209 zendesk  mem    REG                8,1     1002954
+247156 /usr/local/rvm/rubies/ree-1.8.7-2010.02/lib/ruby/1.8/x86_64-linux/openssl.so
+ruby    15209 zendesk  mem    REG                8,1      110815
+247146 /usr/local/rvm/rubies/ree-1.8.7-2010.02/lib/ruby/1.8/x86_64-linux/zlib.so
+ruby    15209 zendesk  mem    REG                8,1       35684
+247140 /usr/local/rvm/rubies/ree-1.8.7-2010.02/lib/ruby/1.8/x86_64-linux/digest.so
+ruby    15209 zendesk  mem    REG                8,1       96768
+260746 /lib/libz.so.1.2.3.3
+ruby    15209 zendesk  mem    REG                8,1     1594824
+260668 /lib/libcrypto.so.0.9.8
+ruby    15209 zendesk  mem    REG                8,1       15204
+252539 /usr/local/rvm/rubies/ree-1.8.7-2010.02/lib/ruby/1.8/x86_64-linux/digest/sha1.so
+ruby    15209 zendesk  mem    REG                8,1       12723
+247159 /usr/local/rvm/rubies/ree-1.8.7-2010.02/lib/ruby/1.8/x86_64-linux/rational.so
+ruby    15209 zendesk  mem    REG                8,1      351320
+247142 /usr/local/rvm/rubies/ree-1.8.7-2010.02/lib/ruby/1.8/x86_64-linux/syck.so
+ruby    15209 zendesk  mem    REG                8,1       57484
+247154 /usr/local/rvm/rubies/ree-1.8.7-2010.02/lib/ruby/1.8/x86_64-linux/stringio.so
+ruby    15209 zendesk  mem    REG                8,1       29818
+247150 /usr/local/rvm/rubies/ree-1.8.7-2010.02/lib/ruby/1.8/x86_64-linux/etc.so
+ruby    15209 zendesk  mem    REG                8,1       51878
+247139 /usr/local/rvm/rubies/ree-1.8.7-2010.02/lib/ruby/1.8/x86_64-linux/thread.so
+ruby    15209 zendesk  mem    REG                8,1      130151
+263933 /lib/libpthread-2.9.so
+ruby    15209 zendesk  mem    REG                8,1       96560
+260672 /lib/libgcc_s.so.1
+ruby    15209 zendesk  mem    REG                8,1     1023448
+139822 /usr/lib/libstdc++.so.6.0.10
+ruby    15209 zendesk  mem    REG                8,1     1502512
+263944 /lib/libc-2.9.so
+ruby    15209 zendesk  mem    REG                8,1      542928
+263942 /lib/libm-2.9.so
+ruby    15209 zendesk  mem    REG                8,1       39112
+263932 /lib/libcrypt-2.9.so
+ruby    15209 zendesk  mem    REG                8,1       14608
+263945 /lib/libdl-2.9.so
+ruby    15209 zendesk  mem    REG                8,1       31656
+263930 /lib/librt-2.9.so
+ruby    15209 zendesk  mem    REG                8,1      728968
+246427 /usr/local/rvm/rubies/ree-1.8.7-2010.02/lib/libtcmalloc_minimal.so.0.0.0
+ruby    15209 zendesk  mem    REG                8,1      135680
+263936 /lib/ld-2.9.so
+ruby    15209 zendesk  mem    REG                8,1       26048
+139155 /usr/lib/gconv/gconv-modules.cache
+ruby    15209 zendesk    0r   CHR                1,3
+3125 /dev/null
+ruby    15209 zendesk    1w   REG              252,0           0
+3015360 /data/zendesk/log/unicorn.stdout.log
+ruby    15209 zendesk    2w   REG              252,0       24585
+3015203 /data/zendesk/log/unicorn.stderr.log-20110110 (deleted)
+ruby    15209 zendesk    3w   REG              252,0 61617590073
+3015097 /data/zendesk/log/unicorn.log-20110110 (deleted)
+ruby    15209 zendesk    5u  unix 0xffff88043bdf9080
+49439 /var/run/zendesk/unicorn.sock
+ruby    15209 zendesk    6w  FIFO                0,6             5651378 pipe
+ruby    15209 zendesk    7w   REG              252,0           0
+3015676 /data/zendesk/log/newrelic_agent.log
+ruby    15209 zendesk    8w   REG              252,0    68330048
+3015673 /data/zendesk/log/production.log
+ruby    15209 zendesk    9w   REG              252,0           0
+3015677 /data/zendesk/log/resque.log
+ruby    15209 zendesk   10u  IPv4           41707462
+TCP 192.168.100.148:49364->192.168.100.183:mysql (ESTABLISHED)
+ruby    15209 zendesk   11w   REG              252,0           0
+3015672 /data/zendesk/log/mail_processing_production.log
+ruby    15209 zendesk   12u  IPv4              55517
+TCP 192.168.100.148:60198->192.168.100.182:mysql (ESTABLISHED)
+ruby    15209 zendesk   13u  IPv4              55521
+TCP 192.168.100.148:42351->192.168.100.150:11211 (ESTABLISHED)
+ruby    15209 zendesk   14u  IPv4              55523
+TCP 192.168.100.148:52409->192.168.100.148:11211 (ESTABLISHED)
+ruby    15209 zendesk   15u  IPv4              56105
+TCP 192.168.100.148:58562->192.168.100.140:11211 (ESTABLISHED)
+ruby    15209 zendesk   16u  IPv4              56108
+TCP 192.168.100.148:50500->192.168.100.144:11211 (ESTABLISHED)
+ruby    15209 zendesk   17u  IPv4              56110
+TCP 192.168.100.148:46723->192.168.100.142:11211 (ESTABLISHED)
+ruby    15209 zendesk   18u  IPv4              56137
+TCP 192.168.100.148:49568->192.168.100.146:11211 (ESTABLISHED)
+ruby    15209 zendesk   19u  IPv4            5845535
+TCP 192.168.100.148:43836->192.168.100.183:mysql (ESTABLISHED)
+ruby    15209 zendesk   20u  IPv4              63603
+TCP 192.168.100.148:41990->192.168.100.149:6379 (ESTABLISHED)
+ruby    15209 zendesk   21u   REG                8,1           0
+90084 /tmp/0.961990208371916 (deleted)
+ruby    15209 zendesk   22u  IPv4           10795792
+TCP 192.168.100.148:34587->192.168.100.183:mysql (ESTABLISHED)
+ruby    15209 zendesk   23u  IPv4           33013892
+TCP 192.168.100.148:54382->192.168.100.183:mysql (ESTABLISHED)
+
+
+I'm tempted to exit the worker when I get this exception N number of
+times as a workaround; it tends to only happen when I'm sleeping =)
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
