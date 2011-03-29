@@ -1,0 +1,92 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: unicorn 1.1.x never-ending listen loop IOError exceptions
+Date: Tue, 29 Mar 2011 09:24:44 -0700
+Message-ID: <20110329162444.GA12293@dcvr.yhbt.net>
+References: <AANLkTin18jkoaMkj-kZf-Seqw8hz8aEQ0bZqL_Jf79xo@mail.gmail.com>
+ <20110322213905.GA23207@dcvr.yhbt.net>
+ <AANLkTim=xPJ6Mo9160FvCBzh+RwLnsiOkb51WAhJmmV0@mail.gmail.com>
+ <20110323010935.GA25934@dcvr.yhbt.net>
+ <AANLkTim3xZMKxcmQzPjcB7vrJKiHoc2f8WoU8RatrDum@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1301417378 29924 80.91.229.12 (29 Mar 2011 16:49:38
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Tue, 29 Mar 2011 16:49:38 +0000 (UTC)
+Cc: unicorn list <mongrel-unicorn@rubyforge.org>
+To: David Nghiem <david@zendesk.com>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Tue Mar 29 18:49:34
+ 2011
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <AANLkTim3xZMKxcmQzPjcB7vrJKiHoc2f8WoU8RatrDum@mail.gmail.com>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:895
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/895>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1Q4c6m-000124-2w for gclrug-mongrel-unicorn@m.gmane.org; Tue, 29 Mar 2011
+ 18:49:32 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 19FFA185836C; Tue, 29 Mar 2011 12:49:31 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 3B65B1858112 for <mongrel-unicorn@rubyforge.org>;
+ Tue, 29 Mar 2011 12:24:47 -0400 (EDT)
+Received: from localhost (unknown [127.0.2.5]) by dcvr.yhbt.net (Postfix)
+ with ESMTP id 61CD11F862; Tue, 29 Mar 2011 16:24:46 +0000 (UTC)
+
+David Nghiem <david@zendesk.com> wrote:
+> I'm wondering if the problem is three logs for unicorn (unicorn.log, and the
+> stdout, stderr logs) are rotated by logrotate, but the first log triggers
+> the USR1 and in the middle of rotating the remaining logs, the unicorn log
+> reopening gets confused.
+> 
+> I'll make it so the USR1 signal is sent after all three logs have been
+> rotated.   Let this run for a couple months and report back.
+
+That could be it.   logrotate (without the scary/expensive
+"copytruncate" option) works very quickly for individual files.  Do you
+have the "sharedscripts" option in logrotate enabled?  You should enable
+"sharedscripts"
+
+I should post a logrotate example config so other users don't run into
+the same problem...
+
+> Thanks, Eric, for your help.  I've been running unicorn since the pre-1.0
+> days and it's my favorite ruby software.
+
+Good to know!
+
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
