@@ -1,0 +1,137 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: [PATCH] add examples/logrotate.conf
+Date: Tue, 29 Mar 2011 09:54:58 -0700
+Message-ID: <20110329165458.GA14389@dcvr.yhbt.net>
+References: <AANLkTin18jkoaMkj-kZf-Seqw8hz8aEQ0bZqL_Jf79xo@mail.gmail.com>
+ <20110322213905.GA23207@dcvr.yhbt.net>
+ <AANLkTim=xPJ6Mo9160FvCBzh+RwLnsiOkb51WAhJmmV0@mail.gmail.com>
+ <20110323010935.GA25934@dcvr.yhbt.net>
+ <AANLkTim3xZMKxcmQzPjcB7vrJKiHoc2f8WoU8RatrDum@mail.gmail.com>
+ <20110329162444.GA12293@dcvr.yhbt.net>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1301418043 1377 80.91.229.12 (29 Mar 2011 17:00:43
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Tue, 29 Mar 2011 17:00:43 +0000 (UTC)
+Cc: unicorn list <mongrel-unicorn@rubyforge.org>
+To: David Nghiem <david@zendesk.com>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Tue Mar 29 19:00:36
+ 2011
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <20110329162444.GA12293@dcvr.yhbt.net>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:896
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/896>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1Q4cHU-0006O2-0i for gclrug-mongrel-unicorn@m.gmane.org; Tue, 29 Mar 2011
+ 19:00:36 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 675C2185836C; Tue, 29 Mar 2011 13:00:35 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id B33921858374 for <mongrel-unicorn@rubyforge.org>;
+ Tue, 29 Mar 2011 12:55:00 -0400 (EDT)
+Received: from localhost (unknown [127.0.2.5]) by dcvr.yhbt.net (Postfix)
+ with ESMTP id 19D2C1F862; Tue, 29 Mar 2011 16:55:00 +0000 (UTC)
+
+Eric Wong <normalperson@yhbt.net> wrote:
+> That could be it.   logrotate (without the scary/expensive
+> "copytruncate" option) works very quickly for individual files.  Do you
+> have the "sharedscripts" option in logrotate enabled?  You should enable
+> "sharedscripts"
+
+I actually went with lastaction in my example (I keep forgetting it over
+the years and going to postrotate + sharedscripts for some reason..)
+
+> I should post a logrotate example config so other users don't run into
+> the same problem...
+
+http://unicorn.bogomips.org/examples/logrotate.conf and pushed
+this out to unicorn.git
+
+>From c1ebb313735a280582d87c1ba44619aa47e00b06 Mon Sep 17 00:00:00 2001
+From: Eric Wong <normalperson@yhbt.net>
+Date: Tue, 29 Mar 2011 09:47:26 -0700
+Subject: [PATCH] add examples/logrotate.conf
+
+logrotate is the de facto tool for logrotation, so an
+example config for highlighting important parts are in order.
+
+Since our USR1 signal handling is part of the crusade against
+the slow and lossy "copytruncate" option, be sure to
+emphasize that :)
+---
+ examples/logrotate.conf |   29 +++++++++++++++++++++++++++++
+ 1 files changed, 29 insertions(+), 0 deletions(-)
+ create mode 100644 examples/logrotate.conf
+
+diff --git a/examples/logrotate.conf b/examples/logrotate.conf
+new file mode 100644
+index 0000000..03fefc6
+--- /dev/null
++++ b/examples/logrotate.conf
+@@ -0,0 +1,29 @@
++# example logrotate config file, I usually keep this in
++# /etc/logrotate.d/unicorn_app on my Debian systems
++#
++# See the logrotate(8) manpage for more information:
++#    http://linux.die.net/man/8/logrotate
++
++# Modify the following glob to match the logfiles your app writes to:
++/var/log/unicorn_app/*.log {
++	# this first block is mostly just personal preference, though
++	# I wish logrotate offered an "hourly" option...
++	daily
++	missingok
++	rotate 180
++	compress # must use with delaycompress below
++	dateext
++
++	# this is important if using "compress" since we need to call
++	# the "lastaction" script below before compressing:
++	delaycompress
++
++	# note the lack of the evil "copytruncate" option in this
++	# config.  Unicorn supports the USR1 signal and we send it
++	# as our "lastaction" action:
++	lastaction
++		# assuming your pid file is in /var/run/unicorn_app/pid
++		pid=/var/run/unicorn_app/pid
++		test -s $pid && kill -USR1 "$(cat $pid)"
++	endscript
++}
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
