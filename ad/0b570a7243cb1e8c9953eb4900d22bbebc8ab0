@@ -1,0 +1,74 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.7 required=5.0 tests=MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Matthew Kocher <mkocher@pivotallabs.com>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Reopening logs - why no relative paths?
+Date: Thu, 31 Mar 2011 10:45:32 -0700
+Message-ID: <AANLkTimM0OV2=kRKjpB0Bj1AFMTpiwMj5H223-45fb6P@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1301593572 19433 80.91.229.12 (31 Mar 2011 17:46:12
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Thu, 31 Mar 2011 17:46:12 +0000 (UTC)
+To: mongrel-unicorn@rubyforge.org
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Thu Mar 31 19:46:07
+ 2011
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:900
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/900>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1Q5Lwd-0003MM-BD for gclrug-mongrel-unicorn@m.gmane.org; Thu, 31 Mar 2011
+ 19:46:07 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id EA8251858375; Thu, 31 Mar 2011 13:46:05 -0400 (EDT)
+Received: from mail-vw0-f50.google.com (mail-vw0-f50.google.com
+ [209.85.212.50]) by rubyforge.org (Postfix) with ESMTP id AF75C185835A for
+ <mongrel-unicorn@rubyforge.org>; Thu, 31 Mar 2011 13:45:53 -0400 (EDT)
+Received: by vws14 with SMTP id 14so2735623vws.23 for
+ <mongrel-unicorn@rubyforge.org>; Thu, 31 Mar 2011 10:45:53 -0700 (PDT)
+Received: by 10.52.95.135 with SMTP id dk7mr182402vdb.93.1301593553230; Thu,
+ 31 Mar 2011 10:45:53 -0700 (PDT)
+Received: by 10.52.160.193 with HTTP; Thu, 31 Mar 2011 10:45:32 -0700 (PDT)
+
+We just spend a couple hours trying to figure out why sending a USR1
+signal wasn't causing unicorn to reopen logs.  Looking at the source
+reveals that only files opened with absolute paths are eligible for
+rotation, the others are silently skipped.
+
+We use the fairly standard practice of always logging to
+log/unicorn.error.log and creating symlinks to where we'd like the
+logs to live on individual hosts.  We'll change our configs for the
+time being, but is there a reason to not reopen the relative paths?
+
+Thanks,
+Matthew
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
