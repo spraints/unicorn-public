@@ -1,0 +1,126 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: Reopening logs - why no relative paths?
+Date: Fri, 1 Apr 2011 16:15:01 -0700
+Message-ID: <20110401231501.GA31711@dcvr.yhbt.net>
+References: <AANLkTimM0OV2=kRKjpB0Bj1AFMTpiwMj5H223-45fb6P@mail.gmail.com>
+ <20110331220248.GA1826@dcvr.yhbt.net>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1301699718 1266 80.91.229.12 (1 Apr 2011 23:15:18
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Fri, 1 Apr 2011 23:15:18 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Sat Apr 02 01:15:14
+ 2011
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <20110331220248.GA1826@dcvr.yhbt.net>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:902
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/902>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1Q5nYe-0007Nu-Bf for gclrug-mongrel-unicorn@m.gmane.org; Sat, 02 Apr 2011
+ 01:15:12 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id CAA8A167816B; Fri,  1 Apr 2011 19:15:10 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id D27461858378 for <mongrel-unicorn@rubyforge.org>;
+ Fri,  1 Apr 2011 19:15:06 -0400 (EDT)
+Received: from localhost (unknown [127.0.2.5]) by dcvr.yhbt.net (Postfix)
+ with ESMTP id 08B5E1F6AD; Fri,  1 Apr 2011 23:15:06 +0000 (UTC)
+
+Eric Wong <normalperson@yhbt.net> wrote:
+> Matthew Kocher <mkocher@pivotallabs.com> wrote:
+> > We just spend a couple hours trying to figure out why sending a USR1
+> > signal wasn't causing unicorn to reopen logs.  Looking at the source
+> > reveals that only files opened with absolute paths are eligible for
+> > rotation, the others are silently skipped.
+> > 
+> > We use the fairly standard practice of always logging to
+> > log/unicorn.error.log and creating symlinks to where we'd like the
+> > logs to live on individual hosts.  We'll change our configs for the
+> > time being, but is there a reason to not reopen the relative paths?
+> 
+> It's ambiguous due to directory changes[1].  It may be easier now that
+> we have the "working_directory" directive now, but configuration changes
+> also change (or unset) the "working_directory" which adds to the
+> confusion.
+> 
+> We could try allowing it and see what happens, I suppose...
+
+Just pushed this out, thinking about it more I don't think it'll have an
+adverse effect on most installations out there...
+
+>From 6647dcb3afa4c0b16c5fef5bfdf88292e6adf6ca Mon Sep 17 00:00:00 2001
+From: Eric Wong <normalperson@yhbt.net>
+Date: Fri, 1 Apr 2011 16:09:03 -0700
+Subject: [PATCH] util: allow relative paths to be rotated
+
+Users keep both pieces if it's broken :)
+---
+ lib/unicorn/util.rb |    9 +++++----
+ 1 files changed, 5 insertions(+), 4 deletions(-)
+
+diff --git a/lib/unicorn/util.rb b/lib/unicorn/util.rb
+index 82329eb..cde2563 100644
+--- a/lib/unicorn/util.rb
++++ b/lib/unicorn/util.rb
+@@ -8,7 +8,6 @@ module Unicorn::Util
+ 
+     ! fp.closed? &&
+       fp.sync &&
+-      fp.path[0] == ?/ &&
+       (fp.fcntl(Fcntl::F_GETFL) & append_flags) == append_flags
+     rescue IOError, Errno::EBADF
+       false
+@@ -25,10 +24,12 @@ module Unicorn::Util
+   # using logrotate(8) (without copytruncate) or similar tools.
+   # A +File+ object is considered for reopening if it is:
+   #   1) opened with the O_APPEND and O_WRONLY flags
+-  #   2) opened with an absolute path (starts with "/")
+-  #   3) the current open file handle does not match its original open path
+-  #   4) unbuffered (as far as userspace buffering goes, not O_SYNC)
++  #   2) the current open file handle does not match its original open path
++  #   3) unbuffered (as far as userspace buffering goes, not O_SYNC)
+   # Returns the number of files reopened
++  #
++  # In Unicorn 3.5.x and earlier, files must be opened with an absolute
++  # path to be considered a log file.
+   def self.reopen_logs
+     to_reopen = []
+     nr = 0
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
