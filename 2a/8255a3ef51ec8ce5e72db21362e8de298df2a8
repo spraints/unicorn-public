@@ -1,0 +1,132 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: Struggling with logrotate and unicorn
+Date: Tue, 12 Apr 2011 22:51:05 +0000
+Message-ID: <20110412225105.GA20096@dcvr.yhbt.net>
+References: <8A1F87B7-F4A6-4186-AE22-604F875C7F29@gmail.com>
+ <20110412175855.GA21250@dcvr.yhbt.net>
+ <91269EF1-4FEC-4CD3-82EE-4DF48F2544EE@gmail.com>
+ <20110412185901.GA32009@dcvr.yhbt.net>
+ <C259E8F1-99FF-4B0A-97DA-DB5DA7FCDDD0@gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1302650675 12759 80.91.229.12 (12 Apr 2011 23:24:35
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Tue, 12 Apr 2011 23:24:35 +0000 (UTC)
+Cc: Emmanuel Gomez <emmanuel.gomez@gmail.com>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Wed Apr 13 01:24:30
+ 2011
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <C259E8F1-99FF-4B0A-97DA-DB5DA7FCDDD0@gmail.com>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:911
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/911>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1Q9mwf-0003SA-NS for gclrug-mongrel-unicorn@m.gmane.org; Wed, 13 Apr 2011
+ 01:24:30 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 20933167816B; Tue, 12 Apr 2011 19:24:29 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 3F63A18583A4 for <mongrel-unicorn@rubyforge.org>;
+ Tue, 12 Apr 2011 18:51:06 -0400 (EDT)
+Received: from localhost (unknown [127.0.2.5]) by dcvr.yhbt.net (Postfix)
+ with ESMTP id 12FDD1F651; Tue, 12 Apr 2011 22:51:06 +0000 (UTC)
+
+Emmanuel Gomez <emmanuel.gomez@gmail.com> wrote:
+> On Apr 12, 2011, at 11:59 AM, Eric Wong wrote:
+> > I'll make that more robust and release 3.6.0 sometime this week with
+> > (hopefully) a few other minor improvements.
+> 
+> Great. This is apparently an infrequent circumstance (uncommon
+> configuration?), but there will be a next person who does this (or
+> comparable silliness).
+
+Yes, I think most people still deploy and start as non-root
+(Capistrano/Vlad).  But I also distribute init scripts and those
+are usually run as root :x
+
+> >> Thanks for your reply, I'm off to comment on the GitHub blog post
+> >> to try to warn others to use Unicorn::Worker#user instead of the
+> >> example code in after_fork.
+> > 
+> > Thanks, that seems to be a general problem with people relying on
+> > blog/mailing list posts instead of consistently updated
+> > documentation.
+> 
+> Indeed, but I read most of the unicorn docs, and
+> examples/unicorn.conf.rb in 3.3.1 doesn't mention
+> Unicorn::Worker#user, so I remained unaware until I read through
+> worker.rb.
+
+Actually the (usually) user-visible one should be
+Unicorn::Configurator#user which should be in the top-level.
+Worker#user is just the internal call.
+
+> Hey, I can help here. Here's a patch:
+
+Perhaps this is better? I added a blurb discouraging people from
+running as root in the first place.  You'll still get credit :)
+
+>From c4d3cd7d7b32ed133e25e3740c8e7a3493592eec Mon Sep 17 00:00:00 2001
+From: Emmanuel Gomez <emmanuel.gomez@gmail.com>
+Date: Tue, 12 Apr 2011 15:36:36 -0700
+Subject: [PATCH] Document "user" directive in example unicorn conf
+
+---
+ examples/unicorn.conf.rb |    7 +++++++
+ 1 files changed, 7 insertions(+), 0 deletions(-)
+
+diff --git a/examples/unicorn.conf.rb b/examples/unicorn.conf.rb
+index 28a9e65..61f0b4b 100644
+--- a/examples/unicorn.conf.rb
++++ b/examples/unicorn.conf.rb
+@@ -12,6 +12,13 @@
+ # more will usually help for _short_ waits on databases/caches.
+ worker_processes 4
+ 
++# Since Unicorn is never exposed to outside clients, it does not need to
++# run on the standard HTTP port (80), there is no reason to start Unicorn
++# as root unless it's from system init scripts.
++# If running the master process as root and the workers as an unprivileged
++# user, do this to switch euid/egid in the workers (also chowns logs):
++# user "unprivileged_user", "unprivileged_group"
++
+ # Help ensure your application will always spawn in the symlinked
+ # "current" directory that Capistrano sets up.
+ working_directory "/path/to/app/current" # available in 0.94.0+
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
