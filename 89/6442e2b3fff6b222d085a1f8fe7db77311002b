@@ -1,0 +1,128 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: Struggling with logrotate and unicorn
+Date: Tue, 12 Apr 2011 11:59:02 -0700
+Message-ID: <20110412185901.GA32009@dcvr.yhbt.net>
+References: <8A1F87B7-F4A6-4186-AE22-604F875C7F29@gmail.com>
+ <20110412175855.GA21250@dcvr.yhbt.net>
+ <91269EF1-4FEC-4CD3-82EE-4DF48F2544EE@gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1302635207 23580 80.91.229.12 (12 Apr 2011 19:06:47
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Tue, 12 Apr 2011 19:06:47 +0000 (UTC)
+Cc: Emmanuel Gomez <emmanuel.gomez@gmail.com>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Tue Apr 12 21:06:42
+ 2011
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <91269EF1-4FEC-4CD3-82EE-4DF48F2544EE@gmail.com>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:908
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/908>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1Q9ivA-0008Rg-Ms for gclrug-mongrel-unicorn@m.gmane.org; Tue, 12 Apr 2011
+ 21:06:40 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id E3D221858375; Tue, 12 Apr 2011 15:06:39 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id C304E1858374 for <mongrel-unicorn@rubyforge.org>;
+ Tue, 12 Apr 2011 14:59:02 -0400 (EDT)
+Received: from localhost (unknown [127.0.2.5]) by dcvr.yhbt.net (Postfix)
+ with ESMTP id 359171F651; Tue, 12 Apr 2011 18:59:02 +0000 (UTC)
+
+Emmanuel Gomez <emmanuel.gomez@gmail.com> wrote:
+> On Apr 12, 2011, at 10:58 AM, Eric Wong wrote:
+> > Emmanuel Gomez <emmanuel.gomez@gmail.com> wrote:
+> >> I have confirmed that logrotate creates the logs with a 0600 umask
+> >> and the uid/gid of my unprivileged user (per my logrotate config,
+> >> loosely based on the example logrotate.conf from 3.4 or 3.5). 
+> > 
+> > Did the permissions of the old (rotated) log files change?
+> 
+> No, they remained owned by root.
+
+Remained owned by root?  Yes that sounds like the problem.
+
+> >> The problem occurs when I send a USR1 signal to the master process
+> >> (as root, because the master is running as root) after the logs
+> >> have been rotated. As near as I can tell, after that the Unicorn
+> >> master chowns the logs to root ownership. Then, the workers attempt
+> >> to chown the logs back to ownership by the unprivileged user, which
+> >> repeatedly fails, spewing megabytes of errors that look like:
+> > 
+> > The rotation error handling should probably just exit! the worker
+> > and rely on the master to restart it...
+> 
+> That would probably be better behavior, although in this specific case
+> the worker would immediately die on respawn because the log is still
+> owned by root and unwriteable by my unprivileged user.
+> 
+> I did find a resolution: in the after_fork block, I had copied the
+> code to switch users from the GitHub blog post on unicorn
+> (https://github.com/blog/517-unicorn). I didn't see
+> Unicorn::Worker#user, which implements the same code with the addition
+> of a call to Unicorn::Util.chown_logs. When I replace the inline
+> GitHub-blog-derived code with a call to Unicorn::Worker#user, it
+> works. 
+
+Yes, the old versions of Unicorn didn't change users at all.
+
+I always knew user-switching is a pain in the ass to deal with due to
+issues like this.   Due to work on Rainbows! (designed to run on port
+80) and users starting as root anyways (due to init scripts), I needed
+add this feature.
+
+> My understanding is that this (after_fork/Unicorn::Util.chown_logs)
+> shouldn't be executed on USR1; I don't see how the
+> Unicorn::Util.chown_logs call on after_fork (startup) would make a
+> difference w/r/t rotation (much later), but my understanding is
+> obviously incomplete, because it works.
+
+It's the rotation that attempts to chown since it thinks (incorrectly)
+that it's in the master process.  I'll make that more robust and release
+3.6.0 sometime this week with (hopefully) a few other minor
+improvements.
+
+> Thanks for your reply, I'm off to comment on the GitHub blog post to
+> try to warn others to use Unicorn::Worker#user instead of the example
+> code in after_fork.
+
+Thanks, that seems to be a general problem with people relying on
+blog/mailing list posts instead of consistently updated documentation.
+
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
