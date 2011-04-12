@@ -1,0 +1,117 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.6 required=5.0 tests=FREEMAIL_FROM,
+ MSGID_FROM_MTA_HEADER,RP_MATCHES_RCVD,T_DKIM_INVALID shortcircuit=no
+ autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Emmanuel Gomez <emmanuel.gomez@gmail.com>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Struggling with logrotate and unicorn
+Date: Tue, 12 Apr 2011 09:13:02 -0700
+Message-ID: <8A1F87B7-F4A6-4186-AE22-604F875C7F29@gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0 (Apple Message framework v1084)
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1302624987 23029 80.91.229.12 (12 Apr 2011 16:16:27
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Tue, 12 Apr 2011 16:16:27 +0000 (UTC)
+To: mongrel-unicorn@rubyforge.org
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Tue Apr 12 18:16:23
+ 2011
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com; s=gamma;
+ h=domainkey-signature:from:content-type:content-transfer-encoding
+ :subject:date:message-id:to:mime-version:x-mailer;
+ bh=Qhcqd7P5a2YFrhMGIBRAQ7teaSsOYEcWmzkOXSPxFYo=;
+ b=N+/NobpgVqyaFsZsTbd6PS2DEXPUr2OI/JgYbi1p/qpFC5o6IfBZrj7zKTryZ/3u5X
+ esUvfMIuBiEvHRQwKC1FHLjAP2RzeunD74/qjRGGIU6+MPTHzJ0uhFAdlWSeqBFirFXx
+ v+HKyMPc2imtcuH0CcCQXw9BCNC2cVKw/2OoI=
+DomainKey-Signature: a=rsa-sha1; c=nofws; d=gmail.com; s=gamma;
+ h=from:content-type:content-transfer-encoding:subject:date:message-id
+ :to:mime-version:x-mailer;
+ b=Edo8MjTK61bmLdERyyWls8YAufWpzihU4JZD6y0AnjVQvzcCng/a6uEpn6/nJxFfPS
+ Q/23a4Rkekd/WX3hheX9xGv/p6vP6FVTVeGnBA0CMqV1JZYALo/qq3P2xq8NodgV4Sex
+ sEHY1wps+ycaCY78Zues2PWGddPLNvuAGsUlY=
+X-Mailer: Apple Mail (2.1084)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:906
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/906>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1Q9gGN-0006Kj-EB for gclrug-mongrel-unicorn@m.gmane.org; Tue, 12 Apr 2011
+ 18:16:23 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 292761858375; Tue, 12 Apr 2011 12:16:22 -0400 (EDT)
+Received: from mail-pw0-f50.google.com (mail-pw0-f50.google.com
+ [209.85.160.50]) by rubyforge.org (Postfix) with ESMTP id 5EEDD185835A for
+ <mongrel-unicorn@rubyforge.org>; Tue, 12 Apr 2011 12:13:03 -0400 (EDT)
+Received: by pwi3 with SMTP id 3so3345094pwi.23 for
+ <mongrel-unicorn@rubyforge.org>; Tue, 12 Apr 2011 09:13:02 -0700 (PDT)
+Received: by 10.142.131.1 with SMTP id e1mr6482397wfd.292.1302624782434; Tue,
+ 12 Apr 2011 09:13:02 -0700 (PDT)
+Received: from [10.0.1.6] (c-24-18-181-208.hsd1.wa.comcast.net
+ [24.18.181.208]) by mx.google.com with ESMTPS id
+ x11sm9870552wfd.13.2011.04.12.09.13.00 (version=TLSv1/SSLv3 cipher=OTHER);
+ Tue, 12 Apr 2011 09:13:01 -0700 (PDT)
+
+Hi,
+
+First of all, thanks for Unicorn, it's a fantastic tool.
+
+I'm starting a Unicorn 3.3.1 master process as root on an Ubuntu 10.04 LTS host, and dropping to an unprivileged user in the workers after forking. This all works fine. 
+
+I have confirmed that logrotate creates the logs with a 0600 umask and the uid/gid of my unprivileged user (per my logrotate config, loosely based on the example logrotate.conf from 3.4 or 3.5). 
+
+The problem occurs when I send a USR1 signal to the master process (as root, because the master is running as root) after the logs have been rotated. As near as I can tell, after that the Unicorn master chowns the logs to root ownership. Then, the workers attempt to chown the logs back to ownership by the unprivileged user, which repeatedly fails, spewing megabytes of errors that look like:
+
+worker=0 reopening logs...
+Unhandled listen loop exception #<Errno::EPERM: Operation not permitted - /opt/wp/src/nascar/current/log/staging.log>.
+/opt/wp/src/nascar/shared/bundle/ruby/1.8/gems/unicorn-3.3.1/lib/unicorn/util.rb:57:in `chown'
+/opt/wp/src/nascar/shared/bundle/ruby/1.8/gems/unicorn-3.3.1/lib/unicorn/util.rb:57:in `reopen_logs'
+/opt/wp/src/nascar/shared/bundle/ruby/1.8/gems/unicorn-3.3.1/lib/unicorn/util.rb:37:in `each'
+/opt/wp/src/nascar/shared/bundle/ruby/1.8/gems/unicorn-3.3.1/lib/unicorn/util.rb:37:in `reopen_logs'
+/opt/wp/src/nascar/shared/bundle/ruby/1.8/gems/unicorn-3.3.1/lib/unicorn/http_server.rb:569:in `reopen_worker_logs'
+/opt/wp/src/nascar/shared/bundle/ruby/1.8/gems/unicorn-3.3.1/lib/unicorn/http_server.rb:592:in `worker_loop'
+/opt/wp/src/nascar/shared/bundle/ruby/1.8/gems/unicorn-3.3.1/lib/unicorn/http_server.rb:496:in `spawn_missing_workers'
+/opt/wp/src/nascar/shared/bundle/ruby/1.8/gems/unicorn-3.3.1/lib/unicorn/http_server.rb:493:in `fork'
+/opt/wp/src/nascar/shared/bundle/ruby/1.8/gems/unicorn-3.3.1/lib/unicorn/http_server.rb:493:in `spawn_missing_workers'
+/opt/wp/src/nascar/shared/bundle/ruby/1.8/gems/unicorn-3.3.1/lib/unicorn/http_server.rb:489:in `each'
+/opt/wp/src/nascar/shared/bundle/ruby/1.8/gems/unicorn-3.3.1/lib/unicorn/http_server.rb:489:in `spawn_missing_workers'
+/opt/wp/src/nascar/shared/bundle/ruby/1.8/gems/unicorn-3.3.1/lib/unicorn/http_server.rb:503:in `maintain_worker_count'
+/opt/wp/src/nascar/shared/bundle/ruby/1.8/gems/unicorn-3.3.1/lib/unicorn/http_server.rb:297:in `join'
+/opt/wp/src/nascar/shared/bundle/ruby/1.8/gems/unicorn-3.3.1/lib/unicorn.rb:13:in `run'
+/opt/wp/src/nascar/shared/bundle/ruby/1.8/gems/unicorn-3.3.1/bin/unicorn_rails:208
+/opt/wp/src/nascar/shared/bundle/ruby/1.8/bin/unicorn_rails:19:in `load'
+/opt/wp/src/nascar/shared/bundle/ruby/1.8/bin/unicorn_rails:19
+
+
+I looked at Unicorn::Util.reopen_logs, which is where the exception originates, and clearly has code intended to deal with this (https://github.com/defunkt/unicorn/blob/v3.3.1/lib/unicorn/util.rb#L56), but it doesn't appear to be doing the right thing in my circumstance. It's not apparent to me at a glance why this is failing.
+
+I'm not subscribed to the list, so please cc: my on replies.
+
+Thanks for any input you may have,
+Emmanuel Gomez
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
