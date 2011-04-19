@@ -1,0 +1,100 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: unicorn 3.6.0 release soon
+Date: Tue, 19 Apr 2011 18:13:48 +0000
+Message-ID: <20110419181348.GA5103@dcvr.yhbt.net>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1303236839 13648 80.91.229.12 (19 Apr 2011 18:13:59
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Tue, 19 Apr 2011 18:13:59 +0000 (UTC)
+To: mongrel-unicorn@rubyforge.org
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Tue Apr 19 20:13:55
+ 2011
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:915
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/915>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1QCFQw-0007Qe-Fj for gclrug-mongrel-unicorn@m.gmane.org; Tue, 19 Apr 2011
+ 20:13:54 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 8F9CB1858374; Tue, 19 Apr 2011 14:13:53 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id DA7721858374 for <mongrel-unicorn@rubyforge.org>;
+ Tue, 19 Apr 2011 14:13:49 -0400 (EDT)
+Received: from localhost (unknown [127.0.2.5]) by dcvr.yhbt.net (Postfix)
+ with ESMTP id E5C491F404; Tue, 19 Apr 2011 18:13:48 +0000 (UTC)
+
+Mainly small fixes, improvements, and workarounds for fork() issues
+with pseudo-random number generators shipped with Ruby (Kernel#rand,
+OpenSSL::Random (used by SecureRandom and also by Rails).
+
+If there are any other fixes/improvements that could be useful let us
+know.  I think this is nearing the end of the line for the 3.x series
+which will then go into maintenance mode.  I'm looking at 4.x being the
+crazy series that allows us to run thousands of worker _processes_ and
+scale to mythical 4096 core systems :)
+
+The PRNG issues are documented in depth here (and links to Ruby Redmine):
+
+  http://bogomips.org/unicorn.git/commit?id=1107ede7
+  http://bogomips.org/unicorn.git/commit?id=b3241621
+
+
+If you're too lazy to upgrade, you can just do this in your after_fork
+hooks:
+
+  after_fork do |server,worker|
+    tmp = srand
+    OpenSSL::Random.seed(tmp.to_s) if defined?(OpenSSL::Random)
+  end
+
+There are also small log reopening (SIGUSR1) improvements:
+
+* relative paths may also be reopened, there's a small chance this
+  will break with a handful of setups, but unlikely.  This should
+  make configuration easier especially since the "working_directory"
+  configurator directive exists.  Brought up by Matthew Kocher:
+  http://thread.gmane.org/gmane.comp.lang.ruby.unicorn.general/900
+
+* workers will just die (and restart) if log reopening fails for
+  any reason (including user error).  This is to workaround the issue
+  reported by Emmanuel Gomez:
+  http://thread.gmane.org/gmane.comp.lang.ruby.unicorn.general/906
+
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
