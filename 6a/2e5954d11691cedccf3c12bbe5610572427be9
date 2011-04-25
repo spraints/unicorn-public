@@ -1,0 +1,102 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: Unicorn / Daemontools
+Date: Mon, 25 Apr 2011 11:34:58 -0700
+Message-ID: <20110425183458.GA5826@dcvr.yhbt.net>
+References: <BANLkTimd0bpJdPofjA-9tzwEpci0gpKn5g@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1303757609 2772 80.91.229.12 (25 Apr 2011 18:53:29
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Mon, 25 Apr 2011 18:53:29 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Mon Apr 25 20:53:25
+ 2011
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <BANLkTimd0bpJdPofjA-9tzwEpci0gpKn5g@mail.gmail.com>
+User-Agent: Mutt/1.5.18 (2008-05-17)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:918
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/918>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1QEQuP-0006dp-TX for gclrug-mongrel-unicorn@m.gmane.org; Mon, 25 Apr 2011
+ 20:53:22 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 7B67C1858378; Mon, 25 Apr 2011 14:53:20 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 438CD185838E for <mongrel-unicorn@rubyforge.org>;
+ Mon, 25 Apr 2011 14:35:04 -0400 (EDT)
+Received: from localhost (unknown [127.0.2.5]) by dcvr.yhbt.net (Postfix)
+ with ESMTP id AD4E21F6AA; Mon, 25 Apr 2011 18:34:57 +0000 (UTC)
+
+Curtis j Schofield <curtis.schofield@gmail.com> wrote:
+> I tried to get Daemontools and Unicorn working together a while back -
+> there are issues on USR2 restart because of the pid
+> change - I'm hoping someone  in the community will have some
+> understanding of this issue
+
+I have no experience with daemontools directly, but I expect any
+solutions people found to make daemontools work with nginx USR2
+would also work for unicorn since they have the same process/signal
+model.
+
+Maybe a hacky way would be to have daemontools run this wrapper
+script instead of Unicorn:
+
+-------------------------------- 8< -------------------------
+#!/bin/sh
+set -e
+
+# this script is totally untested and written by someone who's never
+# used daemontools
+
+# start Unicorn in the background:
+bundle exec unicorn -D ...
+
+# forward signals received in this wrapper to the Unicorn process:
+for sig in HUP USR1 USR2 QUIT TERM QUIT
+do
+	trap 'kill -'$sig' $(cat $UNICORN_PID_FILE)' $sig
+done
+
+# loop forever while Unicorn has its pid file
+# a smarter, Linux-only version of this would use inotify instead
+while test -f $UNICORN_PID_FILE
+do
+	sleep 1
+done
+
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
