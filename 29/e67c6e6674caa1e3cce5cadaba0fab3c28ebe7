@@ -1,0 +1,105 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: [PATCH 1/2] examples/nginx.conf: clarify proxy_buffering for Rails
+ 3.1
+Date: Wed, 27 Apr 2011 14:12:41 -0700
+Message-ID: <1303938762-32318-2-git-send-email-normalperson@yhbt.net>
+References: <20110427181317.GA17625@dcvr.yhbt.net>
+ <1303938762-32318-1-git-send-email-normalperson@yhbt.net>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1303941232 22219 80.91.229.12 (27 Apr 2011 21:53:52
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Wed, 27 Apr 2011 21:53:52 +0000 (UTC)
+Cc: Aaron Patterson <aaron@tenderlovemaking.com>
+To: mongrel-unicorn@rubyforge.org
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Wed Apr 27 23:53:47
+ 2011
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+X-Mailer: git-send-email 1.7.5.rc0.117.gd2742
+In-Reply-To: <1303938762-32318-1-git-send-email-normalperson@yhbt.net>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:930
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/930>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1QFCg6-0002NU-O8 for gclrug-mongrel-unicorn@m.gmane.org; Wed, 27 Apr 2011
+ 23:53:46 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 33B713C8051; Wed, 27 Apr 2011 17:53:46 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 8D5C8185836C for <mongrel-unicorn@rubyforge.org>;
+ Wed, 27 Apr 2011 17:13:07 -0400 (EDT)
+Received: from localhost (unknown [127.0.2.5]) by dcvr.yhbt.net (Postfix)
+ with ESMTP id 259361FD59; Wed, 27 Apr 2011 21:13:07 +0000 (UTC)
+
+I've tested with nginx 1.0.0 and confirmed "proxy_buffering off;"
+can cause Unicorn to block on a slow client reading a
+large response.  While there's a potential (client-visible)
+performance improvement with Rails 3.1 streaming responses, it
+can also hurt the server with slow clients.
+
+Rainbows! with (ThreadSpawn or ThreadPool) is probably the best
+way to do streaming responses efficiently from all angles (from
+a server, client and programmer time perspective).
+---
+ examples/nginx.conf |   13 +++++++++----
+ 1 files changed, 9 insertions(+), 4 deletions(-)
+
+diff --git a/examples/nginx.conf b/examples/nginx.conf
+index 52ec245..9f245c8 100644
+--- a/examples/nginx.conf
++++ b/examples/nginx.conf
+@@ -125,10 +125,15 @@ http {
+       proxy_redirect off;
+ 
+       # set "proxy_buffering off" *only* for Rainbows! when doing
+-      # Comet/long-poll stuff.  It's also safe to set if you're
+-      # using only serving fast clients with Unicorn + nginx.
+-      # Otherwise you _want_ nginx to buffer responses to slow
+-      # clients, really.
++      # Comet/long-poll/streaming.  It's also safe to set if you're using
++      # only serving fast clients with Unicorn + nginx, but not slow
++      # clients.  You normally want nginx to buffer responses to slow
++      # clients, even with Rails 3.1 streaming because otherwise a slow
++      # client can become a bottleneck of Unicorn.
++      #
++      # The Rack application may also set "X-Accel-Buffering (yes|no)"
++      # in the response headers do disable/enable buffering on a
++      # per-response basis.
+       # proxy_buffering off;
+ 
+       proxy_pass http://app_server;
+-- 
+Eric Wong
+
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
