@@ -1,0 +1,139 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.6 required=5.0 tests=FREEMAIL_FROM,
+ MSGID_FROM_MTA_HEADER,RP_MATCHES_RCVD,T_DKIM_INVALID shortcircuit=no
+ autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Stone <stones.gao@gmail.com>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: unicorn worker partially restarted when using USR2
+Date: Sat, 7 May 2011 19:54:11 +0800
+Message-ID: <BANLkTi=Fh0iSkUhWP_Hss-LRRe0_sGHUbA@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1304772235 32391 80.91.229.12 (7 May 2011 12:43:55
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Sat, 7 May 2011 12:43:55 +0000 (UTC)
+To: mongrel-unicorn@rubyforge.org
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Sat May 07 14:43:50
+ 2011
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+X-Greylist: delayed 1003 seconds by postgrey-1.31 at rubyforge.org; Sat, 07
+ May 2011 08:17:34 EDT
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com; s=gamma;
+ h=domainkey-signature:mime-version:date:message-id:subject:from:to
+ :content-type; bh=LJXk4eEYAW+F0QMIRuj/fIcD4IkgG9/vQWd1QR9bCN4=;
+ b=Y95vfzPyWRRtQvSfwT1GC/JE1AdskcZ8wj995lXokSLj8n5tPkz8At+Y9Q5V7cGey8
+ TS5qMKDGQDgOz9iDD9z8hl7OLhlLH+qXJWPa/jnGGxL97knANZCcRUbl3slCSjTeSwg+
+ gxuciFpWD+/Ud/hMi8cHR2J0wsaBDbBXH866E=
+DomainKey-Signature: a=rsa-sha1; c=nofws; d=gmail.com; s=gamma;
+ h=mime-version:date:message-id:subject:from:to:content-type;
+ b=HzQifjwZ1P+EIhCYki0qPANJc5c+SVOErvWHSng2bA0sAuUsglcm4HAMKSvDwYlAKW
+ i+VFQyB3nW+JTHQkvGexvy9Jl0JoMIWjFOPJUS68CPiXiseCQy0x3souwWE1ijZctaSC
+ mHj6riKJNTGyS7RDHCM7B9/OunobfI6RO1lM4=
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:941
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/941>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1QIgrK-0007KB-Sv for gclrug-mongrel-unicorn@m.gmane.org; Sat, 07 May 2011
+ 14:43:47 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 572BF19783BC; Sat,  7 May 2011 08:43:45 -0400 (EDT)
+Received: from mail-px0-f176.google.com (mail-px0-f176.google.com
+ [209.85.212.176]) by rubyforge.org (Postfix) with ESMTP id 0525C185836C for
+ <mongrel-unicorn@rubyforge.org>; Sat,  7 May 2011 08:17:28 -0400 (EDT)
+Received: by pxi11 with SMTP id 11so2876407pxi.35 for
+ <mongrel-unicorn@rubyforge.org>; Sat, 07 May 2011 05:16:59 -0700 (PDT)
+Received: by 10.68.51.98 with SMTP id j2mr6208469pbo.288.1304769251031; Sat,
+ 07 May 2011 04:54:11 -0700 (PDT)
+Received: by 10.68.71.135 with HTTP; Sat, 7 May 2011 04:54:11 -0700 (PDT)
+
+In the deployment I did kill -s USR2 `cat unicorn_pid` to gracefully
+restart unicorn. But I noticed that unicorn workers were partially
+restarted when using USR2.
+
+The following is how I did test:
+
+start unicorn in production environment:
+
+the action has the following code:
+
+  def index
+    logger.info "-----------------------------------------fooo bar ---------"
+    logger.info "-----------------------------------fooo bar ---------"
+  end
+
+then  changed the code to:
+
+  def index
+    logger.info "--####---------------------------------fooo bar ---------"
+    logger.info "-----------------------------------fooo bar ---------"
+  end
+
+and run kill -s USR2 `cat unicorn_pid`
+
+and then tail the production.log  (after several minutes)
+
+
+Started GET "/" for 192.168.21.1 at Sat May 07 04:13:31 -0700 2011
+  Processing by NewHomeController#index as HTML
+-----------------------------------fooo bar ---------
+-----------------------------------fooo bar ---------
+Rendered new_home/index.html.erb within layouts/new_home (15.5ms)
+Completed 200 OK in 16ms (Views: 16.2ms)
+
+
+Started GET "/" for 192.168.21.1 at Sat May 07 04:13:31 -0700 2011
+  Processing by NewHomeController#index as HTML
+--####---------------------------------fooo bar ---------
+-----------------------------------fooo bar ---------
+Rendered new_home/index.html.erb within layouts/new_home (28.1ms)
+Completed 200 OK in 29ms (Views: 28.9ms)
+
+
+Started GET "/" for 192.168.21.1 at Sat May 07 04:13:31 -0700 2011
+  Processing by NewHomeController#index as HTML
+-----------------------------------fooo bar ---------
+-----------------------------------fooo bar ---------
+Rendered new_home/index.html.erb within layouts/new_home (17.5ms)
+Completed 200 OK in 20ms (Views: 18.4ms)
+
+
+Started GET "/" for 192.168.21.1 at Sat May 07 04:13:37 -0700 2011
+  Processing by NewHomeController#index as HTML
+--####---------------------------------fooo bar ---------
+-----------------------------------fooo bar ---------
+Rendered new_home/index.html.erb within layouts/new_home (13.5ms)
+
+
+So it seems that unicorn was just partially restarted.
+
+
+Best Regards,
+Stone
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
