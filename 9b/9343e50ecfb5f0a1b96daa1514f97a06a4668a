@@ -1,0 +1,248 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.7 required=5.0 tests=MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Jason Su <jason@lookbook.nu>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: unicorn doesn't restart properly after cap deploy (not using
+ Bundler)
+Date: Wed, 18 May 2011 22:56:55 -0700
+Message-ID: <BANLkTimR_y+Ufaqk-8-4aGhx5XZ8LhvT0w@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="iso-8859-1"
+Content-Transfer-Encoding: quoted-printable
+X-Trace: dough.gmane.org 1305786480 26369 80.91.229.12 (19 May 2011 06:28:00
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Thu, 19 May 2011 06:28:00 +0000 (UTC)
+To: mongrel-unicorn@rubyforge.org
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Thu May 19 08:27:55
+ 2011
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:952
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/952>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1QMwiB-0000es-D6 for gclrug-mongrel-unicorn@m.gmane.org; Thu, 19 May 2011
+ 08:27:55 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id B0770185838A; Thu, 19 May 2011 02:27:53 -0400 (EDT)
+Received: from mail-vx0-f178.google.com (mail-vx0-f178.google.com
+ [209.85.220.178]) by rubyforge.org (Postfix) with ESMTP id 5E8DC1858300 for
+ <mongrel-unicorn@rubyforge.org>; Thu, 19 May 2011 01:56:57 -0400 (EDT)
+Received: by vxc11 with SMTP id 11so2269493vxc.23 for
+ <mongrel-unicorn@rubyforge.org>; Wed, 18 May 2011 22:56:56 -0700 (PDT)
+Received: by 10.220.20.81 with SMTP id e17mr767487vcb.85.1305784615873; Wed,
+ 18 May 2011 22:56:55 -0700 (PDT)
+Received: by 10.220.192.69 with HTTP; Wed, 18 May 2011 22:56:55 -0700 (PDT)
+
+Hey guys,
+
+I'm sending USR2 to unicorn after cap deploy, and the old master is
+getting replaced by a new master that doesn't work.
+
+Here are some similar threads I found ...
+http://rubyforge.org/pipermail/mongrel-unicorn/2010-October/000733.html
+http://rubyforge.org/pipermail/mongrel-unicorn/2010-October/000717.html
+
+I'm not using Bundler, and I have working_directory set in my unicorn confi=
+g:
+
+Unicorn::HttpServer::START_CTX[0] =3D
+"/opt/ruby-enterprise-1.8.7-2010.02/bin/unicorn_rails"
+pid "/var/www/lookbook/shared/pids/unicorn.pid"
+stderr_path "/var/www/lookbook/shared/log/unicorn.stderr.log"
+stdout_path "/var/www/lookbook/shared/log/unicorn.stdout.log"
+preload_app true
+if GC.respond_to?(:copy_on_write_friendly=3D)
+=A0 GC.copy_on_write_friendly =3D true
+end
+before_fork do |server, worker|
+=A0 STDERR.puts "BEFORE FORK:"
+=A0 STDERR.puts ENV.inspect
+=A0 defined?(ActiveRecord::Base) and
+=A0 =A0 ActiveRecord::Base.connection.disconnect!
+=A0 if old_pid !=3D server.pid
+=A0 =A0 begin
+=A0 =A0 =A0 sig =3D (worker.nr=A0+ 1) >=3D server.worker_processes ? :QUIT =
+: :TTOU
+=A0 =A0 =A0 Process.kill(sig, File.read(old_pid).to_i)
+=A0 =A0 rescue Errno::ENOENT, Errno::ESRCH
+=A0 =A0 end
+=A0 end
+
+end
+after_fork do |server, worker|
+=A0 STDERR.puts "AFTER FORK:"
+=A0 STDERR.puts ENV.inspect
+
+=A0 defined?(ActiveRecord::Base) and
+=A0 =A0 ActiveRecord::Base.establish_connection
+=A0 begin
+=A0 =A0 uid, gid =3D Process.euid, Process.egid
+=A0 =A0 user, group =3D 'apache', 'apache'
+=A0 =A0 target_uid =3D Etc.getpwnam(user).uid
+=A0 =A0 target_gid =3D Etc.getgrnam(group).gid
+=A0 =A0 worker.tmp.chown(target_uid, target_gid)
+=A0 =A0 if uid !=3D target_uid || gid !=3D target_gid
+=A0 =A0 =A0 Process.initgroups(user, target_gid)
+=A0 =A0 =A0 Process::GID.change_privilege(target_gid)
+=A0 =A0 =A0 Process::UID.change_privilege(target_uid)
+=A0 =A0 end
+=A0 rescue =3D> e
+=A0 =A0 if RAILS_ENV =3D=3D 'development'
+=A0 =A0 =A0 STDERR.puts "couldn't change user, oh well"
+=A0 =A0 else
+=A0 =A0 =A0 raise e
+=A0 =A0 end
+=A0 end
+end
+before_exec do |server|
+=A0 STDERR.puts "BEFORE EXEC:"
+=A0 ENV["PATH"] =3D
+"/usr/kerberos/sbin:/usr/kerberos/bin:/usr/local/sbin:/usr/local/bin:/sbin:=
+/bin:/usr/sbin:/usr/bin:/root/bin:/usr/local:/opt/ruby-enterprise-1.8.7-201=
+0.02/bin"
+=A0 STDERR.puts ENV.inspect
+end
+
+
+
+Below is the output from unicorn.stderr.log.. I'm not sure if
+UNICORN_FD has something to do with it?
+1) starting unicorn
+BEFORE FORK:
+{"SHELL"=3D>"/bin/bash", "TERM"=3D>"xterm", "SSH_CLIENT"=3D>"24.23.182.32
+38170 22", "OLDPWD"=3D>"/root", "SSH_TTY"=3D>"/dev/pts/5", "USER"=3D>"root",
+"SSH_AUTH_SOCK"=3D>"/tmp/ssh-eeoDcvH461/agent.461",
+"PATH"=3D>"/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin",
+"MAIL"=3D>"/var/mail/root", "PWD"=3D>"/var/www/lookbook/current",
+"HOME"=3D>"/root", "SHLVL"=3D>"2", "LOGNAME"=3D>"root",
+"SSH_CONNECTION"=3D>"24.23.182.32 38170 98.158.22.100 22",
+"_"=3D>"/opt/ruby-enterprise-1.8.7-2010.02/bin/unicorn_rails",
+"RAILS_ENV"=3D>"production"}
+AFTER FORK:
+{"SHELL"=3D>"/bin/bash", "TERM"=3D>"xterm", "SSH_CLIENT"=3D>"24.23.182.32
+38170 22", "OLDPWD"=3D>"/root", "SSH_TTY"=3D>"/dev/pts/5", "USER"=3D>"root",
+"SSH_AUTH_SOCK"=3D>"/tmp/ssh-eeoDcvH461/agent.461",
+"PATH"=3D>"/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin",
+"MAIL"=3D>"/var/mail/root", "PWD"=3D>"/var/www/lookbook/current",
+"HOME"=3D>"/root", "SHLVL"=3D>"2", "LOGNAME"=3D>"root",
+"SSH_CONNECTION"=3D>"24.23.182.32 38170 98.158.22.100 22",
+"_"=3D>"/opt/ruby-enterprise-1.8.7-2010.02/bin/unicorn_rails",
+"RAILS_ENV"=3D>"production"}
+
+
+2) restarting unicorn (kill -USR2)
+
+BEFORE EXEC:
+{"SHELL"=3D>"/bin/bash", "TERM"=3D>"xterm", "SSH_CLIENT"=3D>"24.23.182.32
+38170 22", "OLDPWD"=3D>"/root", "SSH_TTY"=3D>"/dev/pts/5", "USER"=3D>"root",
+"SSH_AUTH_SOCK"=3D>"/tmp/ssh-eeoDcvH461/agent.461",
+"PATH"=3D>"/usr/kerberos/sbin:/usr/kerberos/bin:/usr/local/sbin:/usr/local/=
+bin:/sbin:/bin:/usr/sbin:/usr/bin:/root/bin:/usr/local:/opt/ruby-enterprise=
+-1.8.7-2010.02/bin",
+"MAIL"=3D>"/var/mail/root", "PWD"=3D>"/var/www/lookbook/current",
+"HOME"=3D>"/root", "SHLVL"=3D>"2", "LOGNAME"=3D>"root",
+"SSH_CONNECTION"=3D>"24.23.182.32 38170 98.158.22.100 22",
+"_"=3D>"/opt/ruby-enterprise-1.8.7-2010.02/bin/unicorn_rails",
+"RAILS_ENV"=3D>"production", "UNICORN_FD"=3D>"3"}
+I, [2011-05-18T18:13:56.318531 #510] =A0INFO -- : inherited
+addr=3D/var/www/lookbook/current/tmp/sockets/unicorn.sock fd=3D3
+I, [2011-05-18T18:13:56.318819 #510] =A0INFO -- : Refreshing Gem list
+BEFORE FORK:
+{"SHELL"=3D>"/bin/bash", "TERM"=3D>"xterm", "SSH_CLIENT"=3D>"24.23.182.32
+38170 22", "OLDPWD"=3D>"/root", "SSH_TTY"=3D>"/dev/pts/5", "USER"=3D>"root",
+"SSH_AUTH_SOCK"=3D>"/tmp/ssh-eeoDcvH461/agent.461",
+"PATH"=3D>"/usr/kerberos/sbin:/usr/kerberos/bin:/usr/local/sbin:/usr/local/=
+bin:/sbin:/bin:/usr/sbin:/usr/bin:/root/bin:/usr/local:/opt/ruby-enterprise=
+-1.8.7-2010.02/bin",
+"MAIL"=3D>"/var/mail/root", "PWD"=3D>"/var/www/lookbook/current",
+"HOME"=3D>"/root", "SHLVL"=3D>"2", "LOGNAME"=3D>"root",
+"SSH_CONNECTION"=3D>"24.23.182.32 38170 98.158.22.100 22",
+"_"=3D>"/opt/ruby-enterprise-1.8.7-2010.02/bin/unicorn_rails",
+"RAILS_ENV"=3D>"production", "UNICORN_FD"=3D>"3"}
+AFTER FORK:
+{"SHELL"=3D>"/bin/bash", "TERM"=3D>"xterm", "SSH_CLIENT"=3D>"24.23.182.32
+38170 22", "OLDPWD"=3D>"/root", "SSH_TTY"=3D>"/dev/pts/5", "USER"=3D>"root",
+"SSH_AUTH_SOCK"=3D>"/tmp/ssh-eeoDcvH461/agent.461",
+"PATH"=3D>"/usr/kerberos/sbin:/usr/kerberos/bin:/usr/local/sbin:/usr/local/=
+bin:/sbin:/bin:/usr/sbin:/usr/bin:/root/bin:/usr/local:/opt/ruby-enterprise=
+-1.8.7-2010.02/bin",
+"MAIL"=3D>"/var/mail/root", "PWD"=3D>"/var/www/lookbook/current",
+"HOME"=3D>"/root", "SHLVL"=3D>"2", "LOGNAME"=3D>"root",
+"SSH_CONNECTION"=3D>"24.23.182.32 38170 98.158.22.100 22",
+"_"=3D>"/opt/ruby-enterprise-1.8.7-2010.02/bin/unicorn_rails",
+"RAILS_ENV"=3D>"production", "UNICORN_FD"=3D>"3"}
+
+3) cap deploy with symlinks + restart unicorn (kill -USR2)
+
+BEFORE EXEC:
+{"SHELL"=3D>"/bin/bash", "TERM"=3D>"xterm", "SSH_CLIENT"=3D>"24.23.182.32
+38170 22", "OLDPWD"=3D>"/root", "SSH_TTY"=3D>"/dev/pts/5", "USER"=3D>"root",
+"SSH_AUTH_SOCK"=3D>"/tmp/ssh-eeoDcvH461/agent.461",
+"PATH"=3D>"/usr/kerberos/sbin:/usr/kerberos/bin:/usr/local/sbin:/usr/local/=
+bin:/sbin:/bin:/usr/sbin:/usr/bin:/root/bin:/usr/local:/opt/ruby-enterprise=
+-1.8.7-2010.02/bin",
+"MAIL"=3D>"/var/mail/root", "PWD"=3D>"/var/www/lookbook/current",
+"HOME"=3D>"/root", "SHLVL"=3D>"2", "LOGNAME"=3D>"root",
+"SSH_CONNECTION"=3D>"24.23.182.32 38170 98.158.22.100 22",
+"_"=3D>"/opt/ruby-enterprise-1.8.7-2010.02/bin/unicorn_rails",
+"RAILS_ENV"=3D>"production", "UNICORN_FD"=3D>"3"}
+I, [2011-05-18T18:17:13.732600 #1589] =A0INFO -- : inherited
+addr=3D/var/www/lookbook/current/tmp/sockets/unicorn.sock fd=3D3
+I, [2011-05-18T18:17:13.732942 #1589] =A0INFO -- : Refreshing Gem list
+BEFORE FORK:
+{"SHELL"=3D>"/bin/bash", "TERM"=3D>"xterm", "SSH_CLIENT"=3D>"24.23.182.32
+38170 22", "OLDPWD"=3D>"/root", "SSH_TTY"=3D>"/dev/pts/5", "USER"=3D>"root",
+"SSH_AUTH_SOCK"=3D>"/tmp/ssh-eeoDcvH461/agent.461",
+"PATH"=3D>"/usr/kerberos/sbin:/usr/kerberos/bin:/usr/local/sbin:/usr/local/=
+bin:/sbin:/bin:/usr/sbin:/usr/bin:/root/bin:/usr/local:/opt/ruby-enterprise=
+-1.8.7-2010.02/bin",
+"MAIL"=3D>"/var/mail/root", "PWD"=3D>"/var/www/lookbook/current",
+"HOME"=3D>"/root", "SHLVL"=3D>"2", "LOGNAME"=3D>"root",
+"SSH_CONNECTION"=3D>"24.23.182.32 38170 98.158.22.100 22",
+"_"=3D>"/opt/ruby-enterprise-1.8.7-2010.02/bin/unicorn_rails",
+"RAILS_ENV"=3D>"production", "UNICORN_FD"=3D>"3"}
+AFTER FORK:
+{"SHELL"=3D>"/bin/bash", "TERM"=3D>"xterm", "SSH_CLIENT"=3D>"24.23.182.32
+38170 22", "OLDPWD"=3D>"/root", "SSH_TTY"=3D>"/dev/pts/5", "USER"=3D>"root",
+"SSH_AUTH_SOCK"=3D>"/tmp/ssh-eeoDcvH461/agent.461",
+"PATH"=3D>"/usr/kerberos/sbin:/usr/kerberos/bin:/usr/local/sbin:/usr/local/=
+bin:/sbin:/bin:/usr/sbin:/usr/bin:/root/bin:/usr/local:/opt/ruby-enterprise=
+-1.8.7-2010.02/bin",
+"MAIL"=3D>"/var/mail/root", "PWD"=3D>"/var/www/lookbook/current",
+"HOME"=3D>"/root", "SHLVL"=3D>"2", "LOGNAME"=3D>"root",
+"SSH_CONNECTION"=3D>"24.23.182.32 38170 98.158.22.100 22",
+"_"=3D>"/opt/ruby-enterprise-1.8.7-2010.02/bin/unicorn_rails",
+"RAILS_ENV"=3D>"production", "UNICORN_FD"=3D>"3"}
+worker=3D1 ready
+
+
+any help appreciated, thanks :D
+Jason
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
