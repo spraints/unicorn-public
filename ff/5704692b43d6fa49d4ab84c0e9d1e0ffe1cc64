@@ -1,0 +1,123 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: Unicorn preload_app and upstart
+Date: Thu, 19 May 2011 18:35:34 +0000
+Message-ID: <20110519183534.GA6075@dcvr.yhbt.net>
+References: <C9FAE2E1.1F37%rob.greenwood@melbourne.co.uk>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1305832209 14325 80.91.229.12 (19 May 2011 19:10:09
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Thu, 19 May 2011 19:10:09 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Thu May 19 21:10:05
+ 2011
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <C9FAE2E1.1F37%rob.greenwood@melbourne.co.uk>
+User-Agent: Mutt/1.5.20 (2009-06-14)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:956
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/956>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1QN8bl-00051h-06 for gclrug-mongrel-unicorn@m.gmane.org; Thu, 19 May 2011
+ 21:10:05 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 341473C807F; Thu, 19 May 2011 15:10:04 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id F00571858300 for <mongrel-unicorn@rubyforge.org>;
+ Thu, 19 May 2011 14:35:35 -0400 (EDT)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 21DB520E39; Thu, 19 May 2011 18:35:35 +0000 (UTC)
+
+Rob Greenwood <Rob.Greenwood@melbourne.co.uk> wrote:
+> Hi,
+> 
+> I was wondering if anyone has managed to get the preload_app and SIGUSR2
+> combination working well with upstart?
+> 
+> My issue currently is that when I perform a SIGUSR2 against the master,
+> check everything's working and close off the old master, upstart then
+> attempts to restart it because the original PID/binary are no longer
+> running.
+
+I guess upstart is similar to daemontools in this respect?
+
+I posted a potentially working script to wrap unicorn and preserve
+the same pid with daemon tools in this thread:
+
+http://thread.gmane.org/gmane.comp.lang.ruby.unicorn.general/917
+http://mid.gmane.org/20110425183458.GA5826%40dcvr.yhbt.net
+
+> What is the correct way of handling this? In my opinion, should unicorn
+> not always be using the same master process and just spawning additional
+> children/cycling them? Else the above functionality will never work with
+> upstart, which will be replacing init.
+
+USR2 needs to be able to load a new Ruby executable and the only way is
+to replace the master.  And for "preload_app true" to work, Unicorn
+itself has to manage processes.
+
+
+If you teach upstart/daemontools to bind listeners, you can have them
+export a comma-separated list of listener file descriptors in the
+UNICORN_FD environment (e.g. UNICORN_FD=3,4) and use QUIT + restart in
+upstart/daemontools and avoid using USR2 entirely.
+
+Unicorn itself still has to be given the listen directives in its own
+config file otherwise it'll close them (because it assumes the user
+no longer wants them on upgrade) and also to change socket options
+if there are any.
+
+You'll still get transparent restarts because the listeners will be
+owned by daemontools/upstart and the queued listeners will be
+held there.
+
+
+Unicorn doesn't need to be used with upstart/daemontools, the master
+process should be just as robust as them.  The only possible issue is
+during HUP/USR2 where a bad upgrade has an (unlikely) chance of killing
+the master, but if you're issuing HUP/USR2, you're paying attention to
+the machine anyways.
+
+If you want auto-startup, consider having a startup task in the @reboot
+line in a crontab.  You can even put it in a regular user's crontab to
+avoid needing to switch users.
+
+
+Everything about the Unicorn process model with upstart/daemontools
+applies to nginx upgrades, too.
+
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
