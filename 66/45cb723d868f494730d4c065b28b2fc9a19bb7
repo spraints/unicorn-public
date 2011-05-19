@@ -1,0 +1,175 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.7 required=5.0 tests=MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Jason Su <jason@lookbook.nu>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: unicorn doesn't restart properly after cap deploy (not using
+ Bundler)
+Date: Thu, 19 May 2011 13:26:38 -0700
+Message-ID: <BANLkTik6owVKt-Bb8ThPpfvuiiaOKFvFoA@mail.gmail.com>
+References: <BANLkTimR_y+Ufaqk-8-4aGhx5XZ8LhvT0w@mail.gmail.com>
+ <20110519092759.GA727@dcvr.yhbt.net>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="iso-8859-1"
+Content-Transfer-Encoding: quoted-printable
+X-Trace: dough.gmane.org 1305838021 20560 80.91.229.12 (19 May 2011 20:47:01
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Thu, 19 May 2011 20:47:01 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Thu May 19 22:46:55
+ 2011
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+In-Reply-To: <20110519092759.GA727@dcvr.yhbt.net>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:957
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/957>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1QNA7R-0002ho-Ci for gclrug-mongrel-unicorn@m.gmane.org; Thu, 19 May 2011
+ 22:46:53 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id A88F3185838A; Thu, 19 May 2011 16:46:52 -0400 (EDT)
+Received: from mail-vx0-f178.google.com (mail-vx0-f178.google.com
+ [209.85.220.178]) by rubyforge.org (Postfix) with ESMTP id 5D98F1858375 for
+ <mongrel-unicorn@rubyforge.org>; Thu, 19 May 2011 16:26:39 -0400 (EDT)
+Received: by vxc11 with SMTP id 11so3013381vxc.23 for
+ <mongrel-unicorn@rubyforge.org>; Thu, 19 May 2011 13:26:39 -0700 (PDT)
+Received: by 10.220.20.81 with SMTP id e17mr990446vcb.85.1305836798828; Thu,
+ 19 May 2011 13:26:38 -0700 (PDT)
+Received: by 10.220.192.69 with HTTP; Thu, 19 May 2011 13:26:38 -0700 (PDT)
+
+You were right, the socket was not in a shared path... D'oh!
+
+Thanks so much~
+
+On Thu, May 19, 2011 at 2:27 AM, Eric Wong <normalperson@yhbt.net> wrote:
+> Jason Su <jason@lookbook.nu> wrote:
+>> Hey guys,
+>>
+>> I'm sending USR2 to unicorn after cap deploy, and the old master is
+>> getting replaced by a new master that doesn't work.
+>
+> Can you expand on "doesn't work"?
+>
+>> Here are some similar threads I found ...
+>> http://rubyforge.org/pipermail/mongrel-unicorn/2010-October/000733.html
+>> http://rubyforge.org/pipermail/mongrel-unicorn/2010-October/000717.html
+>>
+>> I'm not using Bundler, and I have working_directory set in my unicorn co=
+nfig:
+>
+> I don't see where you have working_directory set below
+>
+>> Unicorn::HttpServer::START_CTX[0] =3D
+>> "/opt/ruby-enterprise-1.8.7-2010.02/bin/unicorn_rails"
+>
+> You shouldn't need to touch START_CTX unless you're switching Ruby
+> installations. =A0It's rope to hang yourself with.
+>
+> I would simplify the config file as much as possible if you're
+> debugging a problem.
+>
+>> pid "/var/www/lookbook/shared/pids/unicorn.pid"
+>> stderr_path "/var/www/lookbook/shared/log/unicorn.stderr.log"
+>> stdout_path "/var/www/lookbook/shared/log/unicorn.stdout.log"
+>> preload_app true
+>> if GC.respond_to?(:copy_on_write_friendly=3D)
+>> =A0 GC.copy_on_write_friendly =3D true
+>> end
+>> before_fork do |server, worker|
+>> =A0 STDERR.puts "BEFORE FORK:"
+>> =A0 STDERR.puts ENV.inspect
+>> =A0 defined?(ActiveRecord::Base) and
+>> =A0 =A0 ActiveRecord::Base.connection.disconnect!
+>
+> The auto-killing old workers bit is fragile and you shouldn't need
+> it unless you're very low on memory.
+>
+>> =A0 if old_pid !=3D server.pid
+>> =A0 =A0 begin
+>> =A0 =A0 =A0 sig =3D (worker.nr=A0+ 1) >=3D server.worker_processes ? :QU=
+IT : :TTOU
+>> =A0 =A0 =A0 Process.kill(sig, File.read(old_pid).to_i)
+>> =A0 =A0 rescue Errno::ENOENT, Errno::ESRCH
+>> =A0 =A0 end
+>> =A0 end
+>>
+>> end
+>> after_fork do |server, worker|
+>> =A0 STDERR.puts "AFTER FORK:"
+>> =A0 STDERR.puts ENV.inspect
+>>
+>> =A0 defined?(ActiveRecord::Base) and
+>> =A0 =A0 ActiveRecord::Base.establish_connection
+>> =A0 begin
+>
+> If you want to use user switching, the "user" directive which
+> appeared a while back is much simpler and less error prone.
+>
+>> =A0 =A0 uid, gid =3D Process.euid, Process.egid
+>> =A0 =A0 user, group =3D 'apache', 'apache'
+>> =A0 =A0 target_uid =3D Etc.getpwnam(user).uid
+>> =A0 =A0 target_gid =3D Etc.getgrnam(group).gid
+>> =A0 =A0 worker.tmp.chown(target_uid, target_gid)
+>> =A0 =A0 if uid !=3D target_uid || gid !=3D target_gid
+>> =A0 =A0 =A0 Process.initgroups(user, target_gid)
+>> =A0 =A0 =A0 Process::GID.change_privilege(target_gid)
+>> =A0 =A0 =A0 Process::UID.change_privilege(target_uid)
+>> =A0 =A0 end
+>
+> <snip>
+>
+>> Below is the output from unicorn.stderr.log.. I'm not sure if
+>> UNICORN_FD has something to do with it?
+>
+> UNICORN_FD is absolutely for the old master tells the new master about
+> the listener sockets to inherit. =A0Don't touch it.
+>
+> <snip>
+>
+>> 3) cap deploy with symlinks + restart unicorn (kill -USR2)
+>
+> <snip>
+>
+>> addr=3D/var/www/lookbook/current/tmp/sockets/unicorn.sock fd=3D3
+>
+> You should make sure your socket is in a shared path, not current.
+>
+> Whatever's in current gets replaced by Capistrano, right? =A0I'm not sure
+> if tmp is a symlink that's relinked on a new deploy, but there could be
+> a race condition where the path to the socket is unreachable and
+> nginx can't see it.
+>
+> --
+> Eric Wong
+> _______________________________________________
+> Unicorn mailing list - mongrel-unicorn@rubyforge.org
+> http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+> Do not quote signatures (like this one) or top post when replying
+>
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
