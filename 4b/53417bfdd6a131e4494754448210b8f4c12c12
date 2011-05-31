@@ -1,0 +1,83 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.7 required=5.0 tests=MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Nate Clark <nate@pivotallabs.com>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: workers not utilizing multiple CPUs
+Date: Tue, 31 May 2011 17:02:12 +0800
+Message-ID: <BANLkTinR31Zeufc11sSffXpRiciosTGpUA@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1306832546 22386 80.91.229.12 (31 May 2011 09:02:26
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Tue, 31 May 2011 09:02:26 +0000 (UTC)
+To: mongrel-unicorn@rubyforge.org
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Tue May 31 11:02:20
+ 2011
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:965
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/965>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1QRKqA-0001zn-TU for gclrug-mongrel-unicorn@m.gmane.org; Tue, 31 May 2011
+ 11:02:19 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 2691218583BF; Tue, 31 May 2011 05:02:18 -0400 (EDT)
+Received: from mail-yx0-f178.google.com (mail-yx0-f178.google.com
+ [209.85.213.178]) by rubyforge.org (Postfix) with ESMTP id 1033918583BD for
+ <mongrel-unicorn@rubyforge.org>; Tue, 31 May 2011 05:02:12 -0400 (EDT)
+Received: by yxa15 with SMTP id 15so2489847yxa.23 for
+ <mongrel-unicorn@rubyforge.org>; Tue, 31 May 2011 02:02:12 -0700 (PDT)
+Received: by 10.91.80.20 with SMTP id h20mr4777117agl.149.1306832532629; Tue,
+ 31 May 2011 02:02:12 -0700 (PDT)
+Received: by 10.90.101.5 with HTTP; Tue, 31 May 2011 02:02:12 -0700 (PDT)
+
+We're using Unicorn to serve a Rails app on a few app servers built on
+Amazon EC2 instances. Each of the xlarge EC2 instances have the
+equivalent of 8 CPUs, but it seems like our Unicorn master and 8
+workers are only utilizing the first CPU. We've been watching the CPU
+graphs from collectd data when the website is under load, and only
+cpu-0 shows any activity ... the others seem to be idle, or minimally
+used by other services.
+
+I had assumed that the OS would automatically allocate the Unicorn
+worker processes to use multiple CPUs, but now I'm not sure. I
+couldn't find anything about this in the Unicorn docs (except for the
+mention of the worker_processes configuration, which seems to imply
+that multiple CPUs would be used). Is there something that I'm not
+doing?
+
+Our EC2 instances are running Ubuntu 10.04 LTS with Linux kernel 2.6.32.
+
+Thanks in advance for any insights or suggestions.
+
+Nate Clark
+Pivotal Labs Singapore
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
