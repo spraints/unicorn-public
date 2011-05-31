@@ -1,0 +1,103 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.6 required=5.0 tests=AWL,FREEMAIL_FROM,
+ MSGID_FROM_MTA_HEADER,RP_MATCHES_RCVD,T_DKIM_INVALID shortcircuit=no
+ autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Lawrence Pit <lawrence.pit@gmail.com>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: workers not utilizing multiple CPUs
+Date: Tue, 31 May 2011 22:10:35 +1000
+Message-ID: <4DE4DABB.3070503@gmail.com>
+References: <BANLkTinR31Zeufc11sSffXpRiciosTGpUA@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"; Format="flowed"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1306843954 25369 80.91.229.12 (31 May 2011 12:12:34
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Tue, 31 May 2011 12:12:34 +0000 (UTC)
+Cc: Nate Clark <nate@pivotallabs.com>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Tue May 31 14:12:30
+ 2011
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com; s=gamma;
+ h=domainkey-signature:message-id:date:from:user-agent:mime-version:to
+ :cc:subject:references:in-reply-to:content-type :content-transfer-encoding;
+ bh=Y/Uxq88ivLFpmc3ab/lxTQr0sUs8yHzP/yHLxtuTXIs=;
+ b=k5QJf41oK8g6/JJ6tZBnJe91/Er0EZms5UD5OKN3oOWlXZeNn2mj8duUnoHz9Hj5wv
+ 5KNhLadWzVGrZssiMgHPxEZWqaFpmbX5AVwJZy6m05ER7BUp7yXFfxXgvJfuETVvExL1
+ sCIdm2QE3WNvTCdTTjEddMDsnvjiaO2RYHpBA=
+DomainKey-Signature: a=rsa-sha1; c=nofws; d=gmail.com; s=gamma;
+ h=message-id:date:from:user-agent:mime-version:to:cc:subject
+ :references:in-reply-to:content-type:content-transfer-encoding;
+ b=VTz3nA1JLfZkuAplbQp53zN4lXFam61uFYX4cJjoRS6mBRmPTvIK1tTnzDuaDtsk5X
+ Q+alE1OpHjOxPkuzK5MRyuGeDDStsmYzuwpxo7nmTSmEGj0/thdaMBgQ1rVVOWbeRW4U
+ /HUEXkjors3ufm0TdJ+Rj+xCViZOny6UvSCa8=
+User-Agent: Mozilla/5.0 (Macintosh; U; Intel Mac OS X 10.6; en-US;
+ rv:1.9.2.17) Gecko/20110414 Thunderbird/3.1.10
+In-Reply-To: <BANLkTinR31Zeufc11sSffXpRiciosTGpUA@mail.gmail.com>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:967
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/967>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1QRNoC-00007J-FO for gclrug-mongrel-unicorn@m.gmane.org; Tue, 31 May 2011
+ 14:12:28 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id DD17218583A9; Tue, 31 May 2011 08:12:27 -0400 (EDT)
+Received: from mail-px0-f173.google.com (mail-px0-f173.google.com
+ [209.85.212.173]) by rubyforge.org (Postfix) with ESMTP id 52E73185838A for
+ <mongrel-unicorn@rubyforge.org>; Tue, 31 May 2011 08:10:41 -0400 (EDT)
+Received: by pxi16 with SMTP id 16so2732635pxi.18 for
+ <mongrel-unicorn@rubyforge.org>; Tue, 31 May 2011 05:10:41 -0700 (PDT)
+Received: by 10.142.240.18 with SMTP id n18mr951285wfh.225.1306843841211;
+ Tue, 31 May 2011 05:10:41 -0700 (PDT)
+Received: from copa.local (124-149-186-92.dyn.iinet.net.au [124.149.186.92])
+ by mx.google.com with ESMTPS id q13sm2196281wfd.23.2011.05.31.05.10.38
+ (version=TLSv1/SSLv3 cipher=OTHER); Tue, 31 May 2011 05:10:40 -0700 (PDT)
+
+Hi Nate,
+> We've been watching the CPU
+> graphs from collectd data when the website is under load, and only
+> cpu-0 shows any activity ... the others seem to be idle, or minimally
+> used by other services.
+
+I don't think you can rely on the numbers collectd (nor top) gives you 
+when measuring from within the hypervisor powering your EC2 instance. 
+The only reliable source of CPU utilization is Cloudwatch, as that 
+measures outside your instances.
+
+I've used an array of xlarge instances myself, each running 17 unicorn 
+workers serving a rails app, consuming 4GB, leaving 3GB, no swap. Worked 
+well for us under high load. It couldn't have handled that if all 17 
+unicorn workers would've been served by 1 of those 8 virtual cores.
+
+
+Cheers,
+Lawrence
+
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
