@@ -1,0 +1,106 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.7 required=5.0 tests=MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Nate Clark <nate@pivotallabs.com>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: workers not utilizing multiple CPUs
+Date: Tue, 31 May 2011 20:20:14 +0800
+Message-ID: <BANLkTinX0t35a7Mu1vk=DwxwO6EZj-gptA@mail.gmail.com>
+References: <BANLkTinR31Zeufc11sSffXpRiciosTGpUA@mail.gmail.com>
+ <4DE4DABB.3070503@gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1306844478 28667 80.91.229.12 (31 May 2011 12:21:18
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Tue, 31 May 2011 12:21:18 +0000 (UTC)
+Cc: unicorn list <mongrel-unicorn@rubyforge.org>
+To: Lawrence Pit <lawrence.pit@gmail.com>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Tue May 31 14:21:11
+ 2011
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+In-Reply-To: <4DE4DABB.3070503@gmail.com>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:968
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/968>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1QRNwc-0004iH-Nv for gclrug-mongrel-unicorn@m.gmane.org; Tue, 31 May 2011
+ 14:21:10 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 929EE18583A9; Tue, 31 May 2011 08:21:09 -0400 (EDT)
+Received: from mail-gx0-f178.google.com (mail-gx0-f178.google.com
+ [209.85.161.178]) by rubyforge.org (Postfix) with ESMTP id 776B5185838E for
+ <mongrel-unicorn@rubyforge.org>; Tue, 31 May 2011 08:20:15 -0400 (EDT)
+Received: by gxk8 with SMTP id 8so2570073gxk.23 for
+ <mongrel-unicorn@rubyforge.org>; Tue, 31 May 2011 05:20:15 -0700 (PDT)
+Received: by 10.91.93.15 with SMTP id v15mr5093026agl.68.1306844414833; Tue,
+ 31 May 2011 05:20:14 -0700 (PDT)
+Received: by 10.90.101.5 with HTTP; Tue, 31 May 2011 05:20:14 -0700 (PDT)
+
+Lawrence,
+
+I've suspected that it may be a monitoring problem and not a Unicorn
+problem, but I'm not yet convinced either way. Our monitoring via
+collectd is done through Rightscale. They have a lot of experience
+with EC2, so I'd assume that it is monitoring properly. Also, our
+other services (mysql, for example) are showing activity on multiple
+cores under load, so that leads me to believe that the monitoring is
+working in at least some cases.
+
+I wasn't aware of the Cloudwatch service until now, that looks
+interesting ... I'll check it out.
+
+Anyone else experience a problem like this?
+
+Nate
+
+On Tue, May 31, 2011 at 8:10 PM, Lawrence Pit <lawrence.pit@gmail.com> wrote:
+> Hi Nate,
+>>
+>> We've been watching the CPU
+>> graphs from collectd data when the website is under load, and only
+>> cpu-0 shows any activity ... the others seem to be idle, or minimally
+>> used by other services.
+>
+> I don't think you can rely on the numbers collectd (nor top) gives you when
+> measuring from within the hypervisor powering your EC2 instance. The only
+> reliable source of CPU utilization is Cloudwatch, as that measures outside
+> your instances.
+>
+> I've used an array of xlarge instances myself, each running 17 unicorn
+> workers serving a rails app, consuming 4GB, leaving 3GB, no swap. Worked
+> well for us under high load. It couldn't have handled that if all 17 unicorn
+> workers would've been served by 1 of those 8 virtual cores.
+>
+>
+> Cheers,
+> Lawrence
+>
+>
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
