@@ -1,0 +1,101 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: unicorn stuck in sched_yield after ERESTARTNOHAND
+Date: Tue, 31 May 2011 23:48:29 +0000
+Message-ID: <20110531234829.GA9815@dcvr.yhbt.net>
+References: <BANLkTikFid3n0QpsrnXf2oNansFmuJDyuw@mail.gmail.com>
+ <BANLkTimF78PW9YgEAURS604Q8mucNwSDrg@mail.gmail.com>
+ <BANLkTinPK-QBWE2YireOEqcT1G+RnRiyBw@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+X-Trace: dough.gmane.org 1306886994 4675 80.91.229.12 (1 Jun 2011 00:09:54
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Wed, 1 Jun 2011 00:09:54 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Wed Jun 01 02:09:50
+ 2011
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <BANLkTinPK-QBWE2YireOEqcT1G+RnRiyBw@mail.gmail.com>
+User-Agent: Mutt/1.5.20 (2009-06-14)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:975
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/975>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1QRZ0P-0006GE-Vl for gclrug-mongrel-unicorn@m.gmane.org; Wed, 01 Jun 2011
+ 02:09:50 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 04F6F1858378; Tue, 31 May 2011 20:09:48 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 7E1461858372 for <mongrel-unicorn@rubyforge.org>;
+ Tue, 31 May 2011 19:48:39 -0400 (EDT)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id AD1B4212C9; Tue, 31 May 2011 23:48:38 +0000 (UTC)
+
+QmhhcmFuZWUgUmF0aG5hIDxkZWVwZnJ5ZWRAZ21haWwuY29tPiB3cm90ZToKPiBJJ20gZW5jb3Vu
+dGVyaW5nIGEgd2VpcmQgZXJyb3Igd2hlcmUgdGhlIHVuaWNvcm4gd29ya2VycyBhcmUgc3R1Y2sg
+aW4KPiBhIGxvb3AgYWZ0ZXIgaGl0dGluZyBhIDUwMCBvbiB0aGUgYmFja2VuZCBzaW5hdHJhIGFw
+cC4KCkFsc28sIHdoYXQgZXh0ZW5zaW9ucyBhcmUgeW91IHVzaW5nIGluIHlvdXIgYXBwPwoKPiBz
+dHJhY2UgYXQgdGhlIHBvaW50IHdoZXJlIGl0IHN0YXJ0cyB0byBnbyBpbnRvIGEgbG9vcCBvZiBk
+ZWF0aAoKPiBzZWxlY3QoNywgWzQgNV0sIE5VTEwsIFszIDZdLCB7MzAsIDB9KSDCoD0gMSAoaW4g
+WzVdLCBsZWZ0IHsyNywgMjc0MzgyfSkKPiBmY2htb2QoOCwgMDEpIMKgIMKgIMKgIMKgIMKgIMKg
+IMKgIMKgIMKgIMKgIMKgIMKgIMKgID0gMAo+IGZjbnRsKDUsIEZfR0VURkwpIMKgIMKgIMKgIMKg
+IMKgIMKgIMKgIMKgIMKgIMKgIMKgID0gMHg4MDIgKGZsYWdzIE9fUkRXUnxPX05PTkJMT0NLKQo+
+IGFjY2VwdDQoNSwge3NhX2ZhbWlseT1BRl9JTkVULCBzaW5fcG9ydD1odG9ucyg1NjcyOCksCj4g
+c2luX2FkZHI9aW5ldF9hZGRyKCIxMC4xLjEuNCIpfSwgWzE2XSwgU09DS19DTE9FWEVDKSA9IDEy
+Cj4gcmVjdmZyb20oMTIsIDB4MWM5OWZiMCwgMTYzODQsIDY0LCAwLCAwKSA9IC0xIEVBR0FJTiAo
+UmVzb3VyY2UKPiB0ZW1wb3JhcmlseSB1bmF2YWlsYWJsZSkKCihJJ20gc29tZXdoYXQgbW9yZSBh
+d2FrZSwgbm93LCBoYXZlbid0IGJlZW4gc2xlZXBpbmcgbXVjaCkKClR3byB0aGluZ3MgbG9vayBv
+ZmYgaW4gdGhlIGxpbmUgYWJvdmU6CgoxKSByZWN2ZnJvbSgpIGlzbid0IHVzaW5nIHRoZSBNU0df
+RE9OVFdBSVQgZmxhZy4gIEkga25vdyB5b3UncmUgdXNpbmcKICAgTGludXgsIHNvIGtnaW8gc2hv
+dWxkIGJlIHVzaW5nIE1TR19ET05UV0FJVCB0byBkbyBub24tYmxvY2tpbmcKICAgcmVjdi4uLiAg
+V2hpY2ggdmVyc2lvbnMgb2YgdW5pY29ybi9rZ2lvIGFyZSB5b3UgdXNpbmc/CgoyKSBUQ1BfREVG
+RVJfQUNDRVBUIHNob3VsZCBwcmV2ZW50IHJlY3Zmcm9tKCkgZnJvbSBoaXR0aW5nIEVBR0FJTgog
+ICBpbiB0aGUgY29tbW9uIGNhc2UgdW5kZXIgTGludXguCgo+IHNlbGVjdCgxMywgWzEyXSwgTlVM
+TCwgTlVMTCwgTlVMTCkgwqAgwqAgwqA9ID8gRVJFU1RBUlROT0hBTkQgKFRvIGJlIHJlc3RhcnRl
+ZCkKPiAtLS0gU0lHSU5UIChJbnRlcnJ1cHQpIEAgMCAoMCkgLS0tCj4gcnRfc2lncmV0dXJuKDB4
+MikgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgPSAtMSBFSU5UUiAoSW50ZXJydXB0
+ZWQgc3lzdGVtIGNhbGwpCgpXaGF0IHRyaWdnZXJlZCBTSUdJTlQ/Cgo+IHNjaGVkX3lpZWxkKCkg
+wqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgPSAwCj4gc2NoZWRfeWllbGQo
+KSDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCA9IDAKPiBzY2hlZF95aWVs
+ZCgpIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgID0gMAo+IHNjaGVkX3lp
+ZWxkKCkgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgPSAwCj4gc2NoZWRf
+eWllbGQoKSDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCA9IDAKPiAKPiBM
+b25nZXIgwqBzdHJhY2Ugb3V0cHV0cyBjYW4gYmUgZm91bmQgb3ZlciBhdAo+IGh0dHBzOi8vZ2lz
+dC5naXRodWIuY29tL2ZlNGUzMTcyOTk0ZTVkZTIxMzE3CgpBY3R1YWxseSwgYWZ0ZXIgbWFueSBs
+aW5lcyBvZiBzY2hlZF95aWVsZCgpIGluIHlvdXIgZ2lzdCwgSSBjYW4gc2VlIGl0CmRvZXMgYWN0
+dWFsbHkgZXhpdCB0aGUgcHJvY2Vzcy4gIERpZCB5b3Uga2lsbCBpdCB3aXRoIFNJR0lOVD8gIElm
+IHNvLCBJCnNlZSBub3RoaW5nIHdyb25nLi4uCgpSdWJ5IDEuOSBzZWVtcyB0byBzY2hlZF95aWVs
+ZCBhIGxvdCBkdXJpbmcgc2h1dGRvd24sIGJ1dCBpdCBkb2VzCmV2ZW50dWFsbHkgZmluaXNoLgoK
+LS0gCkVyaWMgV29uZwpfX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19f
+X19fXwpVbmljb3JuIG1haWxpbmcgbGlzdCAtIG1vbmdyZWwtdW5pY29ybkBydWJ5Zm9yZ2Uub3Jn
+Cmh0dHA6Ly9ydWJ5Zm9yZ2Uub3JnL21haWxtYW4vbGlzdGluZm8vbW9uZ3JlbC11bmljb3JuCkRv
+IG5vdCBxdW90ZSBzaWduYXR1cmVzIChsaWtlIHRoaXMgb25lKSBvciB0b3AgcG9zdCB3aGVuIHJl
+cGx5aW5nCg==
+
