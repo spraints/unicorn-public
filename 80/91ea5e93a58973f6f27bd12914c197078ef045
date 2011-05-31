@@ -1,0 +1,86 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: workers not utilizing multiple CPUs
+Date: Tue, 31 May 2011 08:27:02 -0700
+Message-ID: <20110531152702.GB10313@dcvr.yhbt.net>
+References: <BANLkTinR31Zeufc11sSffXpRiciosTGpUA@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1306855639 6265 80.91.229.12 (31 May 2011 15:27:19
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Tue, 31 May 2011 15:27:19 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Tue May 31 17:27:15
+ 2011
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <BANLkTinR31Zeufc11sSffXpRiciosTGpUA@mail.gmail.com>
+User-Agent: Mutt/1.5.20 (2009-06-14)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:971
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/971>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1QRQqf-0000La-Hn for gclrug-mongrel-unicorn@m.gmane.org; Tue, 31 May 2011
+ 17:27:13 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id E71DC18583AC; Tue, 31 May 2011 11:27:12 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 3376C18583A8 for <mongrel-unicorn@rubyforge.org>;
+ Tue, 31 May 2011 11:27:08 -0400 (EDT)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id C35D520E3F; Tue, 31 May 2011 15:27:07 +0000 (UTC)
+
+Nate Clark <nate@pivotallabs.com> wrote:
+> We're using Unicorn to serve a Rails app on a few app servers built on
+> Amazon EC2 instances. Each of the xlarge EC2 instances have the
+> equivalent of 8 CPUs, but it seems like our Unicorn master and 8
+> workers are only utilizing the first CPU. We've been watching the CPU
+> graphs from collectd data when the website is under load, and only
+> cpu-0 shows any activity ... the others seem to be idle, or minimally
+> used by other services.
+
+What is your request rate and average response time for the application?
+
+If requests come in more quickly than one worker can respond, /then/ the
+kernel may start using more workers.  However, it looks like your
+application is just responding faster and can keep up with requests
+coming in.
+
+> I had assumed that the OS would automatically allocate the Unicorn
+> worker processes to use multiple CPUs, but now I'm not sure.
+
+The kernel does all the work for balancing.
+
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
