@@ -1,0 +1,106 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: workers not utilizing multiple CPUs
+Date: Tue, 31 May 2011 08:48:03 -0700
+Message-ID: <20110531154803.GC10313@dcvr.yhbt.net>
+References: <BANLkTinR31Zeufc11sSffXpRiciosTGpUA@mail.gmail.com>
+ <4DE4DABB.3070503@gmail.com>
+ <BANLkTinX0t35a7Mu1vk=DwxwO6EZj-gptA@mail.gmail.com>
+ <7E16F5B9-2C96-426F-BC75-670BEDD122A9@gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1306856902 14855 80.91.229.12 (31 May 2011 15:48:22
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Tue, 31 May 2011 15:48:22 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Tue May 31 17:48:18
+ 2011
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <7E16F5B9-2C96-426F-BC75-670BEDD122A9@gmail.com>
+User-Agent: Mutt/1.5.20 (2009-06-14)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:972
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/972>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1QRRB2-00034Q-AD for gclrug-mongrel-unicorn@m.gmane.org; Tue, 31 May 2011
+ 17:48:16 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 9B78B1678325; Tue, 31 May 2011 11:48:15 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 7D94018583A5 for <mongrel-unicorn@rubyforge.org>;
+ Tue, 31 May 2011 11:48:09 -0400 (EDT)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id BC48A20E3F; Tue, 31 May 2011 15:48:08 +0000 (UTC)
+
+Clifton King <cliftonk@gmail.com> wrote:
+> We experience the same problem. I believe the problem has more to do
+> with the kernel CPU scheduler than anything else. If you figure put a
+> reliable way to spread the load, I'd like to hear it.
+
+Load not being spread is /not/ a problem unless there are requests that
+get stuck in the listen queue.
+
+If no requests are actually stuck in the queue (light load), the kernel
+is right to put requests into the most recently used worker since it can
+get better CPU cache behavior this way.
+
+
+== The real problem
+
+Under high loads (many cores, fast responses), Unicorn currently uses
+more resources because of non-blocking accept() + select().  This isn't
+a noticeable problem for most machines (1-16 cores).
+
+Future versions of Unicorn may take advantage of /blocking/ accept()
+optimizations under Linux.  Rainbows! already lets you take advantage
+of this behavior if you meet the following requirements:
+
+* Ruby 1.9.x under Linux
+* only one listen socket (if worker_connections == 1 under Rainbows!)
+* use ThreadPool|XEpollThreadPool|XEpollThreadSpawn|XEpoll
+
+I haven't had a chance to benchmark any of this on very big machines so
+I have no idea how well it actually works compared to Unicorn, only how
+well it works in theory :)
+
+
+Blocking accept() under Ruby 1.9.x + Linux should distribute load evenly
+across workers in all situations, even in the non-busy cases where load
+distribution doesn't matter (your case :).
+
+[1] - http://rainbows.rubyforge.org/Rainbows/XEpollThreadPool.html
+
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
