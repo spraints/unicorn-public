@@ -1,0 +1,137 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.6 required=5.0 tests=FREEMAIL_FROM,
+ MSGID_FROM_MTA_HEADER,RP_MATCHES_RCVD,T_DKIM_INVALID shortcircuit=no
+ autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Bharanee Rathna <deepfryed@gmail.com>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: unicorn stuck in sched_yield after ERESTARTNOHAND
+Date: Wed, 1 Jun 2011 10:31:22 +1000
+Message-ID: <BANLkTinsXbKt2g5HZG0a3Q4Gr7D05HRRjA@mail.gmail.com>
+References: <BANLkTikFid3n0QpsrnXf2oNansFmuJDyuw@mail.gmail.com>
+ <BANLkTimF78PW9YgEAURS604Q8mucNwSDrg@mail.gmail.com>
+ <BANLkTinPK-QBWE2YireOEqcT1G+RnRiyBw@mail.gmail.com>
+ <20110531234829.GA9815@dcvr.yhbt.net>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="iso-8859-1"
+Content-Transfer-Encoding: quoted-printable
+X-Trace: dough.gmane.org 1306888754 12545 80.91.229.12 (1 Jun 2011 00:39:14
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Wed, 1 Jun 2011 00:39:14 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Wed Jun 01 02:39:10
+ 2011
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com; s=gamma;
+ h=domainkey-signature:mime-version:in-reply-to:references:from:date
+ :message-id:subject:to:content-type:content-transfer-encoding;
+ bh=TfcIi5jibayJqQ8KKKBFzLLDirDt7VqYE4AwqCY8GFw=;
+ b=eJu2ZK5sRcX7QUBe/EbmWm52CvcXBBM3cxGamNdjGHo7JQdAJKa8SVHpGHmtcP7OQ0
+ qROXvvHL1Tw9eUQFuDzJBVqRHKNy5AOhYuKme9xEsOb2AkLG/v4X/CECmY/FmQ2oj+rr
+ vTS9AplOScIH4IJukh2h+O+N20xLNGzZ2AfGA=
+DomainKey-Signature: a=rsa-sha1; c=nofws; d=gmail.com; s=gamma;
+ h=mime-version:in-reply-to:references:from:date:message-id:subject:to
+ :content-type:content-transfer-encoding;
+ b=Hfnr2XfO/J5rW+8TmAO/pFK1xy/KTc0c8Nw7qwB/ktHaMl24RszwRqLLumozjY57KD
+ W4eKlzEsIv0b3KahQj4eVCAk+wsYbU2H4unRZopIBsF1AkIyYCrnxPdVz8+Li3TNKOzY
+ xcy1n/W/9+D6SwzRZeisEvNgeBrOq3hHCDNKc=
+In-Reply-To: <20110531234829.GA9815@dcvr.yhbt.net>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:976
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/976>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1QRZSn-0007yy-Vh for gclrug-mongrel-unicorn@m.gmane.org; Wed, 01 Jun 2011
+ 02:39:10 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 5A01C1678328; Tue, 31 May 2011 20:39:09 -0400 (EDT)
+Received: from mail-bw0-f50.google.com (mail-bw0-f50.google.com
+ [209.85.214.50]) by rubyforge.org (Postfix) with ESMTP id DE5881858367 for
+ <mongrel-unicorn@rubyforge.org>; Tue, 31 May 2011 20:32:02 -0400 (EDT)
+Received: by bwz2 with SMTP id 2so5549623bwz.23 for
+ <mongrel-unicorn@rubyforge.org>; Tue, 31 May 2011 17:32:02 -0700 (PDT)
+Received: by 10.204.84.166 with SMTP id j38mr2424480bkl.84.1306888322148;
+ Tue, 31 May 2011 17:32:02 -0700 (PDT)
+Received: by 10.204.72.130 with HTTP; Tue, 31 May 2011 17:31:22 -0700 (PDT)
+
+thanks for the quick response eric,
+
+On Wed, Jun 1, 2011 at 9:48 AM, Eric Wong <normalperson@yhbt.net> wrote:
+> Bharanee Rathna <deepfryed@gmail.com> wrote:
+>> I'm encountering a weird error where the unicorn workers are stuck in
+>> a loop after hitting a 500 on the backend sinatra app.
+>
+> Also, what extensions are you using in your app?
+
+heaps of em. yajl, swift, rmagick, fastcaptcha, flock, nokogiri &
+curb.  except swift and curb none of the others would be touching the
+network.
+
+>> strace at the point where it starts to go into a loop of death
+>
+>> select(7, [4 5], NULL, [3 6], {30, 0}) =A0=3D 1 (in [5], left {27, 27438=
+2})
+>> fchmod(8, 01) =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =3D 0
+>> fcntl(5, F_GETFL) =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =3D 0x802 =
+(flags O_RDWR|O_NONBLOCK)
+>> accept4(5, {sa_family=3DAF_INET, sin_port=3Dhtons(56728),
+>> sin_addr=3Dinet_addr("10.1.1.4")}, [16], SOCK_CLOEXEC) =3D 12
+>> recvfrom(12, 0x1c99fb0, 16384, 64, 0, 0) =3D -1 EAGAIN (Resource
+>> temporarily unavailable)
+>
+> (I'm somewhat more awake, now, haven't been sleeping much)
+>
+> Two things look off in the line above:
+>
+> 1) recvfrom() isn't using the MSG_DONTWAIT flag. =A0I know you're using
+> =A0 Linux, so kgio should be using MSG_DONTWAIT to do non-blocking
+> =A0 recv... =A0Which versions of unicorn/kgio are you using?
+
+using kgio 2.3.2, i'll upgrade it and give it another try
+
+>
+> 2) TCP_DEFER_ACCEPT should prevent recvfrom() from hitting EAGAIN
+> =A0 in the common case under Linux.
+>
+>> select(13, [12], NULL, NULL, NULL) =A0 =A0 =A0=3D ? ERESTARTNOHAND (To b=
+e restarted)
+>> --- SIGINT (Interrupt) @ 0 (0) ---
+>> rt_sigreturn(0x2) =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =3D -1 EIN=
+TR (Interrupted system call)
+>
+> What triggered SIGINT?
+
+not sure
+
+>
+> Actually, after many lines of sched_yield() in your gist, I can see it
+> does actually exit the process. =A0Did you kill it with SIGINT? =A0If so,=
+ I
+> see nothing wrong...
+
+yes i killed it after the worker looked stuck and wasn't responding for 30s
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
