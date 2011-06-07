@@ -1,0 +1,100 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: [PATCH] examples/nginx.conf: add ipv6only comment
+Date: Mon, 6 Jun 2011 19:28:28 -0700
+Message-ID: <20110607022828.GA24280@dcvr.yhbt.net>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1307416615 1332 80.91.229.12 (7 Jun 2011 03:16:55
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Tue, 7 Jun 2011 03:16:55 +0000 (UTC)
+To: mongrel-unicorn@rubyforge.org
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Tue Jun 07 05:16:51
+ 2011
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+User-Agent: Mutt/1.5.21 (2010-09-15)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:985
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/985>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1QTmmg-00074F-Fk for gclrug-mongrel-unicorn@m.gmane.org; Tue, 07 Jun 2011
+ 05:16:50 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 7C3AC18583BF; Mon,  6 Jun 2011 23:16:49 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 82F9C18583BE for <mongrel-unicorn@rubyforge.org>;
+ Mon,  6 Jun 2011 22:28:41 -0400 (EDT)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id A5F41212CF; Tue,  7 Jun 2011 02:28:40 +0000 (UTC)
+
+IPv4 addresses started looking very ugly the first time I got
+IPv6 working on bogomips.org.  In case somebody else can't stand
+how IPv4-mapped-IPv6 addresses look, the workaround is to use
+two listeners and ensure the IPv6 one is ipv6only.
+
+Unicorn itself supports IPv6, too, but nobody uses/needs it.
+I'll add :ipv6only support shortly (probably tomorrow).
+
+>From 32b340b88915ec945ebdbfa11b7da242860a6f44 Mon Sep 17 00:00:00 2001
+From: Eric Wong <normalperson@yhbt.net>
+Date: Mon, 6 Jun 2011 19:15:36 -0700
+Subject: [PATCH] examples/nginx.conf: add ipv6only comment
+
+IPv4-mapped-IPv6 addresses are fugly.
+---
+ examples/nginx.conf |    8 ++++++++
+ 1 files changed, 8 insertions(+), 0 deletions(-)
+
+diff --git a/examples/nginx.conf b/examples/nginx.conf
+index 9f245c8..368e19e 100644
+--- a/examples/nginx.conf
++++ b/examples/nginx.conf
+@@ -87,6 +87,14 @@ http {
+     # listen 80 default deferred; # for Linux
+     # listen 80 default accept_filter=httpready; # for FreeBSD
+ 
++    # If you have IPv6, you'll likely want to have two separate listeners.
++    # One on IPv4 only (the default), and another on IPv6 only instead
++    # of a single dual-stack listener.  A dual-stack listener will make
++    # $remote_addr will make IPv4 addresses ugly (e.g ":ffff:10.0.0.1"
++    # instead of just "10.0.0.1") and potentially trigger bugs in
++    # some software.
++    # listen [::]:80 ipv6only=on; # deferred or accept_filter recommended
++
+     client_max_body_size 4G;
+     server_name _;
+ 
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
