@@ -1,0 +1,386 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: [PATCH] replace fchmod()-based heartbeat with raindrops
+Date: Thu, 16 Jun 2011 23:25:08 +0000
+Message-ID: <20110616232508.GA16538@dcvr.yhbt.net>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1308267816 29236 80.91.229.12 (16 Jun 2011 23:43:36
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Thu, 16 Jun 2011 23:43:36 +0000 (UTC)
+To: mongrel-unicorn@rubyforge.org
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Fri Jun 17 01:43:32
+ 2011
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+User-Agent: Mutt/1.5.20 (2009-06-14)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:992
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/992>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1QXMDj-0005gf-Py for gclrug-mongrel-unicorn@m.gmane.org; Fri, 17 Jun 2011
+ 01:43:32 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 6656C1598077; Thu, 16 Jun 2011 19:43:30 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id D410C1858372 for <mongrel-unicorn@rubyforge.org>;
+ Thu, 16 Jun 2011 19:25:09 -0400 (EDT)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id E34482162C; Thu, 16 Jun 2011 23:25:08 +0000 (UTC)
+
+This means we no longer waste an extra file descriptor per
+worker process in the master.  Now there's no need to set a
+higher file descriptor limit for systems running >= 1024
+workers.
+---
+
+ I just pushed this out to git://bogomips.org/unicorn.git and it'll
+ be in Unicorn 4.x.
+
+ The subset of raindrops used by Unicorn should work on all machines
+ with mmap(2) + MAP_ANON/MAP_ANONYMOUS support, so *BSDs shouldn't be
+ left out.
+
+ Obviously the Linux-only INET_DIAG/TCP_INFO statistics support in
+ raindrops won't ever be a requirement in Unicorn.
+
+ If you're not using gcc 4+, you might need to install libatomic_ops
+ http://www.hpl.hp.com/research/linux/atomic_ops/ to build
+ raindrops.
+
+ For more information on raindrops, see the raindrops website
+ http://raindrops.bogomips.org/ and/or email the mailing list
+ if you have questions, comments, patches, etc: raindrops@librelist.org
+ (I'll also respond to email about raindrops here)
+
+ DESIGN                     |    8 -------
+ lib/unicorn/http_server.rb |   48 +++++++++++++-----------------------------
+ lib/unicorn/worker.rb      |   49 ++++++++++++++++++++++++++++++++++++++++---
+ script/isolate_for_tests   |    1 +
+ test/unit/test_droplet.rb  |   28 +++++++++++++++++++++++++
+ unicorn.gemspec            |    1 +
+ 6 files changed, 90 insertions(+), 45 deletions(-)
+ create mode 100644 test/unit/test_droplet.rb
+
+diff --git a/DESIGN b/DESIGN
+index eb9fbea..2c98c2f 100644
+--- a/DESIGN
++++ b/DESIGN
+@@ -76,14 +76,6 @@
+   Applications that use threads continue to work if Unicorn
+   is only serving LAN or localhost clients.
+ 
+-* Timeout implementation is done via fchmod(2) in each worker
+-  on a shared file descriptor to update st_ctime on the inode.
+-  Master process wakeups for checking on timeouts is throttled
+-  one a second to minimize the performance impact and simplify
+-  the code path within the worker.  Neither futimes(2) nor
+-  pwrite(2)/pread(2) are supported by base MRI, nor are they as
+-  portable on UNIX systems as fchmod(2).
+-
+ * SIGKILL is used to terminate the timed-out workers from misbehaving apps
+   as reliably as possible on a UNIX system.  The default timeout is a
+   generous 60 seconds (same default as in Mongrel).
+diff --git a/lib/unicorn/http_server.rb b/lib/unicorn/http_server.rb
+index 059f040..0a9af86 100644
+--- a/lib/unicorn/http_server.rb
++++ b/lib/unicorn/http_server.rb
+@@ -373,7 +373,7 @@ class Unicorn::HttpServer
+         self.pid = pid.chomp('.oldbin') if pid
+         proc_name 'master'
+       else
+-        worker = WORKERS.delete(wpid) and worker.tmp.close rescue nil
++        worker = WORKERS.delete(wpid) and worker.close rescue nil
+         m = "reaped #{status.inspect} worker=#{worker.nr rescue 'unknown'}"
+         status.success? ? logger.info(m) : logger.error(m)
+       end
+@@ -430,22 +430,17 @@ class Unicorn::HttpServer
+     proc_name 'master (old)'
+   end
+ 
+-  # forcibly terminate all workers that haven't checked in in timeout
+-  # seconds.  The timeout is implemented using an unlinked File
+-  # shared between the parent process and each worker.  The worker
+-  # runs File#chmod to modify the ctime of the File.  If the ctime
+-  # is stale for >timeout seconds, then we'll kill the corresponding
+-  # worker.
++  # forcibly terminate all workers that haven't checked in in timeout seconds.  The timeout is implemented using an unlinked File
+   def murder_lazy_workers
+     t = @timeout
+     next_sleep = 1
++    now = Time.now.to_i
+     WORKERS.dup.each_pair do |wpid, worker|
+-      stat = worker.tmp.stat
+-      # skip workers that disable fchmod or have never fchmod-ed
+-      stat.mode == 0100600 and next
+-      diff = Time.now - stat.ctime
+-      if diff <= t
+-        tmp = t - diff
++      tick = worker.tick
++      0 == tick and next # skip workers that are sleeping
++      diff = now - tick
++      tmp = t - diff
++      if tmp >= 0
+         next_sleep < tmp and next_sleep = tmp
+         next
+       end
+@@ -472,7 +467,7 @@ class Unicorn::HttpServer
+     worker_nr = -1
+     until (worker_nr += 1) == @worker_processes
+       WORKERS.values.include?(worker_nr) and next
+-      worker = Worker.new(worker_nr, Unicorn::TmpIO.new)
++      worker = Worker.new(worker_nr)
+       before_fork.call(self, worker)
+       if pid = fork
+         WORKERS[pid] = worker
+@@ -549,10 +544,8 @@ class Unicorn::HttpServer
+     proc_name "worker[#{worker.nr}]"
+     START_CTX.clear
+     init_self_pipe!
+-    WORKERS.values.each { |other| other.tmp.close rescue nil }
+     WORKERS.clear
+     LISTENERS.each { |sock| sock.fcntl(Fcntl::F_SETFD, Fcntl::FD_CLOEXEC) }
+-    worker.tmp.fcntl(Fcntl::F_SETFD, Fcntl::FD_CLOEXEC)
+     after_fork.call(self, worker) # can drop perms
+     worker.user(*user) if user.kind_of?(Array) && ! worker.switched
+     self.timeout /= 2.0 # halve it for select()
+@@ -576,12 +569,11 @@ class Unicorn::HttpServer
+     ppid = master_pid
+     init_worker_process(worker)
+     nr = 0 # this becomes negative if we need to reopen logs
+-    alive = worker.tmp # tmp is our lifeline to the master process
+     ready = LISTENERS.dup
+ 
+     # closing anything we IO.select on will raise EBADF
+     trap(:USR1) { nr = -65536; SELF_PIPE[0].close rescue nil }
+-    trap(:QUIT) { alive = nil; LISTENERS.each { |s| s.close rescue nil }.clear }
++    trap(:QUIT) { worker = nil; LISTENERS.each { |s| s.close rescue nil }.clear }
+     [:TERM, :INT].each { |sig| trap(sig) { exit!(0) } } # instant shutdown
+     logger.info "worker=#{worker.nr} ready"
+     m = 0
+@@ -590,21 +582,12 @@ class Unicorn::HttpServer
+       nr < 0 and reopen_worker_logs(worker.nr)
+       nr = 0
+ 
+-      # we're a goner in timeout seconds anyways if alive.chmod
+-      # breaks, so don't trap the exception.  Using fchmod() since
+-      # futimes() is not available in base Ruby and I very strongly
+-      # prefer temporary files to be unlinked for security,
+-      # performance and reliability reasons, so utime is out.  No-op
+-      # changes with chmod doesn't update ctime on all filesystems; so
+-      # we change our counter each and every time (after process_client
+-      # and before IO.select).
+-      alive.chmod(m = 0 == m ? 1 : 0)
+-
+       while sock = ready.shift
+         if client = sock.kgio_tryaccept
++          worker.tick = Time.now.to_i
+           process_client(client)
++          worker.tick = 0
+           nr += 1
+-          alive.chmod(m = 0 == m ? 1 : 0)
+         end
+         break if nr < 0
+       end
+@@ -619,18 +602,17 @@ class Unicorn::HttpServer
+       end
+ 
+       ppid == Process.ppid or return
+-      alive.chmod(m = 0 == m ? 1 : 0)
+ 
+       # timeout used so we can detect parent death:
+       ret = IO.select(LISTENERS, nil, SELF_PIPE, timeout) and ready = ret[0]
+     rescue Errno::EBADF
+       nr < 0 or return
+     rescue => e
+-      if alive
++      if worker
+         logger.error "Unhandled listen loop exception #{e.inspect}."
+         logger.error e.backtrace.join("\n")
+       end
+-    end while alive
++    end while worker
+   end
+ 
+   # delivers a signal to a worker and fails gracefully if the worker
+@@ -638,7 +620,7 @@ class Unicorn::HttpServer
+   def kill_worker(signal, wpid)
+     Process.kill(signal, wpid)
+     rescue Errno::ESRCH
+-      worker = WORKERS.delete(wpid) and worker.tmp.close rescue nil
++      worker = WORKERS.delete(wpid) and worker.close rescue nil
+   end
+ 
+   # delivers a signal to each worker
+diff --git a/lib/unicorn/worker.rb b/lib/unicorn/worker.rb
+index 39e9e32..cd41e22 100644
+--- a/lib/unicorn/worker.rb
++++ b/lib/unicorn/worker.rb
+@@ -1,4 +1,5 @@
+ # -*- encoding: binary -*-
++require "raindrops"
+ 
+ # This class and its members can be considered a stable interface
+ # and will not change in a backwards-incompatible fashion between
+@@ -7,13 +8,53 @@
+ #
+ # Some users may want to access it in the before_fork/after_fork hooks.
+ # See the Unicorn::Configurator RDoc for examples.
+-class Unicorn::Worker < Struct.new(:nr, :tmp, :switched)
++class Unicorn::Worker
++  # :stopdoc:
++  attr_accessor :nr, :switched
++  attr_writer :tmp
++
++  PER_DROP = Raindrops::PAGE_SIZE / Raindrops::SIZE
++  DROPS = []
++
++  def initialize(nr)
++    drop_index = nr / PER_DROP
++    @raindrop = DROPS[drop_index] ||= Raindrops.new(PER_DROP)
++    @offset = nr % PER_DROP
++    @raindrop[@offset] = 0
++    @nr = nr
++    @tmp = @switched = false
++  end
+ 
+   # worker objects may be compared to just plain Integers
+   def ==(other_nr) # :nodoc:
+-    nr == other_nr
++    @nr == other_nr
++  end
++
++  # called in the worker process
++  def tick=(value) # :nodoc:
++    @raindrop[@offset] = value
++  end
++
++  # called in the master process
++  def tick # :nodoc:
++    @raindrop[@offset]
+   end
+ 
++  # only exists for compatibility
++  def tmp # :nodoc:
++    @tmp ||= begin
++      tmp = Unicorn::TmpIO.new
++      tmp.fcntl(Fcntl::F_SETFD, Fcntl::FD_CLOEXEC)
++      tmp
++    end
++  end
++
++  def close # :nodoc:
++    @tmp.close if @tmp
++  end
++
++  # :startdoc:
++
+   # In most cases, you should be using the Unicorn::Configurator#user
+   # directive instead.  This method should only be used if you need
+   # fine-grained control of exactly when you want to change permissions
+@@ -36,12 +77,12 @@ class Unicorn::Worker < Struct.new(:nr, :tmp, :switched)
+     uid = Etc.getpwnam(user).uid
+     gid = Etc.getgrnam(group).gid if group
+     Unicorn::Util.chown_logs(uid, gid)
+-    tmp.chown(uid, gid)
++    @tmp.chown(uid, gid) if @tmp
+     if gid && Process.egid != gid
+       Process.initgroups(user, gid)
+       Process::GID.change_privilege(gid)
+     end
+     Process.euid != uid and Process::UID.change_privilege(uid)
+-    self.switched = true
++    @switched = true
+   end
+ end
+diff --git a/script/isolate_for_tests b/script/isolate_for_tests
+index 1c9d9b1..96848c1 100755
+--- a/script/isolate_for_tests
++++ b/script/isolate_for_tests
+@@ -17,6 +17,7 @@ opts = {
+ pid = fork do
+   Isolate.now!(opts) do
+     gem 'sqlite3-ruby', '1.2.5'
++    gem 'raindrops', '0.6.1'
+     gem 'kgio', '2.3.3'
+     gem 'rack', '1.2.2'
+   end
+diff --git a/test/unit/test_droplet.rb b/test/unit/test_droplet.rb
+new file mode 100644
+index 0000000..73cf38c
+--- /dev/null
++++ b/test/unit/test_droplet.rb
+@@ -0,0 +1,28 @@
++require 'test/unit'
++require 'unicorn'
++
++class TestDroplet < Test::Unit::TestCase
++  def test_create_many_droplets
++    now = Time.now.to_i
++    tmp = (0..1024).map do |i|
++      droplet = Unicorn::Worker.new(i)
++      assert droplet.respond_to?(:tick)
++      assert_equal 0, droplet.tick
++      assert_equal(now, droplet.tick = now)
++      assert_equal now, droplet.tick
++      assert_equal(0, droplet.tick = 0)
++      assert_equal 0, droplet.tick
++    end
++  end
++
++  def test_shared_process
++    droplet = Unicorn::Worker.new(0)
++    _, status = Process.waitpid2(fork { droplet.tick += 1; exit!(0) })
++    assert status.success?, status.inspect
++    assert_equal 1, droplet.tick
++
++    _, status = Process.waitpid2(fork { droplet.tick += 1; exit!(0) })
++    assert status.success?, status.inspect
++    assert_equal 2, droplet.tick
++  end
++end
+diff --git a/unicorn.gemspec b/unicorn.gemspec
+index 2ce6c59..851424f 100644
+--- a/unicorn.gemspec
++++ b/unicorn.gemspec
+@@ -35,6 +35,7 @@ Gem::Specification.new do |s|
+   # *strongly* recommended for security reasons.
+   s.add_dependency(%q<rack>)
+   s.add_dependency(%q<kgio>, '~> 2.4')
++  s.add_dependency(%w<raindrops>, '~> 0.6')
+ 
+   s.add_development_dependency('isolate', '~> 3.1')
+   s.add_development_dependency('wrongdoc', '~> 1.5')
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
