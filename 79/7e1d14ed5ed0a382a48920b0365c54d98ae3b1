@@ -1,0 +1,125 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.7 required=5.0 tests=MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Jason Su <jason@lookbook.nu>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: problem setting multiple cookies
+Date: Mon, 20 Jun 2011 20:38:52 -0700
+Message-ID: <BANLkTi=byv5YZmmsydYoWS9UdGyRUt3agw@mail.gmail.com>
+References: <BANLkTikS7uukeLamG8ORdo97FpP7qK+jmg@mail.gmail.com>
+ <20110621000625.GA20225@dcvr.yhbt.net>
+ <BANLkTi=EzX=qiv=V_ZXVrWY3PETjVBbFYw@mail.gmail.com>
+ <20110621004607.GA29647@dcvr.yhbt.net>
+ <BANLkTimUQsSLagt22SwzNFawBuQQUpoeKA@mail.gmail.com>
+ <20110621021524.GA31142@dcvr.yhbt.net>
+ <BANLkTingtBuYeg6pPXrqNJF+=1vAG0Q67Q@mail.gmail.com>
+ <20110621031534.GA8753@dcvr.yhbt.net>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="iso-8859-1"
+Content-Transfer-Encoding: quoted-printable
+X-Trace: dough.gmane.org 1308627567 7890 80.91.229.12 (21 Jun 2011 03:39:27
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Tue, 21 Jun 2011 03:39:27 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Tue Jun 21 05:39:21
+ 2011
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+In-Reply-To: <20110621031534.GA8753@dcvr.yhbt.net>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:1002
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/1002>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1QYro9-00080X-A2 for gclrug-mongrel-unicorn@m.gmane.org; Tue, 21 Jun 2011
+ 05:39:21 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id A49461858376; Mon, 20 Jun 2011 23:39:20 -0400 (EDT)
+Received: from mail-vx0-f178.google.com (mail-vx0-f178.google.com
+ [209.85.220.178]) by rubyforge.org (Postfix) with ESMTP id 33508185836C for
+ <mongrel-unicorn@rubyforge.org>; Mon, 20 Jun 2011 23:39:13 -0400 (EDT)
+Received: by vxk12 with SMTP id 12so2744577vxk.23 for
+ <mongrel-unicorn@rubyforge.org>; Mon, 20 Jun 2011 20:39:13 -0700 (PDT)
+Received: by 10.220.102.137 with SMTP id g9mr2418823vco.76.1308627552181;
+ Mon, 20 Jun 2011 20:39:12 -0700 (PDT)
+Received: by 10.220.129.12 with HTTP; Mon, 20 Jun 2011 20:38:52 -0700 (PDT)
+
+I'm using unicorn 3.6.2
+
+What I was trying to say is that the JoinCookie middleware didn't do
+anything. headers["Set-Cookie"] is a string, and the _test_session
+cookie was always being set correctly. The problem happens only when I
+try to set multiple cookies myself.
+
+Here's the output of p headers in JoinCookie again
+
+{"X-Runtime"=3D>"92", "Content-Type"=3D>"text/html",
+"Content-Length"=3D>"1", "Set-Cookie"=3D>"first=3D; domain=3D.test.com;
+path=3D/; expires=3DThu, 01-Jan-1970 00:00:00 GMTsecond=3D1;
+domain=3D.test.com; path=3D/; expires=3DMon, 21-Jun-2021 03:35:30
+GMT\n_test_session=3D1804126e6bad8cf4b25602b74218f003; domain=3D.test.com;
+path=3D/; HttpOnly", "Cache-Control"=3D>"no-cache"}
+
+Where is JoinCookie is getting it's headers from?
+
+
+On Mon, Jun 20, 2011 at 8:15 PM, Eric Wong <normalperson@yhbt.net> wrote:
+> Jason Su <jason@lookbook.nu> wrote:
+>> Here's what I get in the response, with the _test_session cookie line:
+>>
+>> Set-Cookie:first=3D; domain=3D.test.com; path=3D/; expires=3DThu, 01-Jan=
+-1970
+>> 00:00:00 GMTsecond=3D1; domain=3D.test.com; path=3D/; expires=3DMon,
+>> 21-Jun-2021 02:40:27 GMT
+>> _test_session=3D40658e37c9e8b39c5f8389e09682c47b; domain=3D.test.com;
+>> path=3D/; HttpOnly
+>>
+>> It doesn't add a second Set-Cookie: line, but the line break seems to wo=
+rk...
+>
+> Huh? =A0Which version of unicorn are you using? =A0The /\n/ splitting in
+> headers has been in the earliest releases of unicorn...
+>
+>> 2.3.11 is giving me a ton of trouble.. I've tried it before.. and I
+>> just tried again with little luck... Is there anything that I can just
+>> grab from the commits to make it work on 2.3.8?
+>
+> Look at the individual commits in rails.git. =A0I just used
+>
+> =A0git log -p v2.3.8..v2.3.11 -- actionpack
+>
+> in rails.git to find those for you. =A0 I just looked for things that
+> would manipulate cookies/headers.
+>
+> --
+> Eric Wong
+> _______________________________________________
+> Unicorn mailing list - mongrel-unicorn@rubyforge.org
+> http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+> Do not quote signatures (like this one) or top post when replying
+>
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
