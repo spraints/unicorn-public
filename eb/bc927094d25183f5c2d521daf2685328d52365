@@ -1,0 +1,115 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: problem setting multiple cookies
+Date: Mon, 20 Jun 2011 17:46:07 -0700
+Message-ID: <20110621004607.GA29647@dcvr.yhbt.net>
+References: <BANLkTikS7uukeLamG8ORdo97FpP7qK+jmg@mail.gmail.com>
+ <20110621000625.GA20225@dcvr.yhbt.net>
+ <BANLkTi=EzX=qiv=V_ZXVrWY3PETjVBbFYw@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1308618593 2442 80.91.229.12 (21 Jun 2011 01:09:53
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Tue, 21 Jun 2011 01:09:53 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Tue Jun 21 03:09:49
+ 2011
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <BANLkTi=EzX=qiv=V_ZXVrWY3PETjVBbFYw@mail.gmail.com>
+User-Agent: Mutt/1.5.21 (2010-09-15)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:996
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/996>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1QYpTQ-0003z1-US for gclrug-mongrel-unicorn@m.gmane.org; Tue, 21 Jun 2011
+ 03:09:49 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id DF2911598071; Mon, 20 Jun 2011 21:09:47 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id EC34F1858300 for <mongrel-unicorn@rubyforge.org>;
+ Mon, 20 Jun 2011 20:46:07 -0400 (EDT)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 458571F854; Tue, 21 Jun 2011 00:46:07 +0000 (UTC)
+
+Jason Su <jason@lookbook.nu> wrote:
+> Hey Eric,
+> 
+> I'm using Rails 2.3.8, and Rack 1.1.2
+
+Please don't top post, if you're just replying to the message in general
+I'd rather you not quote at all.
+
+> I'm setting cookies like this:
+> 
+> cookies[:user_id] = { :domain => ".#{domain}", :value => "#{user.id}",
+> :expires => 10.years.from_now }
+
+> How can I get the response to show up correctly, with individual
+> Set-Cookie lines for each?
+
+I wonder if it's a bug in older versions of Rails or Rack, there was
+some confusion back in the day about how to handle multiple values
+for a single header...
+
+Can you try loading the following middleware in your app?
+
+If it doesn't work, uncomment the 'p' statement and show us what data
+structure is used for your headers.
+
+---------------------- join_cookie.rb ---------------------------------
+# Totally untested:
+# usage (in config.ru):
+#   use JoinCookie
+#   run YourApp.new
+class JoinCookie < Struct.new(:app)
+  def call(env)
+    status, headers, body = app.call(env)
+
+    ## uncomment and show me the output of the next line if this doesn't work
+    # p headers
+
+    headers = Rack::Utils::HeaderHash.new(headers)
+    case set_cookie = headers["Set-Cookie"]
+    when Array
+      headers["Set-Cookie"] = set_cookie.join("\n")
+    end
+
+    [ status, headers, body ]
+  end
+end
+-----------------------------------------------------------------
+
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
