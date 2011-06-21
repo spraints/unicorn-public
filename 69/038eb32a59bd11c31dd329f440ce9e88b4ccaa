@@ -1,0 +1,118 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: problem setting multiple cookies
+Date: Tue, 21 Jun 2011 00:06:25 +0000
+Message-ID: <20110621000625.GA20225@dcvr.yhbt.net>
+References: <BANLkTikS7uukeLamG8ORdo97FpP7qK+jmg@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1308615121 17630 80.91.229.12 (21 Jun 2011 00:12:01
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Tue, 21 Jun 2011 00:12:01 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Tue Jun 21 02:11:56
+ 2011
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <BANLkTikS7uukeLamG8ORdo97FpP7qK+jmg@mail.gmail.com>
+User-Agent: Mutt/1.5.21 (2010-09-15)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:994
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/994>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1QYoZP-0004SH-Oc for gclrug-mongrel-unicorn@m.gmane.org; Tue, 21 Jun 2011
+ 02:11:56 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id CF1A91598071; Mon, 20 Jun 2011 20:11:54 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id AD6CB1858361 for <mongrel-unicorn@rubyforge.org>;
+ Mon, 20 Jun 2011 20:06:25 -0400 (EDT)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 2BD821F854; Tue, 21 Jun 2011 00:06:25 +0000 (UTC)
+
+Jason Su <jason@lookbook.nu> wrote:
+> Hey guys,
+> 
+> When I try to set multiple cookies in one request, the 'Set-Cookies'
+> header in the http response doesn't look right -- all the cookies are
+> set without any line breaks.
+> 
+> Looks like this:
+> 
+> Set-Cookie:first=; domain=.domain.com; path=/; expires=Thu,
+> 01-Jan-1970 00:00:00 GMTsecond=1; domain=.domain.com; path=/;
+> expires=Sun, 20-Jun-2021 23:34:30 GMT
+
+Which versions of Rails and Rack are you using?  How is your app
+setting cookies?
+
+Older versions of Rack may have specified a different delimiter (or an
+Array).  Current versions only use "\n" inside a string, so it should be
+something like:
+
+  headers["Set-Cookie"] = "first=33; path=/\n" \
+                          "second=; path=/\n" \
+                          "third=; path=/"
+
+Using Rack::Utils.set_cookie_header! (or a Rails-level wrapper) is
+recommended, though.
+
+> Should look more like this, which is what I got from a fresh Rails project test:
+> 
+> Set-Cookie:first=33; path=/
+> second=; path=/; expires=Thu, 01-Jan-1970 00:00:00 GMT
+> third=69; path=/
+
+The response should have 3 individual Set-Cookie lines:
+
+  Set-Cookie: first=33; path=/
+  Set-Cookie: second=; path=/; expires=Thu, 01-Jan-1970 00:00:00 GMT
+  Set-Cookie: third=69; path=/
+
+> In the first example, neither cookies (first/second) are set. The
+> second example, all 3 cookies are set.
+> 
+> I think it's happening somewhere here, but I can't figure out what's
+> going on... http://bogomips.org/unicorn.git/tree/lib/unicorn/cgi_wrapper.rb
+
+The code that does this transformation of the Rack header to the
+client socket is here:
+
+http://bogomips.org/unicorn.git/tree/lib/unicorn/http_response.rb
+
+cgi_wrapper.rb is only for Rails <= 2.2, where it is called before
+http_response.rb
+
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
