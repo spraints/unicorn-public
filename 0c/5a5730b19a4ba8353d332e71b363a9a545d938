@@ -1,0 +1,107 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: problem setting multiple cookies
+Date: Tue, 21 Jun 2011 11:29:49 -0700
+Message-ID: <20110621182949.GB6054@dcvr.yhbt.net>
+References: <BANLkTikS7uukeLamG8ORdo97FpP7qK+jmg@mail.gmail.com>
+ <20110621000625.GA20225@dcvr.yhbt.net>
+ <BANLkTi=EzX=qiv=V_ZXVrWY3PETjVBbFYw@mail.gmail.com>
+ <20110621004607.GA29647@dcvr.yhbt.net>
+ <BANLkTimUQsSLagt22SwzNFawBuQQUpoeKA@mail.gmail.com>
+ <20110621021524.GA31142@dcvr.yhbt.net>
+ <BANLkTingtBuYeg6pPXrqNJF+=1vAG0Q67Q@mail.gmail.com>
+ <20110621031534.GA8753@dcvr.yhbt.net>
+ <BANLkTi=byv5YZmmsydYoWS9UdGyRUt3agw@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1308681245 5363 80.91.229.12 (21 Jun 2011 18:34:05
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Tue, 21 Jun 2011 18:34:05 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Tue Jun 21 20:33:59
+ 2011
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <BANLkTi=byv5YZmmsydYoWS9UdGyRUt3agw@mail.gmail.com>
+User-Agent: Mutt/1.5.21 (2010-09-15)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:1003
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/1003>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1QZ5lu-0001OR-WC for gclrug-mongrel-unicorn@m.gmane.org; Tue, 21 Jun 2011
+ 20:33:59 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id BDE9D1598071; Tue, 21 Jun 2011 14:33:56 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id DE8881858363 for <mongrel-unicorn@rubyforge.org>;
+ Tue, 21 Jun 2011 14:29:49 -0400 (EDT)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 30AD71F854; Tue, 21 Jun 2011 18:29:49 +0000 (UTC)
+
+Jason Su <jason@lookbook.nu> wrote:
+> I'm using unicorn 3.6.2
+> 
+> What I was trying to say is that the JoinCookie middleware didn't do
+> anything. headers["Set-Cookie"] is a string, and the _test_session
+> cookie was always being set correctly. The problem happens only when I
+> try to set multiple cookies myself.
+
+Yeah, you're not getting an Array (at least not at that stage) as I
+semi-hoped so JoinCookie wouldn't solve it.
+
+> Here's the output of p headers in JoinCookie again
+> 
+> {"X-Runtime"=>"92", "Content-Type"=>"text/html",
+> "Content-Length"=>"1", "Set-Cookie"=>"first=; domain=.test.com;
+> path=/; expires=Thu, 01-Jan-1970 00:00:00 GMTsecond=1;
+> domain=.test.com; path=/; expires=Mon, 21-Jun-2021 03:35:30
+> GMT\n_test_session=1804126e6bad8cf4b25602b74218f003; domain=.test.com;
+> path=/; HttpOnly", "Cache-Control"=>"no-cache"}
+> 
+> Where is JoinCookie is getting it's headers from?
+
+app.call(env) is what dispatches your Rails app, so the headers are what
+Rails (and middlewares further down the stack) sets.
+
+Any luck with looking at Rails changes that might impact this?
+
+At this point it's clear it's a Rails/Rack issue (and for an old
+version, at that) and not something that can be done with Unicorn.
+
+Maybe you can fix whatever the Rails v2.3.8..v2.3.11 upgrade broke
+in your app, but whatever's broken is broken at the application layer
+and not in Unicorn.
+
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
