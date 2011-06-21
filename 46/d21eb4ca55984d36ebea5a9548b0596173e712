@@ -1,0 +1,96 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: problem setting multiple cookies
+Date: Tue, 21 Jun 2011 03:15:34 +0000
+Message-ID: <20110621031534.GA8753@dcvr.yhbt.net>
+References: <BANLkTikS7uukeLamG8ORdo97FpP7qK+jmg@mail.gmail.com>
+ <20110621000625.GA20225@dcvr.yhbt.net>
+ <BANLkTi=EzX=qiv=V_ZXVrWY3PETjVBbFYw@mail.gmail.com>
+ <20110621004607.GA29647@dcvr.yhbt.net>
+ <BANLkTimUQsSLagt22SwzNFawBuQQUpoeKA@mail.gmail.com>
+ <20110621021524.GA31142@dcvr.yhbt.net>
+ <BANLkTingtBuYeg6pPXrqNJF+=1vAG0Q67Q@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1308626148 2262 80.91.229.12 (21 Jun 2011 03:15:48
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Tue, 21 Jun 2011 03:15:48 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Tue Jun 21 05:15:44
+ 2011
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <BANLkTingtBuYeg6pPXrqNJF+=1vAG0Q67Q@mail.gmail.com>
+User-Agent: Mutt/1.5.20 (2009-06-14)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:1001
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/1001>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1QYrRH-0006ql-8O for gclrug-mongrel-unicorn@m.gmane.org; Tue, 21 Jun 2011
+ 05:15:43 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id C2C241858372; Mon, 20 Jun 2011 23:15:41 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 1EC611858346 for <mongrel-unicorn@rubyforge.org>;
+ Mon, 20 Jun 2011 23:15:35 -0400 (EDT)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 937781F854; Tue, 21 Jun 2011 03:15:34 +0000 (UTC)
+
+Jason Su <jason@lookbook.nu> wrote:
+> Here's what I get in the response, with the _test_session cookie line:
+> 
+> Set-Cookie:first=; domain=.test.com; path=/; expires=Thu, 01-Jan-1970
+> 00:00:00 GMTsecond=1; domain=.test.com; path=/; expires=Mon,
+> 21-Jun-2021 02:40:27 GMT
+> _test_session=40658e37c9e8b39c5f8389e09682c47b; domain=.test.com;
+> path=/; HttpOnly
+> 
+> It doesn't add a second Set-Cookie: line, but the line break seems to work...
+
+Huh?  Which version of unicorn are you using?  The /\n/ splitting in
+headers has been in the earliest releases of unicorn...
+
+> 2.3.11 is giving me a ton of trouble.. I've tried it before.. and I
+> just tried again with little luck... Is there anything that I can just
+> grab from the commits to make it work on 2.3.8?
+
+Look at the individual commits in rails.git.  I just used
+
+  git log -p v2.3.8..v2.3.11 -- actionpack
+
+in rails.git to find those for you.   I just looked for things that
+would manipulate cookies/headers.
+
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
