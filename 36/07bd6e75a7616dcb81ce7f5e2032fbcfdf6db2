@@ -1,0 +1,159 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.7 required=5.0 tests=MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Jason Su <jason@lookbook.nu>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: problem setting multiple cookies
+Date: Tue, 21 Jun 2011 21:18:23 -0700
+Message-ID: <BANLkTinK9tPc6dHu==T=sDFMfjQdYhwp3w@mail.gmail.com>
+References: <20110621000625.GA20225@dcvr.yhbt.net>
+ <BANLkTi=EzX=qiv=V_ZXVrWY3PETjVBbFYw@mail.gmail.com>
+ <20110621004607.GA29647@dcvr.yhbt.net>
+ <BANLkTimUQsSLagt22SwzNFawBuQQUpoeKA@mail.gmail.com>
+ <20110621021524.GA31142@dcvr.yhbt.net>
+ <BANLkTingtBuYeg6pPXrqNJF+=1vAG0Q67Q@mail.gmail.com>
+ <20110621031534.GA8753@dcvr.yhbt.net>
+ <BANLkTi=byv5YZmmsydYoWS9UdGyRUt3agw@mail.gmail.com>
+ <20110621182949.GB6054@dcvr.yhbt.net>
+ <BANLkTimyFe4MDmJLJTbYwUNVj=5s1WSHYQ@mail.gmail.com>
+ <20110622015934.GA18959@dcvr.yhbt.net>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1308716716 20741 80.91.229.12 (22 Jun 2011 04:25:16
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Wed, 22 Jun 2011 04:25:16 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Wed Jun 22 06:25:09
+ 2011
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+In-Reply-To: <20110622015934.GA18959@dcvr.yhbt.net>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:1006
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/1006>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1QZEzx-0006kA-8E for gclrug-mongrel-unicorn@m.gmane.org; Wed, 22 Jun 2011
+ 06:25:07 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 9501818583A9; Wed, 22 Jun 2011 00:25:04 -0400 (EDT)
+Received: from mail-vx0-f178.google.com (mail-vx0-f178.google.com
+ [209.85.220.178]) by rubyforge.org (Postfix) with ESMTP id F16601858378 for
+ <mongrel-unicorn@rubyforge.org>; Wed, 22 Jun 2011 00:18:43 -0400 (EDT)
+Received: by vxk12 with SMTP id 12so424687vxk.23 for
+ <mongrel-unicorn@rubyforge.org>; Tue, 21 Jun 2011 21:18:43 -0700 (PDT)
+Received: by 10.52.98.37 with SMTP id ef5mr298820vdb.22.1308716323194; Tue,
+ 21 Jun 2011 21:18:43 -0700 (PDT)
+Received: by 10.220.129.12 with HTTP; Tue, 21 Jun 2011 21:18:23 -0700 (PDT)
+
+Hey Eric,
+
+Actually I think I am using OldRails -- don't know what it is or why
+I'm doing it, but this is in my config.ru:
+
+map '/' do
+  if RAILS_ENV != 'production'
+    begin
+      require 'rack/bug'
+      use Rack::Bug, :password => nil
+    rescue LoadError
+    end
+
+    use Rails::Rack::Static
+  end
+
+  run Unicorn::App::OldRails.new
+end
+
+Should I not be using OldRails?
+
+
+
+I'm also trying to upgrade to Rails 2.3.11 again. Here's the error
+that's stopping me:
+
+You have a nil object when you didn't expect it!
+You might have expected an instance of Array.
+The error occurred while evaluating nil.split You have a nil object
+when you didn't expect it!
+You might have expected an instance of Array.
+The error occurred while evaluating nil.split
+/Users/kittyflat/.rvm/rubies/ruby-1.8.7-p334/lib/ruby/gems/1.8/gems/actionpack-2.3.11/lib/action_controller/cgi_process.rb:52:in
+`dispatch_cgi'
+/Users/kittyflat/.rvm/rubies/ruby-1.8.7-p334/lib/ruby/gems/1.8/gems/actionpack-2.3.11/lib/action_controller/dispatcher.rb:101:in
+`dispatch_cgi'
+/Users/kittyflat/.rvm/rubies/ruby-1.8.7-p334/lib/ruby/gems/1.8/gems/actionpack-2.3.11/lib/action_controller/dispatcher.rb:27:in
+`dispatch'
+/Users/kittyflat/.rvm/rubies/ruby-1.8.7-p334/lib/ruby/gems/1.8/gems/unicorn-3.6.2/lib/unicorn/app/old_rails.rb:22:in
+`call'
+/Users/kittyflat/.rvm/rubies/ruby-1.8.7-p334/lib/ruby/gems/1.8/gems/unicorn-3.6.2/lib/unicorn/app/old_rails/static.rb:56:in
+`call'
+/Users/kittyflat/.rvm/rubies/ruby-1.8.7-p334/lib/ruby/gems/1.8/gems/rack-1.1.2/lib/rack/urlmap.rb:47:in
+`call'
+/Users/kittyflat/.rvm/rubies/ruby-1.8.7-p334/lib/ruby/gems/1.8/gems/rack-1.1.2/lib/rack/urlmap.rb:41:in
+`each'
+/Users/kittyflat/.rvm/rubies/ruby-1.8.7-p334/lib/ruby/gems/1.8/gems/rack-1.1.2/lib/rack/urlmap.rb:41:in
+`call'
+/Users/kittyflat/.rvm/rubies/ruby-1.8.7-p334/lib/ruby/gems/1.8/gems/unicorn-3.6.2/lib/unicorn/http_server.rb:545:in
+`process_client'
+/Users/kittyflat/.rvm/rubies/ruby-1.8.7-p334/lib/ruby/gems/1.8/gems/unicorn-3.6.2/lib/unicorn/oob_gc.rb:60:in
+`process_client'
+/Users/kittyflat/.rvm/rubies/ruby-1.8.7-p334/lib/ruby/gems/1.8/gems/unicorn-3.6.2/lib/unicorn/http_server.rb:623:in
+`worker_loop'
+/Users/kittyflat/.rvm/rubies/ruby-1.8.7-p334/lib/ruby/gems/1.8/gems/unicorn-3.6.2/lib/unicorn/http_server.rb:621:in
+`each'
+/Users/kittyflat/.rvm/rubies/ruby-1.8.7-p334/lib/ruby/gems/1.8/gems/unicorn-3.6.2/lib/unicorn/http_server.rb:621:in
+`worker_loop'
+/Users/kittyflat/.rvm/rubies/ruby-1.8.7-p334/lib/ruby/gems/1.8/gems/unicorn-3.6.2/lib/unicorn/http_server.rb:509:in
+`spawn_missing_workers'
+/Users/kittyflat/.rvm/rubies/ruby-1.8.7-p334/lib/ruby/gems/1.8/gems/unicorn-3.6.2/lib/unicorn/http_server.rb:507:in
+`fork'
+/Users/kittyflat/.rvm/rubies/ruby-1.8.7-p334/lib/ruby/gems/1.8/gems/unicorn-3.6.2/lib/unicorn/http_server.rb:507:in
+`spawn_missing_workers'
+/Users/kittyflat/.rvm/rubies/ruby-1.8.7-p334/lib/ruby/gems/1.8/gems/unicorn-3.6.2/lib/unicorn/http_server.rb:503:in
+`each'
+/Users/kittyflat/.rvm/rubies/ruby-1.8.7-p334/lib/ruby/gems/1.8/gems/unicorn-3.6.2/lib/unicorn/http_server.rb:503:in
+`spawn_missing_workers'
+/Users/kittyflat/.rvm/rubies/ruby-1.8.7-p334/lib/ruby/gems/1.8/gems/unicorn-3.6.2/lib/unicorn/http_server.rb:516:in
+`maintain_worker_count'
+/Users/kittyflat/.rvm/rubies/ruby-1.8.7-p334/lib/ruby/gems/1.8/gems/unicorn-3.6.2/lib/unicorn/http_server.rb:166:in
+`start'
+/Users/kittyflat/.rvm/rubies/ruby-1.8.7-p334/lib/ruby/gems/1.8/gems/unicorn-3.6.2/lib/unicorn.rb:30:in
+`run'
+/Users/kittyflat/.rvm/rubies/ruby-1.8.7-p334/lib/ruby/gems/1.8/gems/unicorn-3.6.2/bin/unicorn_rails:208
+/Users/kittyflat/.rvm/gems/ruby-1.8.7-p334/bin/unicorn_rails:19:in `load'
+/Users/kittyflat/.rvm/gems/ruby-1.8.7-p334/bin/unicorn_rails:19
+
+I found this, which I think is somehow related to the fix:
+https://gist.github.com/826692
+
+Do you see anything that looks familiar?
+
+Thanks,
+jason
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
