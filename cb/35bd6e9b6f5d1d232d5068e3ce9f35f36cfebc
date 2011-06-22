@@ -1,0 +1,128 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: problem setting multiple cookies
+Date: Wed, 22 Jun 2011 06:02:55 +0000
+Message-ID: <20110622060255.GA1838@dcvr.yhbt.net>
+References: <20110621004607.GA29647@dcvr.yhbt.net>
+ <BANLkTimUQsSLagt22SwzNFawBuQQUpoeKA@mail.gmail.com>
+ <20110621021524.GA31142@dcvr.yhbt.net>
+ <BANLkTingtBuYeg6pPXrqNJF+=1vAG0Q67Q@mail.gmail.com>
+ <20110621031534.GA8753@dcvr.yhbt.net>
+ <BANLkTi=byv5YZmmsydYoWS9UdGyRUt3agw@mail.gmail.com>
+ <20110621182949.GB6054@dcvr.yhbt.net>
+ <BANLkTimyFe4MDmJLJTbYwUNVj=5s1WSHYQ@mail.gmail.com>
+ <20110622015934.GA18959@dcvr.yhbt.net>
+ <BANLkTinK9tPc6dHu==T=sDFMfjQdYhwp3w@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1308723293 17593 80.91.229.12 (22 Jun 2011 06:14:53
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Wed, 22 Jun 2011 06:14:53 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Wed Jun 22 08:14:47
+ 2011
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <BANLkTinK9tPc6dHu==T=sDFMfjQdYhwp3w@mail.gmail.com>
+User-Agent: Mutt/1.5.20 (2009-06-14)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:1009
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/1009>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1QZGi4-00053R-RW for gclrug-mongrel-unicorn@m.gmane.org; Wed, 22 Jun 2011
+ 08:14:45 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id CF20018583AB; Wed, 22 Jun 2011 02:14:43 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 67DE31858376 for <mongrel-unicorn@rubyforge.org>;
+ Wed, 22 Jun 2011 02:02:56 -0400 (EDT)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id B375220E33; Wed, 22 Jun 2011 06:02:55 +0000 (UTC)
+
+Jason Su <jason@lookbook.nu> wrote:
+> Hey Eric,
+> 
+> Actually I think I am using OldRails -- don't know what it is or why
+> I'm doing it, but this is in my config.ru:
+
+It might be because you were on Rails 2.2 or earlier and upgraded?
+
+> map '/' do
+>   if RAILS_ENV != 'production'
+>     begin
+>       require 'rack/bug'
+>       use Rack::Bug, :password => nil
+>     rescue LoadError
+>     end
+> 
+>     use Rails::Rack::Static
+>   end
+> 
+>   run Unicorn::App::OldRails.new
+> end
+> 
+> Should I not be using OldRails?
+
+OldRails was for Rails <= 2.2, so you should probably try this instead:
+
+  run ActionController::Dispatcher.new
+
+This should use the pure Rack backend that avoids the old CGI
+and CGIWrapper code which Rails <=2.2 relied on.
+
+> I'm also trying to upgrade to Rails 2.3.11 again. Here's the error
+> that's stopping me:
+> 
+> You have a nil object when you didn't expect it!
+> You might have expected an instance of Array.
+> The error occurred while evaluating nil.split You have a nil object
+> when you didn't expect it!
+
+<snip>
+
+> I found this, which I think is somehow related to the fix:
+> https://gist.github.com/826692
+> 
+> Do you see anything that looks familiar?
+
+I haven't seen it before, but it looks to be on the right track.
+
+OldRails uses the CGIWrapper code which is based on the original
+code in Mongrel, too.
+
+If you avoid CGIWrapper, you should be able to avoid the
+workarounds/issues with it like the above gist.
+
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
