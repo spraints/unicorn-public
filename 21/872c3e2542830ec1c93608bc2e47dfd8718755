@@ -1,0 +1,90 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: query string max length tweak ?
+Date: Thu, 23 Jun 2011 11:37:32 -0700
+Message-ID: <20110623183732.GA12651@dcvr.yhbt.net>
+References: <BANLkTi=yME+NP9_XnfVFxwGJRNnKW0=uBw@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1308855708 14774 80.91.229.12 (23 Jun 2011 19:01:48
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Thu, 23 Jun 2011 19:01:48 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Thu Jun 23 21:01:44
+ 2011
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <BANLkTi=yME+NP9_XnfVFxwGJRNnKW0=uBw@mail.gmail.com>
+User-Agent: Mutt/1.5.21 (2010-09-15)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:1012
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/1012>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1QZp9q-0001A3-G2 for gclrug-mongrel-unicorn@m.gmane.org; Thu, 23 Jun 2011
+ 21:01:42 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id C7384177994D; Thu, 23 Jun 2011 15:01:41 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 3FA6B185838E for <mongrel-unicorn@rubyforge.org>;
+ Thu, 23 Jun 2011 14:37:33 -0400 (EDT)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 6379E1F897; Thu, 23 Jun 2011 18:37:32 +0000 (UTC)
+
+Mohit Chawla <mohit.chawla.binary@gmail.com> wrote:
+> Hi,
+> 
+> Is there a way that would allow us to increase the max length allowed
+> for query_string ? We have been getting 414s on large GET requests. We
+> are running the puppet master under unicorn behind nginx. I am not
+> sure of the general implications of this, whether its suggested/safe
+> even, but it is somewhat of a necessity. Any suggestions ?
+
+You can change the following lines in ext/unicorn/global_variables.h
+and rebuild the parser:
+
+  DEF_MAX_LENGTH(REQUEST_URI, 1024 * 12);
+  ...
+  DEF_MAX_LENGTH(QUERY_STRING, (1024 * 10));
+
+There's currently no way to configure them otherwise, but I can consider
+dropping these per-field limits entirely.  We now have a config option
+to set the maximum header size (only exposed via Rainbows!, though).
+
+This means we would only care about the size of the entire header, and
+not the size of any individual element.  I consider the size of the
+entire header more important anyways.  We currently don't have
+limits on the number of headers that can be sent.
+
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
