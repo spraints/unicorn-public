@@ -1,0 +1,113 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.6 required=5.0 tests=FREEMAIL_FROM,
+ MSGID_FROM_MTA_HEADER,RP_MATCHES_RCVD,T_DKIM_INVALID shortcircuit=no
+ autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Aleksandar Simic <asimic@gmail.com>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: [PATCH] replace fchmod()-based heartbeat with raindrops
+Date: Fri, 24 Jun 2011 23:50:01 +0100
+Message-ID: <BANLkTinV+8uE80CpubvzgJp_6-+RETSvRg@mail.gmail.com>
+References: <20110616232508.GA16538@dcvr.yhbt.net>
+ <20110624173038.GA22131@dcvr.yhbt.net>
+ <BANLkTi=a=jHsSVC0Qfx57xG-gXQk9iiB1w@mail.gmail.com>
+ <20110624205158.GA5583@dcvr.yhbt.net>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="iso-8859-1"
+Content-Transfer-Encoding: quoted-printable
+X-Trace: dough.gmane.org 1308956883 25472 80.91.229.12 (24 Jun 2011 23:08:03
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Fri, 24 Jun 2011 23:08:03 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Sat Jun 25 01:07:59
+ 2011
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com; s=gamma;
+ h=domainkey-signature:mime-version:in-reply-to:references:date
+ :message-id:subject:from:to:content-type:content-transfer-encoding;
+ bh=Vtk2PxGCYwY2nJ+sgnksK+4zWrP6N3kYzJGnjYTf4e8=;
+ b=WQPW7lpNDSto/F+36tifWdR51eGqgNRRT1LdqBdB79GMCLAT1eKcva0Y83M1AfqdeO
+ gRyfk27MPXyRjyGX7jvEtR+z8KHxXyyWGEO6dpZsT5LGETHwx6mVrR49aT5fFfRFPA4n
+ 73aB5Fn4gzqn0lvW0GUZw8VgXnGsTD1RnlpaM=
+DomainKey-Signature: a=rsa-sha1; c=nofws; d=gmail.com; s=gamma;
+ h=mime-version:in-reply-to:references:date:message-id:subject:from:to
+ :content-type:content-transfer-encoding;
+ b=fV7leEGgMa/0W+h2N8N198G8xBn3390npONV9zahJmoZTEcgNkQjpwCTTW2v5wM5sB
+ trQCtEY24lapnioO+AVmZrj7uEAGkj+YoR0gJ0XOo333wuywykS3R0FKb2wwiP7HenlU
+ 645OR2MH1gLKdd2s2NDhqBwArv95bwlaz+74o=
+In-Reply-To: <20110624205158.GA5583@dcvr.yhbt.net>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:1018
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/1018>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1QaFTj-0000Hh-EM for gclrug-mongrel-unicorn@m.gmane.org; Sat, 25 Jun 2011
+ 01:07:59 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 7ACCD167835D; Fri, 24 Jun 2011 19:07:58 -0400 (EDT)
+Received: from mail-iy0-f178.google.com (mail-iy0-f178.google.com
+ [209.85.210.178]) by rubyforge.org (Postfix) with ESMTP id 0478A1858363 for
+ <mongrel-unicorn@rubyforge.org>; Fri, 24 Jun 2011 18:50:01 -0400 (EDT)
+Received: by iyb26 with SMTP id 26so4222437iyb.23 for
+ <mongrel-unicorn@rubyforge.org>; Fri, 24 Jun 2011 15:50:01 -0700 (PDT)
+Received: by 10.42.243.9 with SMTP id lk9mr3947679icb.207.1308955801050; Fri,
+ 24 Jun 2011 15:50:01 -0700 (PDT)
+Received: by 10.42.218.70 with HTTP; Fri, 24 Jun 2011 15:50:01 -0700 (PDT)
+
+On Fri, Jun 24, 2011 at 9:51 PM, Eric Wong <normalperson@yhbt.net> wrote:
+> Jeremy Evans <jeremyevans0@gmail.com> wrote:
+>> On Fri, Jun 24, 2011 at 10:30 AM, Eric Wong <normalperson@yhbt.net> wrot=
+e:
+>> > Eric Wong <normalperson@yhbt.net> wrote:
+>> >> =A0The subset of raindrops used by Unicorn should work on all machines
+>> >> =A0with mmap(2) + MAP_ANON/MAP_ANONYMOUS support, so *BSDs shouldn't =
+be
+>> >> =A0left out.
+>>
+>> FWIW, raindrops builds fine on OpenBSD 4.9 amd64.
+>
+> Thanks for the confirmation! =A0I'm at a loss as to what's causing
+> issues under FreeBSD 8 for him...
+
+
+Hello,
+
+the same OS & ruby version as the original poster who reported the
+issue. I see the same symptoms.
+
+Cowboy fix: adding "-D__BSD_VISIBLE" to CPPFLAGS gets raindrops gem to buil=
+d.
+
+Easily accessible and viewable sys/mmap.h:
+
+http://www.gitorious.net/freebsd/freebsd/blobs/HEAD/sys/sys/mman.h
+
+If required, I can give you access to my FreeBSD machine, just let me know.
+
+Thanks,
+Aleksandar
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
