@@ -1,0 +1,96 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: Unicorn and streaming in Rails 3.1
+Date: Sat, 25 Jun 2011 20:33:29 +0000
+Message-ID: <20110625203329.GB22343@dcvr.yhbt.net>
+References: <BANLkTika2jE-ZFk1Q0VgWxAk44LHg16LJg@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1309034023 19123 80.91.229.12 (25 Jun 2011 20:33:43
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Sat, 25 Jun 2011 20:33:43 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Sat Jun 25 22:33:39
+ 2011
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <BANLkTika2jE-ZFk1Q0VgWxAk44LHg16LJg@mail.gmail.com>
+User-Agent: Mutt/1.5.20 (2009-06-14)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:1021
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/1021>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1QaZXu-0007LO-1Q for gclrug-mongrel-unicorn@m.gmane.org; Sat, 25 Jun 2011
+ 22:33:38 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 7D2571858372; Sat, 25 Jun 2011 16:33:36 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 156FC1858361 for <mongrel-unicorn@rubyforge.org>;
+ Sat, 25 Jun 2011 16:33:30 -0400 (EDT)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id AA95521739; Sat, 25 Jun 2011 20:33:29 +0000 (UTC)
+
+Xavier Noria <fxn@hashref.com> wrote:
+> If it is a real bad idea, is the recommendation
+> to Unicorn users that they should just ignore this new feature?
+
+Another thing, Rainbows! + ThreadSpawn/ThreadPool concurrency may do the
+trick (without needing nginx at all).  The per-client overhead of
+Rainbows! + threads (several hundred KB) is higher than nginx, but still
+much lower than Unicorn.
+
+All your Rails code must be thread-safe, though.
+
+If you use Linux, XEpollThreadPool/XEpollThreadSpawn can be worth a
+try, too.  The cost of completely idle keepalive clients should be
+roughly inline with nginx.
+
+If you want to forgo thread-safety, Rainbows! + StreamResponseEpoll[1]
++ ForceStreaming middleware[2] may also be an option, too (needs nginx).
+
+
+Keep in mind that I don't know of anybody using Rainbows! for any
+serious sites, so there could still be major bugs :)
+
+Rainbows! http://rainbows.rubyforge.org/
+
+
+[1] currently in rainbows.git, will probably be released this weekend...
+
+[2] I'll probably move this to Rainbows! instead of a Unicorn branch:
+    http://bogomips.org/unicorn.git/tree/lib/unicorn/force_streaming.rb?h=force_streaming
+    This is 100% untested, I've never run it.
+
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
