@@ -1,0 +1,118 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: [PATCH] replace fchmod()-based heartbeat with raindrops
+Date: Fri, 24 Jun 2011 17:15:34 -0700
+Message-ID: <20110625001534.GA18193@dcvr.yhbt.net>
+References: <20110616232508.GA16538@dcvr.yhbt.net>
+ <20110624173038.GA22131@dcvr.yhbt.net>
+ <BANLkTi=a=jHsSVC0Qfx57xG-gXQk9iiB1w@mail.gmail.com>
+ <20110624205158.GA5583@dcvr.yhbt.net>
+ <BANLkTinV+8uE80CpubvzgJp_6-+RETSvRg@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1308960950 10896 80.91.229.12 (25 Jun 2011 00:15:50
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Sat, 25 Jun 2011 00:15:50 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Sat Jun 25 02:15:45
+ 2011
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <BANLkTinV+8uE80CpubvzgJp_6-+RETSvRg@mail.gmail.com>
+User-Agent: Mutt/1.5.21 (2010-09-15)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:1019
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/1019>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1QaGXJ-0007gm-7a for gclrug-mongrel-unicorn@m.gmane.org; Sat, 25 Jun 2011
+ 02:15:45 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id E07A71858112; Fri, 24 Jun 2011 20:15:43 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id A69D41858346 for <mongrel-unicorn@rubyforge.org>;
+ Fri, 24 Jun 2011 20:15:34 -0400 (EDT)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 051B221739; Sat, 25 Jun 2011 00:15:33 +0000 (UTC)
+
+Aleksandar Simic <asimic@gmail.com> wrote:
+> Hello,
+> 
+> the same OS & ruby version as the original poster who reported the
+> issue. I see the same symptoms.
+> 
+> Cowboy fix: adding "-D__BSD_VISIBLE" to CPPFLAGS gets raindrops gem to build.
+> 
+> Easily accessible and viewable sys/mmap.h:
+> 
+> http://www.gitorious.net/freebsd/freebsd/blobs/HEAD/sys/sys/mman.h
+
+Aha!  So defining _XOPEN_SOURCE appears to cause __BSD_VISIBLE to
+not be defined in sys/cdefs.h.  I've pushed out the below patch to
+git://bogomips.org/raindrops.git
+
+> If required, I can give you access to my FreeBSD machine, just let me know.
+
+If the below patch doesn't fix it, yes, it'd be greatly appreciated,
+thanks!
+
+>From 1e7dc89cc38c5dec0b63ac452b23141297701f88 Mon Sep 17 00:00:00 2001
+From: Eric Wong <normalperson@yhbt.net>
+Date: Fri, 24 Jun 2011 17:06:56 -0700
+Subject: [PATCH] remove _XOPEN_SOURCE #define for FreeBSD
+
+This appears to cause __BSD_VISIBLE to not be defined,
+which is required for MAP_ANON to be visible in
+sys/mman.h
+
+Thanks for Aleksandar Simic for the hint and Troex Nevelin
+for the bug report!
+---
+ ext/raindrops/extconf.rb |    2 +-
+ 1 files changed, 1 insertions(+), 1 deletions(-)
+
+diff --git a/ext/raindrops/extconf.rb b/ext/raindrops/extconf.rb
+index 825625d..9f5de95 100644
+--- a/ext/raindrops/extconf.rb
++++ b/ext/raindrops/extconf.rb
+@@ -7,7 +7,7 @@ have_func('munmap', 'sys/mman.h') or abort 'munmap() not found'
+ $CPPFLAGS += " -D_GNU_SOURCE "
+ have_func('mremap', 'sys/mman.h')
+ 
+-$CPPFLAGS += " -D_BSD_SOURCE -D_XOPEN_SOURCE=600 "
++$CPPFLAGS += " -D_BSD_SOURCE "
+ have_func("getpagesize", "unistd.h")
+ have_func('rb_thread_blocking_region')
+ have_func('rb_thread_io_blocking_region')
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
