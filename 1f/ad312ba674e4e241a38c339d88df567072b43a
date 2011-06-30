@@ -1,0 +1,652 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.6 required=5.0 tests=FREEMAIL_FROM,
+ MSGID_FROM_MTA_HEADER,RP_MATCHES_RCVD,T_DKIM_INVALID shortcircuit=no
+ autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Tiago Scolari <tscolari@gmail.com>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: "NoMethodError: undefined method" after switching to unicorn
+Date: Thu, 30 Jun 2011 00:33:00 -0300
+Message-ID: <4AABABCB7BED4EAC9D72BFFCEF981CEC@gmail.com>
+References: <9E260BC166D04FF1B0B7CBC563B221BA@gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1309405253 26674 80.91.229.12 (30 Jun 2011 03:40:53
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Thu, 30 Jun 2011 03:40:53 +0000 (UTC)
+To: mongrel-unicorn@rubyforge.org
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Thu Jun 30 05:40:48
+ 2011
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com; s=gamma;
+ h=date:from:to:message-id:in-reply-to:references:subject:x-mailer
+ :mime-version:content-type:content-transfer-encoding :content-disposition;
+ bh=NRe74t62i5cn6GSlMtQKEroL/2KKII0iqxhH2w6QCJA=;
+ b=CkYN9SdIi4cfrDRLHt7RLDHvVfQf4lbjszk83a8B3xV6nqWULrjGAUIDTBSsomgXq/
+ ZoTifp/lAobydPEicueg8zXlgORFpyxCR69MIYKf57lBioTLmAey8o5BXNVCs0y5r/aX
+ NT8LmseqjEa46oSoBOaJH331Zl6nvRtnjyoVs=
+In-Reply-To: <9E260BC166D04FF1B0B7CBC563B221BA@gmail.com>
+X-Mailer: sparrow 1.2.1 (build 767.24)
+Content-Disposition: inline
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:1030
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/1030>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1Qc87T-0008G5-MF for gclrug-mongrel-unicorn@m.gmane.org; Thu, 30 Jun 2011
+ 05:40:48 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 1BDA41678338; Wed, 29 Jun 2011 23:40:47 -0400 (EDT)
+Received: from mail-yw0-f50.google.com (mail-yw0-f50.google.com
+ [209.85.213.50]) by rubyforge.org (Postfix) with ESMTP id 0AA9D1858346 for
+ <mongrel-unicorn@rubyforge.org>; Wed, 29 Jun 2011 23:33:07 -0400 (EDT)
+Received: by ywa6 with SMTP id 6so1115245ywa.23 for
+ <mongrel-unicorn@rubyforge.org>; Wed, 29 Jun 2011 20:33:07 -0700 (PDT)
+Received: by 10.236.180.38 with SMTP id i26mr1994735yhm.205.1309404787664;
+ Wed, 29 Jun 2011 20:33:07 -0700 (PDT)
+Received: from Spooky.local ([201.47.14.174]) by mx.google.com with ESMTPS id
+ h70sm1372638yhk.1.2011.06.29.20.33.05 (version=TLSv1/SSLv3 cipher=OTHER);
+ Wed, 29 Jun 2011 20:33:07 -0700 (PDT)
+
+Hello,
+I'm having a lot of "NoMethodError: undefined method" errors after I moved from thin to unicorn.
+
+This seems to happen only with active records, and dynamic methods, like:
+find_by_*, scoped_by_*, ...
+
+It seems to be random, at least I haven't found relation yet.
+I may reload the same page 10 times, sometimes it will work ok, some times it will give me this error.
+
+I've 2 sites having this issue, one uses rails 3.0.9 (r 1.9.2) and other with 2.3.8 (r 1.8.7).
+As i said, the issue started after I switched to unicorn.
+
+Any idea what could cause this?
+
+
+
+Here are some backtraces from hoptoad:
+-- Rails 2.3.8 app:
+
+
+[GEM_ROOT]/gems/activerecord-2.3.8/lib/active_record/base.rb:1872:in `method_missing_without_paginate'
+
+
+vendor/plugins/will_paginate/lib/will_paginate/finder.rb:183:in `method_missing'
+
+
+app/controllers/games_controller.rb:92:in `load_platform'
+
+
+[GEM_ROOT]/gems/activesupport-2.3.8/lib/active_support/callbacks.rb:178:in `send'
+
+
+[GEM_ROOT]/gems/activesupport-2.3.8/lib/active_support/callbacks.rb:178:in `evaluate_method'
+
+
+[GEM_ROOT]/gems/activesupport-2.3.8/lib/active_support/callbacks.rb:166:in `call'
+
+
+[GEM_ROOT]/gems/actionpack-2.3.8/lib/action_controller/filters.rb:225:in `call'
+
+
+[GEM_ROOT]/gems/actionpack-2.3.8/lib/action_controller/filters.rb:629:in `run_before_filters'
+
+
+[GEM_ROOT]/gems/actionpack-2.3.8/lib/action_controller/filters.rb:615:in `call_filters'
+
+
+[GEM_ROOT]/gems/actionpack-2.3.8/lib/action_controller/filters.rb:610:in `perform_action_without_benchmark'
+
+
+[GEM_ROOT]/gems/actionpack-2.3.8/lib/action_controller/benchmarking.rb:68:in `perform_action_without_rescue'
+
+
+[GEM_ROOT]/gems/activesupport-2.3.8/lib/active_support/core_ext/benchmark.rb:17:in `ms'
+
+
+/usr/local/lib/ruby/1.8/benchmark.rb:308:in `realtime'
+
+
+[GEM_ROOT]/gems/activesupport-2.3.8/lib/active_support/core_ext/benchmark.rb:17:in `ms'
+
+
+[GEM_ROOT]/gems/actionpack-2.3.8/lib/action_controller/benchmarking.rb:68:in `perform_action_without_rescue'
+
+
+[GEM_ROOT]/gems/actionpack-2.3.8/lib/action_controller/rescue.rb:160:in `perform_action_without_flash'
+
+
+[GEM_ROOT]/gems/actionpack-2.3.8/lib/action_controller/flash.rb:151:in `perform_action_without_newrelic_trace'
+
+
+vendor/plugins/rpm/lib/new_relic/agent/instrumentation/controller_instrumentation.rb:254:in `perform_action'
+
+
+vendor/plugins/rpm/lib/new_relic/agent/method_tracer.rb:141:in `trace_execution_scoped'
+
+
+vendor/plugins/rpm/lib/new_relic/agent/instrumentation/controller_instrumentation.rb:247:in `perform_action'
+
+
+[GEM_ROOT]/gems/actionpack-2.3.8/lib/action_controller/base.rb:532:in `send'
+
+
+[GEM_ROOT]/gems/actionpack-2.3.8/lib/action_controller/base.rb:532:in `process_without_filters'
+
+
+[GEM_ROOT]/gems/actionpack-2.3.8/lib/action_controller/filters.rb:606:in `process'
+
+
+[GEM_ROOT]/gems/actionpack-2.3.8/lib/action_controller/base.rb:391:in `process'
+
+
+[GEM_ROOT]/gems/actionpack-2.3.8/lib/action_controller/base.rb:386:in `call'
+
+
+[GEM_ROOT]/gems/actionpack-2.3.8/lib/action_controller/routing/route_set.rb:438:in `call'
+
+
+[GEM_ROOT]/gems/actionpack-2.3.8/lib/action_controller/dispatcher.rb:87:in `dispatch'
+
+
+[GEM_ROOT]/gems/actionpack-2.3.8/lib/action_controller/dispatcher.rb:121:in `_call'
+
+
+[GEM_ROOT]/gems/actionpack-2.3.8/lib/action_controller/dispatcher.rb:130
+
+
+[GEM_ROOT]/gems/activerecord-2.3.8/lib/active_record/query_cache.rb:29:in `call'
+
+
+[GEM_ROOT]/gems/activerecord-2.3.8/lib/active_record/query_cache.rb:29:in `call'
+
+
+[GEM_ROOT]/gems/activerecord-2.3.8/lib/active_record/connection_adapters/abstract/query_cache.rb:34:in `cache'
+
+
+[GEM_ROOT]/gems/activerecord-2.3.8/lib/active_record/query_cache.rb:9:in `cache'
+
+
+[GEM_ROOT]/gems/activerecord-2.3.8/lib/active_record/query_cache.rb:28:in `call'
+
+
+[GEM_ROOT]/gems/activerecord-2.3.8/lib/active_record/connection_adapters/abstract/connection_pool.rb:361:in `call'
+
+
+[GEM_ROOT]/gems/oa-core-0.1.6/lib/omniauth/strategy.rb:50:in `call_app!'
+
+
+[GEM_ROOT]/gems/oa-core-0.1.6/lib/omniauth/strategy.rb:32:in `call!'
+
+
+[GEM_ROOT]/gems/oa-core-0.1.6/lib/omniauth/strategy.rb:19:in `call'
+
+
+[GEM_ROOT]/gems/oa-core-0.1.6/lib/omniauth/strategy.rb:50:in `call_app!'
+
+
+[GEM_ROOT]/gems/oa-core-0.1.6/lib/omniauth/strategy.rb:32:in `call!'
+
+
+[GEM_ROOT]/gems/oa-core-0.1.6/lib/omniauth/strategy.rb:19:in `call'
+
+
+[GEM_ROOT]/gems/oa-core-0.1.6/lib/omniauth/strategy.rb:50:in `call_app!'
+
+
+[GEM_ROOT]/gems/oa-core-0.1.6/lib/omniauth/strategy.rb:32:in `call!'
+
+
+[GEM_ROOT]/gems/oa-core-0.1.6/lib/omniauth/strategy.rb:19:in `call'
+
+
+[GEM_ROOT]/gems/oa-core-0.1.6/lib/omniauth/strategy.rb:50:in `call_app!'
+
+
+[GEM_ROOT]/gems/oa-core-0.1.6/lib/omniauth/strategy.rb:32:in `call!'
+
+
+[GEM_ROOT]/gems/oa-core-0.1.6/lib/omniauth/strategy.rb:19:in `call'
+
+
+[GEM_ROOT]/gems/oa-core-0.1.6/lib/omniauth/strategy.rb:50:in `call_app!'
+
+
+[GEM_ROOT]/gems/oa-core-0.1.6/lib/omniauth/strategy.rb:32:in `call!'
+
+
+[GEM_ROOT]/gems/oa-core-0.1.6/lib/omniauth/strategy.rb:19:in `call'
+
+
+[GEM_ROOT]/gems/oa-core-0.1.6/lib/omniauth/strategy.rb:50:in `call_app!'
+
+
+[GEM_ROOT]/gems/oa-core-0.1.6/lib/omniauth/strategy.rb:32:in `call!'
+
+
+[GEM_ROOT]/gems/oa-core-0.1.6/lib/omniauth/strategy.rb:19:in `call'
+
+
+[GEM_ROOT]/gems/oa-core-0.1.6/lib/omniauth/builder.rb:30:in `call'
+
+
+lib/flash_session_cookie_middleware.rb:13:in `call'
+
+
+[GEM_ROOT]/gems/actionpack-2.3.8/lib/action_controller/string_coercion.rb:25:in `call'
+
+
+[GEM_ROOT]/gems/rack-1.1.0/lib/rack/head.rb:9:in `call'
+
+
+[GEM_ROOT]/gems/rack-1.1.0/lib/rack/methodoverride.rb:24:in `call'
+
+
+[GEM_ROOT]/gems/actionpack-2.3.8/lib/action_controller/params_parser.rb:15:in `call'
+
+
+[GEM_ROOT]/gems/actionpack-2.3.8/lib/action_controller/session/abstract_store.rb:128:in `call'
+
+
+[GEM_ROOT]/gems/activesupport-2.3.8/lib/active_support/cache/strategy/local_cache.rb:25:in `call'
+
+
+[GEM_ROOT]/gems/actionpack-2.3.8/lib/action_controller/failsafe.rb:26:in `call'
+
+
+[GEM_ROOT]/gems/actionpack-2.3.8/lib/action_controller/dispatcher.rb:106:in `call'
+
+
+[GEM_ROOT]/gems/rails-2.3.8/lib/rails/rack/static.rb:31:in `call'
+
+
+[GEM_ROOT]/gems/rack-1.1.0/lib/rack/urlmap.rb:47:in `call'
+
+
+[GEM_ROOT]/gems/rack-1.1.0/lib/rack/urlmap.rb:41:in `each'
+
+
+[GEM_ROOT]/gems/rack-1.1.0/lib/rack/urlmap.rb:41:in `call'
+
+
+[GEM_ROOT]/gems/unicorn-4.0.0/lib/unicorn/http_server.rb:518:in `process_client'
+
+
+[GEM_ROOT]/gems/unicorn-4.0.0/lib/unicorn/http_server.rb:584:in `worker_loop'
+
+
+vendor/plugins/rpm/lib/new_relic/agent/instrumentation/unicorn_instrumentation.rb:7:in `call'
+
+
+vendor/plugins/rpm/lib/new_relic/agent/instrumentation/unicorn_instrumentation.rb:7:in `worker_loop'
+
+
+[GEM_ROOT]/gems/unicorn-4.0.0/lib/unicorn/http_server.rb:475:in `spawn_missing_workers'
+
+
+[GEM_ROOT]/gems/unicorn-4.0.0/lib/unicorn/http_server.rb:135:in `start'
+
+
+[GEM_ROOT]/gems/unicorn-4.0.0/bin/unicorn_rails:209
+
+
+/usr/local/bin/unicorn_rails:19:in `load'
+
+
+/usr/local/bin/unicorn_rails:19
+
+
+
+
+
+
+
+
+
+
+
+
+
+-- Rails 3.0.9 app:
+
+
+
+
+
+
+[GEM_ROOT]/gems/activerecord-3.0.9/lib/active_record/base.rb:989:in `method_missing'
+
+
+app/helpers/application_helper.rb:154:in `render_tv'
+
+
+app/views/home/index.html.haml:8:in `_app_views_home_index_html_haml___1954184739576368685_58305940__2978367022487903250'
+
+
+[GEM_ROOT]/gems/actionpack-3.0.9/lib/action_view/template.rb:135:in `block in render'
+
+
+[GEM_ROOT]/gems/activesupport-3.0.9/lib/active_support/notifications.rb:54:in `instrument'
+
+
+[GEM_ROOT]/gems/actionpack-3.0.9/lib/action_view/template.rb:127:in `render'
+
+
+[GEM_ROOT]/gems/actionpack-3.0.9/lib/action_view/render/rendering.rb:59:in `block in _render_template'
+
+
+[GEM_ROOT]/gems/activesupport-3.0.9/lib/active_support/notifications.rb:52:in `block in instrument'
+
+
+[GEM_ROOT]/gems/activesupport-3.0.9/lib/active_support/notifications/instrumenter.rb:21:in `instrument'
+
+
+[GEM_ROOT]/gems/activesupport-3.0.9/lib/active_support/notifications.rb:52:in `instrument'
+
+
+[GEM_ROOT]/gems/actionpack-3.0.9/lib/action_view/render/rendering.rb:56:in `_render_template'
+
+
+[GEM_ROOT]/gems/actionpack-3.0.9/lib/action_view/render/rendering.rb:26:in `render'
+
+
+[GEM_ROOT]/gems/haml-3.1.2/lib/haml/helpers/action_view_mods.rb:13:in `render_with_haml'
+
+
+[GEM_ROOT]/gems/actionpack-3.0.9/lib/abstract_controller/rendering.rb:115:in `_render_template'
+
+
+[GEM_ROOT]/gems/actionpack-3.0.9/lib/abstract_controller/rendering.rb:109:in `render_to_body'
+
+
+[GEM_ROOT]/gems/actionpack-3.0.9/lib/action_controller/metal/renderers.rb:47:in `render_to_body'
+
+
+[GEM_ROOT]/gems/actionpack-3.0.9/lib/action_controller/metal/compatibility.rb:55:in `render_to_body'
+
+
+[GEM_ROOT]/gems/actionpack-3.0.9/lib/abstract_controller/rendering.rb:102:in `render_to_string'
+
+
+[GEM_ROOT]/gems/actionpack-3.0.9/lib/abstract_controller/rendering.rb:93:in `render'
+
+
+[GEM_ROOT]/gems/actionpack-3.0.9/lib/action_controller/metal/rendering.rb:17:in `render'
+
+
+[GEM_ROOT]/gems/actionpack-3.0.9/lib/action_controller/metal/instrumentation.rb:40:in `block (2 levels) in render'
+
+
+[GEM_ROOT]/gems/activesupport-3.0.9/lib/active_support/core_ext/benchmark.rb:5:in `block in ms'
+
+
+/home/todaela/.rvm/rubies/ruby-1.9.2-p180/lib/ruby/1.9.1/benchmark.rb:309:in `realtime'
+
+
+[GEM_ROOT]/gems/activesupport-3.0.9/lib/active_support/core_ext/benchmark.rb:5:in `ms'
+
+
+[GEM_ROOT]/gems/actionpack-3.0.9/lib/action_controller/metal/instrumentation.rb:40:in `block in render'
+
+
+[GEM_ROOT]/gems/actionpack-3.0.9/lib/action_controller/metal/instrumentation.rb:78:in `cleanup_view_runtime'
+
+
+[GEM_ROOT]/gems/activerecord-3.0.9/lib/active_record/railties/controller_runtime.rb:15:in `cleanup_view_runtime'
+
+
+[GEM_ROOT]/gems/thinking-sphinx-2.0.4/lib/thinking_sphinx/action_controller.rb:12:in `cleanup_view_runtime'
+
+
+[GEM_ROOT]/gems/actionpack-3.0.9/lib/action_controller/metal/instrumentation.rb:39:in `render'
+
+
+[GEM_ROOT]/gems/actionpack-3.0.9/lib/action_controller/metal/implicit_render.rb:10:in `default_render'
+
+
+[GEM_ROOT]/gems/actionpack-3.0.9/lib/action_controller/metal/implicit_render.rb:5:in `send_action'
+
+
+[GEM_ROOT]/gems/actionpack-3.0.9/lib/abstract_controller/base.rb:150:in `process_action'
+
+
+[GEM_ROOT]/gems/actionpack-3.0.9/lib/action_controller/metal/rendering.rb:11:in `process_action'
+
+
+[GEM_ROOT]/gems/actionpack-3.0.9/lib/abstract_controller/callbacks.rb:18:in `block in process_action'
+
+
+[GEM_ROOT]/gems/activesupport-3.0.9/lib/active_support/callbacks.rb:451:in `_run__1893485971492116310__process_action__3270121157045284473__callbacks'
+
+
+[GEM_ROOT]/gems/activesupport-3.0.9/lib/active_support/callbacks.rb:410:in `_run_process_action_callbacks'
+
+
+[GEM_ROOT]/gems/activesupport-3.0.9/lib/active_support/callbacks.rb:94:in `run_callbacks'
+
+
+[GEM_ROOT]/gems/actionpack-3.0.9/lib/abstract_controller/callbacks.rb:17:in `process_action'
+
+
+[GEM_ROOT]/gems/actionpack-3.0.9/lib/action_controller/metal/instrumentation.rb:30:in `block in process_action'
+
+
+[GEM_ROOT]/gems/activesupport-3.0.9/lib/active_support/notifications.rb:52:in `block in instrument'
+
+
+[GEM_ROOT]/gems/activesupport-3.0.9/lib/active_support/notifications/instrumenter.rb:21:in `instrument'
+
+
+[GEM_ROOT]/gems/activesupport-3.0.9/lib/active_support/notifications.rb:52:in `instrument'
+
+
+[GEM_ROOT]/gems/actionpack-3.0.9/lib/action_controller/metal/instrumentation.rb:29:in `process_action'
+
+
+[GEM_ROOT]/gems/actionpack-3.0.9/lib/action_controller/metal/rescue.rb:17:in `process_action'
+
+
+[GEM_ROOT]/gems/newrelic_rpm-3.1.0/lib/new_relic/agent/instrumentation/rails3/action_controller.rb:34:in `block in process_action'
+
+
+[GEM_ROOT]/gems/newrelic_rpm-3.1.0/lib/new_relic/agent/instrumentation/controller_instrumentation.rb:253:in `block in perform_action_with_newrelic_trace'
+
+
+[GEM_ROOT]/gems/newrelic_rpm-3.1.0/lib/new_relic/agent/method_tracer.rb:191:in `trace_execution_scoped'
+
+
+[GEM_ROOT]/gems/newrelic_rpm-3.1.0/lib/new_relic/agent/instrumentation/controller_instrumentation.rb:248:in `perform_action_with_newrelic_trace'
+
+
+[GEM_ROOT]/gems/newrelic_rpm-3.1.0/lib/new_relic/agent/instrumentation/rails3/action_controller.rb:33:in `process_action'
+
+
+[GEM_ROOT]/gems/actionpack-3.0.9/lib/abstract_controller/base.rb:119:in `process'
+
+
+[GEM_ROOT]/gems/actionpack-3.0.9/lib/abstract_controller/rendering.rb:41:in `process'
+
+
+[GEM_ROOT]/gems/actionpack-3.0.9/lib/action_controller/metal.rb:138:in `dispatch'
+
+
+[GEM_ROOT]/gems/actionpack-3.0.9/lib/action_controller/metal/rack_delegation.rb:14:in `dispatch'
+
+
+[GEM_ROOT]/gems/actionpack-3.0.9/lib/action_controller/metal.rb:178:in `block in action'
+
+
+[GEM_ROOT]/gems/actionpack-3.0.9/lib/action_dispatch/routing/route_set.rb:62:in `call'
+
+
+[GEM_ROOT]/gems/actionpack-3.0.9/lib/action_dispatch/routing/route_set.rb:62:in `dispatch'
+
+
+[GEM_ROOT]/gems/actionpack-3.0.9/lib/action_dispatch/routing/route_set.rb:27:in `call'
+
+
+[GEM_ROOT]/gems/rack-mount-0.6.14/lib/rack/mount/route_set.rb:148:in `block in call'
+
+
+[GEM_ROOT]/gems/rack-mount-0.6.14/lib/rack/mount/code_generation.rb:93:in `block in recognize'
+
+
+[GEM_ROOT]/gems/rack-mount-0.6.14/lib/rack/mount/code_generation.rb:68:in `optimized_each'
+
+
+[GEM_ROOT]/gems/rack-mount-0.6.14/lib/rack/mount/code_generation.rb:92:in `recognize'
+
+
+[GEM_ROOT]/gems/rack-mount-0.6.14/lib/rack/mount/route_set.rb:139:in `call'
+
+
+[GEM_ROOT]/gems/actionpack-3.0.9/lib/action_dispatch/routing/route_set.rb:493:in `call'
+
+
+[GEM_ROOT]/gems/oa-core-0.2.6/lib/omniauth/strategy.rb:44:in `call!'
+
+
+[GEM_ROOT]/gems/oa-core-0.2.6/lib/omniauth/strategy.rb:30:in `call'
+
+
+[GEM_ROOT]/gems/oa-core-0.2.6/lib/omniauth/strategy.rb:44:in `call!'
+
+
+[GEM_ROOT]/gems/oa-core-0.2.6/lib/omniauth/strategy.rb:30:in `call'
+
+
+[GEM_ROOT]/gems/oa-core-0.2.6/lib/omniauth/strategy.rb:44:in `call!'
+
+
+[GEM_ROOT]/gems/oa-core-0.2.6/lib/omniauth/strategy.rb:30:in `call'
+
+
+[GEM_ROOT]/gems/barista-1.2.1/lib/barista/server.rb:33:in `call'
+
+
+[GEM_ROOT]/gems/newrelic_rpm-3.1.0/lib/new_relic/rack/browser_monitoring.rb:18:in `call'
+
+
+[GEM_ROOT]/gems/sass-3.1.2/lib/sass/plugin/rack.rb:54:in `call'
+
+
+[GEM_ROOT]/gems/warden-1.0.4/lib/warden/manager.rb:35:in `block in call'
+
+
+[GEM_ROOT]/gems/warden-1.0.4/lib/warden/manager.rb:34:in `catch'
+
+
+[GEM_ROOT]/gems/warden-1.0.4/lib/warden/manager.rb:34:in `call'
+
+
+[GEM_ROOT]/gems/actionpack-3.0.9/lib/action_dispatch/middleware/best_standards_support.rb:17:in `call'
+
+
+[GEM_ROOT]/gems/actionpack-3.0.9/lib/action_dispatch/middleware/head.rb:14:in `call'
+
+
+[GEM_ROOT]/gems/rack-1.2.3/lib/rack/methodoverride.rb:24:in `call'
+
+
+[GEM_ROOT]/gems/actionpack-3.0.9/lib/action_dispatch/middleware/params_parser.rb:21:in `call'
+
+
+[GEM_ROOT]/gems/actionpack-3.0.9/lib/action_dispatch/middleware/flash.rb:182:in `call'
+
+
+[GEM_ROOT]/gems/actionpack-3.0.9/lib/action_dispatch/middleware/session/abstract_store.rb:149:in `call'
+
+
+[GEM_ROOT]/gems/actionpack-3.0.9/lib/action_dispatch/middleware/cookies.rb:302:in `call'
+
+
+[GEM_ROOT]/gems/ckeditor-3.5.4/lib/ckeditor/middleware.rb:15:in `call'
+
+
+[GEM_ROOT]/gems/activerecord-3.0.9/lib/active_record/query_cache.rb:32:in `block in call'
+
+
+[GEM_ROOT]/gems/activerecord-3.0.9/lib/active_record/connection_adapters/abstract/query_cache.rb:28:in `cache'
+
+
+[GEM_ROOT]/gems/activerecord-3.0.9/lib/active_record/query_cache.rb:12:in `cache'
+
+
+[GEM_ROOT]/gems/activerecord-3.0.9/lib/active_record/query_cache.rb:31:in `call'
+
+
+[GEM_ROOT]/gems/activerecord-3.0.9/lib/active_record/connection_adapters/abstract/connection_pool.rb:354:in `call'
+
+
+[GEM_ROOT]/gems/actionpack-3.0.9/lib/action_dispatch/middleware/callbacks.rb:46:in `block in call'
+
+
+[GEM_ROOT]/gems/activesupport-3.0.9/lib/active_support/callbacks.rb:416:in `_run_call_callbacks'
+
+
+[GEM_ROOT]/gems/actionpack-3.0.9/lib/action_dispatch/middleware/callbacks.rb:44:in `call'
+
+
+[GEM_ROOT]/gems/rack-1.2.3/lib/rack/sendfile.rb:107:in `call'
+
+
+[GEM_ROOT]/gems/actionpack-3.0.9/lib/action_dispatch/middleware/remote_ip.rb:48:in `call'
+
+
+[GEM_ROOT]/gems/actionpack-3.0.9/lib/action_dispatch/middleware/show_exceptions.rb:47:in `call'
+
+
+[GEM_ROOT]/gems/railties-3.0.9/lib/rails/rack/logger.rb:13:in `call'
+
+
+[GEM_ROOT]/gems/rack-1.2.3/lib/rack/runtime.rb:17:in `call'
+
+
+[GEM_ROOT]/gems/activesupport-3.0.9/lib/active_support/cache/strategy/local_cache.rb:72:in `call'
+
+
+[GEM_ROOT]/gems/rack-1.2.3/lib/rack/lock.rb:11:in `block in call'
+
+
+:
+
+
+[GEM_ROOT]/gems/rack-1.2.3/lib/rack/lock.rb:11:in `call'
+
+
+
+
+
+
+
+Thank you
+
+-- 
+Tiago Scolari
+
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
