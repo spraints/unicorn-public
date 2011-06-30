@@ -1,0 +1,101 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: "NoMethodError: undefined method" after switching to unicorn
+Date: Wed, 29 Jun 2011 22:04:20 -0700
+Message-ID: <20110630050420.GA19876@dcvr.yhbt.net>
+References: <9E260BC166D04FF1B0B7CBC563B221BA@gmail.com>
+ <4AABABCB7BED4EAC9D72BFFCEF981CEC@gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1309410914 17937 80.91.229.12 (30 Jun 2011 05:15:14
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Thu, 30 Jun 2011 05:15:14 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Thu Jun 30 07:15:10
+ 2011
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <4AABABCB7BED4EAC9D72BFFCEF981CEC@gmail.com>
+User-Agent: Mutt/1.5.20 (2009-06-14)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:1031
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/1031>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1Qc9ao-0005KR-GB for gclrug-mongrel-unicorn@m.gmane.org; Thu, 30 Jun 2011
+ 07:15:10 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id E089E185836C; Thu, 30 Jun 2011 01:15:08 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id C49C51858346 for <mongrel-unicorn@rubyforge.org>;
+ Thu, 30 Jun 2011 01:04:21 -0400 (EDT)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 1F65521011; Thu, 30 Jun 2011 05:04:21 +0000 (UTC)
+
+Tiago Scolari <tscolari@gmail.com> wrote:
+> Hello, I'm having a lot of "NoMethodError: undefined method" errors
+> after I moved from thin to unicorn.
+> 
+> This seems to happen only with active records, and dynamic methods,
+> like: find_by_*, scoped_by_*, ...
+> 
+> It seems to be random, at least I haven't found relation yet.  I may
+> reload the same page 10 times, sometimes it will work ok, some times
+> it will give me this error.
+> 
+> I've 2 sites having this issue, one uses rails 3.0.9 (r 1.9.2) and
+> other with 2.3.8 (r 1.8.7).  As i said, the issue started after I
+> switched to unicorn.
+> 
+> Any idea what could cause this?
+
+Are you using preload_app?
+
+> vendor/plugins/rpm/lib/new_relic/agent/instrumentation/unicorn_instrumentation.rb:7:in
+> `call'
+
+Hrm, I wonder if the above file depends on (undocumented) Unicorn internals
+that changed in unicorn 4.0.0?
+
+> [GEM_ROOT]/gems/unicorn-4.0.0/lib/unicorn/http_server.rb:475:in
+> `spawn_missing_workers'
+
+It might be worth it to try unicorn 3.7.0 since 4.0.0 was just released
+and some gems that depend on internal implementation details could
+be broken.
+
+
+Maybe somebody else here has a better explanation...
+
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
