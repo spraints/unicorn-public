@@ -1,0 +1,97 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: Timestamp in unicorn logs
+Date: Fri, 1 Jul 2011 20:54:34 +0000
+Message-ID: <20110701205434.GA19317@dcvr.yhbt.net>
+References: <BANLkTinmbjk2dnSsKS=oLFj_EVPE1tb-Vw@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1309554627 26192 80.91.229.12 (1 Jul 2011 21:10:27
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Fri, 1 Jul 2011 21:10:27 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Fri Jul 01 23:10:23
+ 2011
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <BANLkTinmbjk2dnSsKS=oLFj_EVPE1tb-Vw@mail.gmail.com>
+User-Agent: Mutt/1.5.20 (2009-06-14)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:1035
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/1035>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1Qckyj-0003fc-T2 for gclrug-mongrel-unicorn@m.gmane.org; Fri, 01 Jul 2011
+ 23:10:22 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 448591D780D5; Fri,  1 Jul 2011 17:10:21 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 3C2C218583AA for <mongrel-unicorn@rubyforge.org>;
+ Fri,  1 Jul 2011 16:54:35 -0400 (EDT)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 2E32F20E35; Fri,  1 Jul 2011 20:54:34 +0000 (UTC)
+
+Alex Sharp <ajsharp@gmail.com> wrote:
+> I would love to see a timestamp in each line of unicorn stderr and
+> stdout logs. Has this been considered? Thanks.
+
+Unicorn itself never writes directly to stdout[1].  Once daemonized, it
+never writes to stderr directly, either.  If it does either of these,
+it's a bug in Unicorn and needs to be reported and fixed.
+
+All writing through stderr happens through a Logger object which does
+timestamping/formatting, but Rails may screw up the formatting:
+
+>From the {FAQ}[http://unicorn.bogomips.org/FAQ.html]:
+| === Why are log messages from Unicorn are unformatted when using Rails?
+|
+| Current versions of Rails unfortunately overrides the default Logger
+| formatter.
+|
+| You can undo this behavior with the default logger in your Unicorn
+| config file:
+|
+|   Configurator::DEFAULTS[:logger].formatter = Logger::Formatter.new
+|
+| Of course you can specify an entirely different logger as well
+| with the "logger" directive described by Unicorn::Configurator.
+
+It would be helpful for somebody who uses Rails to fix this behavior
+in Rails.
+
+[1] - stdout is reserved for the application; I configure
+      {clogger}[http://clogger.rubyforge.org/] to log to stdout if I'm
+      using clogger.
+
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
