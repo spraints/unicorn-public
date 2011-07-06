@@ -1,0 +1,83 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.6 required=5.0 tests=FREEMAIL_FROM,
+ MSGID_FROM_MTA_HEADER,RP_MATCHES_RCVD,T_DKIM_INVALID shortcircuit=no
+ autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Ehud Rosenberg <ehudros@gmail.com>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Unicorn completely ignores USR2 signal
+Date: Wed, 6 Jul 2011 13:21:51 +0300
+Message-ID:
+ <CAEY6bkrA5-McJ2jJJof5EYuf3HoNzLXNC_2YJbDbV2hN1O4U2A@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1309948293 3158 80.91.229.12 (6 Jul 2011 10:31:33
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Wed, 6 Jul 2011 10:31:33 +0000 (UTC)
+To: mongrel-unicorn@rubyforge.org
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Wed Jul 06 12:31:28
+ 2011
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com; s=gamma;
+ h=mime-version:from:date:message-id:subject:to:content-type;
+ bh=okbSA5zmKIpf5x6dwqAruSZAwSp3tXrb2vG3xkGIVDQ=;
+ b=V9Hd7qOaT5VAJYVWlR5uj/A/F+Ta14Fp3bS8/E+fM15hwL6wU6igLz3EkHNln9PxSW
+ Jb3Ze0v1LR7b1onh0FR5GjQjfpAzBE6ZkX6CeIFpMdBQMJXZpeLX8mAw/UsuPHwJpsf+
+ 846iSGfcLanQYFWRagHIqTsfsNRN9ibD4hZd8=
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:1039
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/1039>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1QePO9-0003Nw-Et for gclrug-mongrel-unicorn@m.gmane.org; Wed, 06 Jul 2011
+ 12:31:25 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 138C61678337; Wed,  6 Jul 2011 06:31:24 -0400 (EDT)
+Received: from mail-gy0-f178.google.com (mail-gy0-f178.google.com
+ [209.85.160.178]) by rubyforge.org (Postfix) with ESMTP id 051CF18583AC for
+ <mongrel-unicorn@rubyforge.org>; Wed,  6 Jul 2011 06:22:21 -0400 (EDT)
+Received: by gyf1 with SMTP id 1so3532657gyf.23 for
+ <mongrel-unicorn@rubyforge.org>; Wed, 06 Jul 2011 03:22:21 -0700 (PDT)
+Received: by 10.151.50.15 with SMTP id c15mr7201575ybk.285.1309947741111;
+ Wed, 06 Jul 2011 03:22:21 -0700 (PDT)
+Received: by 10.150.158.14 with HTTP; Wed, 6 Jul 2011 03:21:51 -0700 (PDT)
+
+Hi all,
+I'm experiencing a rather strange problem with unicorn on my production server.
+Although the config file states preload_app true, sending USR2 to the
+master process does not generate any response, and it seems like
+unicorn is ignoring the signal altogether.
+On another server sending USR2 changes the master process to and (old)
+state and starts a new master process successfully.
+The problematic server is using RVM & bundler, so I'm assuming it's
+somehow related (the other one is vanilla ruby).
+Sending signals other than USR2 (QUIT, HUP) works just fine.
+Is there a way to trace what's going on behind the scenes here?
+Unicorn's log file is completely empty.
+Thanks :)
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
