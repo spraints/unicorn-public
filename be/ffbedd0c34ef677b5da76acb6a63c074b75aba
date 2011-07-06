@@ -1,0 +1,105 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: Unicorn completely ignores USR2 signal
+Date: Wed, 6 Jul 2011 17:42:16 +0000
+Message-ID: <20110706174216.GA1733@dcvr.yhbt.net>
+References:
+ <CAEY6bkrA5-McJ2jJJof5EYuf3HoNzLXNC_2YJbDbV2hN1O4U2A@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1309974150 7088 80.91.229.12 (6 Jul 2011 17:42:30
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Wed, 6 Jul 2011 17:42:30 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Wed Jul 06 19:42:26
+ 2011
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To:
+ <CAEY6bkrA5-McJ2jJJof5EYuf3HoNzLXNC_2YJbDbV2hN1O4U2A@mail.gmail.com>
+User-Agent: Mutt/1.5.20 (2009-06-14)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:1040
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/1040>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1QeW7E-0002Tl-JI for gclrug-mongrel-unicorn@m.gmane.org; Wed, 06 Jul 2011
+ 19:42:24 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 137BA19783C0; Wed,  6 Jul 2011 13:42:23 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 6FD451858112 for <mongrel-unicorn@rubyforge.org>;
+ Wed,  6 Jul 2011 13:42:17 -0400 (EDT)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id AC12520937; Wed,  6 Jul 2011 17:42:16 +0000 (UTC)
+
+Ehud Rosenberg <ehudros@gmail.com> wrote:
+> Hi all,
+> I'm experiencing a rather strange problem with unicorn on my production server.
+> Although the config file states preload_app true, sending USR2 to the
+> master process does not generate any response, and it seems like
+> unicorn is ignoring the signal altogether.
+> On another server sending USR2 changes the master process to and (old)
+> state and starts a new master process successfully.
+> The problematic server is using RVM & bundler, so I'm assuming it's
+> somehow related (the other one is vanilla ruby).
+
+RVM could be a problem, especially if your ENV changed somehow and your
+path to.  Can you dump out the START_CTX and ENV contents in the
+before_exec hook?
+
+  before_exec do |server|
+    File.open("/tmp/start_ctx.dump", "ab") do |fp|
+      PP.pp Unicorn::HttpServer::START_CTX, fp
+      PP.pp ENV, fp
+    end
+  end
+
+You may need to modify START_CTX if you're changing paths or if
+somehow RVM gave you the wrong path to unicorn
+
+START_CTX is documented here:
+  http://unicorn.bogomips.org/Unicorn/HttpServer.html
+
+> Sending signals other than USR2 (QUIT, HUP) works just fine.
+> Is there a way to trace what's going on behind the scenes here?
+
+Run strace (Linux) or equivalent on the master process.
+
+> Unicorn's log file is completely empty.
+
+This is the log you setup to point to stderr_path?  That shouldn't
+happen...
+
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
