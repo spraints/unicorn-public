@@ -1,0 +1,160 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.6 required=5.0 tests=FREEMAIL_FROM,
+ MSGID_FROM_MTA_HEADER,RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable
+ version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Ehud Rosenberg <ehudros@gmail.com>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: Unicorn completely ignores USR2 signal
+Date: Thu, 7 Jul 2011 23:02:53 +0000 (UTC)
+Message-ID: <loom.20110708T004238-674@post.gmane.org>
+References:
+ <CAEY6bkrA5-McJ2jJJof5EYuf3HoNzLXNC_2YJbDbV2hN1O4U2A@mail.gmail.com>
+ <20110706174216.GA1733@dcvr.yhbt.net>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1310080984 16032 80.91.229.12 (7 Jul 2011 23:23:04
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Thu, 7 Jul 2011 23:23:04 +0000 (UTC)
+To: mongrel-unicorn@rubyforge.org
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Fri Jul 08 01:23:00
+ 2011
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+X-Greylist: delayed 900 seconds by postgrey-1.31 at rubyforge.org; Thu, 07
+ Jul 2011 19:20:10 EDT
+X-Injected-Via-Gmane: http://gmane.org/
+Original-Lines: 80
+Original-X-Complaints-To: usenet@dough.gmane.org
+X-Gmane-NNTP-Posting-Host: sea.gmane.org
+User-Agent: Loom/3.14 (http://gmane.org/)
+X-Loom-IP: 217.132.161.90 (Mozilla/5.0 (Windows NT 6.1; WOW64)
+ AppleWebKit/534.30 (KHTML, like Gecko) Chrome/12.0.742.112 Safari/534.30)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:1043
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/1043>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1QexuL-0004UC-VE for gclrug-mongrel-unicorn@m.gmane.org; Fri, 08 Jul 2011
+ 01:22:58 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 3517B185838E; Thu,  7 Jul 2011 19:22:57 -0400 (EDT)
+Received: from lo.gmane.org (lo.gmane.org [80.91.229.12]) by rubyforge.org
+ (Postfix) with ESMTP id EE0B11858378 for <mongrel-unicorn@rubyforge.org>;
+ Thu,  7 Jul 2011 19:20:10 -0400 (EDT)
+Received: from list by lo.gmane.org with local (Exim 4.69) (envelope-from
+ <gclrug-mongrel-unicorn@m.gmane.org>) id 1Qexd2-00045o-JS for
+ mongrel-unicorn@rubyforge.org; Fri, 08 Jul 2011 01:05:04 +0200
+Received: from DSL217-132-161-90.bb.netvision.net.il ([217.132.161.90]) by
+ main.gmane.org with esmtp (Gmexim 0.1 (Debian)) id 1AlnuQ-0007hv-00 for
+ <mongrel-unicorn@rubyforge.org>; Fri, 08 Jul 2011 01:05:04 +0200
+Received: from ehudros by DSL217-132-161-90.bb.netvision.net.il with local
+ (Gmexim 0.1 (Debian)) id 1AlnuQ-0007hv-00 for
+ <mongrel-unicorn@rubyforge.org>; Fri, 08 Jul 2011 01:05:04 +0200
+
+Eric Wong <normalperson <at> yhbt.net> writes:
+
+> 
+> Ehud Rosenberg <ehudros <at> gmail.com> wrote:
+> > Hi all,
+> > I'm experiencing a rather strange problem with unicorn on my production 
+server.
+> > Although the config file states preload_app true, sending USR2 to the
+> > master process does not generate any response, and it seems like
+> > unicorn is ignoring the signal altogether.
+> > On another server sending USR2 changes the master process to and (old)
+> > state and starts a new master process successfully.
+> > The problematic server is using RVM & bundler, so I'm assuming it's
+> > somehow related (the other one is vanilla ruby).
+> 
+> RVM could be a problem, especially if your ENV changed somehow and your
+> path to.  Can you dump out the START_CTX and ENV contents in the
+> before_exec hook?
+> 
+>   before_exec do |server|
+>     File.open("/tmp/start_ctx.dump", "ab") do |fp|
+>       PP.pp Unicorn::HttpServer::START_CTX, fp
+>       PP.pp ENV, fp
+>     end
+>   end
+> 
+> You may need to modify START_CTX if you're changing paths or if
+> somehow RVM gave you the wrong path to unicorn
+> 
+> START_CTX is documented here:
+>   http://unicorn.bogomips.org/Unicorn/HttpServer.html
+> 
+> > Sending signals other than USR2 (QUIT, HUP) works just fine.
+> > Is there a way to trace what's going on behind the scenes here?
+> 
+> Run strace (Linux) or equivalent on the master process.
+> 
+> > Unicorn's log file is completely empty.
+> 
+> This is the log you setup to point to stderr_path?  That shouldn't
+> happen...
+> 
+
+Sorry for not getting back to you guys earlier. 
+It seems like the entire setup is somehow broken, as the before_exec block does 
+not seem to output anything to the logfiles/temp file (I know how weird that 
+sounds). The stdout/stderr logs do not contain any info other than the regular 
+"worker started" message.
+I've tried 'puts' outside of the before_exec block and got the following output 
+straight into my stdout (right after running sudo /etc/init.d/unicorn start):
+{:argv=>["-D", "-E", "production", "-c", 
+"/var/www/platform/current/config/unicorn.rb"], 0=>"/usr/local/rvm/gems/ruby-
+1.9.2-head/bin/unicorn", :cwd=>"/var/www/platform/current"}
+
+{"OLDPWD"=>"/var/www/platform/current", "SUDO_UID"=>"1000", "LOGNAME"=>"root", 
+"USERNAME"=>"root", "PATH"=>"/usr/local/rvm/gems/ruby-1.9.2-
+head/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/X11R6
+/bin", "SHELL"=>"/bin/bash", "GEM_HOME"=>"/usr/local/rvm/gems/ruby-1.9.2-head",  
+"PWD"=>"/var/www/platform/current", "RACK_ENV"=>"production", 
+"BUNDLE_GEMFILE"=>"/var/www/platform/current/Gemfile", 
+"BUNDLE_BIN_PATH"=>"/usr/local/rvm/gems/ruby-1.9.2-head/gems/bundler-
+1.0.10/bin/bundle", "RUBYOPT"=>"-I/usr/local/rvm/gems/ruby-1.9.2-
+head/gems/bundler-1.0.10/lib -rbundler/setup"}
+
+The ENV output was truncated a little to remove irrelevant keys.
+
+strace can be found here: 
+https://gist.github.com/54cd784880b99a2b46d5/77718daec3c08227639a0619e02d387c4d0
+cd9fd
+I couldn't really figure out what's going on there - it complains the pid file 
+can't be found although it's there, and it then writes its content to the oldbin 
+file (which is never actually created in the pid directory). Permissions wise 
+the directory is writable by pretty much anyone, and unicorn runs as root 
+anyway.
+
+The server is Ubuntu 10.04, ruby 1.9.2p53.
+The server starts fine and the site is fully functional despite all the 
+weirdness :)
+
+
+
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
