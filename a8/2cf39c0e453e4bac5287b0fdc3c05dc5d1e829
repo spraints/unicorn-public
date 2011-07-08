@@ -1,0 +1,94 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.7 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Marc Sernatinger <marc@vailsys.com>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: SQL Server errors when using unicorn
+Date: Fri, 8 Jul 2011 13:30:23 -0500
+Message-ID: <09EC48D7-7E0E-43E3-9B42-641E045CF7D8@vailsys.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0 (Apple Message framework v1084)
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1310149838 15113 80.91.229.12 (8 Jul 2011 18:30:38
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Fri, 8 Jul 2011 18:30:38 +0000 (UTC)
+To: mongrel-unicorn@rubyforge.org
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Fri Jul 08 20:30:33
+ 2011
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+X-Virus-Scanned: amavisd-new at vail
+X-Mailer: Apple Mail (2.1084)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:1045
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/1045>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1QfFou-0005Pu-OT for gclrug-mongrel-unicorn@m.gmane.org; Fri, 08 Jul 2011
+ 20:30:33 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 59D931858367; Fri,  8 Jul 2011 14:30:31 -0400 (EDT)
+Received: from dprobd02.vailsys.com (chrobd01.vailsys.com [63.210.102.138])
+ by rubyforge.org (Postfix) with ESMTP id 6C03F1858112 for
+ <mongrel-unicorn@rubyforge.org>; Fri,  8 Jul 2011 14:30:24 -0400 (EDT)
+Received: from dpluser01.vail (dpluser01.vail [192.168.129.158]) by
+ dprobd02.vailsys.com (Postfix) with ESMTP id 869FB8A5C6A for
+ <mongrel-unicorn@rubyforge.org>; Fri,  8 Jul 2011 13:30:24 -0500 (CDT)
+Received: from localhost (localhost.localdomain [127.0.0.1]) by
+ dpluser01.vail (Postfix) with ESMTP id 5B0ED1C80CC for
+ <mongrel-unicorn@rubyforge.org>; Fri,  8 Jul 2011 13:30:24 -0500 (CDT)
+Received: from dpluser01.vail ([127.0.0.1]) by localhost (dpluser01.vail
+ [127.0.0.1]) (amavisd-new, port 10024) with ESMTP id WG40l3yqGXvK for
+ <mongrel-unicorn@rubyforge.org>; Fri,  8 Jul 2011 13:30:24 -0500 (CDT)
+Received: from marc-vpn.vail (marc-vpn.vail [172.29.11.142]) by
+ dpluser01.vail (Postfix) with ESMTP id 29B911C80C8 for
+ <mongrel-unicorn@rubyforge.org>; Fri,  8 Jul 2011 13:30:24 -0500 (CDT)
+
+Lately I have been seeing a large volume of database errors in a couple of applications at work.  This has proven difficult to troubleshoot: after some restarts of unicorn, things seem fine.   Then, a restart as part of a new deployment introduces these issues anew, with rollback to the previous version of the app still producing errors.  
+
+One thing I have noticed is in my troubleshooting is that I seem to be able to reproduce these errors only after a period of idleness or low activity on the part of unicorn.  Running unicorn on my workstation, running ab with a concurrency of 5 or so is enough to produce the issue reasonably often.  
+
+I bring this question to the unicorn discussion because I noticed we don't have this problem using Passenger.  I was wondering if there were any particulars of our setup that seem problematic. 
+
+Here is an example of the error we see.  It is not always exactly this error.  Sometimes we will see a bad token error from SQL Server.  Other times the error manifests itself in ActiveRecord dynamic methods not being properly created:
+
+[ WARN 11-07-08 11:42:29 25300:0x1001d6360 ] Internal Server Error ODBC::Error: 01000 (20017) [unixODBC][FreeTDS][SQL Server]Unexpected EOF from the server:  SELECT columns.TABLE_NAME as table_name, columns.COLUMN_NAME as name, columns.DATA_TYPE as type, columns.COLUMN_DEFAULT as default_value, columns.NUMERIC_SCALE as numeric_scale, columns.NUMERIC_PRECISION as numeric_precision, CASE WHEN columns.DATA_TYPE IN ('nchar','nvarchar') THEN columns.CHARACTER_MAXIMUM_LENGTH ELSE COL_LENGTH(columns.TABLE_SCHEMA+'.'+columns.TABLE_NAME, columns.COLUMN_NAME) END as length, CASE WHEN columns.IS_NULLABLE = 'YES' THEN 1 ELSE NULL END as is_nullable, CASE WHEN COLUMNPROPERTY(OBJECT_ID(columns.TABLE_SCHEMA+'.'+columns.TABLE_NAME), columns.COLUMN_NAME, 'IsIdentity') = 0 THEN NULL ELSE 1 END as is_identit
+ y FROM INFORMATION_SCHEMA.COLUMNS columns WHERE columns.TABLE_NAME = 'users' AND columns.TABLE_SCHEMA = schema_name() ORDER BY columns.ordinal_position 
+
+
+Our stack:
+Rails 3.0.7 
+activerecord-sqlserver-adapter 3.0.15 using ruby-odbc and FreeTDS 0.82 
+unicorn 3.5.0 with nginx in front 
+SQL Server 2005 -- at a different site from our web servers, connected by WAN
+CentOS 5.9
+
+I appreciate any suggestions as to where the problem may lie. 
+
+Thanks
+
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
