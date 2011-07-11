@@ -1,0 +1,172 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: Unicorn vs Apache
+Date: Mon, 11 Jul 2011 11:45:56 -0700
+Message-ID: <20110711184556.GA2024@dcvr.yhbt.net>
+References: <1310400479.3665.44.camel@antium>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1310410508 29212 80.91.229.12 (11 Jul 2011 18:55:08
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Mon, 11 Jul 2011 18:55:08 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Mon Jul 11 20:55:04
+ 2011
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <1310400479.3665.44.camel@antium>
+User-Agent: Mutt/1.5.21 (2010-09-15)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:1051
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/1051>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1QgLdI-0006Pz-Eo for gclrug-mongrel-unicorn@m.gmane.org; Mon, 11 Jul 2011
+ 20:55:04 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 8D99E1678338; Mon, 11 Jul 2011 14:55:02 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id F21751858300 for <mongrel-unicorn@rubyforge.org>;
+ Mon, 11 Jul 2011 14:45:56 -0400 (EDT)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 59C162A3015; Mon, 11 Jul 2011 18:45:56 +0000 (UTC)
+
+Matt Smith <matthewcalebsmith@gmail.com> wrote:
+> Hello all,
+> 
+> I have always deploys rails apps with unicorn and nginx as a reverse
+> proxy in the past. However, I am working with a new firm and they would
+> like to use Apache with mod_pagespeed in front of unicorn.
+> 
+> We will be deploying a rails 3.1 app with streaming. To me,
+> mod_pagespeed does not seem like a magic bullet, as it appears to be a
+> collection of best practices which have to be rewritten as a page is
+> being served.
+
+note: mod_pagespeed is totally independent if Rails 3.1 streaming.
+
+Keep in mind the most important feature of nginx Unicorn relies on (full
+request/response buffering) also defeats Rails 3.1 streaming because of
+how it's currently implemented.
+
+> Why not code with the best practices in mind as to not
+> have to scan and yet again reprocess the content?
+
+My thoughts exactly :)  But implementing those best practices
+isn't cheap, either.  If you have to run mod_pagespeed, the safest
+configuration would be:
+
+  nginx <-> mod_pagespeed <-> unicorn
+
+Of course that would introduce latency.  Maybe there's Rack middleware
+that works like mod_pagespeed...
+
+> Searching on the web, I find few entries about mod_page speed and rails,
+> and relatively few entries about apache with unicorn.
+
+Apache + Unicorn is still unsupported since (as far as anybody knows),
+it doesn't fully buffer responses and requests to completely isolate
+Unicorn from the harmful effects of slow clients.
+
+> To me it seems that using best practices, with appropriate use of
+> caching, and nginx would be a better solution than apache with
+> mod_pagespeed.
+
+I agree.
+
+> Questions:
+> 
+> 1) Does nginx provide any necessary services to unicorn, that apache
+> cannot provide?
+
+nginx provides full request + response buffering (all uploads, and large
+response bodies that can't fit into socket buffers).  nginx also
+provides inexpensive handling of idle keepalive connections; so you
+can have a lot of idle connections for little memory usage.
+
+Apache 2.x mpm_event /should/ be as good *if* (and only if) it an
+provide the full request/response buffering; but I don't have any
+experience with it.  mpm_worker can be fairly efficient with Linux+NPTL
+if you can use smaller pthreads stack sizes (and are using 64-bit).
+
+> 2) If apache can provide all necessary services, does it do them as well
+> as nginx.
+
+Buffering + keepalive maintenance is the most important thing I care
+about, and as far as I know, Apache doesn't do that as well as nginx.
+
+> 3) We would like the fastest user experience possible. Does apache with
+> mod_pagespeed hold any weight here over nginx?
+
+The full request/response buffering of nginx also hurts latency a
+little, so the user experience is slightly worse under low load.
+However, nginx does the best job of keeping things going under high
+load.
+
+> 4) Part of a fast user experience is how fast you get the page, correct?
+> Seems like nginx has the upper hand here, due to nginx's nio vs apache's
+> threading.
+
+Not sure what "nio" means... non-blocking I/O?  Apache can use mpm_event
+which is like the non-blocking + event loop nginx uses, but AFAIK the
+buffering of requests responses is not like what nginx implements.
+
+> 5) Would it make since to put nginx in front of apache w/mod_pagespeed
+> (or visa versa), to use the applicable mod_pagespeed filters? Or is this
+> a bad idea to begin with?
+
+nginx <-> mod_pagespeed <-> unicorn should be alright, but of course not
+ideal because of the extra copying + latency involved.
+
+For non-Ruby/Rack apps, I've always recommended nginx sit in front of
+any Apache 1.3 or 2.x+mpm_prefork apps that are exposed to slow clients,
+too.
+
+> 6) Is there anything else I am missing? Are there any specific resources
+> I need to look at?
+
+If you're willing to take a risk with Rainbows!, I posted some notes
+about making it work with Rails 3.1 streaming here:
+
+http://thread.gmane.org/gmane.comp.lang.ruby.rainbows.general/229
+
+Keep in mind nobody I know of uses Rainbows! in production; but
+it /should/ be able to work without nginx (or any proxy).
+
+> 7) Should we go with nginx or apache? (Opinions ok.)
+
+nginx remains the only supported reverse proxy for Unicorn at this
+moment.
+
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
