@@ -1,0 +1,103 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: [PATCH] http: reject non-LWS CTL chars (0..31 + 127) in field values
+Date: Wed, 13 Jul 2011 01:28:36 +0000
+Message-ID: <20110713012836.GA29441@dcvr.yhbt.net>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1310520897 28173 80.91.229.12 (13 Jul 2011 01:34:57
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Wed, 13 Jul 2011 01:34:57 +0000 (UTC)
+To: mongrel-unicorn@rubyforge.org
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Wed Jul 13 03:34:53
+ 2011
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+User-Agent: Mutt/1.5.20 (2009-06-14)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:1056
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/1056>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1QgoLk-00078Q-6M for gclrug-mongrel-unicorn@m.gmane.org; Wed, 13 Jul 2011
+ 03:34:52 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id AAC4D1D780D5; Tue, 12 Jul 2011 21:34:50 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id E30DD1858346 for <mongrel-unicorn@rubyforge.org>;
+ Tue, 12 Jul 2011 21:28:37 -0400 (EDT)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 00F582101E; Wed, 13 Jul 2011 01:28:36 +0000 (UTC)
+
+Would anybody be negatively affected by this change?  I've been seeing
+\x00 bytes in HTTP headers from clients and would rather stop those
+clients earlier rather than later.
+
+>From 4a8ddcd017a75b9bc99190dc565880615709d810 Mon Sep 17 00:00:00 2001
+From: Eric Wong <normalperson@yhbt.net>
+Date: Tue, 12 Jul 2011 23:52:33 +0000
+Subject: [PATCH] http: reject non-LWS CTL chars (0..31 + 127) in field values
+
+RFC 2616 doesn't appear to allow most CTL bytes even though
+Mongrel always did.  Rack::Lint disallows 0..31, too, though we
+allow "\t" (HT, 09) since it's LWS and allowed by RFC 2616.
+---
+ ext/unicorn_http/unicorn_http_common.rl |    5 +++--
+ 1 files changed, 3 insertions(+), 2 deletions(-)
+
+diff --git a/ext/unicorn_http/unicorn_http_common.rl b/ext/unicorn_http/unicorn_http_common.rl
+index cf93fec..cc1d455 100644
+--- a/ext/unicorn_http/unicorn_http_common.rl
++++ b/ext/unicorn_http/unicorn_http_common.rl
+@@ -20,6 +20,7 @@
+   pchar = (uchar | ":" | "@" | "&" | "=" | "+");
+   tspecials = ("(" | ")" | "<" | ">" | "@" | "," | ";" | ":" | "\\" | "\"" | "/" | "[" | "]" | "?" | "=" | "{" | "}" | " " | "\t");
+   lws = (" " | "\t");
++  content = ((any -- CTL) | lws);
+ 
+ # elements
+   token = (ascii -- (CTL | tspecials));
+@@ -50,9 +51,9 @@
+ 
+   field_name = ( token -- ":" )+ >start_field $snake_upcase_field %write_field;
+ 
+-  field_value = any* >start_value %write_value;
++  field_value = content* >start_value %write_value;
+ 
+-  value_cont = lws+ any* >start_value %write_cont_value;
++  value_cont = lws+ content* >start_value %write_cont_value;
+ 
+   message_header = ((field_name ":" lws* field_value)|value_cont) :> CRLF;
+   chunk_ext_val = token*;
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
