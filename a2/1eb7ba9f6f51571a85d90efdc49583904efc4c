@@ -1,0 +1,87 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.6 required=5.0 tests=FREEMAIL_FROM,
+ MSGID_FROM_MTA_HEADER,RP_MATCHES_RCVD,T_DKIM_INVALID shortcircuit=no
+ autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: cliftonk@gmail.com
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: Strange quit behavior
+Date: Tue, 2 Aug 2011 15:45:52 -0500
+Message-ID: <176653B1-D116-4261-88FD-890EE0AA5307@gmail.com>
+References:
+ <CA+Do99v4=7mYE0JfSzZiKQ=j+eNusboJxjOgt4sXV7RQf-OaQw@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0 (Apple Message framework v1244.3)
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1312317987 19065 80.91.229.12 (2 Aug 2011 20:46:27
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Tue, 2 Aug 2011 20:46:27 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Tue Aug 02 22:46:19
+ 2011
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com; s=gamma;
+ h=content-type:mime-version:subject:from:in-reply-to:date
+ :content-transfer-encoding:message-id:references:to:x-mailer;
+ bh=nKA/xP8B9GfFJ4yjmja7pfSsOBtZlonYe7E/1bqvUL4=;
+ b=t/CuvsEx/6FAcGeB/38eN4HyFzTrBQ+L2zfkjYkecn8RSoNxudRhE0bqSNkdE/ri3u
+ p9hsb0tbB1cnm//3g2x0HUQIzj5CJmzLNYmC3SKawUgwlJpRBTHYjc+EJMfIx/165ZXu
+ lurFl+OrY5EVUBqBsvC/FlsS/9zi74uVkzpVQ=
+In-Reply-To:
+ <CA+Do99v4=7mYE0JfSzZiKQ=j+eNusboJxjOgt4sXV7RQf-OaQw@mail.gmail.com>
+X-Mailer: Apple Mail (2.1244.3)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:1072
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/1072>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1QoLr1-0002oy-Cc for gclrug-mongrel-unicorn@m.gmane.org; Tue, 02 Aug 2011
+ 22:46:19 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id C44CF185836C; Tue,  2 Aug 2011 16:46:18 -0400 (EDT)
+Received: from mail-gw0-f50.google.com (mail-gw0-f50.google.com
+ [74.125.83.50]) by rubyforge.org (Postfix) with ESMTP id AD24D18581B2 for
+ <mongrel-unicorn@rubyforge.org>; Tue,  2 Aug 2011 16:46:08 -0400 (EDT)
+Received: by gwj16 with SMTP id 16so153264gwj.23 for
+ <mongrel-unicorn@rubyforge.org>; Tue, 02 Aug 2011 13:46:08 -0700 (PDT)
+Received: by 10.150.113.21 with SMTP id l21mr1813261ybc.327.1312317967081;
+ Tue, 02 Aug 2011 13:46:07 -0700 (PDT)
+Received: from [192.168.15.2] ([184.76.146.132]) by mx.google.com with ESMTPS
+ id j3sm137265yhl.52.2011.08.02.13.46.05 (version=TLSv1/SSLv3 cipher=OTHER);
+ Tue, 02 Aug 2011 13:46:06 -0700 (PDT)
+
+Your config has:
+
+    sig = (worker.nr + 1) >= server.worker_processes ? :TERM : :TTOU
+    Process.kill(sig, File.read(old_pid).to_i)
+
+I don't have such a conditional in mine, and I use a QUIT signal (although I don't see why TERM isn't working for you).
+
+    Process.kill("QUIT", File.read(old_pid).to_i)
+
+You might also want to try logging a puts File.read(old_pid) to the unicorn.stdout.log to ensure the old_pid file is being correctly written to (and in the right path).
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
