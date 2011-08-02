@@ -1,0 +1,94 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,FREEMAIL_FROM,
+ MSGID_FROM_MTA_HEADER,RP_MATCHES_RCVD,T_DKIM_INVALID shortcircuit=no
+ autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Alex Sharp <ajsharp@gmail.com>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: Strange quit behavior
+Date: Tue, 2 Aug 2011 13:34:52 -0700
+Message-ID:
+ <CAB3oGjqQKnBCuPxZ3iei2FEtnftdtxtARTLvW3pYeWRwWbNsKA@mail.gmail.com>
+References:
+ <CA+Do99v4=7mYE0JfSzZiKQ=j+eNusboJxjOgt4sXV7RQf-OaQw@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1312317989 19104 80.91.229.12 (2 Aug 2011 20:46:29
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Tue, 2 Aug 2011 20:46:29 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Tue Aug 02 22:46:25
+ 2011
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com; s=gamma;
+ h=mime-version:in-reply-to:references:from:date:message-id:subject:to
+ :content-type; bh=ql5crni58A25Ghbdw+PP+akrcsc85SL/yN65/wOfVZQ=;
+ b=VwdoOlyLXc+mh8mL32fHncugzB2eZrAta3Gp8CgOlXi+cOgGa2cCXfhLoWZMVJ9r1Z
+ qG9qbzZysB9A9RmFlC7MW4RgXEHBdG7Ktr22AkuMqtwBOcNPpFoFIRYPIpeFSSYT1S9d
+ jF6eFi5rrcbLYl3t6/8OQNdlMY8KqxG8UfPOs=
+In-Reply-To:
+ <CA+Do99v4=7mYE0JfSzZiKQ=j+eNusboJxjOgt4sXV7RQf-OaQw@mail.gmail.com>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:1073
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/1073>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1QoLr3-0002sV-Vw for gclrug-mongrel-unicorn@m.gmane.org; Tue, 02 Aug 2011
+ 22:46:22 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 750811D78101; Tue,  2 Aug 2011 16:46:21 -0400 (EDT)
+Received: from mail-iy0-f178.google.com (mail-iy0-f178.google.com
+ [209.85.210.178]) by rubyforge.org (Postfix) with ESMTP id 6292A1858367 for
+ <mongrel-unicorn@rubyforge.org>; Tue,  2 Aug 2011 16:35:14 -0400 (EDT)
+Received: by iyb26 with SMTP id 26so171335iyb.23 for
+ <mongrel-unicorn@rubyforge.org>; Tue, 02 Aug 2011 13:35:13 -0700 (PDT)
+Received: by 10.231.199.129 with SMTP id es1mr827610ibb.132.1312317313124;
+ Tue, 02 Aug 2011 13:35:13 -0700 (PDT)
+Received: by 10.231.37.200 with HTTP; Tue, 2 Aug 2011 13:34:52 -0700 (PDT)
+
+> I've found that it's very unreliable for quitting / terminating
+> unicorn and restarting with new code. When doing rapid deployments
+> particularly, i've found that i have to go in and kill -9 the master
+> process, and start again.
+
+We've noticed some of this behavior as well. We've seen the new master
+start spinning and consume 100% cpu (according to top). The old master
+and workers are still running and working, but the new master just
+hangs, and we have to kill -9. Our solution was to add the following
+to our unicorn config, which *seems* to have solved the problem:
+
+Unicorn::HttpServer::START_CTX[0] =
+"#{path_to_app}/shared/bundle/ruby/1.9.1/bin/unicorn_rails"
+
+This is outlined a bit here: http://unicorn.bogomips.org/Sandbox.html.
+I'm not really sure why this seems to have fixed the problem -- all I
+can tell you is that we haven't seen it since adding this line to the
+config.
+
+- Alex
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
