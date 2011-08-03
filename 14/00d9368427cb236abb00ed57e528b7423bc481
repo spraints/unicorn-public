@@ -1,0 +1,105 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.2 required=5.0 tests=AWL,FREEMAIL_FROM,
+ MSGID_FROM_MTA_HEADER,RP_MATCHES_RCVD,T_DKIM_INVALID shortcircuit=no
+ autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Tatsuya Ono <ononoma@gmail.com>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Unicorn in the jail
+Date: Wed, 3 Aug 2011 17:41:03 +0100
+Message-ID:
+ <CAHBuKRj09FdxAgzsefJWotexw-7JYZGJMtgUp_dhjPz9VbKD6Q@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1312390091 2577 80.91.229.12 (3 Aug 2011 16:48:11
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Wed, 3 Aug 2011 16:48:11 +0000 (UTC)
+To: mongrel-unicorn <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Wed Aug 03 18:48:06
+ 2011
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com; s=gamma;
+ h=mime-version:date:message-id:subject:from:to:content-type;
+ bh=ftY+n7eQ/Q67ecL2DL6T4dt9TQPSTFCZU0ySqlDBXWE=;
+ b=bYydlHVsIeX52nYjBqy7qpLRNSbGzOj1KJIea8UaR2KNWVMr+8TGuoiRCNEEW/QVny
+ O1JJ1iVZ5LR7PIj9nnPvITGlYnXE/b4SMOkFce9D+ZJknYFjY/br1r65JoTZaYfzym5t
+ OGaayMSgiPIn9k6XqjHPqkkfIq19rP1r/OfD4=
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:1081
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/1081>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1Qoec1-00060K-2Z for gclrug-mongrel-unicorn@m.gmane.org; Wed, 03 Aug 2011
+ 18:48:05 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 4E62D167836A; Wed,  3 Aug 2011 12:48:04 -0400 (EDT)
+Received: from mail-gw0-f50.google.com (mail-gw0-f50.google.com
+ [74.125.83.50]) by rubyforge.org (Postfix) with ESMTP id A294C18583A5 for
+ <mongrel-unicorn@rubyforge.org>; Wed,  3 Aug 2011 12:41:03 -0400 (EDT)
+Received: by gwj16 with SMTP id 16so801830gwj.23 for
+ <mongrel-unicorn@rubyforge.org>; Wed, 03 Aug 2011 09:41:03 -0700 (PDT)
+Received: by 10.150.164.6 with SMTP id m6mr854524ybe.298.1312389663327; Wed,
+ 03 Aug 2011 09:41:03 -0700 (PDT)
+Received: by 10.151.38.6 with HTTP; Wed, 3 Aug 2011 09:41:03 -0700 (PDT)
+
+I ran into a problem when sending USR2 signal to master process which
+is listening a TCP port. It shows the following error in log.
+
+err: adding listener failed addr=0.0.0.0:3010 (in use)
+
+I found similar error reported on this mailing list and yes, the host
+I got the error was in the FreeBSD jail.
+http://rubyforge.org/pipermail/mongrel-unicorn/2009-December/000205.html
+http://rubyforge.org/pipermail/mongrel-unicorn/2009-December/000212.html
+
+I dug into the problem and found some interesting thing. I want to
+share it and the solution here.
+
+* Why does it happen in the Jail?
+When you bind 0.0.0.0 address to the socket on a Jail host, Jail
+doesn't bind 0.0.0.0. Instead of it, it binds to the IP address of the
+host such as 10.100.1.50, 192.168.1.50, etc.
+Then the problem happens in Unicorn::HttpServer#inherit_listeners!
+when it gets signal like USR2.
+https://github.com/defunkt/unicorn/blob/406b8b0e2ed6e5be34d8ec3cd4b16048233c2856/lib/unicorn/http_server.rb#L703-731
+
+Here you get 10.100.1.50 (for example) as inherited address from
+ENV['UNICORN_FD'] but 0.0.0.0. So Unicorn tries to bind to 0.0.0.0
+(again) at line 728. Then it fails because it is actually in use.
+
+* How to solve the issue?
+Thankfully unicorn.conf is ruby script so that I could write a logic
+for Jail hosts without specifying IP address of those hosts (which we
+want to avoid since we deploy it multiple servers). I share the
+configuration file.
+https://gist.github.com/1122965
+
+Then Unicorn flies in the jail happily.
+
+Tatsuya Ono
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
