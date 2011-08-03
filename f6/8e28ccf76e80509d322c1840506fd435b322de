@@ -1,0 +1,91 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: Question about HUP + USR2 + QUIT
+Date: Wed, 3 Aug 2011 12:22:42 -0700
+Message-ID: <20110803192242.GA14121@dcvr.yhbt.net>
+References:
+ <CAB3oGjr2ZN-QJkMbO5OgSiken53xRCjtGqvTrXCeVCTr9H8Wtw@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1312401129 13210 80.91.229.12 (3 Aug 2011 19:52:09
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Wed, 3 Aug 2011 19:52:09 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Wed Aug 03 21:52:01
+ 2011
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To:
+ <CAB3oGjr2ZN-QJkMbO5OgSiken53xRCjtGqvTrXCeVCTr9H8Wtw@mail.gmail.com>
+User-Agent: Mutt/1.5.21 (2010-09-15)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:1084
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/1084>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1QohU0-0007jb-Sq for gclrug-mongrel-unicorn@m.gmane.org; Wed, 03 Aug 2011
+ 21:52:01 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 00F1F1678363; Wed,  3 Aug 2011 15:51:59 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id C506E18583A5 for <mongrel-unicorn@rubyforge.org>;
+ Wed,  3 Aug 2011 15:22:42 -0400 (EDT)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 300EC2968A5; Wed,  3 Aug 2011 19:22:42 +0000 (UTC)
+
+Alex Sharp <ajsharp@gmail.com> wrote:
+> Currently, on deploys we're sending HUP to the "old" master to reload
+> the config, and then we send it a USR2 to reload the app code. Is this
+> redundant -- i.e. does USR2 reload the unicorn config, or just the
+> application code? I am under the impression that USR2 forks a new
+> master from the old, and only reloads app code, and not the unicorn
+> config, but I just wanted to double check. Thanks.
+
+It's redundant to send HUP before USR2 most of the time.  USR2 does a
+fork+exec, so it replaces the forked process with a new one and rereads
+the config file.
+
+The only reason I can think of to send HUP before USR2 is to to update
+the path to Unicorn before fork+exec, normally USR2 defaults to
+using the same path it started with:
+
+This can be useful for changing between new versions/installations of
+Ruby:
+
+  Unicorn::HttpServer::START_CTX[0] = "/home/ew/ruby-1.9.3/bin/unicorn"
+  Unicorn::HttpServer::START_CTX[0] = "/home/ew/ruby-1.8.7/bin/unicorn"
+  Unicorn::HttpServer::START_CTX[0] = "/home/ew/ruby-trunk/bin/unicorn"
+  ..
+
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
