@@ -1,0 +1,113 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: Strange quit behavior
+Date: Fri, 5 Aug 2011 08:07:29 +0000
+Message-ID: <20110805080729.GA6602@dcvr.yhbt.net>
+References:
+ <CA+Do99v4=7mYE0JfSzZiKQ=j+eNusboJxjOgt4sXV7RQf-OaQw@mail.gmail.com>
+ <CAB3oGjqQKnBCuPxZ3iei2FEtnftdtxtARTLvW3pYeWRwWbNsKA@mail.gmail.com>
+ <20110802215412.GA12725@dcvr.yhbt.net>
+ <CAB3oGjr48YFHi3_LVHykLEp_1EduQRAREoizUNfbjqVo2wfeTA@mail.gmail.com>
+ <CAB3oGjqUUBFv1KGziRSEAR5iWKa_Z-T7gWmAZosyF4TP5cKm8w@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1312532340 26705 80.91.229.12 (5 Aug 2011 08:19:00
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Fri, 5 Aug 2011 08:19:00 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Fri Aug 05 10:18:56
+ 2011
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To:
+ <CAB3oGjqUUBFv1KGziRSEAR5iWKa_Z-T7gWmAZosyF4TP5cKm8w@mail.gmail.com>
+User-Agent: Mutt/1.5.20 (2009-06-14)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:1089
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/1089>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1QpFcO-0001Sp-95 for gclrug-mongrel-unicorn@m.gmane.org; Fri, 05 Aug 2011
+ 10:18:56 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id E952F3C808C; Fri,  5 Aug 2011 04:18:54 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 761711858346 for <mongrel-unicorn@rubyforge.org>;
+ Fri,  5 Aug 2011 04:07:32 -0400 (EDT)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id BC1CA2107B; Fri,  5 Aug 2011 08:07:29 +0000 (UTC)
+
+Alex Sharp <ajsharp@gmail.com> wrote:
+> On Thu, Aug 4, 2011 at 9:09 PM, Alex Sharp <ajsharp@gmail.com> wrote:
+> > On Tue, Aug 2, 2011 at 2:54 PM, Eric Wong <normalperson@yhbt.net> wrote:
+> >> Can you try to strace (or equivalent) the old master to see what's using
+> >> 100% CPU?
+> >>
+> 
+> Actually, my fault -- the last email was the output of new master.
+> Running strace on the old master shows the following:
+
+Is this Unicorn 3.x?  Which 3.x version exactly?  Maybe give 4.0.1
+or the 4.0.2 git prerelease a try, too.
+
+> select(4, [3], NULL, NULL, {13, 466686}) = 0 (Timeout)
+> wait4(-1, 0x7fff57e7bfcc, WNOHANG, NULL) = 0
+> clock_gettime(CLOCK_REALTIME, {1312517345, 425411398}) = 0
+> fstat(9, {st_mode=S_IFREG, st_size=0, ...}) = 0
+> clock_gettime(CLOCK_REALTIME, {1312517345, 425625251}) = 0
+> fstat(11, {st_mode=S_IFREG, st_size=0, ...}) = 0
+> clock_gettime(CLOCK_REALTIME, {1312517345, 425779281}) = 0
+> fstat(12, {st_mode=S_IFREG, st_size=0, ...}) = 0
+> clock_gettime(CLOCK_REALTIME, {1312517345, 425927762}) = 0
+
+Can I get more? (until the next select() call, at least).  I'd like to
+see the timeout argument that gets passed to the next select().
+
+If you see select() with very small timeout, use "strace -v" to get the
+st_ctime from fstat()s...
+
+I could have a math bug in murder_lazy_workers (please read/review the
+logic in that method, I haven't noticed issues myself).
+
+I made some tweaks to the master sleep strategy within the past year to
+reduce wakeups during idle hours.  This is intended to go with Ruby
+1.9.3 which will have /much/ better thread wakeup strategy that reduces
+power consumption during idle times.
+
+> The first line was when the master was idle, and then I threw a few
+> requests at it.
+
+Are all workers responding as expected and not dying?
+
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
