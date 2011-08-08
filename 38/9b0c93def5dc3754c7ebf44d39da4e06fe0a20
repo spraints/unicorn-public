@@ -1,0 +1,107 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: What happens when a client terminates a connection?
+Date: Mon, 8 Aug 2011 20:13:27 +0000
+Message-ID: <20110808201327.GB7188@dcvr.yhbt.net>
+References: <20110808161915.GA49811@jessebook-2.local>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1312834661 5528 80.91.229.12 (8 Aug 2011 20:17:41
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Mon, 8 Aug 2011 20:17:41 +0000 (UTC)
+Cc: Jesse Storimer <jstorimer@gmail.com>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Mon Aug 08 22:17:35
+ 2011
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <20110808161915.GA49811@jessebook-2.local>
+User-Agent: Mutt/1.5.21 (2010-09-15)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:1092
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/1092>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1QqWGV-0004Ao-0G for gclrug-mongrel-unicorn@m.gmane.org; Mon, 08 Aug 2011
+ 22:17:35 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id CD6E01588062; Mon,  8 Aug 2011 16:17:33 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 20169185838E for <mongrel-unicorn@rubyforge.org>;
+ Mon,  8 Aug 2011 16:13:27 -0400 (EDT)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 7F66C21182; Mon,  8 Aug 2011 20:13:27 +0000 (UTC)
+
+Jesse Storimer <jstorimer@gmail.com> wrote:
+> It seems that in this case the Rails app actually aborts the request,
+> wherever it is in the course of it. The issue I ran into is that my app
+> made a destructive request to an external service in 
+> the context of a request, but the client disconnected before the app was
+> able to respond. So the external service returned its response but the
+> request was aborted before the app was able 
+> to commit its transaction to the database, confusion ensued.
+
+You should make this request to the external service and wait for this
+response inside state 3) as described in my other reply[1].
+
+If you're affected by state 2), you should minimize the time in state 2)
+by using PrereadInput middleware to jump to state 3) (and you'll avoid
+making the external request entirely if the preread input fails due
+to the client aborting).
+
+Your goal is to minimize the time spent processing a non-idempotent
+request/parts-of-the-request and isolate where a client can fail (and
+maximize the time where they can gracefully recover).
+
+If possible, the request you make to the external service should be
+idempotent, but it doesn't seem to be...
+
+
+I haven't encountered this problem myself in many years, but here's
+what I did in the past for similar problems:
+
+  Call the external service asynchronously and look at the various
+  background job/queue libraries available to handle this.  The client
+  should probably auto-refresh on a page (idempotently) until the async
+  request is complete.
+
+  I would even hold off on starting your external request until the client
+  has hit the auto-refresh page.  This way you know the client has started
+  the refresh cycle and you can fake the idempotency of the external
+  request on your app side.
+
+
+[1] - http://mid.gmane.org/20110808192824.GA5759@dcvr.yhbt.net
+
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
