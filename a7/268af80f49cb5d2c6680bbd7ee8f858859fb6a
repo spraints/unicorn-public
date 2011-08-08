@@ -1,0 +1,129 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: What happens when a client terminates a connection?
+Date: Mon, 8 Aug 2011 19:28:24 +0000
+Message-ID: <20110808192824.GA5759@dcvr.yhbt.net>
+References: <20110808161915.GA49811@jessebook-2.local>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1312831725 18874 80.91.229.12 (8 Aug 2011 19:28:45
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Mon, 8 Aug 2011 19:28:45 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Mon Aug 08 21:28:41
+ 2011
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <20110808161915.GA49811@jessebook-2.local>
+User-Agent: Mutt/1.5.21 (2010-09-15)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:1091
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/1091>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1QqVV8-00078V-DN for gclrug-mongrel-unicorn@m.gmane.org; Mon, 08 Aug 2011
+ 21:28:38 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 6D380185838E; Mon,  8 Aug 2011 15:28:37 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 19F781858363 for <mongrel-unicorn@rubyforge.org>;
+ Mon,  8 Aug 2011 15:28:25 -0400 (EDT)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 0AEAF21182; Mon,  8 Aug 2011 19:28:25 +0000 (UTC)
+
+Jesse Storimer <jstorimer@gmail.com> wrote:
+> I've been trying to understand what happens in Unicorn when a client
+> terminates a connection, and nginx logs a 499 response code.
+
+We'd have to read the nginx sources to answer what nginx does, but
+of course I can answer what Unicorn does off the top of my head.
+
+> In my debugging this can happen if the client is on a flaky connection,
+> or if they double-click a form submit button, the first request is
+> terminated and nginx logs a 499 response code.
+
+<snip> (the snipped paragraph deserves independent observation/attention)
+
+> Can you confirm that this is actually what happens in Unicorn when the
+> client disconnects? I'm not seeing anything in the logs to indicate the
+> actual behaviour.
+
+It depends on when exactly the client (nginx) disconnect is detected.
+Unicorn has 4 distinct states :
+
+1) reading headers, if a client disconnects before it has written _all_
+   of its request headers, the Rack app will never be called.
+
+   Since no applicaton logic fired at this point.
+
+2) inside Rack dispatch (rack.input reading)
+   This will abort the Rack application dispatch if your client
+   disconnects before _all_ of the request body is sent.  Unlike
+   most servers, Unicorn lazily reads any request bodies.
+
+   You can catch exceptions from env["rack.input"].{read,gets,each}
+   to detect this.
+
+   The Unicorn::PrereadInput middleware can minimize the time window for
+   this state by reading the request body ASAP.
+
+   You can also ignore this if your app isn't handling
+   requests with bodies (POST/PUT), but since you mentioned form
+   input...
+
+3) inside Rack dispatch (after rack.input reading)
+   Your app has no way of knowing your client disconnected at
+   this stage.  You can hack Unicorn to IO.select in a separate
+   thread, but there'll always be exposed windows leading up to
+   4) so it's not worth it...
+
+4) writing the response: Unicorn will abort whenever a socket
+   error is detected.  Keep in mind that every single part of the
+   Rack response array can be dynamically generated by the app.
+   Your application can still be "running" even though the Rack app
+   has returned its response for Unicorn to start writing.
+
+   Clients/Rack middleware can be written to detect this in the
+   response body "close" method by checking if body.each completed.
+
+> In dealing with this I'm thinking about turning on
+> proxy_ignore_client_abort
+> (http://wiki.nginx.org/HttpProxyModule#proxy_ignore_client_abort) so
+> that requests that make it to the Rails 
+> app aren't aborted. Does anyone have experience with this? I can see it
+> causing its own sorts of confusion.
+
+I've never used it.
+
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
