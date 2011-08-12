@@ -1,0 +1,107 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.6 required=5.0 tests=MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD,T_DKIM_INVALID shortcircuit=no autolearn=unavailable
+ version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Joe Van Dyk <joe@tanga.com>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Rack content-length Rack::Lint::LintErrors errors with unicorn
+Date: Thu, 11 Aug 2011 21:39:25 -0700
+Message-ID:
+ <CACfv+pJ3QPuzHEb1BJfm1hZnOwhBoVLw_sp680oGSPfRTC30LQ@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1313124024 25597 80.91.229.12 (12 Aug 2011 04:40:24
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Fri, 12 Aug 2011 04:40:24 +0000 (UTC)
+To: mongrel-unicorn@rubyforge.org
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Fri Aug 12 06:40:20
+ 2011
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com; s=gamma;
+ h=mime-version:sender:from:date:x-google-sender-auth:message-id
+ :subject:to:content-type; bh=EfYA3W/xQexF6oEUeNWL77HAIZnx3upVco1qyMBYbUg=;
+ b=exRtVeaIDNnmnc9L1JqmMgzKsN8J4yfqNI/81cQw3lAUw+RXC77P4ZMVwIL1QLfDrS
+ FsQN4puDuOv3b6NnBCKdz7VLupa9/IxRJWJ86lu+71L0BuZgn6oAeRM+esi3/8fZCVK1
+ RzabSqQ6MnZN/nLqV1lWnoHVuxB5nd/QhorJQ=
+X-Google-Sender-Auth: R5yhsHGtboxGDFDK2-D-4GAe_4Y
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:1095
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/1095>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1QrjXd-0005eU-7m for gclrug-mongrel-unicorn@m.gmane.org; Fri, 12 Aug 2011
+ 06:40:17 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id E25B91858376; Fri, 12 Aug 2011 00:40:15 -0400 (EDT)
+Received: from mail-qw0-f50.google.com (mail-qw0-f50.google.com
+ [209.85.216.50]) by rubyforge.org (Postfix) with ESMTP id D5DC11858376 for
+ <mongrel-unicorn@rubyforge.org>; Fri, 12 Aug 2011 00:40:05 -0400 (EDT)
+Received: by qwe5 with SMTP id 5so1880854qwe.23 for
+ <mongrel-unicorn@rubyforge.org>; Thu, 11 Aug 2011 21:40:05 -0700 (PDT)
+Received: by 10.229.30.138 with SMTP id u10mr342824qcc.3.1313124005074; Thu,
+ 11 Aug 2011 21:40:05 -0700 (PDT)
+Received: by 10.229.169.201 with HTTP; Thu, 11 Aug 2011 21:39:25 -0700 (PDT)
+
+Has anyone seen anything like this before?  I can get it to happen all
+the time if I issue a HEAD request, but it only happens very
+intermittently on GET requests.
+
+I'm using Ruby 1.9.2p180.
+
+Any ideas on where to start debugging?
+
+204.93.223.151, 10.195.114.81 - - [11/Aug/2011 21:03:50] "GET /
+HTTP/1.0" 200 37902 0.5316
+app error: Content-Length header was 37902, but should be 0
+(Rack::Lint::LintError)
+/mnt/data/tanga/current/bundler/ruby/1.9.1/gems/rack-1.2.3/lib/rack/lint.rb:19:in
+`assert'
+/mnt/data/tanga/current/bundler/ruby/1.9.1/gems/rack-1.2.3/lib/rack/lint.rb:501:in
+`verify_content_length'
+/mnt/data/tanga/current/bundler/ruby/1.9.1/gems/rack-1.2.3/lib/rack/lint.rb:525:in
+`each'
+/mnt/data/tanga/current/bundler/ruby/1.9.1/gems/unicorn-4.0.1/lib/unicorn/http_response.rb:41:in
+`http_response_write'
+/mnt/data/tanga/current/bundler/ruby/1.9.1/gems/unicorn-4.0.1/lib/unicorn/http_server.rb:526:in
+`process_client'
+/mnt/data/tanga/current/bundler/ruby/1.9.1/gems/unicorn-4.0.1/lib/unicorn/http_server.rb:585:in
+`worker_loop'
+/mnt/data/tanga/current/bundler/ruby/1.9.1/gems/newrelic_rpm-3.0.1/lib/new_relic/agent/instrumentation/unicorn_instrumentation.rb:12:in
+`call'
+/mnt/data/tanga/current/bundler/ruby/1.9.1/gems/newrelic_rpm-3.0.1/lib/new_relic/agent/instrumentation/unicorn_instrumentation.rb:12:in
+`block (4 levels) in <top (required)>'
+/mnt/data/tanga/current/bundler/ruby/1.9.1/gems/unicorn-4.0.1/lib/unicorn/http_server.rb:475:in
+`spawn_missing_workers'
+/mnt/data/tanga/current/bundler/ruby/1.9.1/gems/unicorn-4.0.1/lib/unicorn/http_server.rb:135:in
+`start'
+/mnt/data/tanga/current/bundler/ruby/1.9.1/gems/unicorn-4.0.1/bin/unicorn:121:in
+`<top (required)>'
+/data/tanga/current/sites/tanga/bin/unicorn:16:in `load'
+/data/tanga/current/sites/tanga/bin/unicorn:16:in `<main>'
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
