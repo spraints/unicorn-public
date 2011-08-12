@@ -1,0 +1,95 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: Rack content-length Rack::Lint::LintErrors errors with unicorn
+Date: Fri, 12 Aug 2011 05:42:52 +0000
+Message-ID: <20110812054252.GA30507@dcvr.yhbt.net>
+References:
+ <CACfv+pJ3QPuzHEb1BJfm1hZnOwhBoVLw_sp680oGSPfRTC30LQ@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1313127790 11546 80.91.229.12 (12 Aug 2011 05:43:10
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Fri, 12 Aug 2011 05:43:10 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Fri Aug 12 07:43:04
+ 2011
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To:
+ <CACfv+pJ3QPuzHEb1BJfm1hZnOwhBoVLw_sp680oGSPfRTC30LQ@mail.gmail.com>
+User-Agent: Mutt/1.5.20 (2009-06-14)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:1096
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/1096>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1QrkWN-0005RM-EL for gclrug-mongrel-unicorn@m.gmane.org; Fri, 12 Aug 2011
+ 07:43:03 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 8C4981588033; Fri, 12 Aug 2011 01:43:02 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id E4110185837B for <mongrel-unicorn@rubyforge.org>;
+ Fri, 12 Aug 2011 01:42:55 -0400 (EDT)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 0E02121186; Fri, 12 Aug 2011 05:42:53 +0000 (UTC)
+
+Joe Van Dyk <joe@tanga.com> wrote:
+> Has anyone seen anything like this before?  I can get it to happen all
+> the time if I issue a HEAD request, but it only happens very
+> intermittently on GET requests.
+> 
+> I'm using Ruby 1.9.2p180.
+> 
+> Any ideas on where to start debugging?
+
+What web framework and other middlewares are you running?  Are you using Rack::Head to
+generate HEAD responses or something else?
+
+> 204.93.223.151, 10.195.114.81 - - [11/Aug/2011 21:03:50] "GET /
+> HTTP/1.0" 200 37902 0.5316
+> app error: Content-Length header was 37902, but should be 0
+> (Rack::Lint::LintError)
+> /mnt/data/tanga/current/bundler/ruby/1.9.1/gems/rack-1.2.3/lib/rack/lint.rb:19:in
+> `assert'
+> /mnt/data/tanga/current/bundler/ruby/1.9.1/gems/rack-1.2.3/lib/rack/lint.rb:501:in
+> `verify_content_length'
+
+Looking at the 1.2.3 rack/lint.rb code, it should've set @head_request to true
+when env["REQUEST_METHOD"] == "HEAD" (rack/lint.rb line 56).
+Do you happen to have any middlewares that might rewrite REQUEST_METHOD?
+
+I would edit rack/lint.rb and put some print statements to show the
+value of @head_request and env["REQUEST_METHOD"]
+
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
