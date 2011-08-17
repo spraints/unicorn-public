@@ -1,0 +1,113 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: Unicorn logging in production env
+Date: Wed, 17 Aug 2011 09:58:35 +0000
+Message-ID: <20110817095835.GA13605@dcvr.yhbt.net>
+References:
+ <CAL3dLFrkDix=L-STUnrxy7Wuc4wDZOb05NLbG6HABvFJNGmnmQ@mail.gmail.com>
+ <20110816173034.GA4785@dcvr.yhbt.net>
+ <CAL3dLFqhcTcTc1dyZbL0hzHyg61NE+LX8Vh2Un3-Vzda--gV0Q@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1313576449 20954 80.91.229.12 (17 Aug 2011 10:20:49
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Wed, 17 Aug 2011 10:20:49 +0000 (UTC)
+Cc: Serg Podtynnyi <serg@podtynnyi.com>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Wed Aug 17 12:20:45
+ 2011
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To:
+ <CAL3dLFqhcTcTc1dyZbL0hzHyg61NE+LX8Vh2Un3-Vzda--gV0Q@mail.gmail.com>
+User-Agent: Mutt/1.5.20 (2009-06-14)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:1112
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/1112>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1QtdEp-0003EW-VT for gclrug-mongrel-unicorn@m.gmane.org; Wed, 17 Aug 2011
+ 12:20:44 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 447CF1678338; Wed, 17 Aug 2011 06:20:43 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id EFEC9185838A for <mongrel-unicorn@rubyforge.org>;
+ Wed, 17 Aug 2011 05:58:35 -0400 (EDT)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 3400621094; Wed, 17 Aug 2011 09:58:35 +0000 (UTC)
+
+Serg Podtynnyi <serg@podtynnyi.com> wrote:
+> I am asking about this default values because by the convention
+> production env is 99% "production", but in the code I see
+> "deployment", so most of the people that are using unicorn have bogus
+> logs on production. Thanks for clogger suggestion.
+
+Yeah, as I explained in the other post, I've always tried to base as
+many defaults off Rack defaults so people have less trouble switching
+from/to Unicorn.
+
+I'm quite happy with how clogger works, hopefully we find more happy
+users :)  (I don't like relying on unicorn to promote clogger, though.
+clogger should be able to stand on its own since it works with any Rack
+server).
+
+> Any idea of how to have some kind of useful information when master
+> process kills workers by timeout?
+
+It's not possible to know what a worker is doing since SIGKILL isn't
+trappable.  The master killing workers should only be a last resort
+that'll let you limp by until you can have a proper fix.  The the rest
+of the app should have local timeouts for all non-deterministic calls.
+
+> We just monkey patched Unicorn::HttpParser read method like this
+> https://gist.github.com/1151164 to get more info. Is there a better
+> way to do this?
+
+There isn't any difference between that and having Rack middleware
+at the top of your stack (clogger logs at the end, and if you have
+things like $body_bytes_sent it even wraps the response body)
+
+class LogBefore < Struct.new(:app)
+  def call(env)
+    env["rack.logger"].debug env["REQUEST_PATH"]
+  end
+end
+--------- config.ru ---------
+use LogBefore
+use ...
+use ...
+use ...
+run YourApp.new
+-----------------------------
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
