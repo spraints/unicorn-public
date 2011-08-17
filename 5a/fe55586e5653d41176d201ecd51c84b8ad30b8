@@ -1,0 +1,138 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: Strange quit behavior
+Date: Wed, 17 Aug 2011 13:13:23 -0700
+Message-ID: <20110817201323.GA24581@dcvr.yhbt.net>
+References:
+ <CA+Do99v4=7mYE0JfSzZiKQ=j+eNusboJxjOgt4sXV7RQf-OaQw@mail.gmail.com>
+ <CAB3oGjqQKnBCuPxZ3iei2FEtnftdtxtARTLvW3pYeWRwWbNsKA@mail.gmail.com>
+ <20110802215412.GA12725@dcvr.yhbt.net>
+ <CAB3oGjr48YFHi3_LVHykLEp_1EduQRAREoizUNfbjqVo2wfeTA@mail.gmail.com>
+ <CAB3oGjqUUBFv1KGziRSEAR5iWKa_Z-T7gWmAZosyF4TP5cKm8w@mail.gmail.com>
+ <20110805080729.GA6602@dcvr.yhbt.net>
+ <CAB3oGjqTvzPXytLiXYr5jw8+Vdvgg=OjVNS5-eGNKO5Gjc8SpQ@mail.gmail.com>
+ <20110817092252.GA7186@dcvr.yhbt.net>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1313612217 11339 80.91.229.12 (17 Aug 2011 20:16:57
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Wed, 17 Aug 2011 20:16:57 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Wed Aug 17 22:16:53
+ 2011
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <20110817092252.GA7186@dcvr.yhbt.net>
+User-Agent: Mutt/1.5.21 (2010-09-15)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:1115
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/1115>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1QtmXj-0007Db-Mu for gclrug-mongrel-unicorn@m.gmane.org; Wed, 17 Aug 2011
+ 22:16:51 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 358AB1588062; Wed, 17 Aug 2011 16:16:47 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 2C88D1858361 for <mongrel-unicorn@rubyforge.org>;
+ Wed, 17 Aug 2011 16:13:23 -0400 (EDT)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 35AAE21091; Wed, 17 Aug 2011 20:13:23 +0000 (UTC)
+
+Eric Wong <normalperson@yhbt.net> wrote:
+> Below is a proposed patch (to unicorn.git) which may help debug issues
+> in the signal -> handler master path (but only once it enters the Ruby
+> runtime).  I'm a hesitant to commit it since it worthless if the Ruby
+> process is stuck because of some bad C extension.  That's the most
+> common cause of stuck/unresponsive processes I've seen.
+
+I think that was a bad patch, adding signal handler debugging at the
+Ruby layer leads to the false assumption that interpreter/VM is in a
+good state.  If you need to debug signal handlers, something is already
+broken and tracing syscalls is the most reliable way to go.
+
+
+Ruby (and any other high-level language) signal handling is not
+straight forward[1].
+
+Here's how things work in Matz Ruby 1.9.x[2]:
+
+  you                 C timer thread             Ruby Thread(s)
+  -------------------------------------------------------------------
+                      traps signals              ignores most signals
+                      sleeps                     runs Ruby...
+  kill -USR2 ...
+                      receives signal (async)
+                      runs (system) sighandler[1]
+                      wakes up from sleep
+                      signals Ruby Thread(s)
+                                                 *hopefully wakes up*
+                                                 runs Ruby sighandler
+
+
+The "*hopefully wakes up*" part is the part most likely to fail
+as a result of a bad C extension or Ruby bug.
+
+
+PS. In Ruby 1.9.3, timer thread uses the "self-pipe" sighandler
+    implementation that the unicorn master process always used.
+    This allows Ruby 1.9.3 to conserve power on idle processes.
+    In 1.9.2, the timer thread signal handler just polls in
+    10ms intervals to check if any signals were received.
+    This is why "strace -f" is noisy and I recommend "-e '!futex'"
+    for 1.9.2.
+
+PPS. Unicorn still uses the "self-pipe" signal handler in Ruby-land
+     because Ruby signal handlers are reentrant so must execute
+     reentrant-safe code.  So without the self-pipe to serialize
+     the signal handler dispatch, the Ruby signal handler execution
+     can nest and overlap execution with itself.  This means if USR2
+     is sent multiple times in short succession, you could spawn
+     multiple new unicorn masters
+
+
+[1] - See "man 7 signal" in Linux manpages or POSIX specs for the
+      small list of safe functions that may be called in system-level
+      sighandlers.  Ruby-level signal handlers can't run inside
+      system-level signal handlers for this reason.
+
+[2] - I think any high-level language that implements signal handlers
+      AND native threads must do something similar.  The only valid
+      variation I can think of is to execute the high-level language
+      code inside the timer thread, but that requires the coders of
+      the high-level language to have thread-safety (not just
+      reentrancy) in mind when writing signal handlers even if the
+      rest of their code uses no threads.
+
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
