@@ -1,0 +1,120 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: [PATCH] Rack::Chunked and ContentLength middlewares by default
+Date: Fri, 19 Aug 2011 21:07:49 +0000
+Message-ID: <20110819210749.GA6809@dcvr.yhbt.net>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1313791220 22985 80.91.229.12 (19 Aug 2011 22:00:20
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Fri, 19 Aug 2011 22:00:20 +0000 (UTC)
+To: mongrel-unicorn@rubyforge.org
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Sat Aug 20 00:00:16
+ 2011
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+User-Agent: Mutt/1.5.20 (2009-06-14)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:1121
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/1121>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1QuX6q-0007wh-4i for gclrug-mongrel-unicorn@m.gmane.org; Sat, 20 Aug 2011
+ 00:00:12 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id C46491D78101; Fri, 19 Aug 2011 18:00:10 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 1559D1858300 for <mongrel-unicorn@rubyforge.org>;
+ Fri, 19 Aug 2011 17:07:49 -0400 (EDT)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 3D0C82100F; Fri, 19 Aug 2011 21:07:49 +0000 (UTC)
+
+This was prompted by the recent thread in
+http://thread.gmane.org/gmane.comp.lang.ruby.unicorn.general/1106
+starting with Message-ID:
+  CAL3dLFrkDix=L-STUnrxy7Wuc4wDZOb05NLbG6HABvFJNGmnmQ@mail.gmail.com
+
+Rainbows! users have also run into this problem a few times, too:
+  AANLkTimSuK7-ihgCa00D-fot4U-FbZt2diQFndyN4uit@mail.gmail.com
+  2B157204-E5C6-4F5D-98A9-E2A79F9F9765@christophsturm.com
+
+>From 1077961a3f8933c65d39c7e6c9ed6ff3b6b53647 Mon Sep 17 00:00:00 2001
+From: Eric Wong <normalperson@yhbt.net>
+Date: Fri, 19 Aug 2011 20:47:29 +0000
+Subject: [PATCH] Rack::Chunked and ContentLength middlewares by default
+
+This is needed to match the behavior of Rack::Server for
+RACK_ENV=(deployment|development), actually.  This won't
+affect users of other RACK_ENV values.
+
+This change has minor performance consequences, so users
+negatively affected should set RACK_ENV to "none" instead for
+full control of their middleware stack.
+
+This mainly affects Rainbows!/Zbatery users since they have
+persistent connections and /need/ Content-Length or
+Transfer-Encoding:chunked headers.
+---
+ lib/unicorn.rb |    7 +++++++
+ 1 files changed, 7 insertions(+), 0 deletions(-)
+
+diff --git a/lib/unicorn.rb b/lib/unicorn.rb
+index bb5409b..b882ce3 100644
+--- a/lib/unicorn.rb
++++ b/lib/unicorn.rb
+@@ -50,9 +50,14 @@ module Unicorn
+       pp({ :inner_app => inner_app }) if $DEBUG
+ 
+       # return value, matches rackup defaults based on env
++      # Unicorn does not support persistent connections, but Rainbows!
++      # and Zbatery both do.  Users accustomed to the Rack::Server default
++      # middlewares will need ContentLength/Chunked middlewares.
+       case ENV["RACK_ENV"]
+       when "development"
+         Rack::Builder.new do
++          use Rack::ContentLength
++          use Rack::Chunked
+           use Rack::CommonLogger, $stderr
+           use Rack::ShowExceptions
+           use Rack::Lint
+@@ -60,6 +65,8 @@ module Unicorn
+         end.to_app
+       when "deployment"
+         Rack::Builder.new do
++          use Rack::ContentLength
++          use Rack::Chunked
+           use Rack::CommonLogger, $stderr
+           run inner_app
+         end.to_app
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
