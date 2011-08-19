@@ -1,0 +1,92 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.6 required=5.0 tests=FREEMAIL_FROM,
+ MSGID_FROM_MTA_HEADER,RP_MATCHES_RCVD,T_DKIM_INVALID shortcircuit=no
+ autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Alex Sharp <ajsharp@gmail.com>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: USR2 + QUIT sometimes interrupts socket connections
+Date: Fri, 19 Aug 2011 15:46:28 -0700
+Message-ID:
+ <CAB3oGjpb89FYCqmrR1MtrG+kBsgvmjbdja+1Y+bu5_jKAYUojw@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1313796955 19999 80.91.229.12 (19 Aug 2011 23:35:55
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Fri, 19 Aug 2011 23:35:55 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Sat Aug 20 01:35:51
+ 2011
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com; s=gamma;
+ h=mime-version:from:date:message-id:subject:to:content-type;
+ bh=F3i0tLvtJWdZcw8X+GEzT/6vnO7KV8pYlYV6ub/siHo=;
+ b=ZICBtOPcA+R1jtD8o9H5I5bsJOFY4ynTjnNydsSDbII2lTCyGDJRJS0uN9D+DkiA6a
+ EPOdP9fkBN5x00LUoVw7ea9BsCdJJ17KP3ngLJ1ij9S5uMkiLy5Q2PJc39GLp/EJJ+OS
+ /j7d5dROIWyT4Nkb2KBWzui+UGQY1wSqJjkD0=
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:1123
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/1123>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1QuYbO-0001lz-Kh for gclrug-mongrel-unicorn@m.gmane.org; Sat, 20 Aug 2011
+ 01:35:50 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id BAAC9158806E; Fri, 19 Aug 2011 19:35:43 -0400 (EDT)
+Received: from mail-gw0-f50.google.com (mail-gw0-f50.google.com
+ [74.125.83.50]) by rubyforge.org (Postfix) with ESMTP id AF49618581B2 for
+ <mongrel-unicorn@rubyforge.org>; Fri, 19 Aug 2011 18:46:49 -0400 (EDT)
+Received: by gwj16 with SMTP id 16so2483472gwj.23 for
+ <mongrel-unicorn@rubyforge.org>; Fri, 19 Aug 2011 15:46:49 -0700 (PDT)
+Received: by 10.42.168.193 with SMTP id x1mr300709icy.97.1313794009185; Fri,
+ 19 Aug 2011 15:46:49 -0700 (PDT)
+Received: by 10.231.11.66 with HTTP; Fri, 19 Aug 2011 15:46:28 -0700 (PDT)
+
+I've seen this happen a few times during deploys/restarts, and I just
+got a fresh backtrace, so I thought I'd bring this up.
+
+The exception message I get is: Mongo::ConnectionFailure: Failed to
+connect to host xxx.yyy.zzz.com and port 12345: Interrupted system
+call - connect(2)
+
+Basically, it looks like unicorn is interrupting connect(2) calls when
+an underlying library is making a socket connection.
+
+Backtrace: https://gist.github.com/1158216
+Mongo pool.rb: https://github.com/mongodb/mongo-ruby-driver/blob/1.3.1/lib/mongo/util/pool.rb
+
+I don't know if this is a unicorn thing or a Mongo implementation
+problem, but I'm pretty sure I've seen this happen before with
+Net::HTTP. I'll try to locate that error.
+
+-- 
+alex sharp
+github.com/ajsharp
+twitter.com/ajsharp
+alexjsharp.com
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
