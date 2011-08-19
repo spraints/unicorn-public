@@ -1,0 +1,84 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,FREEMAIL_FROM,
+ MSGID_FROM_MTA_HEADER,RP_MATCHES_RCVD,T_DKIM_INVALID shortcircuit=no
+ autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: cliftonk@gmail.com
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: USR2 + QUIT sometimes interrupts socket connections
+Date: Fri, 19 Aug 2011 18:49:41 -0500
+Message-ID: <95034CB8-FFB2-4A77-A87F-E9DD47F36A11@gmail.com>
+References:
+ <CAB3oGjpb89FYCqmrR1MtrG+kBsgvmjbdja+1Y+bu5_jKAYUojw@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0 (Apple Message framework v1244.3)
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1313798508 26926 80.91.229.12 (20 Aug 2011 00:01:48
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Sat, 20 Aug 2011 00:01:48 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Sat Aug 20 02:01:44
+ 2011
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com; s=gamma;
+ h=content-type:mime-version:subject:from:in-reply-to:date
+ :content-transfer-encoding:message-id:references:to:x-mailer;
+ bh=eoPAFmzBQMGg1tSxEVtpe1wD45C6Igo0V8tZ10zkm5o=;
+ b=c0tgC0iKiMMHonOAiIAA0pYsRKEzBvtUJRyR+jJzNGSYRzlLfoyjKDjGfUC/ZAVubw
+ 1ApmNCH01N8yN9x2FEEyuKPwPydMkx1i2Yvbfs64CLhjtvoZDjGOxr9KYiTwOSbSrJLw
+ bRj2zS6Fhojp5QyXEQ2Bm+kYrzXMUVHHw71do=
+In-Reply-To:
+ <CAB3oGjpb89FYCqmrR1MtrG+kBsgvmjbdja+1Y+bu5_jKAYUojw@mail.gmail.com>
+X-Mailer: Apple Mail (2.1244.3)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:1125
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/1125>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1QuZ0S-000898-Bj for gclrug-mongrel-unicorn@m.gmane.org; Sat, 20 Aug 2011
+ 02:01:44 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id AB9AC1858346; Fri, 19 Aug 2011 20:01:43 -0400 (EDT)
+Received: from mail-yx0-f178.google.com (mail-yx0-f178.google.com
+ [209.85.213.178]) by rubyforge.org (Postfix) with ESMTP id CA9591858300 for
+ <mongrel-unicorn@rubyforge.org>; Fri, 19 Aug 2011 19:49:43 -0400 (EDT)
+Received: by yxl31 with SMTP id 31so2608825yxl.23 for
+ <mongrel-unicorn@rubyforge.org>; Fri, 19 Aug 2011 16:49:43 -0700 (PDT)
+Received: by 10.236.161.167 with SMTP id w27mr2502992yhk.1.1313797783073;
+ Fri, 19 Aug 2011 16:49:43 -0700 (PDT)
+Received: from [192.168.168.17] (rrcs-50-84-167-122.sw.biz.rr.com
+ [50.84.167.122]) by mx.google.com with ESMTPS id
+ z29sm458901yhn.72.2011.08.19.16.49.41 (version=TLSv1/SSLv3 cipher=OTHER);
+ Fri, 19 Aug 2011 16:49:42 -0700 (PDT)
+
+On Aug 19, 2011, at 5:46 PM, Alex Sharp wrote:
+> The exception message I get is: Mongo::ConnectionFailure: Failed to
+> connect to host xxx.yyy.zzz.com and port 12345: Interrupted system
+> call - connect(2)
+
+I've been experiencing the same issue in production with fauna/memcached gem which is backed by the libmemcached C library.
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
