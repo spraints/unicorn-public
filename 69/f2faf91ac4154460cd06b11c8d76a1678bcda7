@@ -1,0 +1,142 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: Strange quit behavior
+Date: Fri, 19 Aug 2011 01:53:12 +0000
+Message-ID: <20110819015312.GA29005@dcvr.yhbt.net>
+References:
+ <CA+Do99v4=7mYE0JfSzZiKQ=j+eNusboJxjOgt4sXV7RQf-OaQw@mail.gmail.com>
+ <CAB3oGjqQKnBCuPxZ3iei2FEtnftdtxtARTLvW3pYeWRwWbNsKA@mail.gmail.com>
+ <20110802215412.GA12725@dcvr.yhbt.net>
+ <CAB3oGjr48YFHi3_LVHykLEp_1EduQRAREoizUNfbjqVo2wfeTA@mail.gmail.com>
+ <CAB3oGjqUUBFv1KGziRSEAR5iWKa_Z-T7gWmAZosyF4TP5cKm8w@mail.gmail.com>
+ <20110805080729.GA6602@dcvr.yhbt.net>
+ <CAB3oGjqTvzPXytLiXYr5jw8+Vdvgg=OjVNS5-eGNKO5Gjc8SpQ@mail.gmail.com>
+ <20110817092252.GA7186@dcvr.yhbt.net> <20110817201323.GA24581@dcvr.yhbt.net>
+ <CAB3oGjpy17rLnhnSQ_nQb5gogQasycpTseuHu0Qrs7HhXFSXAA@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1313720592 8561 80.91.229.12 (19 Aug 2011 02:23:12
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Fri, 19 Aug 2011 02:23:12 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Fri Aug 19 04:23:05
+ 2011
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To:
+ <CAB3oGjpy17rLnhnSQ_nQb5gogQasycpTseuHu0Qrs7HhXFSXAA@mail.gmail.com>
+User-Agent: Mutt/1.5.20 (2009-06-14)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:1117
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/1117>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1QuEjc-00046M-5B for gclrug-mongrel-unicorn@m.gmane.org; Fri, 19 Aug 2011
+ 04:23:00 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id BB2951588062; Thu, 18 Aug 2011 22:22:56 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id EC91A1858112 for <mongrel-unicorn@rubyforge.org>;
+ Thu, 18 Aug 2011 21:53:12 -0400 (EDT)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 630AC21187; Fri, 19 Aug 2011 01:53:12 +0000 (UTC)
+
+Alex Sharp <ajsharp@gmail.com> wrote:
+> Ok, thanks a lot for the for the patch attempt and subsequent in-depth
+> explanation. I know this thread is long-lived and a bit confusing,
+> mostly because I've seen two different sets of scenarios that yield
+> the same result, which is that unicorn does not restart.
+
+No problem, I'm here to help and mutt makes it easy to follow long threads :>
+<snip>
+
+> I thought that setting the Unicorn::HttpServer::START_CTX[0] in my
+> unicorn config had solved the first scenario (pegged cpu), but I found
+> a new occurrence of it today, and I now have some new strace output
+> for this scenario (strace -v):
+> 
+> select(4, [3], NULL, NULL, {60, 727229}) = 0 (Timeout)
+> wait4(-1, 0x7ffffd70f72c, WNOHANG, NULL) = 0
+> clock_gettime(CLOCK_REALTIME, {1313708081, 720757662}) = 0
+> fstat(8, {st_dev=makedev(202, 1), st_ino=39806, st_mode=S_IFREG,
+> st_nlink=0, st_uid=1001, st_gid=1001, st_blksize=4096, st_blocks=0,
+> st_size=0, st_atime=2011/08/18-14:32:10, st_mtime=2011/08/18-14:32:10,
+> st_ctime=2011/08/18-22:54:06}) = 0
+> clock_gettime(CLOCK_REALTIME, {1313708081, 721131305}) = 0
+> fstat(10, {st_dev=makedev(202, 1), st_ino=45370, st_mode=S_IFREG,
+> st_nlink=0, st_uid=1001, st_gid=1001, st_blksize=4096, st_blocks=0,
+> st_size=0, st_atime=2011/08/18-14:32:10, st_mtime=2011/08/18-14:32:10,
+> st_ctime=2011/08/18-22:54:05}) = 0
+> clock_gettime(CLOCK_REALTIME, {1313708081, 721290800}) = 0
+> select(4, [3], NULL, NULL, {565, 34005}) = 0 (Timeout)
+
+<snip>  OK, this looks good from the system call level in the main
+thread of the master process:
+
+  I can see that from select() timing out despite being called with
+  long intervals.  I don't see workers dying, either...
+
+Can you add "-f -e '!futex'" to the strace invocation so we see
+all the threads?  You can also add '-T' to get timing information
+to see how long each syscall takes or '-tt' to get timestamps
+in strace if you think it's useful.
+
+Since the main thread doesn't appear to be doing much, it's
+probably a child thread somewhere...
+
+Also, I assume you're using preload_app?  If you are, do you see this
+issue with preload_app=false?  I suspect there's some background thread
+that could be running in the master process taking up all the CPU time.
+Unicorn itself never spawns background threads.
+
+Basically anything you can tell use about the app, the configuration,
+and which gems/libraries would be useful.
+
+> With respect to the second scenario (ignoring signals), I'm going to
+> recommend we table that issue for now, as we're currently running on a
+> version of ubuntu (11.10) which has a known signal trapping bug with
+> ruby 1.9.2-p180, and downgrading to 10.04 may solve that problem.
+> Granted, when I've observed this in the past with other libraries, the
+> process becomes completely unresponsive, whereas the behavior in
+> unicorn is more intermittent. Either way, we are in the process of
+> downgrading our servers to ubuntu 10.04, so let's not waste anymore
+> time trying to debug something that may well be occurring due to a
+> kernel bug. If we continue to see this after the downgrade to 10.04,
+> I'll report back and we can keep digging.
+
+OK.  I wouldn't rule out the CPU usage as unrelated to the signaling
+issue, though.  The Ruby 1.9 timer thread could be going crazy
+because it can't signal or receive signals properly...
+
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
