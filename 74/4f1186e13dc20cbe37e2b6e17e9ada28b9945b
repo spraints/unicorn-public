@@ -1,0 +1,84 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: Rack content-length Rack::Lint::LintErrors errors with unicorn
+Date: Mon, 22 Aug 2011 20:38:46 +0000
+Message-ID: <20110822203846.GA16913@dcvr.yhbt.net>
+References:
+ <CACfv+pJ3QPuzHEb1BJfm1hZnOwhBoVLw_sp680oGSPfRTC30LQ@mail.gmail.com>
+ <20110812054252.GA30507@dcvr.yhbt.net>
+ <CACfv+pL_=xNj9P0Ry=hT9GZhLTAqXnK94VomOxYS-QD1QUxVSQ@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1314045539 3534 80.91.229.12 (22 Aug 2011 20:38:59
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Mon, 22 Aug 2011 20:38:59 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Mon Aug 22 22:38:55
+ 2011
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To:
+ <CACfv+pL_=xNj9P0Ry=hT9GZhLTAqXnK94VomOxYS-QD1QUxVSQ@mail.gmail.com>
+User-Agent: Mutt/1.5.21 (2010-09-15)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:1133
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/1133>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1QvbGn-0000CW-QF for gclrug-mongrel-unicorn@m.gmane.org; Mon, 22 Aug 2011
+ 22:38:54 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 2C15B1588079; Mon, 22 Aug 2011 16:38:51 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 69A691588075 for <mongrel-unicorn@rubyforge.org>;
+ Mon, 22 Aug 2011 16:38:47 -0400 (EDT)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 0DB592101D; Mon, 22 Aug 2011 20:38:47 +0000 (UTC)
+
+Joe Van Dyk <joe@tanga.com> wrote:
+> Narrowed this down a little bit more.
+> 
+> Nginx is receiving a HEAD request, unicorn is logging a GET.
+> Somewhere along the chain, the http method is getting mangled.
+
+That's not good.  I'm pretty sure all versions of nginx send HEAD
+requests as-is to Unicorn, so something in your Rack middleware stack is
+rewriting HEAD => GET.
+
+You can strace  a Unicorn worker to confirm it receives a HEAD and not a
+GET at the socket level.  Do it on a server that's not receiving any
+other traffic and use one worker process so you're always stracing the
+correct worker process.
+
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
