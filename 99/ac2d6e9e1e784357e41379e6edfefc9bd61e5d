@@ -1,0 +1,167 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: [PATCH] doc: add Application Timeouts document
+Date: Wed, 24 Aug 2011 18:02:59 -0700
+Message-ID: <20110825010259.GA7356@dcvr.yhbt.net>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1314240147 20603 80.91.229.12 (25 Aug 2011 02:42:27
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Thu, 25 Aug 2011 02:42:27 +0000 (UTC)
+To: mongrel-unicorn@rubyforge.org
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Thu Aug 25 04:42:22
+ 2011
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+User-Agent: Mutt/1.5.21 (2010-09-15)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:1143
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/1143>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1QwPtd-00079p-0R for gclrug-mongrel-unicorn@m.gmane.org; Thu, 25 Aug 2011
+ 04:42:21 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 1ED391858112; Wed, 24 Aug 2011 22:42:14 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 0A3301858112 for <mongrel-unicorn@rubyforge.org>;
+ Wed, 24 Aug 2011 21:02:59 -0400 (EDT)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 7CBEC21268; Thu, 25 Aug 2011 01:02:59 +0000 (UTC)
+
+Hopefully this leads to fewer worker processes being killed.
+---
+ I just pushed this out to the website:
+   http://unicorn.bogomips.org/Application_Timeouts.html
+
+ Comments/feedback/corrections greatly appreciated.
+
+ .document            |    1 +
+ Application_Timeouts |   77 ++++++++++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 78 insertions(+), 0 deletions(-)
+ create mode 100644 Application_Timeouts
+
+diff --git a/.document b/.document
+index a3d7605..4092597 100644
+--- a/.document
++++ b/.document
+@@ -26,3 +26,4 @@ unicorn_rails_1
+ ISSUES
+ Sandbox
+ Links
++Application_Timeouts
+diff --git a/Application_Timeouts b/Application_Timeouts
+new file mode 100644
+index 0000000..5f0370d
+--- /dev/null
++++ b/Application_Timeouts
+@@ -0,0 +1,77 @@
++= Application Timeouts
++
++This article focuses on _application_ setup for Rack applications, but
++can be expanded to all applications that connect to external resources
++and expect short response times.
++
++This article is not specific to \Unicorn, but exists to discourage
++the overuse of the built-in
++{timeout}[link:Unicorn/Configurator.html#method-i-timeout] directive
++in \Unicorn.
++
++== ALL External Resources Are Considered Unreliable
++
++Network reliability can _never_ be guaranteed.  Network failures cannot
++be detected reliably by the client (Rack application) in a reasonable
++timeframe, not even on a LAN.
++
++Thus, application authors must configure timeouts when interacting with
++external resources.
++
++Most database adapters allow configurable timeouts.
++
++Net::HTTP and Net::SMTP in the Ruby standard library allow
++configurable timeouts.
++
++Even for things as fast as {memcached}[http://memcached.org/],
++{dalli}[http://rubygems.org/gems/dalli],
++{memcached}[http://rubygems.org/gems/memcached] and
++{memcache-client}[http://rubygems.org/gems/memcache-client] RubyGems all
++offer configurable timeouts.
++
++Consult the relevant documentation for the libraries you use on
++how to configure these timeouts.
++
++== Rolling Your Own Socket Code
++
++Use non-blocking I/O and IO.select with a timeout to wait on sockets.
++
++== Timeout module in the Ruby standard library
++
++Ruby offers a Timeout module in its standard library.  It has several
++caveats and is not always reliable:
++
++* /Some/ Ruby C extensions are not interrupted/timed-out gracefully by
++  this module (report these bugs to extension authors, please) but
++  pure-Ruby components should be.
++
++* Long-running tasks may run inside `ensure' clauses after timeout
++  fires, causing the timeout to be ineffective.
++
++The Timeout module is a second-to-last-resort solution, timeouts using
++IO.select (or similar) are more reliable.  If you depend on libraries
++that do not offer timeouts when connecting to external resources, kindly
++ask those library authors to provide configurable timeouts.
++
++=== A Note About Filesystems
++
++Most operations to regular files on POSIX filesystems are NOT
++interruptable.  Thus, the "timeout" module in the Ruby standard library
++can not reliably timeout systems with massive amounts of iowait.
++
++If your app relies on the filesystem, ensure all the data your
++application works with is small enough to fit in the kernel page cache.
++Otherwise increase the amount of physical memory you have to match, or
++employ a fast, low-latency storage system (solid state).
++
++Volumes mounted over NFS (and thus a potentially unreliable network)
++must be mounted with timeouts and applications must be prepared to
++handle network/server failures.
++
++== The Last Line Of Defense
++
++The {timeout}[link:Unicorn/Configurator.html#method-i-timeout] mechanism
++in \Unicorn is an extreme solution that should be avoided whenever
++possible.  It will help catch bugs in your application where and when
++your application forgets to use timeouts, but it is expensive as it
++kills and respawns a worker process.
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
