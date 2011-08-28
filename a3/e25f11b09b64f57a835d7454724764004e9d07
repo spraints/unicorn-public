@@ -1,0 +1,124 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: Unicorn for Rails development mode?
+Date: Sun, 28 Aug 2011 23:14:34 +0000
+Message-ID: <20110828231434.GA9021@dcvr.yhbt.net>
+References:
+ <CAKS1d-vFB4VXo4kR4Bp16+Qyny2hhqFR5eyqE_j-F0t+Jc+z6w@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1314581144 15083 80.91.229.12 (29 Aug 2011 01:25:44
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Mon, 29 Aug 2011 01:25:44 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Mon Aug 29 03:25:40
+ 2011
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To:
+ <CAKS1d-vFB4VXo4kR4Bp16+Qyny2hhqFR5eyqE_j-F0t+Jc+z6w@mail.gmail.com>
+User-Agent: Mutt/1.5.20 (2009-06-14)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:1147
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/1147>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1Qxqbc-0007Pi-4d for gclrug-mongrel-unicorn@m.gmane.org; Mon, 29 Aug 2011
+ 03:25:40 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id A9F781588074; Sun, 28 Aug 2011 21:25:38 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 9FDB5185836F for <mongrel-unicorn@rubyforge.org>;
+ Sun, 28 Aug 2011 19:14:35 -0400 (EDT)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id A286D2129D; Sun, 28 Aug 2011 23:14:34 +0000 (UTC)
+
+Jay Levitt <jlevitt@tiptap.com> wrote:
+> I'm tired of the bugginess of Webrick, so I want to upgrade to
+> something modern for developing Rails apps on my Mac, and I'm a bit
+> out of the loop.  Is Unicorn a drop-in replacement these days in
+> development mode? Does it have advantages or disadvantages compared to
+> Thin?  I don't even know what capabilities I should care about, but
+> some obvious ones are:
+
+unicorn should be a drop-in replacement, you shouldn't need a
+unicorn-specific config file for development.
+
+The "unicorn_rails"[1] command was designed Rails 1.x/2.x users, while
+"unicorn" is a better fit for Rails 3 (and all Rack frameworks),
+but either works for Rails 3
+
+Thin is a great server and I've had no issues with Webrick for
+development, either.
+
+You don't have to worry about slow clients hitting Unicorn in
+development, so you can forgo nginx for development.
+
+> - Doesn't stop logging after a while (hi, Webrick)
+
+This is not a problem I've heard of with either server.  It /may/ be an
+issue with the Rails buffered logger implementation, though.  The Ruby
+standard library Logger used by Unicorn does no buffering.
+
+> - Logs to STDOUT or STDERR
+
+This is the default, and Unicorn explicitly disables output buffering
+on both of these.
+
+> - Reloads everything that ought to be reloaded on each request
+
+Set RAILS_ENV=development in your environment.
+
+> - Works well with 1.9.2
+
+Yes, I regularly test against 1.8.7, 1.9.2, 1.9.3dev and trunk.
+
+> Any advice? I'd think this would be a FAQ, but I haven't found any
+> discussions on the topic.
+
+I don't do much Rails development, but everything /should/ work fine.  I
+will never officially support non-Free systems, but from what I've heard
+it works fine on the ones names after fruits.
+
+Others on this list can hopefully chime in, too.
+
+
+
+[1] - There's some confusion that was the result of "unicorn_rails"
+      being an automatic compatibility layer for old Rails.  If I
+      could to do it all over again, I'd leave "unicorn_rails" out
+      and force folks to setup the compatibility layer themselves
+      to learn how Rack works.
+
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
