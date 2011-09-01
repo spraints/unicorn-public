@@ -1,0 +1,85 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: Strange quit behavior
+Date: Thu, 1 Sep 2011 13:26:00 -0700
+Message-ID: <20110901202600.GA17934@dcvr.yhbt.net>
+References:
+ <CAB3oGjqQKnBCuPxZ3iei2FEtnftdtxtARTLvW3pYeWRwWbNsKA@mail.gmail.com>
+ <20110802215412.GA12725@dcvr.yhbt.net>
+ <CAB3oGjr48YFHi3_LVHykLEp_1EduQRAREoizUNfbjqVo2wfeTA@mail.gmail.com>
+ <CAB3oGjqUUBFv1KGziRSEAR5iWKa_Z-T7gWmAZosyF4TP5cKm8w@mail.gmail.com>
+ <20110805080729.GA6602@dcvr.yhbt.net>
+ <CAB3oGjqTvzPXytLiXYr5jw8+Vdvgg=OjVNS5-eGNKO5Gjc8SpQ@mail.gmail.com>
+ <20110817092252.GA7186@dcvr.yhbt.net> <20110831003302.GA7447@dcvr.yhbt.net>
+ <C6ECB4BC967E43F6AF45BD4D73987EE3@gmail.com>
+ <DECB54E50ECD4C17910AF2809A81E39C@gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1314910507 13279 80.91.229.12 (1 Sep 2011 20:55:07
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Thu, 1 Sep 2011 20:55:07 +0000 (UTC)
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Thu Sep 01 22:54:59
+ 2011
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <DECB54E50ECD4C17910AF2809A81E39C@gmail.com>
+User-Agent: Mutt/1.5.21 (2010-09-15)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:1153
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/1153>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1QzEHo-0008St-Uk for gclrug-mongrel-unicorn@m.gmane.org; Thu, 01 Sep 2011
+ 22:54:57 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id BF4B3185837B; Thu,  1 Sep 2011 16:54:55 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id D44901858112 for <mongrel-unicorn@rubyforge.org>;
+ Thu,  1 Sep 2011 16:26:01 -0400 (EDT)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id D7D84219F1; Thu,  1 Sep 2011 20:26:00 +0000 (UTC)
+
+Alex Sharp <ajsharp@gmail.com> wrote:
+>  Also, today I did an strace on an old unicorn master that was not
+>  responding to USR2 signals (but not pegging the cpu), and I saw tons
+>  of gettimeofday calls in the output. Is this normal? Also, I was
+>  seeing this after having removed newrelic from the project. 
+
+Yes, if it's from the same (timer) thread that's making a bunch of
+futex() calls (which you've probably filtered out) on 1.9.2.
+They'll go away on Ruby 1.9.3.
+
+On x86_64 and a modern-ish kernel + glibc, gettimeofday() isn't even
+a syscall (and won't show up on strace):
+http://docs.redhat.com/docs/en-US/Red_Hat_Enterprise_MRG/1.3/html/Realtime_Tuning_Guide/sect-Realtime_Tuning_Guide-General_System_Tuning-gettimeofday_speedup.html
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
