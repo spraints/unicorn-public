@@ -1,0 +1,119 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Nightmare! - an nginx alternative for unicorn
+Date: Sat, 3 Sep 2011 10:52:27 +0000
+Message-ID: <20110903105227.GA25335@dcvr.yhbt.net>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1315052401 3399 80.91.229.12 (3 Sep 2011 12:20:01
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Sat, 3 Sep 2011 12:20:01 +0000 (UTC)
+To: mongrel-unicorn@rubyforge.org
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Sat Sep 03 14:19:57
+ 2011
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+User-Agent: Mutt/1.5.20 (2009-06-14)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:1156
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/1156>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1QzpCW-0002oM-PA for gclrug-mongrel-unicorn@m.gmane.org; Sat, 03 Sep 2011
+ 14:19:57 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 0780718581B2; Sat,  3 Sep 2011 08:19:46 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id DAD741858112 for <mongrel-unicorn@rubyforge.org>;
+ Sat,  3 Sep 2011 06:52:30 -0400 (EDT)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 2FB9021065; Sat,  3 Sep 2011 10:52:28 +0000 (UTC)
+
+This is a slow client buffering layer which may be used instead
+of nginx to protect Unicorn from slow clients.
+
+Nightmare! will _never_ beat nginx in raw throughput nor
+performance.  It /may/ be easier to setup than nginx and a
+suitable alternative to Rainbows! for users who do not wish to
+maintain a thread-safe/async-safe Rack application.
+
+Code changes to the existing Unicorn codebase are minimal and
+unlikely to impact existing users.  Nightmare! will never be
+enabled by default.
+
+Nightmare! supports streaming responses (new in Rails 3.1, but
+ancient to Rack) with "lazy buffering" of upstream responses.
+It'll stream as much of the response as possible immediately and
+then buffer any data that can't.
+
+Userspace memory buffering is kept to a minimum; if it can't fit
+into generously-sized skbs (at least on modern Linux), it'll
+be buffered to the _filesystem_ (which may be tmpfs or a real FS
+with dirty ratios cranked up).
+
+HTTPS support is planned/wired.  Somebody with SSL/crypto
+knowledge needs to review
+{kgio-monkey}[http://bogomips.org/kgio-monkey/] before it can be
+trusted.  V nz n zbaxrl!  Qb abg gehfg zl pbqr!
+
+Since Nightmare! already uses sendfile to serve buffers, a
+"try_files" directive will be added to bypass Rack for simple
+static file serving.  It will not serve directory indices nor
+gzip, Rack already supports those.
+
+Nightmare! internals are still in flux, and likely to remain so.
+Like Unicorn internals, do not consider Nightmare itself a
+stable development API unless explicitly told otherwise.
+
+****** Use Rack for application logic ******
+
+Nightmare! should work on Ruby 1.8.x and 1.9.x.
+
+Configuration directives are not implemented, yet.   Eventually
+it will support operation in standalone mode (so Nightmare! can
+talk to Unicorn on different machines).
+
+Extra RubyGems required (in addition to what Unicorn requires):
+
+* kcar - client-side HTTP parser based on the Unicorn one
+* sendfile - for sendfile() support
+* kgio-monkey - (upcoming, optional) for HTTPS support
+
+
+I've pushed this up to the "nightmare" branch of
+git://bogomips.org/unicorn.git || http://bogomips.org/unicorn.git
+
+Please review the code/tests if you have a chance, thanks for reading!
+
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
