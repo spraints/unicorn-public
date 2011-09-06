@@ -1,0 +1,88 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: Workers getting broken after some time
+Date: Tue, 6 Sep 2011 12:39:23 -0700
+Message-ID: <20110906193923.GA3998@dcvr.yhbt.net>
+References: <j458vp$756$1@dough.gmane.org>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1315340408 18629 80.91.229.12 (6 Sep 2011 20:20:08
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Tue, 6 Sep 2011 20:20:08 +0000 (UTC)
+Cc: Kamil Kukura <kamil.kukura@gmail.com>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Tue Sep 06 22:20:03
+ 2011
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <j458vp$756$1@dough.gmane.org>
+User-Agent: Mutt/1.5.21 (2010-09-15)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:1158
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/1158>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1R127n-0000sP-Bp for gclrug-mongrel-unicorn@m.gmane.org; Tue, 06 Sep 2011
+ 22:20:03 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 03C611858381; Tue,  6 Sep 2011 16:19:59 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id F3A44185837C for <mongrel-unicorn@rubyforge.org>;
+ Tue,  6 Sep 2011 15:39:32 -0400 (EDT)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 8BED121062; Tue,  6 Sep 2011 19:39:23 +0000 (UTC)
+
+Kamil Kukura <kamil.kukura@gmail.com> wrote:
+> I have strange error that happens after couple of hours. Some
+> instances start to respond on any request with status code 500. Log
+> file unicorn.stderr.log gets populated with this error:
+
+>From the backtrace, it looks like an application error of some sort.
+Unicorn itself never changes the application once it's loaded.
+Does an external service your application relies on get overloaded?
+
+This is a hunch: perhaps your Rails application is opening
+connections to a backend and not closing them explicitly (maybe in an
+error-handling path).
+
+> Application is running on rails 2.3.14/ruby 1.9.2p290 and maybe it
+> has something to do with plugin being used, that is
+> template_streaming (https://github.com/oggy/template_streaming)
+
+What happens when you disable the template_streaming?
+
+Streaming isn't likely to help with nginx in front right now (disabling
+proxy_buffering in nginx is dangerous to unicorn).
+
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
