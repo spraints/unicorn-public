@@ -1,0 +1,141 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Eric Wong <normalperson@yhbt.net>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: Sending ABRT to timeout-errant process before KILL
+Date: Thu, 8 Sep 2011 19:13:52 +0000
+Message-ID: <20110908191352.GA25251@dcvr.yhbt.net>
+References: <6310128B-282E-40C0-801B-15DBBE9E6AC3@engineyard.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1315512435 1677 80.91.229.12 (8 Sep 2011 20:07:15
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Thu, 8 Sep 2011 20:07:15 +0000 (UTC)
+Cc: "J. Austin Hughey" <jhughey@engineyard.com>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Thu Sep 08 22:07:10
+ 2011
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Content-Disposition: inline
+In-Reply-To: <6310128B-282E-40C0-801B-15DBBE9E6AC3@engineyard.com>
+User-Agent: Mutt/1.5.20 (2009-06-14)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:1161
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/1161>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1R1ksQ-0002LY-1D for gclrug-mongrel-unicorn@m.gmane.org; Thu, 08 Sep 2011
+ 22:07:10 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 01AE01858300; Thu,  8 Sep 2011 16:07:06 -0400 (EDT)
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 7280A1858300 for <mongrel-unicorn@rubyforge.org>;
+ Thu,  8 Sep 2011 15:13:53 -0400 (EDT)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id B83E9210A9; Thu,  8 Sep 2011 19:13:52 +0000 (UTC)
+
+"J. Austin Hughey" <jhughey@engineyard.com> wrote:
+> The general idea is that I'd like to have some way to "warn" the
+> application when it's about to be killed.  I've patched
+> murder_lazy_workers to send an abort signal via kill_worker, sleep for
+> 5 seconds, then look and see if the process still exists by using
+> Process.getpgid.  If so, it sends the original kill command, and if
+> not, a rescue block kicks in to prevent the raised error from
+> Process.getpgid from making things explode.
+
+The problem with anything other than SIGKILL (or SIGSTOP) is that it
+assumes the Ruby VM is working and in a good state.
+
+> I've created a simulation app, built on Rails 3.0, that uses a generic
+> "posts" controller to simulate a long-running request.  Instead of
+> just throwing a straight-up sleep 65 in there, I have it running
+> through sleeping 1 second on a decrementing counter, and doing that 65
+> times.  The reason is because, assuming I've read the code correctly,
+> even with my "skip sleeping workers" commented line below, it'll skip
+> over the process, thus rendering my simulation of a long-running
+> process invalid.  However, clarification on this point is certainly
+> welcome.  You can see the app here:
+> https://github.com/jaustinhughey/unicorn_test/blob/master/app/controllers/posts_controller.rb
+
+(purely for educational purposes, since I'll point you towards another
+approach I believe is better)
+
+              Signal.trap(:ABRT) do
+                # Write some stuff to the Rails log
+                logger.info "Caught Unicorn kill exception!"
+
+If this is the logger that ships with Ruby, it locks a Mutex, so it'll
+deadlock if another SIGABRT is received while logging the above
+statement (a very small window, admittedly).
+
+                # Do a controlled disconnect from ActiveRecord
+                ActiveRecord::Base.connection.disconnect!
+
+Likewise, if AR needs to lock internal structures before disconnecting,
+it also must be reentrant.  Ruby's normal Mutex implementation is not
+reentrant-safe.
+
+
+> So it looks like Worker 1 is hitting a strange/false timeout of
+> 1315467289 seconds, which isn't really possible as it wasn't even
+> running 1315467289 seconds prior to that (which equates to roughly 41
+> years ago if my math is right).
+
+You're getting this because you removed the following line:
+
+      0 == tick and next # skip workers that are sleeping
+
+sleeping means they haven't accepted a client connection, yet.  Not
+sleeping while processing a client request.   I'll clarify that in the
+code.
+
+> Needless to say, I'm a bit stumped at this point, and would sincerely
+> appreciate another point of view on this.  Am I going about this all
+> wrong?  Is there a better approach I should consider?  And if I'm on
+> the right track, how can I get this to work regardless of how many
+> Unicorn workers are running?
+
+Since it's an application error, it can be done as middleware.  You can
+try something like the Rainbows::ThreadTimeout middleware, it's
+currently Rainbows! specific but can easily be made to work with
+Unicorn.
+
+	git clone git://bogomips.org/rainbows
+	cat rainbows/lib/rainbows/thread_timeout.rb
+
+This is conceptually similar to "timeout" in the Ruby standard library,
+but does not allow nesting.
+
+I'll try to clarify more later today if you have questions, in a bit of
+a rush right now.
+
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
