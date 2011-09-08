@@ -1,0 +1,293 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.7 required=5.0 tests=MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: "J. Austin Hughey" <jhughey@engineyard.com>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Sending ABRT to timeout-errant process before KILL
+Date: Thu, 8 Sep 2011 03:04:37 -0600
+Message-ID: <6310128B-282E-40C0-801B-15DBBE9E6AC3@engineyard.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0 (Apple Message framework v1244.3)
+Content-Type: text/plain; charset="windows-1252"
+Content-Transfer-Encoding: quoted-printable
+X-Trace: dough.gmane.org 1315474079 9136 80.91.229.12 (8 Sep 2011 09:27:59
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Thu, 8 Sep 2011 09:27:59 +0000 (UTC)
+To: mongrel-unicorn@rubyforge.org
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Thu Sep 08 11:27:54
+ 2011
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+X-Mailer: Apple Mail (2.1244.3)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:1160
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/1160>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1R1atl-0006BR-5a for gclrug-mongrel-unicorn@m.gmane.org; Thu, 08 Sep 2011
+ 11:27:53 +0200
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id AC6B51678363; Thu,  8 Sep 2011 05:27:46 -0400 (EDT)
+Received: from mail-yw0-f50.google.com (mail-yw0-f50.google.com
+ [209.85.213.50]) by rubyforge.org (Postfix) with ESMTP id 87986185836C for
+ <mongrel-unicorn@rubyforge.org>; Thu,  8 Sep 2011 05:04:39 -0400 (EDT)
+Received: by ywa8 with SMTP id 8so552625ywa.23 for
+ <mongrel-unicorn@rubyforge.org>; Thu, 08 Sep 2011 02:04:39 -0700 (PDT)
+Received: by 10.236.173.67 with SMTP id u43mr2426141yhl.119.1315472679601;
+ Thu, 08 Sep 2011 02:04:39 -0700 (PDT)
+Received: from [192.168.1.145] (adsl-75-54-102-119.dsl.elpstx.sbcglobal.net
+ [75.54.102.119]) by mx.google.com with ESMTPS id
+ s77sm2883907yhe.22.2011.09.08.02.04.38 (version=TLSv1/SSLv3 cipher=OTHER);
+ Thu, 08 Sep 2011 02:04:38 -0700 (PDT)
+
+Hello there -
+
+I've recently been working with a customer in my capacity as a support engi=
+neer at Engine Yard who's having some trouble with Unicorn.  Basically, the=
+y're finding their application being force-killed once it reaches the defau=
+lt timeout.  Rather than simply increasing the timeout, we're trying to fin=
+d out _why_ their application is being killed.  Unfortunately we can't quit=
+e do that because the application is being force-killed without warning, ma=
+king it so that the customer's logging can't actually be written to the dis=
+k. (This is an intermittent issue as opposed to something that happens 100%=
+ of the time.)
+
+In discussing the matter internally and with our customer, I came up with a=
+ simple monkey patch to Unicorn that _sort of_ works, but I'm having some t=
+rouble with it once the number of Unicorn workers goes beyond one.  I origi=
+nally limited it to just one worker because I wanted to limit the possibili=
+ty that multiple workers could cause problems in figuring things out -- tur=
+ns out I was right.
+
+I'm going to show the patch in two ways: 1) inline, at the bottom of this p=
+ost, and 2) by link to GitHub:
+https://github.com/jaustinhughey/unicorn/blob/abort_prior_to_kill_workers/l=
+ib/unicorn/http_server.rb#L438
+
+The general idea is that I'd like to have some way to "warn" the applicatio=
+n when it's about to be killed.  I've patched murder_lazy_workers to send a=
+n abort signal via kill_worker, sleep for 5 seconds, then look and see if t=
+he process still exists by using Process.getpgid.  If so, it sends the orig=
+inal kill command, and if not, a rescue block kicks in to prevent the raise=
+d error from Process.getpgid from making things explode.
+
+I've created a simulation app, built on Rails 3.0, that uses a generic "pos=
+ts" controller to simulate a long-running request.  Instead of just throwin=
+g a straight-up sleep 65 in there, I have it running through sleeping 1 sec=
+ond on a decrementing counter, and doing that 65 times.  The reason is beca=
+use, assuming I've read the code correctly, even with my "skip sleeping wor=
+kers" commented line below, it'll skip over the process, thus rendering my =
+simulation of a long-running process invalid.  However, clarification on th=
+is point is certainly welcome.  You can see the app here: https://github.co=
+m/jaustinhughey/unicorn_test/blob/master/app/controllers/posts_controller.rb
+
+The problem I'm running into, and where I could use some help, is when I in=
+crease the number of Unicorn workers from one to two.  When running only on=
+e Unicorn worker, I can access my application's posts_controller's index ac=
+tion, which has the intentionally long-running code.  At that time I tail -=
+f unicorn.log and production.log.  Those two logs look like this with one U=
+nicorn worker:
+
+WITH ONE UNICORN WORKER:
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D
+
+production.log:
+---------------
+Sleeping 1 second (65 to go)=85
+ ... continued ...
+Sleeping 1 second (7 to go)...
+Sleeping 1 second (6 to go)...
+Sleeping 1 second (5 to go)...
+Caught Unicorn kill exception!
+Sleeping 1 second (4 to go)...
+Sleeping 1 second (3 to go)...
+Sleeping 1 second (2 to go)...
+Sleeping 1 second (1 to go)...
+Completed 500 Internal Server Error in 65131ms
+
+NoMethodError (undefined method `query_options' for nil:NilClass):
+  app/controllers/posts_controller.rb:32:in `index'
+
+(I think the NoMethodError issue above is due to me calling a disconnect on=
+ ActiveRecord in the Signal.trap block, so I think that can be safely ignor=
+ed.)
+
+As you can see, the Signal.trap block inside the aforementioned posts_contr=
+oller is working in this case.  Corresponding log entries in unicorn.log co=
+ncur:
+
+unicorn.log:
+------------
+worker=3D0 ready
+master process ready
+[2011-09-08 00:31:01 PDT] worker=3D0 PID: 28921 timeout hit, sending ABRT t=
+o process 28921 then sleeping 5 seconds...
+[2011-09-08 00:31:06 PDT] worker=3D0 PID:28921 timeout (61s > 60s), killing
+reaped #<Process::Status: pid 28921 SIGKILL (signal 9)> worker=3D0
+worker=3D0 ready
+
+So with one worker, everything seems cool.  But with two workers?
+
+
+WITH TWO UNICORN WORKERS:
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D
+
+production.log:
+---------------
+Sleeping 1 second (8 to go)...
+Sleeping 1 second (7 to go)...
+Sleeping 1 second (6 to go)...
+Sleeping 1 second (5 to go)...
+Sleeping 1 second (4 to go)...
+Sleeping 1 second (3 to go)...
+Sleeping 1 second (2 to go)...
+Sleeping 1 second (1 to go)...
+Rendered posts/index.html.erb within layouts/application (13.2ms)
+Completed 200 OK in 65311ms (Views: 16.9ms | ActiveRecord: 0.5ms)
+
+Note that there is no notice that the ABRT signal was trapped, nor is there=
+ a NoMethodError (likely caused by disconnecting from the database) as abov=
+e.  Odd.
+
+unicorn.log:
+------------
+Nothing.  No new data whatsoever.
+
+The only potential clue I can see at this point would be a start-up message=
+ in unicorn.log.  After increasing the number of Unicorn workers to two, I =
+examined unicorn.log again and found this:
+
+master complete
+I, [2011-09-08T00:34:40.499437 #29572]  INFO -- : unlinking existing socket=
+=3D/var/run/engineyard/unicorn_ut.sock
+I, [2011-09-08T00:34:40.499888 #29572]  INFO -- : listening on addr=3D/var/=
+run/engineyard/unicorn_ut.sock fd=3D5
+I, [2011-09-08T00:34:40.504542 #29572]  INFO -- : Refreshing Gem list
+worker=3D0 ready
+master process ready
+[2011-09-08 00:34:49 PDT] worker=3D1 PID: 29582 timeout hit, sending ABRT t=
+o process 29582 then sleeping 5 seconds...
+[2011-09-08 00:34:50 PDT] worker=3D1 PID:29582 timeout (1315467289s > 60s),=
+ killing
+reaped #<Process::Status: pid 29582 SIGIOT (signal 6)> worker=3D1
+worker=3D1 ready
+
+So it looks like Worker 1 is hitting a strange/false timeout of 1315467289 =
+seconds, which isn't really possible as it wasn't even running 1315467289 s=
+econds prior to that (which equates to roughly 41 years ago if my math is r=
+ight).
+
+---
+
+Needless to say, I'm a bit stumped at this point, and would sincerely appre=
+ciate another point of view on this.  Am I going about this all wrong?  Is =
+there a better approach I should consider?  And if I'm on the right track, =
+how can I get this to work regardless of how many Unicorn workers are runni=
+ng?
+
+Thank you very much for any assistance you can provide!
+
+
+-- INLINE VERSION OF PATCH --
+
+diff --git a/lib/unicorn/http_server.rb b/lib/unicorn/http_server.rb
+index 78d80b4..8a2323f 100644
+--- a/lib/unicorn/http_server.rb
++++ b/lib/unicorn/http_server.rb
+@@ -429,6 +429,11 @@ class Unicorn::HttpServer
+     proc_name 'master (old)'
+   end
+ =
+
++  # A custom formatted timestamp for debugging
++  def custom_timestamp
++    return Time.now.strftime("[%Y-%m-%d %T %Z]")
++  end
++
+   # forcibly terminate all workers that haven't checked in in timeout seco=
+nds.  The timeout is implemented using an unlinked File
+   def murder_lazy_workers
+     t =3D @timeout
+@@ -436,16 +441,40 @@ class Unicorn::HttpServer
+     now =3D Time.now.to_i
+     WORKERS.dup.each_pair do |wpid, worker|
+       tick =3D worker.tick
+-      0 =3D=3D tick and next # skip workers that are sleeping
++
++      # REMOVE THE FOLLOWING COMMENT WHEN TESTING PRODUCTION
++# 0 =3D=3D tick and next # skip workers that are sleeping
++      # ^ needs to be active, commented here for simulation purposes
++
+       diff =3D now - tick
+       tmp =3D t - diff
+       if tmp >=3D 0
+         next_sleep < tmp and next_sleep =3D tmp
+         next
+       end
+-      logger.error "worker=3D#{worker.nr} PID:#{wpid} timeout " \
+-                   "(#{diff}s > #{t}s), killing"
+-      kill_worker(:KILL, wpid) # take no prisoners for timeout violations
++
++
++      # Send an ABRT signal to Unicorn and wait 5 seconds before attemptin=
+g an
++      # actual kill, if and only if the process is still running.
++
++      begin
++        # Send the ABRT signal.
++        logger.debug "#{custom_timestamp} worker=3D#{worker.nr} PID: #{wpi=
+d} timeout hit, sending ABRT to process #{wpid} then sleeping 5 seconds..."
++        kill_worker(:ABRT, wpid)
++
++        sleep 5
++
++        # Now see if the process still exists after being given five
++        # seconds to terminate on its own, and if so, do a hard kill.
++        if Process.getpgid(wpid)
++          logger.error "#{custom_timestamp} worker=3D#{worker.nr} PID:#{wp=
+id} timeout " \
++                       "(#{diff}s > #{@timeout}s), killing"
++          kill_worker(:KILL, wpid) # take no prisoners for timeout violati=
+ons
++        end
++      rescue Errno::ESRCH =3D> e
++        # No process identified - maybe it exited on its own?
++        logger.debug "#{custom_timestamp} worker=3D#{worker.nr} PID: #{wpi=
+d} responded to ABRT on its own and no longer exists. (Received message: #{=
+e})"
++      end
+     end
+     next_sleep
+   end
+
+-- END INLINE VERSION OF PATCH --
+
+--
+J. Austin Hughey
+Application Support Engineer - Engine Yard
+www.engineyard.com | jhughey@engineyard.com
+
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
