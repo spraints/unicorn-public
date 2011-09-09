@@ -1,0 +1,81 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,RP_MATCHES_RCVD
+ shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (rubyforge.org [205.234.109.19]) by
+ dcvr.yhbt.net (Postfix) with ESMTP id 31E5C21188 for <archivist@yhbt.net>;
+ Fri,  9 Sep 2011 23:50:09 +0000 (UTC)
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id A92DC1779951; Fri,  9 Sep 2011 19:50:06 -0400 (EDT)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id EBE621858361 for <mongrel-unicorn@rubyforge.org>;
+ Fri,  9 Sep 2011 19:01:56 -0400 (EDT)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id E47D0210B1; Fri,  9 Sep 2011 23:01:41 +0000 (UTC)
+Date: Fri, 9 Sep 2011 16:01:41 -0700
+From: Eric Wong <normalperson@yhbt.net>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Subject: Re: Sending ABRT to timeout-errant process before KILL
+Message-ID: <20110909230141.GA9521@dcvr.yhbt.net>
+References: <6310128B-282E-40C0-801B-15DBBE9E6AC3@engineyard.com>
+ <20110908191352.GA25251@dcvr.yhbt.net>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To: <20110908191352.GA25251@dcvr.yhbt.net>
+User-Agent: Mutt/1.5.21 (2010-09-15)
+Cc: "J. Austin Hughey" <jhughey@engineyard.com>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Eric Wong <normalperson@yhbt.net> wrote:
+> sleeping means they haven't accepted a client connection, yet.  Not
+> sleeping while processing a client request.   I'll clarify that in the
+> code.
+
+Pushed to git://bogomips.org/unicorn.git
+(commit d209910e29d4983f8346233262a49541464252c1)
+
+> 	git clone git://bogomips.org/rainbows
+> 	cat rainbows/lib/rainbows/thread_timeout.rb
+> 
+> This is conceptually similar to "timeout" in the Ruby standard library,
+> but does not allow nesting.
+> 
+> I'll try to clarify more later today if you have questions, in a bit of
+> a rush right now.
+
+Did you manage to get anything going based on this?  I should add that
+this has the same chance of working as a SIGABRT handler written in
+Ruby (but is less intrusive).
+
+Hopefully the following diagram/chart from a previous post can explain
+why you can't rely on trappable signal handlers if the Ruby VM is in a
+bad state:
+
+  http://mid.gmane.org/20110817201323.GA24581@dcvr.yhbt.net
+
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
