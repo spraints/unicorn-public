@@ -1,0 +1,94 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.7 required=5.0 tests=AWL,RP_MATCHES_RCVD
+ shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (rubyforge.org [205.234.109.19]) by
+ dcvr.yhbt.net (Postfix) with ESMTP id D328B1F451 for <archivist@yhbt.net>;
+ Wed, 14 Sep 2011 14:29:19 +0000 (UTC)
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 24C691D782A0; Wed, 14 Sep 2011 10:29:15 -0400 (EDT)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from mail-ey0-f178.google.com (mail-ey0-f178.google.com
+ [209.85.215.178]) by rubyforge.org (Postfix) with ESMTP id 932371D78108 for
+ <mongrel-unicorn@rubyforge.org>; Wed, 14 Sep 2011 10:29:06 -0400 (EDT)
+Received: by eye27 with SMTP id 27so858485eye.23 for
+ <mongrel-unicorn@rubyforge.org>; Wed, 14 Sep 2011 07:29:05 -0700 (PDT)
+MIME-Version: 1.0
+Received: by 10.213.12.201 with SMTP id y9mr728939eby.20.1316010545638; Wed,
+ 14 Sep 2011 07:29:05 -0700 (PDT)
+Received: by 10.213.15.14 with HTTP; Wed, 14 Sep 2011 07:29:05 -0700 (PDT)
+In-Reply-To:
+ <CAOowiR0YXF6TAY2_Sv0KYfr0UL-VCAX=KX8OO_-DnOLG-hDbSA@mail.gmail.com>
+References:
+ <CAOowiR0YXF6TAY2_Sv0KYfr0UL-VCAX=KX8OO_-DnOLG-hDbSA@mail.gmail.com>
+Date: Wed, 14 Sep 2011 22:29:05 +0800
+Message-ID:
+ <CAOowiR3XgNfTs9N7TskECHGHxra4A=gF-bk4XBxskkCzJxc7tA@mail.gmail.com>
+Subject: sigwinch and screen
+From: "Brian P O'Rourke" <bpo@somnambulance.net>
+To: mongrel-unicorn@rubyforge.org
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="iso-8859-1"
+Content-Transfer-Encoding: quoted-printable
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+(my apologies if=A0this gets posted twice - don't think my earlier mail
+went through)
+
+Hi,
+
+I'm running unicorn within screen and have run into some trouble.
+Unicorn tries to ignore sigwinch when it's not daemonized.
+Unfortunately the check for daemonization fails when unicorn is exec'd
+from a process that already has a pgrp.
+
+You can simulate this problem from *within* a screen session with
+something like this:
+
+    screen sleep 5 && screen bundle exec unicorn -c unicorn.conf config.ru
+
+sigwinch will be sent to the second screen session the first time you
+change to it. This doesn't happen unless you launch at least two
+screens in rapid succession, for reasons that escape me so far -
+haven't dug into that part much yet.
+
+It seems to me that this is a problem, and is occurring because
+Unicorn's check for daemonization is "is init my parent or is my group
+different from my pid?", which isn't necessarily the same as checking
+whether daemonization has happened.
+
+Here is the patch I would like to see applied:
+
+diff --git a/lib/unicorn/http_server.rb b/lib/unicorn/http_server.rb
+index ae0e175..65880d4 100644
+--- a/lib/unicorn/http_server.rb
++++ b/lib/unicorn/http_server.rb
+@@ -282,7 +282,7 @@ class Unicorn::HttpServer
+       when :USR2 # exec binary, stay alive in case something went wrong
+         reexec
+       when :WINCH
+-        if Process.ppid =3D=3D 1 || Process.getpgrp !=3D $$
++        if Unicorn::Configurator::RACKUP[:daemonized]
+           respawn =3D false
+           logger.info "gracefully stopping all workers"
+           kill_each_worker(:QUIT)
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
