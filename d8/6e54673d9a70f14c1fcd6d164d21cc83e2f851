@@ -1,0 +1,89 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,RP_MATCHES_RCVD
+ shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (rubyforge.org [205.234.109.19]) by
+ dcvr.yhbt.net (Postfix) with ESMTP id 84BE21F456 for <archivist@yhbt.net>;
+ Thu, 15 Sep 2011 23:12:15 +0000 (UTC)
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 09CC01D78108; Thu, 15 Sep 2011 19:12:11 -0400 (EDT)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 96014185834E for <mongrel-unicorn@rubyforge.org>;
+ Thu, 15 Sep 2011 18:46:11 -0400 (EDT)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 27EDC1F451; Thu, 15 Sep 2011 22:46:09 +0000 (UTC)
+Date: Thu, 15 Sep 2011 22:46:09 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: mongrel-unicorn@rubyforge.org
+Subject: SSL support pushed out to unicorn.git :x
+Message-ID: <20110915224608.GA21568@dcvr.yhbt.net>
+MIME-Version: 1.0
+Content-Disposition: inline
+User-Agent: Mutt/1.5.20 (2009-06-14)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Consider this a joke until somebody who knows crypto well can review it
+(_and_ kgio-monkey[1]).  I know it works with curl (test case included)
+and I can't see plain-text when I strace/tcpdump, that's about it :)
+
+Subject: [PATCH] add preliminary SSL support
+
+This will also be the foundation of SSL support in Rainbows!
+and Zbatery.  Some users may also want to use this in
+Unicorn on LANs to meet certain security/auditing requirements.
+Of course, Nightmare! (in whatever form) should also be able to
+use it.
+---
+  The patch is a big, so you can view it here
+  http://bogomips.org/unicorn.git/patch?id=ac346b5abc
+
+  [1] - http://bogomips.org/kgio-monkey/
+        git clone git://bogomips.org/kgio-monkey.git
+
+  This is absolutely NOT intended to be an endorsement of the current
+  certificate authority system.  Don't support or encourage it.
+
+ lib/unicorn/configurator.rb     |   13 +++--
+ lib/unicorn/http_server.rb      |    3 +
+ lib/unicorn/ssl_client.rb       |    6 ++
+ lib/unicorn/ssl_configurator.rb |  104 +++++++++++++++++++++++++++++++++++++++
+ lib/unicorn/ssl_server.rb       |   42 ++++++++++++++++
+ script/isolate_for_tests        |    1 +
+ t/.gitignore                    |    2 +
+ t/sslgen.sh                     |   63 +++++++++++++++++++++++
+ t/t0600-https-server-basic.sh   |   48 ++++++++++++++++++
+ test/unit/test_sni_hostnames.rb |   47 +++++++++++++++++
+ 10 files changed, 325 insertions(+), 4 deletions(-)
+ create mode 100644 lib/unicorn/ssl_client.rb
+ create mode 100644 lib/unicorn/ssl_configurator.rb
+ create mode 100644 lib/unicorn/ssl_server.rb
+ create mode 100755 t/sslgen.sh
+ create mode 100755 t/t0600-https-server-basic.sh
+ create mode 100644 test/unit/test_sni_hostnames.rb
+
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
