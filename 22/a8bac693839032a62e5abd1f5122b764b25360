@@ -1,0 +1,77 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.4 required=5.0 tests=AWL,PLING_QUERY,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (rubyforge.org [205.234.109.19]) by
+ dcvr.yhbt.net (Postfix) with ESMTP id 17D71296826 for <archivist@yhbt.net>;
+ Fri, 16 Sep 2011 11:56:45 +0000 (UTC)
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 6C5891858381; Fri, 16 Sep 2011 07:56:44 -0400 (EDT)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id D116A185837D for <mongrel-unicorn@rubyforge.org>;
+ Fri, 16 Sep 2011 07:11:08 -0400 (EDT)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 0E23F1F457; Fri, 16 Sep 2011 11:11:08 +0000 (UTC)
+Date: Fri, 16 Sep 2011 11:11:07 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Subject: Re: Rainbows! or unicorn?
+Message-ID: <20110916111107.GA15421@dcvr.yhbt.net>
+References: <FB4732C8-0E01-43DC-80B1-9DB2511AA5E3@slofith.org>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To: <FB4732C8-0E01-43DC-80B1-9DB2511AA5E3@slofith.org>
+User-Agent: Mutt/1.5.20 (2009-06-14)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+russell muetzelfeldt <russm-rubyforge@slofith.org> wrote:
+> I'm putting together a small web frontend for a client to upload files
+> into an existing application. It's trivial - there will never be more
+> than a (small) handful of concurrent connections, but I need a
+> streaming rack.input for upload progress on files up to 500MB or so. I
+> was planning on using Rainbows! with ThreadSpawn and
+> worker_connections=1, then noticed that unicorn is also listed as
+> having streaming rack.input.
+
+:ThreadSpawn + worker_connections=1 and the (default) :Base option are
+almost the same in Rainbows! if you don't want to worry about your app
+being thread-safe at all.
+
+> While what I'm doing is pretty much the opposite of the unicorn design
+> case, is there any reason in this scenario for me to use Rainbows!, or
+> should I just go with unicorn and enough backends to handle a couple
+> of concurrent uploads and the minimal other frontend bits?
+
+Rainbows! can (and does by default) limit upload sizes
+(client_max_body_size) for handling untrusted clients who may try to
+run you out of space.
+
+Since performance/scalability isn't your concern, it depends on whether
+you trust your clients to not upload until you run out of disk space.
+
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
