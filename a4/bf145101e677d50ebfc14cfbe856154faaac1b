@@ -1,0 +1,90 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,RP_MATCHES_RCVD
+ shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (rubyforge.org [205.234.109.19]) by
+ dcvr.yhbt.net (Postfix) with ESMTP id 4A8701F493 for <archivist@yhbt.net>;
+ Tue, 20 Sep 2011 20:25:37 +0000 (UTC)
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id AE1ED1678345; Tue, 20 Sep 2011 16:25:36 -0400 (EDT)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 96CC0185836C for <mongrel-unicorn@rubyforge.org>;
+ Tue, 20 Sep 2011 16:23:38 -0400 (EDT)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 7ACBE1F490; Tue, 20 Sep 2011 20:23:37 +0000 (UTC)
+Date: Tue, 20 Sep 2011 13:23:37 -0700
+From: Eric Wong <normalperson@yhbt.net>
+To: mongrel-unicorn@rubyforge.org
+Subject: Re: PID file ownership and group
+Message-ID: <20110920202337.GA6965@dcvr.yhbt.net>
+References: <6F8DA070-5CC5-4107-8706-34D3F61D57C2@me.com>
+ <20110920180314.GA30482@dcvr.yhbt.net>
+ <FF8DE317-F98B-4D13-B8D7-95B4B922A6BF@me.com>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To: <FF8DE317-F98B-4D13-B8D7-95B4B922A6BF@me.com>
+User-Agent: Mutt/1.5.21 (2010-09-15)
+Cc: Lee Hambley <leehambley@me.com>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Lee Hambley <leehambley@me.com> wrote:
+> > Also, nginx (where unicorn draws many design elements from) does not
+> > change the permissions of the pid file, either.
+> > 
+> >> Of course this is somewhat academic, as one must be root to signal the
+> >> process anyway, but I'll cross that particular bridge when I come to
+> >> it!
+> > 
+> > Yeah, there's no point in knowing it unless you can send signals to it.
+
+> Surely though, with the pid being root:root when started via upstart
+> (and the restrictive u+rwx/g+rwx/o-) permissions enforced by my umask,
+> it would still make sense to own the pid to `unicorn:projectname` -
+> given that you can signal your own processes, then the "unicorn" user
+> should be able to read the pid?
+
+Not really, the pid file is only for the master process.  The master
+always stays as the user it is started as (root in your case).  Only the
+worker processes have their user:group changed and they can't signal the
+master after the change.
+
+> (Although, that said, most implementations I have seen of "monitors"
+> for unicorn seem to use `ps` to get the pid, which does seem somewhat
+> wasteful)
+
+Strange, wouldn't the monitors /not/ daemonize and thus be able to use
+the pid of the process they started?
+
+> Thanks for getting back to me so quickly on here Eric, with Github I'd
+> almost forgotten that mailing lists work!
+
+No problem.  Signups/logins/passwords bother me, and I also dislike
+99.999% of HTML, images, and JavaScript on the web; so I'll be sticking
+to mailing lists :)
+
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
