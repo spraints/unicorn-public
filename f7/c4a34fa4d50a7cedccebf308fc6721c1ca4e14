@@ -1,0 +1,81 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,RP_MATCHES_RCVD
+ shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (rubyforge.org [205.234.109.19]) by
+ dcvr.yhbt.net (Postfix) with ESMTP id E1B281F493 for <archivist@yhbt.net>;
+ Tue, 20 Sep 2011 18:03:24 +0000 (UTC)
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 29CEE177994F; Tue, 20 Sep 2011 14:03:24 -0400 (EDT)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id F1609185837C for <mongrel-unicorn@rubyforge.org>;
+ Tue, 20 Sep 2011 14:03:15 -0400 (EDT)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id B0C531F490; Tue, 20 Sep 2011 18:03:14 +0000 (UTC)
+Date: Tue, 20 Sep 2011 18:03:14 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Subject: Re: PID file ownership and group
+Message-ID: <20110920180314.GA30482@dcvr.yhbt.net>
+References: <6F8DA070-5CC5-4107-8706-34D3F61D57C2@me.com>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To: <6F8DA070-5CC5-4107-8706-34D3F61D57C2@me.com>
+User-Agent: Mutt/1.5.20 (2009-06-14)
+Cc: Lee Hambley <leehambley@me.com>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Lee Hambley <leehambley@me.com> wrote:
+> I'm using unicorn in an environment with /very/ strict permissions
+> (one might so as far as to say that the sysadmin is being too careful)
+> and I've observed that when starting Unicorn via `upstart` (runs as
+> root) with unicorn.rb configured to suid and sguid, the logs and other
+> files are correctly owned by `selected user:group` but the pidfile is
+> owned by root:root. Owing to very restrictive unmasking and other
+> permissions, this file is not readable by any lower-level users, and
+> thus one has to be root to read the pidfile.
+> 
+> What's the logic here, is it a bug, an oversight or an intentional
+> design, naturally one can use `ps` or any other number of ways to get
+> a pid, so protecting the pidfile doesn't seem like a security concern/
+
+I didn't think of it until now, but I don't think it's necessary to
+expose.  With the exception of creating Unix domain sockets, unicorn
+always respects the umask given to it, and unicorn only changes
+permissions inside worker processes.
+
+Also, nginx (where unicorn draws many design elements from) does not
+change the permissions of the pid file, either.
+
+> Of course this is somewhat academic, as one must be root to signal the
+> process anyway, but I'll cross that particular bridge when I come to
+> it!
+
+Yeah, there's no point in knowing it unless you can send signals to it.
+
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
