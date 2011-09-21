@@ -1,0 +1,73 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.7 required=5.0 tests=RP_MATCHES_RCVD
+ shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (rubyforge.org [205.234.109.19]) by
+ dcvr.yhbt.net (Postfix) with ESMTP id 56D0B1F493 for <archivist@yhbt.net>;
+ Thu, 22 Sep 2011 00:30:42 +0000 (UTC)
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 983BC177994E; Wed, 21 Sep 2011 20:30:41 -0400 (EDT)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+X-Greylist: delayed 390 seconds by postgrey-1.31 at rubyforge.org; Wed, 21
+ Sep 2011 19:49:01 EDT
+Received: from na3sys009aog123.obsmtp.com (na3sys009aog123.obsmtp.com
+ [74.125.149.149]) by rubyforge.org (Postfix) with SMTP id E9B2B185837E for
+ <mongrel-unicorn@rubyforge.org>; Wed, 21 Sep 2011 19:49:01 -0400 (EDT)
+Received: from mail-bw0-f47.google.com ([209.85.214.47]) (using TLSv1) by
+ na3sys009aob123.postini.com ([74.125.148.12]) with SMTP ID
+ DSNKTnp37TeliGrkMBzLQRotSp5eMAq+PsOb@postini.com; Wed, 21 Sep 2011 16:49:02
+ PDT
+Received: by mail-bw0-f47.google.com with SMTP id 11so2254693bke.20 for
+ <mongrel-unicorn@rubyforge.org>; Wed, 21 Sep 2011 16:49:01 -0700 (PDT)
+MIME-Version: 1.0
+Received: by 10.204.133.156 with SMTP id f28mr766373bkt.350.1316648549765;
+ Wed, 21 Sep 2011 16:42:29 -0700 (PDT)
+Received: by 10.204.123.143 with HTTP; Wed, 21 Sep 2011 16:42:29 -0700 (PDT)
+Date: Wed, 21 Sep 2011 18:42:29 -0500
+Message-ID:
+ <CACskX6Uuq3u_4qL5Fm5e3KXdLW28hNKPQSHrWcC8exa9wdj-hw@mail.gmail.com>
+Subject: http_response seems to be using String.each
+From: Joe Marty <joe@ownlocal.com>
+To: mongrel-unicorn@rubyforge.org
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+I just installed Unicorn 4.1.1 to serve a Rails 3 project behind nginx
+on a server running Ruby 1.9.2 and I'm getting this error on every app
+request:
+
+app error: undefined method `each' for #<String:0xc42712c> (NoMethodError)
+/usr/local/lib/ruby/gems/1.9.1/gems/unicorn-4.1.1/lib/unicorn/http_response.rb:41:in
+`http_response_write'
+
+I don't know for sure if 'body' is supposed to be an array, or if it's
+correctly a string and Unicorn is actually trying to read the string 1
+line at a time using the each method, which was changed in ruby 1.9 to
+'String.each_line'.  Any ideas?
+
+The rails app does work fine in Passenger, and if I just swap out
+passenger for Unicorn, it fails with that message.
+
+-Joe
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
