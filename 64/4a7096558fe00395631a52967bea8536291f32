@@ -1,0 +1,87 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.6 required=5.0 tests=AWL,FREEMAIL_FROM,
+ RP_MATCHES_RCVD,T_DKIM_INVALID shortcircuit=no autolearn=unavailable
+ version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (rubyforge.org [205.234.109.19]) by
+ dcvr.yhbt.net (Postfix) with ESMTP id 5EA8A1F463 for <archivist@yhbt.net>;
+ Mon, 26 Sep 2011 19:28:47 +0000 (UTC)
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id D6413167835D; Mon, 26 Sep 2011 15:28:46 -0400 (EDT)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from mail-gy0-f178.google.com (mail-gy0-f178.google.com
+ [209.85.160.178]) by rubyforge.org (Postfix) with ESMTP id 01490185837A for
+ <mongrel-unicorn@rubyforge.org>; Mon, 26 Sep 2011 15:04:08 -0400 (EDT)
+Received: by gyf1 with SMTP id 1so5989075gyf.23 for
+ <mongrel-unicorn@rubyforge.org>; Mon, 26 Sep 2011 12:04:08 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com; s=gamma;
+ h=date:from:to:message-id:in-reply-to:references:subject:x-mailer
+ :mime-version:content-type:content-transfer-encoding :content-disposition;
+ bh=qeySeJhj7+DNUYUhzdS1WaZ0BBRXHeVwZHc4gHAJZMY=;
+ b=pwpNskeFIZ5gqD3QgHSgDpjphCjefRWnY62XfmUK7nD37F7Po13iHxCuQN0h9i5Osb
+ hhK9JAnX51nSEMiUf7S4bP87MTbPItG0HRWOcjN7U+T468fuX/ZjJiD5wjGaovBUkHUf
+ SzbSiYALAWsUYXTnw4sfm7MRg9ARzaPhFZedY=
+Received: by 10.68.22.103 with SMTP id c7mr31715672pbf.90.1317063848401; Mon,
+ 26 Sep 2011 12:04:08 -0700 (PDT)
+Received: from alex-mbp-2.local (cpe-75-83-127-198.socal.res.rr.com.
+ [75.83.127.198]) by mx.google.com with ESMTPS id
+ n10sm75948751pbe.4.2011.09.26.12.04.06 (version=TLSv1/SSLv3 cipher=OTHER);
+ Mon, 26 Sep 2011 12:04:07 -0700 (PDT)
+Date: Mon, 26 Sep 2011 12:04:04 -0700
+From: Alex Sharp <ajsharp@gmail.com>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Message-ID: <74BCCFBDF6C4414382DC540C16B2301B@gmail.com>
+In-Reply-To:
+ <CADuahaAQSQ7DQymSyCwtw_6+vpgT3eR8uUB1muzYrO=520jE6A@mail.gmail.com>
+References: <4D4841AA1FE04C98BF883BDE8B17741E@gmail.com>
+ <20110926014259.GB19028@dcvr.yhbt.net>
+ <CADuahaAQSQ7DQymSyCwtw_6+vpgT3eR8uUB1muzYrO=520jE6A@mail.gmail.com>
+Subject: Re: Timeout callback
+X-Mailer: sparrow 1.3.2 (build 814.60)
+MIME-Version: 1.0
+Content-Disposition: inline
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+On Sunday, September 25, 2011 at 11:06 PM, Christopher Bailey wrote:
+> What we wound up doing, which may or may not work for you, is to put
+> an explicit Timeout wrapper around the code we knew caused this (we
+> are lucky and knew a specific API call/controller action that was
+> getting the timeouts). e.g. wrap with:
+> 
+>  Timeout::timeout(...) do
+> 
+> This wound up actually being a far better solution for us, because our
+> mobile clients that call this API timeout the HTTP request at 20
+> seconds anyway, so it was pointless to even get to 60. So, we now
+> have a far better solution, one where we can time it out ourselves,
+> handle the exception, and log the timeout/problem (e.g. we create a
+> Zendesk ticket, etc.). Anyway, figured I'd mention that in case it
+> could work in your case as well...
+Great, thanks for sharing.
+
+- Alex 
+
+
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
