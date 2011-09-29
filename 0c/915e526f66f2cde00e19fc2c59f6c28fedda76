@@ -1,0 +1,81 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,RP_MATCHES_RCVD
+ shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (rubyforge.org [205.234.109.19]) by
+ dcvr.yhbt.net (Postfix) with ESMTP id 4B08221075 for <archivist@yhbt.net>;
+ Thu, 29 Sep 2011 18:59:50 +0000 (UTC)
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id DF2FF1858391; Thu, 29 Sep 2011 14:59:44 -0400 (EDT)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 977C6185838E for <mongrel-unicorn@rubyforge.org>;
+ Thu, 29 Sep 2011 14:47:12 -0400 (EDT)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id A947921069; Thu, 29 Sep 2011 18:47:11 +0000 (UTC)
+Date: Thu, 29 Sep 2011 18:47:11 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Subject: Re: large uploads
+Message-ID: <20110929184711.GA21222@dcvr.yhbt.net>
+References:
+ <CAOf2Z5t0pPf8-9mvnn8T=ep-uiUed-nkvoBdKk+yajqCXDFw=w@mail.gmail.com>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To:
+ <CAOf2Z5t0pPf8-9mvnn8T=ep-uiUed-nkvoBdKk+yajqCXDFw=w@mail.gmail.com>
+User-Agent: Mutt/1.5.20 (2009-06-14)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+John Joseph Bachir <j@jjb.cc> wrote:
+> My application accepts uploads from users, which can be quite huge in
+> some cases. This of course requires setting the unicorn timeout to
+> something much higher than 60 seconds, more like 10 minutes.
+> 
+> Are there any drawbacks to doing this, other than the obvious drawback
+> of not killing off long-running requests that are illegitimate?
+
+Are your users remote? (outside of your immediate LAN).
+
+The upload speed (and thus timeout) for unicorn should be based on
+the nginx <-> unicorn transfer rate.  Unicorn should never talk to users
+directly and users can upload slowly to nginx which buffers requests to the
+filesystem, first.
+
+> I've googled quite a bit about this and have found surprisingly little
+> -- I guess people who have apps that receive uploads just generally
+> don't use unicorn?
+
+I have a LAN-only application that regularly processes uploads several
+hundreds of megabytes (via PUT) directly to Unicorn.  The local disk I/O
+is often the limiting factor since the parallel requests fill up the
+kernel buffers and wait on disk I/O.  The Rack application itself
+unfortunately needs to seek/rewind so it must be in the filesystem.
+
+Rainbows! with ThreadSpawn/ThreadPool can process uploads without
+buffering them to disk first (but the Rack multipart parser may not).
+I often stream several hundred megabytes of data directly to apps on
+Rainbows! via PUT requests (curl -T), too.
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
