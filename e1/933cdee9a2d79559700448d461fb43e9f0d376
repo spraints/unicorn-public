@@ -1,0 +1,83 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.6 required=5.0 tests=AWL,FREEMAIL_FROM,
+ RP_MATCHES_RCVD,T_DKIM_INVALID shortcircuit=no autolearn=unavailable
+ version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (rubyforge.org [205.234.109.19]) by
+ dcvr.yhbt.net (Postfix) with ESMTP id 0D4C621070 for <archivist@yhbt.net>;
+ Thu, 29 Sep 2011 20:59:50 +0000 (UTC)
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 5C6501678365; Thu, 29 Sep 2011 16:59:49 -0400 (EDT)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from mail-wy0-f178.google.com (mail-wy0-f178.google.com
+ [74.125.82.178]) by rubyforge.org (Postfix) with ESMTP id 3F74D1858391 for
+ <mongrel-unicorn@rubyforge.org>; Thu, 29 Sep 2011 16:59:20 -0400 (EDT)
+Received: by wyf23 with SMTP id 23so519706wyf.23 for
+ <mongrel-unicorn@rubyforge.org>; Thu, 29 Sep 2011 13:59:20 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com; s=gamma;
+ h=mime-version:in-reply-to:references:from:date:message-id:subject:to
+ :content-type; bh=tfu/L/nyYaJJncKDy3M/etKQxisKv+9ETiY2TSR4QDA=;
+ b=AOk5csAeHq9uq+B4dBf+IqU4sTqtcAfjtiaVRgXCGUcyIJ6WT6gry3Tlx48RBKl3LC
+ +ZDI07Sp32YucStbEKcAF8SnCfKZyPnhCcvzFvrqhaag98SFQnJ9zvgzriMaS/e2NWFP
+ RtfH+IEnX8BTSMqvuIHv/jQ4lQ0Jn++2Ke+TU=
+Received: by 10.216.185.74 with SMTP id t52mr1741416wem.25.1317329960486;
+ Thu, 29 Sep 2011 13:59:20 -0700 (PDT)
+MIME-Version: 1.0
+Received: by 10.180.87.196 with HTTP; Thu, 29 Sep 2011 13:58:19 -0700 (PDT)
+In-Reply-To:
+ <CAOf2Z5vd3WJJ1iNhGc4wQYcFbC2xWYVsOdrO+gH3aKMt8DGSow@mail.gmail.com>
+References:
+ <CAOf2Z5t0pPf8-9mvnn8T=ep-uiUed-nkvoBdKk+yajqCXDFw=w@mail.gmail.com>
+ <20110929184711.GA21222@dcvr.yhbt.net>
+ <CAOf2Z5vd3WJJ1iNhGc4wQYcFbC2xWYVsOdrO+gH3aKMt8DGSow@mail.gmail.com>
+From: Justin Giancola <justin.giancola@gmail.com>
+Date: Thu, 29 Sep 2011 16:58:19 -0400
+Message-ID:
+ <CAGpLkJ7xtyePOhZ5_cD5MbohBUKY9YSp_8Gwznzj8=9O5W9gng@mail.gmail.com>
+Subject: Re: large uploads
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+On Thu, Sep 29, 2011 at 4:05 PM, John Joseph Bachir <j@jjb.cc> wrote:
+> Does NGINX have inherent behavior which buffers requests? (Eric's email
+> seemed to suggest that).
+
+Nginx always buffers the entire body of requests before calling the
+upstream application. If the body exceeds client_body_buffer_size
+Nginx will store it in a tempfile.
+
+> Thanks for the responses! So, I've see this module:
+> https://github.com/vkholodkov/nginx-upload-module
+
+The upload module works a little differently. It allows you to
+configure specific upload endpoints that Nginx will preprocess. Rather
+than forwarding the entire request body to the upstream application,
+Nginx will parse the multipart/form-data encoded files, store them in
+tempfiles, and forward only the paths of the tempfiles to the upstream
+application.
+
+
+Justin
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
