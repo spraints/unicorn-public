@@ -1,0 +1,99 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,RP_MATCHES_RCVD
+ shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (rubyforge.org [205.234.109.19]) by
+ dcvr.yhbt.net (Postfix) with ESMTP id 5961F2106F for <archivist@yhbt.net>;
+ Fri, 30 Sep 2011 17:16:20 +0000 (UTC)
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id C4515185837C; Fri, 30 Sep 2011 13:16:19 -0400 (EDT)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 4097C18581B2 for <mongrel-unicorn@rubyforge.org>;
+ Fri, 30 Sep 2011 13:16:09 -0400 (EDT)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 061E31F490; Fri, 30 Sep 2011 17:16:08 +0000 (UTC)
+Date: Fri, 30 Sep 2011 17:16:08 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Subject: Re: Multiple rack applications on the same server with unicorn
+Message-ID: <20110930171608.GA10578@dcvr.yhbt.net>
+References:
+ <CAOf2Z5t+artehpTPuror3vSiOBmavAceyYOidgS8qyYVJWNL1g@mail.gmail.com>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To:
+ <CAOf2Z5t+artehpTPuror3vSiOBmavAceyYOidgS8qyYVJWNL1g@mail.gmail.com>
+User-Agent: Mutt/1.5.20 (2009-06-14)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+John Joseph Bachir <johnjosephbachir@gmail.com> wrote:
+> If I'm running two rails apps on the same server using Unicorn, I have
+> to run two instances of Unicorn, right?
+
+I'm not sure if Rails (or any other frameworks) has issues, but plain
+Rack applications will work.  Rack lets you do something like this in
+config.ru:
+
+  --------------------- config.ru ------------------
+  map("http://foo.example.com/") do
+    run FooApp.new
+  end
+  map("http://bar.example.com/") do
+    run BarApp.new
+  end
+  ----------------------- 8< -----------------------
+
+Both applications need to be able to work from the same working
+directory, though.
+
+> If so, then here's a place where passenger might win in terms of
+> memory use, as the rails code will be loaded into memory twice, right?
+
+It's all dependent on whether Rails lets you run two apps in the same
+process or not (in which case Unicorn can do it).
+
+The following example is pretty ugly, but lets you split your workers
+between two applications:
+
+  ----------------- unicorn.conf.rb -----------------
+  preload_app false
+  worker_processes 2 # need more than one
+  after_fork do |server,worker|
+    $unicorn_worker_nr = worker.nr
+  end
+  ---------------------------------------------------
+
+  --------------------- config.ru ------------------
+  if ($unicorn_worker_nr % 2) == 0
+    run FooApp.new
+  else
+    run BarApp.new
+  end
+  ----------------------- 8< -----------------------
+
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
