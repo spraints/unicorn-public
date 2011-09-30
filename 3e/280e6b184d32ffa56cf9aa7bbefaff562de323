@@ -1,0 +1,88 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.3 required=5.0 tests=AWL,RP_MATCHES_RCVD,
+ T_DKIM_INVALID shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (rubyforge.org [205.234.109.19]) by
+ dcvr.yhbt.net (Postfix) with ESMTP id 2945C2106F for <archivist@yhbt.net>;
+ Fri, 30 Sep 2011 20:17:45 +0000 (UTC)
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 8B6B81858386; Fri, 30 Sep 2011 16:17:44 -0400 (EDT)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from mail-iy0-f178.google.com (mail-iy0-f178.google.com
+ [209.85.210.178]) by rubyforge.org (Postfix) with ESMTP id D7D49185837E for
+ <mongrel-unicorn@rubyforge.org>; Fri, 30 Sep 2011 15:51:13 -0400 (EDT)
+Received: by iabz21 with SMTP id z21so3076309iab.23 for
+ <mongrel-unicorn@rubyforge.org>; Fri, 30 Sep 2011 12:51:13 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com; s=gamma;
+ h=mime-version:sender:in-reply-to:references:from:date
+ :x-google-sender-auth:message-id:subject:to:content-type;
+ bh=P6O2Tu1ufTes/E4sg2ZEulQn91FpxzJ7odgcnxn79B8=;
+ b=YCatoNTqBuJQEScxQf44u3q117QPDNEgwMWiPHTsxGty0XGEwvcL8lwTizLAYKosKL
+ HpMH+Wfhh5DMrbU9KHVSDIEK46GjwzUmrBbHmDZV3avf/Og/ytTE/F3AJb9+NEa3zxGV
+ nLJDfhlfXE/Pq3VSlW3HGbdmHZl6N3bWCMM+g=
+Received: by 10.231.6.148 with SMTP id 20mr18189439ibz.28.1317412273137; Fri,
+ 30 Sep 2011 12:51:13 -0700 (PDT)
+MIME-Version: 1.0
+Received: by 10.231.199.204 with HTTP; Fri, 30 Sep 2011 12:50:33 -0700 (PDT)
+In-Reply-To:
+ <CAOf2Z5t+artehpTPuror3vSiOBmavAceyYOidgS8qyYVJWNL1g@mail.gmail.com>
+References:
+ <CAOf2Z5t+artehpTPuror3vSiOBmavAceyYOidgS8qyYVJWNL1g@mail.gmail.com>
+From: Hongli Lai <hongli@phusion.nl>
+Date: Fri, 30 Sep 2011 21:50:33 +0200
+X-Google-Sender-Auth: Gvyq6UfzQlyT2P9EcmAf6QtqYrc
+Message-ID:
+ <CAM3ce8EbzR7R8S16ssKf+w9d+jsZ5p4PO32Odg-fKVnp5joNCA@mail.gmail.com>
+Subject: Re: Multiple rack applications on the same server with unicorn
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+On Fri, Sep 30, 2011 at 7:04 PM, John Joseph Bachir
+<johnjosephbachir@gmail.com> wrote:
+> If I'm running two rails apps on the same server using Unicorn, I have
+> to run two instances of Unicorn, right?
+>
+> If so, then here's a place where passenger might win in terms of
+> memory use, as the rails code will be loaded into memory twice, right?
+
+If you have two apps then Phusion Passenger also loads Rails into memory twice.
+Unless if you're using the 'smart' spawning method (instead of the
+default 'smart-lv2' spawning method). The Phusion Passenger manual
+explains the difference between these two spawning methods. However
+'smart' is practically useless these days because everybody uses
+Bundler. It is pretty much impossible nowadays to preload the Rails
+framework and sharing it between multiple apps transparently. We're
+planning on removing the 'smart' spawning method and only supporting
+'smart-lv2' in the future.
+In the mean time, if you want to share the same Rails memory between
+apps, then you should merge them together into a single app.
+
+-- 
+Phusion | Ruby & Rails deployment, scaling and tuning solutions
+
+Web: http://www.phusion.nl/
+E-mail: info@phusion.nl
+Chamber of commerce no: 08173483 (The Netherlands)
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
