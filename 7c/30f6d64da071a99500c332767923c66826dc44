@@ -1,0 +1,85 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,RP_MATCHES_RCVD
+ shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (rubyforge.org [205.234.109.19]) by
+ dcvr.yhbt.net (Postfix) with ESMTP id 67BDB21062 for <archivist@yhbt.net>;
+ Tue,  4 Oct 2011 23:45:11 +0000 (UTC)
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id BD4171858398; Tue,  4 Oct 2011 19:45:10 -0400 (EDT)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 84C101858381 for <mongrel-unicorn@rubyforge.org>;
+ Tue,  4 Oct 2011 18:53:06 -0400 (EDT)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 9B80521062; Tue,  4 Oct 2011 22:53:05 +0000 (UTC)
+Date: Tue, 4 Oct 2011 22:53:05 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Subject: Re: Peformance up - using OobGC & GC.disable
+Message-ID: <20111004225305.GA5373@dcvr.yhbt.net>
+References:
+ <CAGh4DjnGymyQkvSt3rAd3n6J8xtPHPw7YTSN3Vg0q+Y2Ym57zw@mail.gmail.com>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To:
+ <CAGh4DjnGymyQkvSt3rAd3n6J8xtPHPw7YTSN3Vg0q+Y2Ym57zw@mail.gmail.com>
+User-Agent: Mutt/1.5.20 (2009-06-14)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+secondlife <hotchpotch@gmail.com> wrote:
+> after applied,
+> application response time 130% fast!
+> and CPU usage to half!
+> 
+> - http://bit.ly/rhnVlg (response time)
+> - http://bit.ly/pgMN06 (CPU usage)
+
+Thanks for the feedback!  I wonder if 1.9.3 with lazy sweep GC can
+provide similar improvements (without needing OobGC or GC.disable,
+even).
+
+> This is OobGC patch, apply please.
+> - http://bit.ly/roVLtZ (patch)
+
+Thanks! Applied as c7ba76a21c5d00fb5c173cd6aa847442bbc652cb
+with the following commit message:
+
+From: Yuichi Tateno <hotchpotch@gmail.com>
+Date: Mon, 3 Oct 2011 16:51:19 +0900
+Subject: [PATCH] OobGC: force GC.start
+
+[ew: we need to explicitly enable GC if it is disabled
+ and respect applications that disable GC]
+
+Acked-by: Eric Wong <normalperson@yhbt.net>
+
+> I wrote process killing code because GC.disable create more memory leak.
+> - https://gist.github.com/1258681
+
+I think that could be done entirely as Unicorn-specific Rack middleware
+and not hook into Unicorn internal methods like process_client.  Also,
+the pid checks are unnecessary since that code never runs in the master.
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
