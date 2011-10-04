@@ -1,0 +1,100 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.6 required=5.0
+ tests=FREEMAIL_FROM,RP_MATCHES_RCVD, T_DKIM_INVALID shortcircuit=no
+ autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (rubyforge.org [205.234.109.19]) by
+ dcvr.yhbt.net (Postfix) with ESMTP id 56D9621062 for <archivist@yhbt.net>;
+ Tue,  4 Oct 2011 07:37:29 +0000 (UTC)
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 8B9B2185837E; Tue,  4 Oct 2011 03:37:28 -0400 (EDT)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from mail-iy0-f178.google.com (mail-iy0-f178.google.com
+ [209.85.210.178]) by rubyforge.org (Postfix) with ESMTP id E3BFE1858376 for
+ <mongrel-unicorn@rubyforge.org>; Tue,  4 Oct 2011 03:10:38 -0400 (EDT)
+Received: by iabz21 with SMTP id z21so326351iab.23 for
+ <mongrel-unicorn@rubyforge.org>; Tue, 04 Oct 2011 00:10:38 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com; s=gamma;
+ h=mime-version:date:message-id:subject:from:to:content-type;
+ bh=9V60iD70/DcHJz4SmmYbN9EN/gcxXfJUZCTqTVZFKK0=;
+ b=RBj+sPLtA2rtXKhoyjYC/QdX3rGDW4I15ZcK8OkLM9V0ORihhsKcgaawQyG72q3eak
+ St+vH1GOEezu94TkXQokE05KFFLhu5NICaFA7TeL71z5O03pqMNgwQyA+KM9TeoK+Yv1
+ pUbzoqFqlleK7cSAjN//8wwaEn6N6SDRZC98E=
+MIME-Version: 1.0
+Received: by 10.42.137.7 with SMTP id w7mr1298044ict.127.1317712238457; Tue,
+ 04 Oct 2011 00:10:38 -0700 (PDT)
+Received: by 10.42.221.132 with HTTP; Tue, 4 Oct 2011 00:10:38 -0700 (PDT)
+Date: Tue, 4 Oct 2011 16:10:38 +0900
+Message-ID:
+ <CAGh4DjnGymyQkvSt3rAd3n6J8xtPHPw7YTSN3Vg0q+Y2Ym57zw@mail.gmail.com>
+Subject: Peformance up - using OobGC & GC.disable
+From: secondlife <hotchpotch@gmail.com>
+To: mongrel-unicorn@rubyforge.org
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Hi,
+I'm working at Cookpad Inc.
+
+- http://cookpad.com/
+
+Cookpad is very famous cooking recipe service in Japan,
+and largest rails application in Japan.
+
+I applied GC.disable after fork, and a few changed Unicorn::OobGC.
+
+# unicorn.conf.rb
+ after_fork do |server, worker|
+  GC.disable if RAILS_ENV == 'production'
+
+# OobGC code
+ def process_client(client)
+  super(client) # Unicorn::HttpServer#process_client
+  if OOBGC_PATH =~ OOBGC_ENV[PATH_INFO] && ((@@nr -= 1) <= 0)
+    @@nr = OOBGC_INTERVAL
+    OOBGC_ENV.clear
+    disabled = GC.enable
+    GC.start
+    GC.disable if disabled
+  end
+ end
+
+after applied,
+application response time 130% fast!
+and CPU usage to half!
+
+- http://bit.ly/rhnVlg (response time)
+- http://bit.ly/pgMN06 (CPU usage)
+
+This is OobGC patch, apply please.
+- http://bit.ly/roVLtZ (patch)
+
+Also, my rails application have memory leaks ;(
+I wrote process killing code because GC.disable create more memory leak.
+- https://gist.github.com/1258681
+
+------------------------------------------
+Yuichi Tateno
+https://github.com/hotchpotch
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
