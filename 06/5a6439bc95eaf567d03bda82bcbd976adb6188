@@ -1,0 +1,83 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,RP_MATCHES_RCVD
+ shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (rubyforge.org [205.234.109.19]) by
+ dcvr.yhbt.net (Postfix) with ESMTP id F2034217A2 for <archivist@yhbt.net>;
+ Fri,  7 Oct 2011 06:44:29 +0000 (UTC)
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 40E87185837A; Fri,  7 Oct 2011 02:44:29 -0400 (EDT)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 41CB51858379 for <mongrel-unicorn@rubyforge.org>;
+ Fri,  7 Oct 2011 02:35:48 -0400 (EDT)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 3CD61217A1; Fri,  7 Oct 2011 06:35:47 +0000 (UTC)
+Date: Thu, 6 Oct 2011 23:35:47 -0700
+From: Eric Wong <normalperson@yhbt.net>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Subject: Re: Unicorn failed to handle signals
+Message-ID: <20111007063547.GB9790@dcvr.yhbt.net>
+References: <EAC7D710-D4C0-4E88-96B3-3EE4C7EF1891@gmail.com>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To: <EAC7D710-D4C0-4E88-96B3-3EE4C7EF1891@gmail.com>
+User-Agent: Mutt/1.5.20 (2009-06-14)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+(please don't send the same message twice in a short time period)
+
+Andrey Cherkashin <andoriyu@gmail.com> wrote:
+> I have a problem with unicorn and signals.
+> FreeBSD freebsd 9.0-BETA3 FreeBSD 9.0-BETA3 #0 r225816+a1b6562: Thu Sep 29 06:46:06 PDT 2011     root@freebsd:/sys/i386/compile/XEN  i386
+> ruby 1.9.2p290 (2011-07-09 revision 32553) [i386-freebsd9.0]
+> unicorn (4.1.1)
+
+> Every time when I trying to send a signal (HUP, TERM, etc) I get this:
+> Illegal instruction: 4 (core dumped) I have no idea how to deal with
+> core dump, so here it is: http://www.misprint.org.ru/ruby.core
+
+You can run gdb on it:
+
+$ gdb /path/to/ruby /path/to/core
+
+Then type "bt" to get a backtrace and you can learn other commands.
+
+I suspect this is a bug somewhere in FreeBSD 9.0 BETA3 itself, and
+not Unicorn or Ruby.
+
+Can you test some simple scripts using trap?
+
+Something along the lines of:
+---------------------- 8< ---------------------
+trap(:HUP) do
+  puts "HUP received"
+end
+puts "#$$ ready to receive SIGHUP"
+sleep
+------------------------------------------------
+
+Thanks.
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
