@@ -1,0 +1,73 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.7 required=5.0 tests=RP_MATCHES_RCVD
+ shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (rubyforge.org [205.234.109.19]) by
+ dcvr.yhbt.net (Postfix) with ESMTP id 10C141F4C1 for <archivist@yhbt.net>;
+ Sat,  8 Oct 2011 03:28:17 +0000 (UTC)
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 4A9D01678366; Fri,  7 Oct 2011 23:28:16 -0400 (EDT)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from mail-gx0-f178.google.com (mail-gx0-f178.google.com
+ [209.85.161.178]) by rubyforge.org (Postfix) with ESMTP id 2C89A185837D for
+ <mongrel-unicorn@rubyforge.org>; Fri,  7 Oct 2011 23:20:58 -0400 (EDT)
+Received: by ggnl1 with SMTP id l1so4290235ggn.23 for
+ <mongrel-unicorn@rubyforge.org>; Fri, 07 Oct 2011 20:20:58 -0700 (PDT)
+MIME-Version: 1.0
+Received: by 10.101.165.2 with SMTP id s2mr2119840ano.58.1318044058685; Fri,
+ 07 Oct 2011 20:20:58 -0700 (PDT)
+Received: by 10.100.3.11 with HTTP; Fri, 7 Oct 2011 20:20:58 -0700 (PDT)
+Date: Fri, 7 Oct 2011 20:20:58 -0700
+Message-ID:
+ <CA+rii7H2gNdoWipzrhbgTu0G4H+3c9pS-PqA1jO-Cn-uGSsHxQ@mail.gmail.com>
+Subject: How to automate the restarting of Unicorn?
+From: Pai-Hung Chen <phc@zestcash.com>
+To: mongrel-unicorn@rubyforge.org
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Hi,
+
+I have a question about automating the restarting of Unicorn with the
+following steps, and much appreciate your help.
+
+Assumption: (i) "pid" is set to unicorn.pid in the config file; (ii) a
+Unicorn process is already running.
+
+(1) kill -USR2 `cat unicorn.pid` (via Capistrano deployment task for example)
+(2) Inside the "before_exec" hook in the config file, do: kill -QUIT
+`cat unicorn.pid.oldbin`
+
+My question is: By the time the "before_exec" hook is executed, is it
+guaranteed that unicorn.pid.oldbin ahas lready created (otherwise we
+have a racing condition here)? Or is there a better way to achieve
+what I want?
+
+Please Cc me as I am not on the mailing list.
+
+Please also let me know if there is a better place to ask this question.
+
+Thanks,
+Pai-Hung
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
