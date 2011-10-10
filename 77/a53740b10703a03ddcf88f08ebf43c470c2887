@@ -1,0 +1,82 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,RP_MATCHES_RCVD
+ shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (rubyforge.org [205.234.109.19]) by
+ dcvr.yhbt.net (Postfix) with ESMTP id 58F7E1F4CB for <archivist@yhbt.net>;
+ Mon, 10 Oct 2011 22:04:03 +0000 (UTC)
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id DC8AB1858386; Mon, 10 Oct 2011 18:04:02 -0400 (EDT)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 9F7CF185837B for <mongrel-unicorn@rubyforge.org>;
+ Mon, 10 Oct 2011 17:27:42 -0400 (EDT)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id D1A691F4CA; Mon, 10 Oct 2011 21:27:41 +0000 (UTC)
+Date: Mon, 10 Oct 2011 14:27:41 -0700
+From: Eric Wong <normalperson@yhbt.net>
+To: mongrel-unicorn@rubyforge.org
+Subject: Re: How to automate the restarting of Unicorn?
+Message-ID: <20111010212741.GA3828@dcvr.yhbt.net>
+References:
+ <CA+rii7H2gNdoWipzrhbgTu0G4H+3c9pS-PqA1jO-Cn-uGSsHxQ@mail.gmail.com>
+ <D0C8FD0B85DE4305A1EC0EE8B872A1A7@gmail.com>
+ <4E928ADD.8040900@whitepages.com> <loom.20111010T222728-376@post.gmane.org>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To: <loom.20111010T222728-376@post.gmane.org>
+User-Agent: Mutt/1.5.21 (2010-09-15)
+Cc: Pai-Hung Chen <paihungchen@hotmail.com>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Pai-Hung Chen <paihungchen@hotmail.com> wrote:
+> > On 10/10/2011 08:04 AM, Devin Ben-Hur wrote:
+> > >> My question is: By the time the "before_exec" hook is executed, is it
+> > >> guaranteed that unicorn.pid.oldbin ahas lready created (otherwise we
+> > >> have a racing condition here)? Or is there a better way to achieve
+> > >> what I want?
+> > > I'm not 100% positive, but about 98% -- yes, you can count on the fact that
+> the *.oldbin file will exist on
+> > > disk before the before_exec block is executed. Eric can confirm this, but
+> I've never had a problem with it...
+> > No need to rely on authority, just read the source: 
+> > https://github.com/defunkt/unicorn/blob/master/lib/unicorn/http_server.rb
+
+100% correct, source code never lies.
+
+> Thanks for the pointer. The current source code clearly shows before_exec is
+> called after the .oldbin file is created. I'd like to know if this is considered
+> an "invariant" going forward.
+
+Yes, there's no way to safely handle the pid file otherwise because of
+race conditions you mentioned.  The oldbin pid file must exist because
+the new process (which calls before_exec) can clobber the regular pid
+file once fork is called.
+
+> Could someone in the "authority" help?
+
+Fwiw, I'm only reluctantly an "authority".  I'm against the notion of
+authority.  I am and forever will be nobody :)
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
