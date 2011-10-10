@@ -1,0 +1,115 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.6 required=5.0 tests=AWL,FREEMAIL_FROM,
+ RP_MATCHES_RCVD,T_DKIM_INVALID shortcircuit=no autolearn=unavailable
+ version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (rubyforge.org [205.234.109.19]) by
+ dcvr.yhbt.net (Postfix) with ESMTP id D2A322968AC for <archivist@yhbt.net>;
+ Mon, 10 Oct 2011 23:16:21 +0000 (UTC)
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 4DD7E185837B; Mon, 10 Oct 2011 19:16:20 -0400 (EDT)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from mail-yw0-f50.google.com (mail-yw0-f50.google.com
+ [209.85.213.50]) by rubyforge.org (Postfix) with ESMTP id A94F2185837B for
+ <mongrel-unicorn@rubyforge.org>; Mon, 10 Oct 2011 19:03:23 -0400 (EDT)
+Received: by ywm13 with SMTP id 13so7706587ywm.23 for
+ <mongrel-unicorn@rubyforge.org>; Mon, 10 Oct 2011 16:03:23 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com; s=gamma;
+ h=mime-version:in-reply-to:references:date:message-id:subject:from:to
+ :content-type; bh=o+L5tMa5xRnBm/E4J5WgJWAREJlapDu2PVMnymz6W2g=;
+ b=pSpYtNegF6nD5CLbx3SX1vadGeDsCBP/3v9UzBI+xeXBWlaeEPirydU1CNcTNHItpG
+ WG+LjDadDUPWhobGR+IgqC24hN69RluAHEtgEAAXQK/7sMuqckT4S3UyuhjRTZLHKUIx
+ iJJ/YloBVXKN9FN/YOh1xu2U1h1UXmwcZhQxI=
+MIME-Version: 1.0
+Received: by 10.150.7.12 with SMTP id 12mr8176100ybg.17.1318287803130; Mon,
+ 10 Oct 2011 16:03:23 -0700 (PDT)
+Received: by 10.150.217.7 with HTTP; Mon, 10 Oct 2011 16:03:23 -0700 (PDT)
+In-Reply-To: <20111010215324.GA6378@dcvr.yhbt.net>
+References:
+ <CAGh4DjnGymyQkvSt3rAd3n6J8xtPHPw7YTSN3Vg0q+Y2Ym57zw@mail.gmail.com>
+ <20111004225305.GA5373@dcvr.yhbt.net>
+ <CAGh4DjmVsCMJd2GKDo2evgsn2-TD4O6xiPgxtphc6a7fucR1UQ@mail.gmail.com>
+ <CAHBuKRjBedCTDi1yPC4J3+tmzpxLFCkFrm-gyDrTPTF7BOkFHQ@mail.gmail.com>
+ <20111010215324.GA6378@dcvr.yhbt.net>
+Date: Tue, 11 Oct 2011 00:03:23 +0100
+Message-ID:
+ <CAHBuKRii9X+b4V0ehV+4cC_UgKPEuYdk-WH1CtvdO4A0rkjrqw@mail.gmail.com>
+Subject: Re: Peformance up - using OobGC & GC.disable
+From: Tatsuya Ono <ononoma@gmail.com>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Thanks Eric for the feedback.
+
+I actually had read that email and I think I understand it. But what I
+am experiencing seems a different story. Our rails app uses around
+250MB memory usually. After applying this patch and calling
+GC.disabled on after_fork, the usage of memory increases on every
+request and goes up to 1GB easily.
+
+However, yes, I must say that I need to test more carefully. Let me
+come back later. I am going to have some stress test and monitor if
+Unicorn introduces swapping on VM with this solution. Hopefully I can
+do it tomorrow or later this week.
+
+
+Tatsuya
+
+On 10 October 2011 22:53, Eric Wong <normalperson@yhbt.net> wrote:
+> Tatsuya Ono <ononoma@gmail.com> wrote:
+>> I don't actually understand is why GC.disable solution could introduce
+>> more memory leak. If I simplify the problem, the code is something
+>> like bellow:
+>>
+>> ---------------
+>> GC.disable
+>> (do something)
+>> GC.enable
+>> GC.start
+>> ---------------
+>>
+>> When the code block finishes, I expect that memory size should be
+>> (almost) equal with the case GC is enabled at begging. But it doesn't
+>> seems so from our experience.
+>>
+>> Do anyone know why there could be significant difference on memory
+>> usage because of timing of GC? It might be a question on Ruby rather
+>> than Unicorn, though, I thought even just sharing my experience could
+>> be worth to someone here.
+>
+> Basically, the free(3) function in the C standard library does not
+> guarantee memory is released back to the kernel (speed vs memory usage
+> tradeoff).
+>
+> There was discussion of this on the usp.ruby mailing list starting at
+> Message-ID: 20110914234917.GA2480@dcvr.yhbt.net
+>
+> usp.ruby archives are at http://bogomips.org/usp.ruby/archives/2011.mbox.gz
+> _______________________________________________
+> Unicorn mailing list - mongrel-unicorn@rubyforge.org
+> http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+> Do not quote signatures (like this one) or top post when replying
+>
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
