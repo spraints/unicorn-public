@@ -1,0 +1,77 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,RP_MATCHES_RCVD
+ shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (rubyforge.org [205.234.109.19]) by
+ dcvr.yhbt.net (Postfix) with ESMTP id 1BD6C1F4CB for <archivist@yhbt.net>;
+ Mon, 10 Oct 2011 06:22:04 +0000 (UTC)
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 63EE9167835D; Mon, 10 Oct 2011 02:22:03 -0400 (EDT)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+X-Greylist: delayed 327 seconds by postgrey-1.31 at rubyforge.org; Mon, 10
+ Oct 2011 02:09:46 EDT
+Received: from ex0.corp.w3data.com (mail0.w3data.com [64.124.61.209]) by
+ rubyforge.org (Postfix) with ESMTP id 4207E1858361 for
+ <mongrel-unicorn@rubyforge.org>; Mon, 10 Oct 2011 02:09:46 -0400 (EDT)
+Received: from [IPv6:::1] (172.25.0.182) by ex0.corp.w3data.com (172.25.0.29)
+ with Microsoft SMTP Server (TLS) id 8.3.83.0; Sun, 9 Oct 2011 23:04:15 -0700
+Message-ID: <4E928ADD.8040900@whitepages.com>
+Date: Sun, 9 Oct 2011 23:04:13 -0700
+From: Devin Ben-Hur <dbenhur@whitepages.com>
+Organization: Whitepages.com
+User-Agent: Mozilla/5.0 (X11; U; Linux x86_64; en-US; rv:1.9.2.23)
+ Gecko/20110922 Thunderbird/3.1.15
+MIME-Version: 1.0
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Subject: Re: How to automate the restarting of Unicorn?
+References:
+ <CA+rii7H2gNdoWipzrhbgTu0G4H+3c9pS-PqA1jO-Cn-uGSsHxQ@mail.gmail.com>
+ <D0C8FD0B85DE4305A1EC0EE8B872A1A7@gmail.com>
+In-Reply-To: <D0C8FD0B85DE4305A1EC0EE8B872A1A7@gmail.com>
+Cc: phc@zestcash.com, ajsharp@gmail.com
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset="us-ascii"; Format="flowed"
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+On 10/09/2011 04:31 PM, Alex Sharp wrote:
+> On Friday, October 7, 2011 at 8:20 PM, Pai-Hung Chen wrote:
+>> My question is: By the time the "before_exec" hook is executed, is it
+>> guaranteed that unicorn.pid.oldbin ahas lready created (otherwise we
+>> have a racing condition here)? Or is there a better way to achieve
+>> what I want?
+> I'm not 100% positive, but about 98% -- yes, you can count on the fact that the *.oldbin file will exist on disk before the before_exec block is executed. Eric can confirm this, but I've never had a problem with it...
+
+No need to rely on authority, just read the source: 
+https://github.com/defunkt/unicorn/blob/master/lib/unicorn/http_server.rb
+
+Unicorn::HttpServer#pid=(path) setter writes the pid file (lines 179-206).
+
+before_exec is called on line 439 within a fork block in 
+Unicorn::HttpServer#reexec (this is the only call to before_exec in the 
+code)
+
+prior to that, self.pid= is called passing oldpid whose value is 
+"#{pid}.oldbin" (lines 398-401).
+
+[ line numbers may change if you're not looking at commit c7ba76a21c ]
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
