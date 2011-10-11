@@ -1,0 +1,72 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,RP_MATCHES_RCVD
+ shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (rubyforge.org [205.234.109.19]) by
+ dcvr.yhbt.net (Postfix) with ESMTP id 576EF1F406 for <archivist@yhbt.net>;
+ Tue, 11 Oct 2011 08:27:10 +0000 (UTC)
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 3AB5C1D783DE; Tue, 11 Oct 2011 04:27:02 -0400 (EDT)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 7E6751858392 for <mongrel-unicorn@rubyforge.org>;
+ Tue, 11 Oct 2011 04:16:02 -0400 (EDT)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id CE3C51F406; Tue, 11 Oct 2011 08:16:01 +0000 (UTC)
+Date: Tue, 11 Oct 2011 08:16:01 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Subject: Re: Home directory for workers
+Message-ID: <20111011081601.GA4208@dcvr.yhbt.net>
+References: <20111010222545.GA30758@dist.ro>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To: <20111010222545.GA30758@dist.ro>
+User-Agent: Mutt/1.5.20 (2009-06-14)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+neil@dist.ro wrote:
+> When unicorn is started as the root user and the worker processes run
+> as as an unprivileged user because of the "user" option in
+> unicorn.conf then the home directory of the worker processes is still
+> "/root".  This causes trouble with GPGME at least, which expects to
+> find encryption keys in the user's home directory.
+
+You mean the ENV["HOME"] value?  This typically isn't changed when
+changing privileges in other daemons like nginx.  Changing ENV["HOME"]
+automatically inside unicorn has the potential to break existing setups
+badly, so it won't be done.
+
+However, you can set it in your after_fork hook (or anywhere else in
+your unicorn config file)
+
+  after_fork do |server,worker|
+    ENV["HOME"] = "/home/user"
+  end
+
+You can even set it in the shell when starting unicorn:
+
+  HOME=/home/user unicorn -c unicorn.conf.rb
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
