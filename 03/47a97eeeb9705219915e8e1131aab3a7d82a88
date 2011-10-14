@@ -1,0 +1,80 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,RP_MATCHES_RCVD
+ shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (rubyforge.org [205.234.109.19]) by
+ dcvr.yhbt.net (Postfix) with ESMTP id DF23821062 for <archivist@yhbt.net>;
+ Fri, 14 Oct 2011 10:45:52 +0000 (UTC)
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 4E0521858363; Fri, 14 Oct 2011 06:45:52 -0400 (EDT)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 0740E185834E for <mongrel-unicorn@rubyforge.org>;
+ Fri, 14 Oct 2011 04:45:08 -0400 (EDT)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id AE9271F451; Fri, 14 Oct 2011 08:45:05 +0000 (UTC)
+Date: Fri, 14 Oct 2011 08:45:04 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Subject: Re: Hoptoad setup.
+Message-ID: <20111014084504.GA24915@dcvr.yhbt.net>
+References:
+ <CAF-xwzSFsgc1ehuaM71WpqjoQQVy9Axn0aCTRjGnLENh=eHjmw@mail.gmail.com>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To:
+ <CAF-xwzSFsgc1ehuaM71WpqjoQQVy9Axn0aCTRjGnLENh=eHjmw@mail.gmail.com>
+User-Agent: Mutt/1.5.20 (2009-06-14)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Marcin Stecki <madsheeppl@gmail.com> wrote:
+> In my ror 3.0.10 app Unicorn somehow causes my application to show
+> errors on staging like it was development environment (with backtrace
+> and everything) instead of sending them to hoptoad. This is strange -
+> same app on mongrel shows custom 500 page and sends errors to hoptoad
+> as expected.
+> 
+> Rails configuration seems to be ok, works on mongrel and passenger.
+> To lunch my app i'm using pretty basic command:
+> 
+> 
+> "bundle exec unicorn_rails -c config/unicorn.rb -D -E staging"
+
+I haven't looked at hoptoad before, but does setting RACK_ENV=none
+help?
+
+  RACK_ENV=none bundle exec unicorn_rails -c config/unicorn.rb -D -E staging
+
+Or even swapping "unicorn_rails" for plain "unicorn":
+
+  RACK_ENV=none RAILS_ENV=staging bundle exec unicorn -c config/unicorn.rb -D
+
+"unicorn_rails" was mainly designed for Rails 2.2 and earlier,
+Rack-capable versions of Rails are probably better served by just
+"unicorn"
+
+Maybe others on this list have more experience with this particular
+combination, not much of a Rails user myself...
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
