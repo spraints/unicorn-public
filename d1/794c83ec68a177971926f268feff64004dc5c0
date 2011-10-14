@@ -1,0 +1,124 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.6 required=5.0
+ tests=FREEMAIL_FROM,RP_MATCHES_RCVD, T_DKIM_INVALID shortcircuit=no
+ autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (rubyforge.org [205.234.109.19]) by
+ dcvr.yhbt.net (Postfix) with ESMTP id DBA3721071 for <archivist@yhbt.net>;
+ Fri, 14 Oct 2011 07:51:00 +0000 (UTC)
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 3E3E31858376; Fri, 14 Oct 2011 03:50:56 -0400 (EDT)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from mail-vw0-f50.google.com (mail-vw0-f50.google.com
+ [209.85.212.50]) by rubyforge.org (Postfix) with ESMTP id 6E087185838D for
+ <mongrel-unicorn@rubyforge.org>; Fri, 14 Oct 2011 03:33:22 -0400 (EDT)
+Received: by vws9 with SMTP id 9so980449vws.23 for
+ <mongrel-unicorn@rubyforge.org>; Fri, 14 Oct 2011 00:33:22 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com; s=gamma;
+ h=mime-version:from:date:message-id:subject:to:content-type;
+ bh=UHZxqREs1k5fp1xBEkvZLcSwdTDIXP/AwoA7aINvs3A=;
+ b=rCUQZHDP8czzpn/JS582/wMi9cTwLDP/I2TvFn+pfkiNNxHp85ebKeHMLvxJrvdCnr
+ /XS8LqApwBjf03AmePyk0EyRm+Rg+CmAbn5HTXSmx6j9ZeM8Khioxw9hIsPzG/Q6HqoV
+ FjqQ7rulZVECgm6MBvGhJechyGPAvkkhrobRo=
+Received: by 10.52.34.78 with SMTP id x14mr7272280vdi.122.1318577602156; Fri,
+ 14 Oct 2011 00:33:22 -0700 (PDT)
+MIME-Version: 1.0
+Received: by 10.52.163.6 with HTTP; Fri, 14 Oct 2011 00:33:02 -0700 (PDT)
+From: Marcin Stecki <madsheeppl@gmail.com>
+Date: Fri, 14 Oct 2011 09:33:02 +0200
+Message-ID:
+ <CAF-xwzSFsgc1ehuaM71WpqjoQQVy9Axn0aCTRjGnLENh=eHjmw@mail.gmail.com>
+Subject: Hoptoad setup.
+To: mongrel-unicorn@rubyforge.org
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Hi,
+
+In my ror 3.0.10 app Unicorn somehow causes my application to show
+errors on staging like it was development environment (with backtrace
+and everything) instead of sending them to hoptoad. This is strange -
+same app on mongrel shows custom 500 page and sends errors to hoptoad
+as expected.
+
+Rails configuration seems to be ok, works on mongrel and passenger.
+To lunch my app i'm using pretty basic command:
+
+
+"bundle exec unicorn_rails -c config/unicorn.rb -D -E staging"
+
+
+
+nothing fancy inside the config:
+
+
+#config/unicorn.rb
+
+rails_env = ENV["RAILS_ENV"] || "production"
+user_name = 'my_app_name'
+app_path = "/home/#{user_name}/app/current"
+shared_path = "/home/#{user_name}/app/shared"
+
+worker_processes rails_env == 'production' ? 6 : 2
+
+listen 9999, :tcp_nopush => true
+
+preload_app true
+
+timeout 30
+
+pid "#{app_path}/tmp/pids/unicorn.my_app_name.pid"
+
+working_directory app_path
+
+user user_name, user_name
+
+stderr_path "#{shared_path}/log/unicorn.stderr.log"
+stdout_path "#{shared_path}/log/unicorn.stdout.log"
+
+before_fork do |server, worker|
+  if defined?(ActiveRecord::Base)
+    ActiveRecord::Base.connection.disconnect!
+  end
+
+  old_pid = "#{app_path}/tmp/pids/unicorn.my_app_name.pid.oldbin"
+  if File.exists?(old_pid) && server.pid != old_pid
+    begin
+      Process.kill("QUIT", File.read(old_pid).to_i)
+    rescue Errno::ENOENT, Errno::ESRCH
+    end
+  end
+end
+
+after_fork do |server, worker|
+  if defined?(ActiveRecord::Base)
+    ActiveRecord::Base.establish_connection
+  end
+end
+
+
+
+Any help w'd be appreciated.
+Thx, Madsheep.
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
