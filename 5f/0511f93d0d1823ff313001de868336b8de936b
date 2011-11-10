@@ -1,0 +1,100 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,RP_MATCHES_RCVD
+ shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (rubyforge.org [205.234.109.19]) by
+ dcvr.yhbt.net (Postfix) with ESMTP id 1AAF620FED for <archivist@yhbt.net>;
+ Thu, 10 Nov 2011 23:57:31 +0000 (UTC)
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 7E9C11779957; Thu, 10 Nov 2011 18:57:30 -0500 (EST)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id D6EAD1779952 for <mongrel-unicorn@rubyforge.org>;
+ Thu, 10 Nov 2011 18:50:35 -0500 (EST)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 28A5920FED; Thu, 10 Nov 2011 23:50:35 +0000 (UTC)
+Date: Thu, 10 Nov 2011 15:50:35 -0800
+From: Eric Wong <normalperson@yhbt.net>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Subject: Re: Virtual Memory Usage
+Message-ID: <20111110235034.GA13543@dcvr.yhbt.net>
+References:
+ <CAO1NZAoD3-MEPp14S3VBVGfr6abFqcL4CHBsA1PpctN2mv=iTw@mail.gmail.com>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To:
+ <CAO1NZAoD3-MEPp14S3VBVGfr6abFqcL4CHBsA1PpctN2mv=iTw@mail.gmail.com>
+User-Agent: Mutt/1.5.21 (2010-09-15)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Ben Somers <somers.ben@gmail.com> wrote:
+> m1.xlarge running Ubuntu 9.10 (yes, we know it's out od date), with
+> 15GB RAM, 4x2GHz CPU.
+> 
+> The server is behaving fine, with most of the unicorn workers sitting
+> at about 280MB resident memory, comparable to passenger's workers. But
+> I've been testing how many workers to run with, and I've noticed that
+> once I get above three workers, a couple of them get ballooning
+> virtual memory, jumping up to a little over 2GB. I initially thought
+> that the server was overloaded and swapping, but swap usage is still
+> 0, and I get this behavior at over 50% free memory. It doesn't seem to
+> be causing performance problems, but I was wondering if anyone else
+> has observed this or similar behavior? I'm trying to decide if it's
+> normal or an item for concern.
+
+Since you're on Linux, you can run "pmap $PID" to see how chunks of
+virtual memory are used by any process.
+
+If a chunk is backed by a regular file, it hardly matters, the kernel
+will share that with other processes and won't swap that memory (since
+it's already backed by a regular file).
+
+Big "[ anon ]" chunks you see in pmap output are usually not shared, so
+potentially more problematic.  It depends on your application and the
+libraries it uses, of course.  Some libraries will share anonymous
+memory between processes (raindrops does this for example, but only for
+small integer counters).
+
+I've seen Unicorn processes using TokyoCabinet and TDB[1] with database
+files many gigabytes large with large VM sizes to match.  I also know
+both of those database libraries cooperate with the VM subsystem so I
+had nothing to worry about as far as memory usage goes :)
+
+
+
+In case you (or somebody else) does notice high RSS and you're using the
+stock glibc malloc, try setting MALLOC_MMAP_THRESHOLD_=131072 or
+similar.  The author of jemalloc once blogged about this behavior with
+glibc malloc, the title was "Mr.  Malloc gets schooled" or something
+along those lines.  Making the malloc implementation use mmap() more
+to reduce memory usage may hurt performance, though.
+
+I always do incremental processing on large datasets so that helps
+me avoid issues with unchecked/unpredictable memory growth due to
+malloc behavior.
+
+
+[1] http://bogomips.org/ruby-tdb/
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
