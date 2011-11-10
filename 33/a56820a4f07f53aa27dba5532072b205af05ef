@@ -1,0 +1,98 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,RP_MATCHES_RCVD
+ shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (rubyforge.org [205.234.109.19]) by
+ dcvr.yhbt.net (Postfix) with ESMTP id C373B21077 for <archivist@yhbt.net>;
+ Thu, 10 Nov 2011 11:30:55 +0000 (UTC)
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 3BF001D78108; Thu, 10 Nov 2011 06:30:55 -0500 (EST)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 9AB34177994E for <mongrel-unicorn@rubyforge.org>;
+ Thu, 10 Nov 2011 06:20:15 -0500 (EST)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 5C70621031; Thu, 10 Nov 2011 11:20:14 +0000 (UTC)
+Date: Thu, 10 Nov 2011 11:20:14 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Subject: Re: help with an init script
+Message-ID: <20111110112014.GA23753@dcvr.yhbt.net>
+References:
+ <CAM=YcdiXa14X3fC_rE=pOZHLz4zGxUe1UpmSgXq=0QR6_hWt9w@mail.gmail.com>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To:
+ <CAM=YcdiXa14X3fC_rE=pOZHLz4zGxUe1UpmSgXq=0QR6_hWt9w@mail.gmail.com>
+User-Agent: Mutt/1.5.20 (2009-06-14)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Xavier Noria <fxn@hashref.com> wrote:
+> Hey, I have this pretty standard init script for Unicorn
+> 
+>    http://pastie.org/2840779
+> 
+> where
+> 
+>    fxn@cohen:~$ ls -la /etc/init.d/unicorn_home
+>    lrwxrwxrwx 1 root root 32 2011-11-09 23:45 /etc/init.d/unicorn_home
+> -> /home/fxn/home/config/unicorn.sh
+> 
+>    fxn@cohen:~$ ls -la $HOME/.rvm/bin/ruby
+>    -rwxrwxr-x 1 fxn sudo 265 2011-11-09 21:44 /home/fxn/.rvm/bin/ruby
+> 
+> and $APP_ROOT/bin/unicorn_rails is a binstub created by bundler.
+
+Is /home mounted later in the boot process than when the
+unicorn init script fires?  unicorn should be one of the last things
+to start if you're putting it in init.
+
+> The init script works like a charm if I run it with sudo, but for some
+> reason the service is not launched if the machine is rebooted.
+> 
+> Do you know what could happen or how could I debug it? dmesg | grep
+> unicorn prints nothing.
+
+You could put the following near the top of the init script
+(after "set -e"):
+
+	# make sure the directory for this file is something that persists
+	# throughout the boot process (isn't mounted-over by another dir):
+	ERR=/var/tmp/unicorn.init.err
+	rm -f "$ERR"
+	exec 2>> "$ERR"
+
+	# ... rest of the script
+
+All stderr output (before unicorn is started) will then go to whatever
+you set ERR to.  If you got all the way to starting unicorn:
+does the stderr log of unicorn have anything interesting? (please
+configure stderr_path if you haven't already)
+
+You can also add "set -x" to the init script and things will get
+very verbose once you set it.
+
+Can't think of much else on my sleep-deprived brain...
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
