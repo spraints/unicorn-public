@@ -1,0 +1,78 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.4 required=5.0 tests=AWL,FREEMAIL_FROM,
+ RP_MATCHES_RCVD,T_DKIM_INVALID shortcircuit=no autolearn=unavailable
+ version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (rubyforge.org [205.234.109.19]) by
+ dcvr.yhbt.net (Postfix) with ESMTP id 6699221077 for <archivist@yhbt.net>;
+ Thu, 10 Nov 2011 23:17:31 +0000 (UTC)
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id D0C551D7810C; Thu, 10 Nov 2011 18:17:30 -0500 (EST)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from mail-pz0-f50.google.com (mail-pz0-f50.google.com
+ [209.85.210.50]) by rubyforge.org (Postfix) with ESMTP id C6A581779952 for
+ <mongrel-unicorn@rubyforge.org>; Thu, 10 Nov 2011 18:08:32 -0500 (EST)
+Received: by pzk5 with SMTP id 5so250320pzk.9 for
+ <mongrel-unicorn@rubyforge.org>; Thu, 10 Nov 2011 15:08:32 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com; s=gamma;
+ h=mime-version:from:date:message-id:subject:to:content-type;
+ bh=ELrVWZm5PsLFP/l8e/2XZroG10WpUdIJ9+kdxu6ueNA=;
+ b=sKf8li/iDgQaWErAt8ERfAkplkvYvWMUfrSwn8U4GTKRZLbBr/UJTreifSJ83oeKN2
+ UTZOKewRRK+5HixXkwTONTFmfP8ZiM9jcVmD/KbDVr1MRCt4jHhjuPkup9QgWSkTmERZ
+ wcQKQXPuLZ+rzp90Tlfn/buEQ08iyOwsLp+lI=
+Received: by 10.68.39.34 with SMTP id m2mr18480764pbk.75.1320966512198; Thu,
+ 10 Nov 2011 15:08:32 -0800 (PST)
+MIME-Version: 1.0
+Received: by 10.142.108.7 with HTTP; Thu, 10 Nov 2011 15:07:51 -0800 (PST)
+From: Ben Somers <somers.ben@gmail.com>
+Date: Thu, 10 Nov 2011 15:07:51 -0800
+Message-ID:
+ <CAO1NZAoD3-MEPp14S3VBVGfr6abFqcL4CHBsA1PpctN2mv=iTw@mail.gmail.com>
+Subject: Virtual Memory Usage
+To: mongrel-unicorn <mongrel-unicorn@rubyforge.org>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Hi,
+
+I've been testing unicorn as a replacement for passenger in my
+company's Rails apps, and generally am very much liking it, and will
+probably go through with the switch (our deployment times are killing
+us). I've been running tests on with jmeter against a demo EC2
+m1.xlarge running Ubuntu 9.10 (yes, we know it's out od date), with
+15GB RAM, 4x2GHz CPU.
+
+The server is behaving fine, with most of the unicorn workers sitting
+at about 280MB resident memory, comparable to passenger's workers. But
+I've been testing how many workers to run with, and I've noticed that
+once I get above three workers, a couple of them get ballooning
+virtual memory, jumping up to a little over 2GB. I initially thought
+that the server was overloaded and swapping, but swap usage is still
+0, and I get this behavior at over 50% free memory. It doesn't seem to
+be causing performance problems, but I was wondering if anyone else
+has observed this or similar behavior? I'm trying to decide if it's
+normal or an item for concern.
+
+-ben
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
