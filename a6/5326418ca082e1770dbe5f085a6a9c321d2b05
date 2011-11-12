@@ -1,0 +1,124 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.4 required=5.0 tests=AWL,FREEMAIL_FROM,
+ RP_MATCHES_RCVD,T_DKIM_INVALID shortcircuit=no autolearn=unavailable
+ version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (rubyforge.org [205.234.109.19]) by
+ dcvr.yhbt.net (Postfix) with ESMTP id 160652119B for <archivist@yhbt.net>;
+ Sat, 12 Nov 2011 00:40:32 +0000 (UTC)
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 5CDD315B8032; Fri, 11 Nov 2011 19:40:29 -0500 (EST)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from mail-gy0-f178.google.com (mail-gy0-f178.google.com
+ [209.85.160.178]) by rubyforge.org (Postfix) with ESMTP id 7986F15B802E for
+ <mongrel-unicorn@rubyforge.org>; Fri, 11 Nov 2011 19:14:17 -0500 (EST)
+Received: by gyf3 with SMTP id 3so4672231gyf.23 for
+ <mongrel-unicorn@rubyforge.org>; Fri, 11 Nov 2011 16:14:17 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com; s=gamma;
+ h=mime-version:in-reply-to:references:from:date:message-id:subject:to
+ :content-type:content-transfer-encoding;
+ bh=gACNX4WPJkQfK8nALr9FN/9fN5GocsiLg2jejlgbIsM=;
+ b=ipy/LV3uSYsC0XHfgyXl2YE2QumP6eTBcNdjJUw4uf7XMZWj0IuibpTIzBjuo83qA8
+ Fco9Owq0gD3ETZH/06kcLepJ7+fv7kZ73kKrfhXuQKYMf2IfqhcfHMwR5hU+RG1FFdDj
+ DdfTt6OR096C3El8PbfPPDqftBIsX5JrixPZA=
+Received: by 10.68.12.199 with SMTP id a7mr28330169pbc.58.1321056857113; Fri,
+ 11 Nov 2011 16:14:17 -0800 (PST)
+MIME-Version: 1.0
+Received: by 10.142.108.7 with HTTP; Fri, 11 Nov 2011 16:13:36 -0800 (PST)
+In-Reply-To: <20111110235034.GA13543@dcvr.yhbt.net>
+References:
+ <CAO1NZAoD3-MEPp14S3VBVGfr6abFqcL4CHBsA1PpctN2mv=iTw@mail.gmail.com>
+ <20111110235034.GA13543@dcvr.yhbt.net>
+From: Ben Somers <somers.ben@gmail.com>
+Date: Fri, 11 Nov 2011 16:13:36 -0800
+Message-ID:
+ <CAO1NZAoKnPqxdLTi64oHvhNAUuCRNx3bU=0FKVf0V7L=WhEU7Q@mail.gmail.com>
+Subject: Re: Virtual Memory Usage
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="iso-8859-1"
+Content-Transfer-Encoding: quoted-printable
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Thank you! I did some pmapping, and it looks like they are grabbing a
+big [anon] chunk, but it's shared between all the workers for a given
+master (both the low- and high-memory workers). Still no swapping.
+I'll proceed with my live testing (we're going to run just one
+webserver on unicorn for a few weeks), and see how it goes.
+
+-ben
+
+On Thu, Nov 10, 2011 at 3:50 PM, Eric Wong <normalperson@yhbt.net> wrote:
+>
+> Ben Somers <somers.ben@gmail.com> wrote:
+> > m1.xlarge running Ubuntu 9.10 (yes, we know it's out od date), with
+> > 15GB RAM, 4x2GHz CPU.
+> >
+> > The server is behaving fine, with most of the unicorn workers sitting
+> > at about 280MB resident memory, comparable to passenger's workers. But
+> > I've been testing how many workers to run with, and I've noticed that
+> > once I get above three workers, a couple of them get ballooning
+> > virtual memory, jumping up to a little over 2GB. I initially thought
+> > that the server was overloaded and swapping, but swap usage is still
+> > 0, and I get this behavior at over 50% free memory. It doesn't seem to
+> > be causing performance problems, but I was wondering if anyone else
+> > has observed this or similar behavior? I'm trying to decide if it's
+> > normal or an item for concern.
+>
+> Since you're on Linux, you can run "pmap $PID" to see how chunks of
+> virtual memory are used by any process.
+>
+> If a chunk is backed by a regular file, it hardly matters, the kernel
+> will share that with other processes and won't swap that memory (since
+> it's already backed by a regular file).
+>
+> Big "[ anon ]" chunks you see in pmap output are usually not shared, so
+> potentially more problematic. =A0It depends on your application and the
+> libraries it uses, of course. =A0Some libraries will share anonymous
+> memory between processes (raindrops does this for example, but only for
+> small integer counters).
+>
+> I've seen Unicorn processes using TokyoCabinet and TDB[1] with database
+> files many gigabytes large with large VM sizes to match. =A0I also know
+> both of those database libraries cooperate with the VM subsystem so I
+> had nothing to worry about as far as memory usage goes :)
+>
+>
+>
+> In case you (or somebody else) does notice high RSS and you're using the
+> stock glibc malloc, try setting MALLOC_MMAP_THRESHOLD_=3D131072 or
+> similar. =A0The author of jemalloc once blogged about this behavior with
+> glibc malloc, the title was "Mr. =A0Malloc gets schooled" or something
+> along those lines. =A0Making the malloc implementation use mmap() more
+> to reduce memory usage may hurt performance, though.
+>
+> I always do incremental processing on large datasets so that helps
+> me avoid issues with unchecked/unpredictable memory growth due to
+> malloc behavior.
+>
+>
+> [1] http://bogomips.org/ruby-tdb/
+> _______________________________________________
+> Unicorn mailing list - mongrel-unicorn@rubyforge.org
+> http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+> Do not quote signatures (like this one) or top post when replying
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
