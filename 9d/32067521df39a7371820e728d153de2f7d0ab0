@@ -1,0 +1,159 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.6 required=5.0 tests=AWL,FREEMAIL_FROM,
+ RP_MATCHES_RCVD,T_DKIM_INVALID shortcircuit=no autolearn=unavailable
+ version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (rubyforge.org [205.234.109.19]) by
+ dcvr.yhbt.net (Postfix) with ESMTP id 543B421274 for <archivist@yhbt.net>;
+ Tue, 15 Nov 2011 00:10:54 +0000 (UTC)
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id CE6A81D78101; Mon, 14 Nov 2011 19:10:53 -0500 (EST)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from mail-pz0-f50.google.com (mail-pz0-f50.google.com
+ [209.85.210.50]) by rubyforge.org (Postfix) with ESMTP id 67EB81779953 for
+ <mongrel-unicorn@rubyforge.org>; Mon, 14 Nov 2011 18:46:32 -0500 (EST)
+Received: by pzk5 with SMTP id 5so11156421pzk.9 for
+ <mongrel-unicorn@rubyforge.org>; Mon, 14 Nov 2011 15:46:31 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com; s=gamma;
+ h=mime-version:in-reply-to:references:date:message-id:subject:from:to
+ :content-type:content-transfer-encoding;
+ bh=MXFdN01AiseSA4Z/aw9ZgQATWv8f2DAFE6RHbAFTlnQ=;
+ b=PjA6Ux28DTR8YXfpP7wjM0XDNwyzmYKXqAX0WK6WkR6gIvtEDSL4oyCSwuR3zz+S0r
+ +0+L4ky89TTPKQT5woJjghYTGyLGD5bFrkvuxAxB3FppcPW1kHx/F223FHcmidpDTTz7
+ jtmgO3cMBElCQuTkCCVUqLW7gsOnYj4c++57A=
+MIME-Version: 1.0
+Received: by 10.68.5.162 with SMTP id t2mr54808273pbt.73.1321314391630; Mon,
+ 14 Nov 2011 15:46:31 -0800 (PST)
+Received: by 10.143.91.2 with HTTP; Mon, 14 Nov 2011 15:46:31 -0800 (PST)
+In-Reply-To: <20111114205429.GA15731@dcvr.yhbt.net>
+References:
+ <CADGZSSf-Ggg8K0N6Y2NUuUsXxK7eLpd4KQ6CEg=eHE_nVZatXg@mail.gmail.com>
+ <20111114205429.GA15731@dcvr.yhbt.net>
+Date: Tue, 15 Nov 2011 00:46:31 +0100
+Message-ID:
+ <CADGZSScuP_-N8QPOBiciNAECPyr6qVqLm54b8dHLdA_TMsXjvg@mail.gmail.com>
+Subject: Re: Fix hang when running tests on OpenBSD by skipping two tests
+From: Jeremy Evans <jeremyevans0@gmail.com>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="iso-8859-1"
+Content-Transfer-Encoding: quoted-printable
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+On Mon, Nov 14, 2011 at 9:54 PM, Eric Wong <normalperson@yhbt.net> wrote:
+> Jeremy Evans <jeremyevans0@gmail.com> wrote:
+>> This is obviously not a permanent fix, but I'm not sure why the tests
+>> are hanging, and hanging during a test is bad. =A0I suppose you could
+>> also use a timeout, so the test fails instead of hangs. =A0I'll be happy
+>> to test other patches to either the test suite or the library code
+>> (assuming the hang is fixable on OpenBSD).
+>
+> I'd like to investigate why this fails.
+
+Makes sense.  Is there something I can do to help debug?
+
+> So everything under t/ (gmake test-integration) works, too?
+> I much prefer shell-based the test suite myself
+
+I didn't even know about that test suite till now. :)
+
+I started running those tests on OpenBSD.  With the way the test suite
+is currently setup, it's a bit of a pain to debug, as it stops at the
+first error.  So I have to:
+
+1) run the entire test suite
+2) wait for it to halt/fail
+3) skip the test that halts/fails
+4) go to step 1
+
+With some small changes, you can make it through the entire test suite
+even if there are errors.  It would greatly speed up the debugging
+process, but it does require you read the logged output.  See the
+patch below.  With it, I determined the following integration tests
+hang/fail:
+
+ruby 1.8.7 and ruby 1.9.3 integration test failures:
+
+t0011-active-unix-socket.sh
+# fails: not ok 11 - no errors
+t0100-rack-input-tests.sh
+# hangs: requires kill to unicorn and kill -9 to sh in the 2nd test
+
+ruby 1.9.3 has a couple regular test failures (skipping the two hangs
+with the earlier patch):
+
+:   1) Error:
+: test_parse_error(HttpParserTest):
+: RuntimeError: can't set length of shared string
+:     test/unit/test_http_parser.rb:350:in `headers'
+:     test/unit/test_http_parser.rb:350:in `test_parse_error'
+
+:   1) Failure:
+: test_help(ExecTest) [test/exec/test_exec.rb:319]:
+: <0> expected but was
+: <158>.
+
+Thanks,
+Jeremy
+
+$OpenBSD$
+--- GNUmakefile.orig    Tue Nov 15 00:12:58 2011
++++ GNUmakefile Tue Nov 15 00:13:32 2011
+@@ -124,14 +124,14 @@ run_test =3D $(quiet_pre) \
+ %.n: export PATH :=3D $(test_prefix)/bin:$(PATH)
+ %.n: export RUBYLIB :=3D $(test_prefix):$(test_prefix)/lib:$(MYLIBS)
+ %.n: $(test_prefix)/.stamp
+-       $(run_test)
++       -$(run_test)
+
+ $(T): arg =3D $@
+ $(T): t =3D $(subst .rb,$(log_suffix),$@)
+ $(T): export PATH :=3D $(test_prefix)/bin:$(PATH)
+ $(T): export RUBYLIB :=3D $(test_prefix):$(test_prefix)/lib:$(MYLIBS)
+ $(T): $(test_prefix)/.stamp
+-       $(run_test)
++       -$(run_test)
+
+ install: $(bins) $(ext)/unicorn_http.c
+        $(prep_setup_rb)
+@@ -221,7 +221,7 @@ $(T_r).%.r: export RUBYLIB :=3D $(test_prefix):$(test_pr
+ $(T_r).%.r: export UNICORN_RAILS_TEST_VERSION =3D $(rv)
+ $(T_r).%.r: export RAILS_GIT_REPO =3D $(CURDIR)/$(rails_git)
+ $(T_r).%.r: $(test_prefix)/.stamp $(rails_git)/info/v2.2.3-stamp
+-       $(run_test)
++       -$(run_test)
+
+ ifneq ($(VERSION),)
+ rfproject :=3D mongrel
+
+--- t/GNUmakefile.orig  Tue Nov 15 00:12:39 2011
++++ t/GNUmakefile       Tue Nov 15 00:12:50 2011
+@@ -66,7 +66,7 @@ $(T): export RAKE :=3D $(RAKE)
+ $(T): export PATH :=3D $(test_prefix)/bin:$(PATH)
+ $(T): export RUBYLIB :=3D $(test_prefix)/lib:$(MYLIBS)
+ $(T): dep $(test_prefix)/.stamp trash/.gitignore
+-       $(TRACER) $(SHELL) $(SH_TEST_OPTS) $@ $(TEST_OPTS)
++       -$(TRACER) $(SHELL) $(SH_TEST_OPTS) $@ $(TEST_OPTS)
+
+ trash/.gitignore:
+        mkdir -p $(@D)
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
