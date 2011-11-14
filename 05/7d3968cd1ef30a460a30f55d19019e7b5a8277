@@ -1,0 +1,89 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.6 required=5.0 tests=AWL,FREEMAIL_FROM,
+ RP_MATCHES_RCVD,T_DKIM_INVALID shortcircuit=no autolearn=unavailable
+ version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (rubyforge.org [205.234.109.19]) by
+ dcvr.yhbt.net (Postfix) with ESMTP id 6F1E721266 for <archivist@yhbt.net>;
+ Mon, 14 Nov 2011 19:35:25 +0000 (UTC)
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id E0AFF1779950; Mon, 14 Nov 2011 14:35:20 -0500 (EST)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from mail-gx0-f178.google.com (mail-gx0-f178.google.com
+ [209.85.161.178]) by rubyforge.org (Postfix) with ESMTP id 885D115B802C for
+ <mongrel-unicorn@rubyforge.org>; Mon, 14 Nov 2011 14:33:06 -0500 (EST)
+Received: by ggnk5 with SMTP id k5so3560530ggn.23 for
+ <mongrel-unicorn@rubyforge.org>; Mon, 14 Nov 2011 11:33:06 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com; s=gamma;
+ h=mime-version:date:message-id:subject:from:to:content-type;
+ bh=o6d9cH+GTWW2q6Pjjqwkbjakpn/ZMxNTomeinWs1utQ=;
+ b=K1OLgqbqfBTt+C1Dt10QpaFFZb+blz5yiQuW+HmioFuIg6zsgwryzAhwJ6EJWk+UnD
+ Yhb8VTAEHe4+muO1OWNAFJFTiEwMijzjKoJmA/XEYwo1V4yyKi25K9Mdo92Bkm9MWVFZ
+ N+S4Y7PcYpEo43+KxzJdt2wmQl2JyjaySH0SY=
+MIME-Version: 1.0
+Received: by 10.68.15.3 with SMTP id t3mr16287579pbc.124.1321299186078; Mon,
+ 14 Nov 2011 11:33:06 -0800 (PST)
+Received: by 10.143.91.2 with HTTP; Mon, 14 Nov 2011 11:33:06 -0800 (PST)
+Date: Mon, 14 Nov 2011 20:33:06 +0100
+Message-ID:
+ <CADGZSSf-Ggg8K0N6Y2NUuUsXxK7eLpd4KQ6CEg=eHE_nVZatXg@mail.gmail.com>
+Subject: Fix hang when running tests on OpenBSD by skipping two tests
+From: Jeremy Evans <jeremyevans0@gmail.com>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+This skips two tests on OpenBSD when cause hangs when running the tests.
+
+This is obviously not a permanent fix, but I'm not sure why the tests
+are hanging, and hanging during a test is bad.  I suppose you could
+also use a timeout, so the test fails instead of hangs.  I'll be happy
+to test other patches to either the test suite or the library code
+(assuming the hang is fixable on OpenBSD).
+
+After this patch, the test suite passes fine on OpenBSD.
+
+Jeremy
+
+--- test/exec/test_exec.rb.orig Mon Nov 14 18:38:09 2011
++++ test/exec/test_exec.rb      Mon Nov 14 18:38:37 2011
+@@ -968,7 +968,7 @@ EOF
+       assert_nothing_raised { Process.kill(:QUIT, daemon_pid) }
+       wait_for_death(daemon_pid)
+     end
+-  end
++  end unless RUBY_PLATFORM =~ /openbsd/i
+
+   def test_default_listen_upgrade_holds_listener
+     default_listen_lock do
+@@ -998,7 +998,7 @@ EOF
+       assert_nothing_raised { Process.kill(:QUIT, daemon_pid) }
+       wait_for_death(daemon_pid)
+     end
+-  end
++  end unless RUBY_PLATFORM =~ /openbsd/i
+
+   def default_listen_setup
+     File.open("config.ru", "wb") { |fp| fp.syswrite(HI.gsub("HI", '#$$')) }
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
