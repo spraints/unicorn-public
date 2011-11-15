@@ -1,0 +1,122 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.6 required=5.0 tests=AWL,FREEMAIL_FROM,
+ RP_MATCHES_RCVD,T_DKIM_INVALID shortcircuit=no autolearn=unavailable
+ version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (rubyforge.org [205.234.109.19]) by
+ dcvr.yhbt.net (Postfix) with ESMTP id 9BF2E21274 for <archivist@yhbt.net>;
+ Tue, 15 Nov 2011 21:41:04 +0000 (UTC)
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 16FC61779954; Tue, 15 Nov 2011 16:41:04 -0500 (EST)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from mail-pz0-f50.google.com (mail-pz0-f50.google.com
+ [209.85.210.50]) by rubyforge.org (Postfix) with ESMTP id 9F82015B802C for
+ <mongrel-unicorn@rubyforge.org>; Tue, 15 Nov 2011 16:19:35 -0500 (EST)
+Received: by pzk5 with SMTP id 5so13974325pzk.9 for
+ <mongrel-unicorn@rubyforge.org>; Tue, 15 Nov 2011 13:19:34 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com; s=gamma;
+ h=mime-version:in-reply-to:references:date:message-id:subject:from:to
+ :content-type; bh=s3N3jJ7l6Wuzuy5PCyf5fKKaaWnzpFxPgMcSIXRCpas=;
+ b=L4BrB0+qeyUKXJgq6b9YGrrQiB6S/QPkmeksTV/qSbVIEomn+NDyRZ+MgDn01h3o4f
+ S9Ms9/inAxUvT+qMmO8opVslobmMC39YlQmYLYm2lHaMIqr8kLOGjAjJLoa1WIzJd1De
+ 1ehrcfizHlO3hZ50ifvJM6a5rB3BTNf3giXC4=
+MIME-Version: 1.0
+Received: by 10.68.15.3 with SMTP id t3mr26630766pbc.124.1321391974540; Tue,
+ 15 Nov 2011 13:19:34 -0800 (PST)
+Received: by 10.143.91.2 with HTTP; Tue, 15 Nov 2011 13:19:34 -0800 (PST)
+In-Reply-To:
+ <CADGZSSe0CUn2nW5zzSh=Da4HO7F7OX7zu+CWEhE7v=cU2J1Gng@mail.gmail.com>
+References:
+ <CADGZSSf-Ggg8K0N6Y2NUuUsXxK7eLpd4KQ6CEg=eHE_nVZatXg@mail.gmail.com>
+ <20111114205429.GA15731@dcvr.yhbt.net>
+ <CADGZSScuP_-N8QPOBiciNAECPyr6qVqLm54b8dHLdA_TMsXjvg@mail.gmail.com>
+ <20111115031744.GA3666@dcvr.yhbt.net>
+ <CADGZSSe0CUn2nW5zzSh=Da4HO7F7OX7zu+CWEhE7v=cU2J1Gng@mail.gmail.com>
+Date: Tue, 15 Nov 2011 22:19:34 +0100
+Message-ID:
+ <CADGZSScfcrfN1UkmYeqkVS-P4SdObhvauqmYc2JiBabbK_cpUQ@mail.gmail.com>
+Subject: Re: Fix hang when running tests on OpenBSD by skipping two tests
+From: Jeremy Evans <jeremyevans0@gmail.com>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+On Tue, Nov 15, 2011 at 9:03 PM, Jeremy Evans <jeremyevans0@gmail.com> wrote:
+> openssl sha1 on OpenBSD doesn't just spit out the hash:
+>
+> $ openssl sha1 mocha.diff
+> SHA1(mocha.diff)= 4ea47d3cf9e4f1858a298a8a9f5a5671422971d5
+> $ sha1 -q mocha.diff
+> 4ea47d3cf9e4f1858a298a8a9f5a5671422971d5
+
+Here's a fix for t/test-lib.sh that handles unix socket paths where
+you are running the regression tests for a long directory name.  I
+didn't catch this earlier because the unix socket test only fails on
+ruby 1.9 port on my system, since the path name is a little longer for
+the ruby19 flavor than the unflavored ruby 1.8 port.
+
+You probably want to use more robust name mangling if you choose to
+fix this, my fix is simple but has corner cases where it breaks that
+could be problematic.
+
+Jeremy
+
+--- t/test-lib.sh.orig  Thu Jan  1 01:00:00 1970
++++ t/test-lib.sh       Tue Nov 15 22:02:59 2011
+@@ -38,20 +38,24 @@ rtmpfiles () {
+        for id in "$@"
+        do
+                name=$id
+-               _tmp=$t_pfx.$id
+-               eval "$id=$_tmp"
+
+                case $name in
+                *fifo)
++                       _tmp=$t_pfx.$id
++                       eval "$id=$_tmp"
+                        rm -f $_tmp
+                        mkfifo $_tmp
+                        T_RM_LIST="$T_RM_LIST $_tmp"
+                        ;;
+                *socket)
++                       _tmp=$(echo "$t_pfx.$id" | $RUBY -e 'print
+$stdin.read(103)')
++                       eval "$id=$_tmp"
+                        rm -f $_tmp
+                        T_RM_LIST="$T_RM_LIST $_tmp"
+                        ;;
+                *)
++                       _tmp=$t_pfx.$id
++                       eval "$id=$_tmp"
+                        > $_tmp
+                        T_OK_RM_LIST="$T_OK_RM_LIST $_tmp"
+                        ;;
+@@ -101,6 +105,7 @@ unicorn_wait_start () {
+
+ rsha1 () {
+        _cmd="$(which sha1sum 2>/dev/null || :)"
++       test -n "$_cmd" || _cmd="$(which sha1 2>/dev/null || :) -q"
+        test -n "$_cmd" || _cmd="$(which openssl 2>/dev/null || :) sha1"
+        test "$_cmd" != " sha1" || _cmd="$(which gsha1sum 2>/dev/null || :)"
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
