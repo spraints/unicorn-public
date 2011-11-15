@@ -1,0 +1,106 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,RP_MATCHES_RCVD
+ shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (rubyforge.org [205.234.109.19]) by
+ dcvr.yhbt.net (Postfix) with ESMTP id 0817921273 for <archivist@yhbt.net>;
+ Tue, 15 Nov 2011 22:48:05 +0000 (UTC)
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 821651779951; Tue, 15 Nov 2011 17:48:04 -0500 (EST)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 436F2185834E for <mongrel-unicorn@rubyforge.org>;
+ Tue, 15 Nov 2011 17:36:20 -0500 (EST)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 65B6D1F42B; Tue, 15 Nov 2011 22:36:19 +0000 (UTC)
+Date: Tue, 15 Nov 2011 14:36:19 -0800
+From: Eric Wong <normalperson@yhbt.net>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Subject: Re: Fix hang when running tests on OpenBSD by skipping two tests
+Message-ID: <20111115223619.GA689@dcvr.yhbt.net>
+References:
+ <CADGZSSf-Ggg8K0N6Y2NUuUsXxK7eLpd4KQ6CEg=eHE_nVZatXg@mail.gmail.com>
+ <20111114205429.GA15731@dcvr.yhbt.net>
+ <CADGZSScuP_-N8QPOBiciNAECPyr6qVqLm54b8dHLdA_TMsXjvg@mail.gmail.com>
+ <20111115031744.GA3666@dcvr.yhbt.net>
+ <CADGZSSe0CUn2nW5zzSh=Da4HO7F7OX7zu+CWEhE7v=cU2J1Gng@mail.gmail.com>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To:
+ <CADGZSSe0CUn2nW5zzSh=Da4HO7F7OX7zu+CWEhE7v=cU2J1Gng@mail.gmail.com>
+User-Agent: Mutt/1.5.21 (2010-09-15)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Jeremy Evans <jeremyevans0@gmail.com> wrote:
+> I assume you aren't purposely testing a large timeout here, so
+> hopefully this change is fine.  The original code caused an infinite
+> loop on OpenBSD, and also taking up all available space on the file
+> system if you let it run long enough because it wrote to the log
+> inside the loop.  On 1.8.7:
+
+I expected "timeout 0x7fffffff" to be fine (I sometimes use it :x)...
+
+> E, [2011-11-15T18:55:34.616397 #11092] ERROR -- : master loop error:
+> time + 2147483646.000000 out of Time range (RangeError)
+> E, [2011-11-15T18:55:34.616538 #11092] ERROR -- :
+> /usr/obj/ports/unicorn-4.1.1/unicorn-4.1.1/t/../test/ruby-1.8.7/lib/unicorn/http_server.rb:264:in
+
+Odd, which patchlevel of 1.8.7 is this?  (more of a curiosity at this
+point, see below)
+
+> On 1.9.3:
+> 
+> E, [2011-11-15T19:00:20.464234 #13442] ERROR -- : listen loop error:
+> Invalid argument (Errno::EINVAL)
+> E, [2011-11-15T19:00:20.464327 #13442] ERROR -- :
+> /usr/local/lib/ruby/gems/1.8/gems/unicorn-4.1.1/lib/unicorn/http_server.rb:620:in
+> `select'
+
+OK, I need to read POSIX manpages more often, not just the Linux ones.
+>From the select() POSIX manpage:
+
+	All implementations shall support a maximum timeout interval of
+	at least 31 days.
+
+I think I'll just force Unicorn::Configurator to limit that to 30 days.
+
+But, the POSIX manpage also states:
+
+	If the timeout argument specifies a timeout interval greater
+	than the implementation-defined maximum value, the maximum value
+	shall be used as the actual timeout value.
+
+So isn't OpenBSD wrong in giving EINVAL here?  Unless somehow the large
+time_t was interpreted as a negative value...
+
+> openssl sha1 on OpenBSD doesn't just spit out the hash:
+> 
+> $ openssl sha1 mocha.diff
+> SHA1(mocha.diff)= 4ea47d3cf9e4f1858a298a8a9f5a5671422971d5
+
+This happens on newer openssl under Debian, too.  Maybe just switch to
+sha1sum.rb since I'm more comfortable with Ruby 1.9 now than I was in
+2009.
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
