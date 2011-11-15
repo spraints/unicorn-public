@@ -1,0 +1,182 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.6 required=5.0 tests=AWL,FREEMAIL_FROM,
+ NORMAL_HTTP_TO_IP,RP_MATCHES_RCVD,T_DKIM_INVALID shortcircuit=no
+ autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (rubyforge.org [205.234.109.19]) by
+ dcvr.yhbt.net (Postfix) with ESMTP id DEE2421273 for <archivist@yhbt.net>;
+ Tue, 15 Nov 2011 21:42:51 +0000 (UTC)
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 8626515B802F; Tue, 15 Nov 2011 16:42:51 -0500 (EST)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from mail-pz0-f50.google.com (mail-pz0-f50.google.com
+ [209.85.210.50]) by rubyforge.org (Postfix) with ESMTP id A5797185834E for
+ <mongrel-unicorn@rubyforge.org>; Tue, 15 Nov 2011 15:03:50 -0500 (EST)
+Received: by pzk5 with SMTP id 5so13790300pzk.9 for
+ <mongrel-unicorn@rubyforge.org>; Tue, 15 Nov 2011 12:03:50 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com; s=gamma;
+ h=mime-version:in-reply-to:references:date:message-id:subject:from:to
+ :content-type:content-transfer-encoding;
+ bh=xYJqhadnCvjM0nUfRzvveW0EKwnhxZ0PymSTfC+Z1Yw=;
+ b=uGdS28o1e/SA+BAfrLKWGgTLRcDc84WszrXo4LRcsQcOVtik2gGgJtXVapwuisR/s3
+ pXEEQswUtGwQdmV6ugNGKqNEAtVeg2LpTL3VdVyCOPJzumugCRcuHyoK/IijEnzw9PFm
+ IHZpyX8uSXOuib4SeBuwoe/J82cTRPtlSkbeA=
+MIME-Version: 1.0
+Received: by 10.68.15.3 with SMTP id t3mr26086559pbc.124.1321387429918; Tue,
+ 15 Nov 2011 12:03:49 -0800 (PST)
+Received: by 10.143.91.2 with HTTP; Tue, 15 Nov 2011 12:03:49 -0800 (PST)
+In-Reply-To: <20111115031744.GA3666@dcvr.yhbt.net>
+References:
+ <CADGZSSf-Ggg8K0N6Y2NUuUsXxK7eLpd4KQ6CEg=eHE_nVZatXg@mail.gmail.com>
+ <20111114205429.GA15731@dcvr.yhbt.net>
+ <CADGZSScuP_-N8QPOBiciNAECPyr6qVqLm54b8dHLdA_TMsXjvg@mail.gmail.com>
+ <20111115031744.GA3666@dcvr.yhbt.net>
+Date: Tue, 15 Nov 2011 21:03:49 +0100
+Message-ID:
+ <CADGZSSe0CUn2nW5zzSh=Da4HO7F7OX7zu+CWEhE7v=cU2J1Gng@mail.gmail.com>
+Subject: Re: Fix hang when running tests on OpenBSD by skipping two tests
+From: Jeremy Evans <jeremyevans0@gmail.com>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="iso-8859-1"
+Content-Transfer-Encoding: quoted-printable
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+On Tue, Nov 15, 2011 at 4:17 AM, Eric Wong <normalperson@yhbt.net> wrote:
+> I usually prefer to work on each problem, one-at-a-time. =A0However,
+> GNU make already has a handy -k/--keep-going flag to ignore failures.
+
+Thanks, I didn't know about that, and it is much easier than patching
+make files.
+
+I think I've fixed all the issues that caused test failures on
+OpenBSD.  All changes are in the test code itself.  Hope this helps.
+Sorry if gmail mangles these diffs.
+
+Thanks,
+Jeremy
+
+expr on OpenBSD uses a basic regular expression (according to
+re_format(7)), which doesn't support +, only *.
+
+--- t/t0011-active-unix-socket.sh.orig  Tue Nov 15 20:28:37 2011
++++ t/t0011-active-unix-socket.sh       Tue Nov 15 20:28:54 2011
+@@ -7,7 +7,7 @@ read_pid_unix () {
+            socat - UNIX:$unix_socket | \
+            tail -1)
+        test -n "$x"
+-       y=3D"$(expr "$x" : '\([0-9]\+\)')"
++       y=3D"$(expr "$x" : '\([0-9][0-9]*\)')"
+        test x"$x" =3D x"$y"
+        test -n "$y"
+        echo "$y"
+
+I assume you aren't purposely testing a large timeout here, so
+hopefully this change is fine.  The original code caused an infinite
+loop on OpenBSD, and also taking up all available space on the file
+system if you let it run long enough because it wrote to the log
+inside the loop.  On 1.8.7:
+
+E, [2011-11-15T18:55:34.616397 #11092] ERROR -- : master loop error:
+time + 2147483646.000000 out of Time range (RangeError)
+E, [2011-11-15T18:55:34.616538 #11092] ERROR -- :
+/usr/obj/ports/unicorn-4.1.1/unicorn-4.1.1/t/../test/ruby-1.8.7/lib/unicorn=
+/http_server.rb:264:in
+`+'
+E, [2011-11-15T18:55:34.616611 #11092] ERROR -- :
+/usr/obj/ports/unicorn-4.1.1/unicorn-4.1.1/t/../test/ruby-1.8.7/lib/unicorn=
+/http_server.rb:264:in
+`join'
+E, [2011-11-15T18:55:34.616686 #11092] ERROR -- :
+/usr/obj/ports/unicorn-4.1.1/unicorn-4.1.1/t/../test/ruby-1.8.7/bin/unicorn=
+:121
+
+On 1.9.3:
+
+E, [2011-11-15T19:00:20.464234 #13442] ERROR -- : listen loop error:
+Invalid argument (Errno::EINVAL)
+E, [2011-11-15T19:00:20.464327 #13442] ERROR -- :
+/usr/local/lib/ruby/gems/1.8/gems/unicorn-4.1.1/lib/unicorn/http_server.rb:=
+620:in
+`select'
+E, [2011-11-15T19:00:20.464399 #13442] ERROR -- :
+/usr/local/lib/ruby/gems/1.8/gems/unicorn-4.1.1/lib/unicorn/http_server.rb:=
+620:in
+`worker_loop'
+E, [2011-11-15T19:00:20.464457 #13442] ERROR -- :
+/usr/local/lib/ruby/gems/1.8/gems/unicorn-4.1.1/lib/unicorn/http_server.rb:=
+485:in
+`spawn_missing_workers'
+E, [2011-11-15T19:00:20.464514 #13442] ERROR -- :
+/usr/local/lib/ruby/gems/1.8/gems/unicorn-4.1.1/lib/unicorn/http_server.rb:=
+135:in
+`start'
+E, [2011-11-15T19:00:20.464570 #13442] ERROR -- :
+/usr/local/lib/ruby/gems/1.8/gems/unicorn-4.1.1/bin/unicorn:121
+E, [2011-11-15T19:00:20.464626 #13442] ERROR -- :
+/usr/local/bin/unicorn:19:in `load'
+E, [2011-11-15T19:00:20.464681 #13442] ERROR -- : /usr/local/bin/unicorn:19
+
+--- t/t0012-reload-empty-config.sh.orig Tue Nov 15 20:05:13 2011
++++ t/t0012-reload-empty-config.sh      Tue Nov 15 20:05:37 2011
+@@ -9,7 +9,7 @@ t_begin "setup and start" && {
+        cat >> $unicorn_config <<EOF
+ logger Logger.new(STDOUT)
+ preload_app true
+-timeout 0x7fffffff
++timeout 0x7fffff
+ worker_processes 2
+ after_fork { |s,w| }
+ \$dump_cfg =3D lambda { |fp,srv|
+
+openssl sha1 on OpenBSD doesn't just spit out the hash:
+
+$ openssl sha1 mocha.diff
+SHA1(mocha.diff)=3D 4ea47d3cf9e4f1858a298a8a9f5a5671422971d5
+$ sha1 -q mocha.diff
+4ea47d3cf9e4f1858a298a8a9f5a5671422971d5
+
+--- t/test-lib.sh.orig  Tue Nov 15 19:12:25 2011
++++ t/test-lib.sh       Tue Nov 15 19:38:05 2011
+@@ -101,6 +101,7 @@ unicorn_wait_start () {
+
+ rsha1 () {
+        _cmd=3D"$(which sha1sum 2>/dev/null || :)"
++       test -n "$_cmd" || _cmd=3D"$(which sha1 2>/dev/null || :) -q"
+        test -n "$_cmd" || _cmd=3D"$(which openssl 2>/dev/null || :) sha1"
+        test "$_cmd" !=3D " sha1" || _cmd=3D"$(which gsha1sum 2>/dev/null |=
+| :)"
+
+You can listen on 0.0.0.0, but trying to connect to it doesn't work
+well on OpenBSD.
+
+--- test/test_helper.rb.orig    Tue Nov 15 20:43:39 2011
++++ test/test_helper.rb Tue Nov 15 20:46:17 2011
+@@ -72,6 +72,7 @@ def hit(uris)
+     res =3D nil
+
+     if u.kind_of? String
++      u =3D 'http://127.0.0.1:8080/' if u =3D=3D 'http://0.0.0.0:8080/'
+       res =3D Net::HTTP.get(URI.parse(u))
+     else
+       url =3D URI.parse(u[0])
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
