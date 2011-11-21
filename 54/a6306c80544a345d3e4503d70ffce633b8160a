@@ -1,0 +1,70 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.7 required=5.0 tests=RP_MATCHES_RCVD
+ shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (rubyforge.org [205.234.109.19]) by
+ dcvr.yhbt.net (Postfix) with ESMTP id 8D10721671 for <archivist@yhbt.net>;
+ Tue, 22 Nov 2011 00:10:06 +0000 (UTC)
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id A36AC1D783E0; Mon, 21 Nov 2011 19:10:01 -0500 (EST)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from mail-yw0-f50.google.com (mail-yw0-f50.google.com
+ [209.85.213.50]) by rubyforge.org (Postfix) with ESMTP id C589E1D7810C for
+ <mongrel-unicorn@rubyforge.org>; Mon, 21 Nov 2011 18:14:41 -0500 (EST)
+Received: by ywm13 with SMTP id 13so7008876ywm.23 for
+ <mongrel-unicorn@rubyforge.org>; Mon, 21 Nov 2011 15:14:41 -0800 (PST)
+Received: by 10.236.197.9 with SMTP id s9mr23378896yhn.71.1321917281126; Mon,
+ 21 Nov 2011 15:14:41 -0800 (PST)
+Received: from [10.0.1.4] (124-168-16-39.dyn.iinet.net.au. [124.168.16.39])
+ by mx.google.com with ESMTPS id v5sm33500976anf.3.2011.11.21.15.14.39
+ (version=TLSv1/SSLv3 cipher=OTHER); Mon, 21 Nov 2011 15:14:40 -0800 (PST)
+From: Laurens Pit <laurens.pit@mirror42.com>
+Subject: Should USR2 always work?
+Date: Tue, 22 Nov 2011 10:14:34 +1100
+Message-Id: <F2C54DC9-D848-4ECF-8A6E-6E20D95A58CD@mirror42.com>
+To: Unicorn List <mongrel-unicorn@rubyforge.org>
+Mime-Version: 1.0 (Apple Message framework v1251.1)
+X-Mailer: Apple Mail (2.1251.1)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Hi,
+
+When deploying new code we go through the USR2 QUIT sequence. This works very nicely and gives zero downtime.
+
+My question is whether there are instances when this sequence is known to not work, and instead you should really send QUIT first and then start all over?
+
+I didn't expect that to be the case, but in the past year occasionally I've experienced I had to resort to QUIT and start all over in order to get all components loaded correctly.
+
+Specifically: yesterday I upgraded several projects to rails 3.0.11 and added a new i18n .yml file in the config dir. After the USR2 QUIT sequence all new code seemed to work fine. Except the new .yml file wasn't loaded. Another run of USR2 and QUIT didn't resolve it. Only after QUIT and start of unicorn was the new .yml file loaded.
+
+This was not just on one machine, which might have been a fluke. This was on all machines for all projects, consistently.
+
+Any ideas?
+
+
+
+Cheers,
+Lawrence
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
