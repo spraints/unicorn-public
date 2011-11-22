@@ -1,0 +1,98 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,RP_MATCHES_RCVD
+ shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (rubyforge.org [205.234.109.19]) by
+ dcvr.yhbt.net (Postfix) with ESMTP id AA74921671 for <archivist@yhbt.net>;
+ Tue, 22 Nov 2011 01:33:17 +0000 (UTC)
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 2C2E51D783E0; Mon, 21 Nov 2011 20:33:17 -0500 (EST)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 89EC11D783DE for <mongrel-unicorn@rubyforge.org>;
+ Mon, 21 Nov 2011 20:16:32 -0500 (EST)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 8CDA021199; Tue, 22 Nov 2011 01:16:31 +0000 (UTC)
+Date: Mon, 21 Nov 2011 17:16:31 -0800
+From: Eric Wong <normalperson@yhbt.net>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Subject: Re: Should USR2 always work?
+Message-ID: <20111122011631.GA20110@dcvr.yhbt.net>
+References: <F2C54DC9-D848-4ECF-8A6E-6E20D95A58CD@mirror42.com>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To: <F2C54DC9-D848-4ECF-8A6E-6E20D95A58CD@mirror42.com>
+User-Agent: Mutt/1.5.21 (2010-09-15)
+Cc: Laurens Pit <laurens.pit@mirror42.com>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Laurens Pit <laurens.pit@mirror42.com> wrote:
+> I didn't expect that to be the case, but in the past year occasionally
+> I've experienced I had to resort to QUIT and start all over in order
+> to get all components loaded correctly.
+> 
+> Specifically: yesterday I upgraded several projects to rails 3.0.11
+> and added a new i18n .yml file in the config dir. After the USR2 QUIT
+> sequence all new code seemed to work fine. Except the new .yml file
+> wasn't loaded. Another run of USR2 and QUIT didn't resolve it. Only
+> after QUIT and start of unicorn was the new .yml file loaded.
+> 
+> This was not just on one machine, which might have been a fluke. This
+> was on all machines for all projects, consistently.
+> 
+> Any ideas?
+
+Anything from stderr log files?  USR2 will fail if there's
+
+* compile/load error when loading the app (if preload_app=true)
+
+* unicorn/unicorn_rails executable script is missing
+  (maybe Bundler is moving it?)
+
+* Ruby installation got moved/shifted/changed
+
+* Working directory got _moved_ (cap may cycle those out)
+  You can set "working_directory" in your unicorn config
+  to work around it.
+
+  (and maybe other reasons I can't think of right now)
+
+Come to think of it, the missing working directory case
+could be the most common...
+
+But stderr log files (stderr_path) should always tell you what's
+going on.
+
+== Linux(-only?) tip:
+
+If the log files got deleted somehow, you may still be able to read it
+via: "cat /proc/$PID/fd/2" on either the PID of the master or _any_
+worker process.
+
+To read some other log files, you can just replace the "2" with whatever
+file descriptor.  Reading the symlinks ("ls -l /proc/$PID/fd/") will
+tell you where each descriptor is pointed to, even if it is a deleted
+file.
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
