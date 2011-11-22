@@ -1,0 +1,84 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,RP_MATCHES_RCVD
+ shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (rubyforge.org [205.234.109.19]) by
+ dcvr.yhbt.net (Postfix) with ESMTP id 81FA321671 for <archivist@yhbt.net>;
+ Tue, 22 Nov 2011 03:18:46 +0000 (UTC)
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 02A581779950; Mon, 21 Nov 2011 22:18:46 -0500 (EST)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id AA5781858300 for <mongrel-unicorn@rubyforge.org>;
+ Mon, 21 Nov 2011 22:00:38 -0500 (EST)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 38D4F21199; Tue, 22 Nov 2011 03:00:38 +0000 (UTC)
+Date: Mon, 21 Nov 2011 19:00:38 -0800
+From: Eric Wong <normalperson@yhbt.net>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Subject: Re: Should USR2 always work?
+Message-ID: <20111122030038.GA26218@dcvr.yhbt.net>
+References: <F2C54DC9-D848-4ECF-8A6E-6E20D95A58CD@mirror42.com>
+ <20111122011631.GA20110@dcvr.yhbt.net>
+ <A0A5DD91-E3E6-4F97-A409-4BACB99D7138@gmail.com>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To: <A0A5DD91-E3E6-4F97-A409-4BACB99D7138@gmail.com>
+User-Agent: Mutt/1.5.21 (2010-09-15)
+Cc: Lawrence Pit <lawrence.pit@gmail.com>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Lawrence Pit <lawrence.pit@gmail.com> wrote:
+> Bundler has been updated several times this year, I guess every time
+> that happens and a new version gets installed a complete restart of
+> unicorn is required? Am I the only one seeing this?
+
+Managing bunder has always been tricky, unfortunately.
+
+> Perhaps I'm managing bundler wrong? Bundler and rake are the only two
+> gems I install in the global gem space. With an update of bundler I do
+> "gem uninstall bundler ; gem bundler install". Should I manage this
+> differently?
+
+I brought up a "bring-your-own-executable" deployment a few months ago
+but haven't heard any feedback.  Here it is for Bundler:
+
+   http://mid.gmane.org/20110819022316.GA2951@dcvr.yhbt.net
+
+I am also using something very similar with Isolate:
+
+------------- /full/path/to/app_root/script/unicorn-byoe ---------
+#!/home/ew/ruby-1.9.3/bin/ruby
+# Unicorn: bring-your-own executable
+require "isolate/now"
+$LOAD_PATH << "./lib"
+load Gem.bin_path("unicorn", "unicorn")
+------------------------------- 8< -------------------------------
+
+I run the path using the full pathname, so there's less ambiguity as to
+what gets captured as $0 and executed on USR2.
+
+I don't know of anybody else doing/trying this, though.
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
