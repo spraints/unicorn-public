@@ -1,0 +1,94 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.6 required=5.0 tests=AWL,FREEMAIL_FROM,
+ RP_MATCHES_RCVD,T_DKIM_INVALID shortcircuit=no autolearn=unavailable
+ version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (rubyforge.org [205.234.109.19]) by
+ dcvr.yhbt.net (Postfix) with ESMTP id F34A92119A for <archivist@yhbt.net>;
+ Wed, 23 Nov 2011 05:44:51 +0000 (UTC)
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 20AA51D7846D; Wed, 23 Nov 2011 00:44:51 -0500 (EST)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from mail-yw0-f50.google.com (mail-yw0-f50.google.com
+ [209.85.213.50]) by rubyforge.org (Postfix) with ESMTP id 9AA971858300 for
+ <mongrel-unicorn@rubyforge.org>; Wed, 23 Nov 2011 00:31:33 -0500 (EST)
+Received: by ywm13 with SMTP id 13so1270329ywm.23 for
+ <mongrel-unicorn@rubyforge.org>; Tue, 22 Nov 2011 21:31:33 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com; s=gamma;
+ h=subject:mime-version:content-type:from:in-reply-to:date:cc
+ :content-transfer-encoding:message-id:references:to:x-mailer;
+ bh=nfV5am9WVQ11YYXWWOnSUXgfXOWIVSV1ROgQBYMkvMI=;
+ b=GXFVd67bQ7KMARyWpfx8aGQKONR7ZH15juFnOAgUlLqZcLUdBRkSOBrqj+KP+CgNVj
+ wGe0veOWT8WgyozboEeodrjjU1u7CSm3/WSI9I8yQWoEh98KeROphu8CpdVYXBhTVOPz
+ dehH8ixs1ECfSzf3LWhZzQ/ZVpn3nG2m/KTPc=
+Received: by 10.236.85.174 with SMTP id u34mr31519320yhe.28.1322026292183;
+ Tue, 22 Nov 2011 21:31:32 -0800 (PST)
+Received: from [10.0.1.4] (124-168-16-39.dyn.iinet.net.au. [124.168.16.39])
+ by mx.google.com with ESMTPS id i67sm23254752yhm.16.2011.11.22.21.31.29
+ (version=TLSv1/SSLv3 cipher=OTHER); Tue, 22 Nov 2011 21:31:30 -0800 (PST)
+Subject: Re: Should USR2 always work?
+Mime-Version: 1.0 (Apple Message framework v1251.1)
+From: Lawrence Pit <lawrence.pit@gmail.com>
+In-Reply-To: <20111122030038.GA26218@dcvr.yhbt.net>
+Date: Wed, 23 Nov 2011 16:31:24 +1100
+Message-Id: <178B303D-5067-430E-BC7E-9C4C11442AD8@gmail.com>
+References: <F2C54DC9-D848-4ECF-8A6E-6E20D95A58CD@mirror42.com>
+ <20111122011631.GA20110@dcvr.yhbt.net>
+ <A0A5DD91-E3E6-4F97-A409-4BACB99D7138@gmail.com>
+ <20111122030038.GA26218@dcvr.yhbt.net>
+To: Eric Wong <normalperson@yhbt.net>
+X-Mailer: Apple Mail (2.1251.1)
+Cc: unicorn list <mongrel-unicorn@rubyforge.org>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+
+> I brought up a "bring-your-own-executable" deployment a few months ago
+> but haven't heard any feedback.  Here it is for Bundler:
+> 
+>   http://mid.gmane.org/20110819022316.GA2951@dcvr.yhbt.net
+
+
+I tried this out by going back to a previous version of bundler, then deployed, unfortunately doesn't seem to work for me:
+
+  executing ["/srv/ec/current/script/unicorn_byoe", "-D", "-E", "staging", "-c", "/srv/ec/current/config/unicorn/staging.rb"] (in /srv/ec/releases/20111123052840)
+  /opt/ree/bin/ruby: no such file to load -- bundler/setup (LoadError)
+
+Sending QUIT and then start anew works fine. Upgraded back to latest, tried again, and again no luck. QUIT + start is the only thing that works then.
+
+
+Tried a slightly modified version of unicorn_byoe, I'm using rails:
+
+#!/opt/ree/bin/ruby
+require File.expand_path("../../config/boot.rb", __FILE__)
+# Gem.bin_path(gem_name, executable_name, *version_requirements)
+load Gem.bin_path("unicorn", "unicorn_rails")   
+
+
+
+Cheers,
+Lawrence
+
+
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
