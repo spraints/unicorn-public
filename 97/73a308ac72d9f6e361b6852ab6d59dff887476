@@ -1,0 +1,80 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.6 required=5.0 tests=AWL,FREEMAIL_FROM,
+ RP_MATCHES_RCVD,T_DKIM_INVALID shortcircuit=no autolearn=unavailable
+ version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (rubyforge.org [205.234.109.19]) by
+ dcvr.yhbt.net (Postfix) with ESMTP id B607521031 for <archivist@yhbt.net>;
+ Wed, 30 Nov 2011 21:39:02 +0000 (UTC)
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 2BD401678363; Wed, 30 Nov 2011 16:39:02 -0500 (EST)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from mail-yw0-f50.google.com (mail-yw0-f50.google.com
+ [209.85.213.50]) by rubyforge.org (Postfix) with ESMTP id A29EE185837D for
+ <mongrel-unicorn@rubyforge.org>; Wed, 30 Nov 2011 15:54:38 -0500 (EST)
+Received: by ywb26 with SMTP id 26so1526095ywb.23 for
+ <mongrel-unicorn@rubyforge.org>; Wed, 30 Nov 2011 12:54:38 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com; s=gamma;
+ h=mime-version:in-reply-to:references:date:message-id:subject:from:to
+ :content-type; bh=uRKLldFcJ006SbyeIqYmxBcO9rikBCerFcYYaSaYmUk=;
+ b=xo2uje4j56xC/FRtoqfk4RfogQ2k3U6Gakm9Fg4+VPNibZ07xWIl+4+5HLtZo8HSc6
+ d1dvTuDw6lc9R307ro3KdmFuD/rHCNQ4SNUrHyJAENohf4Uq77/JJsl8hKx+fME7zbna
+ Q3dF5bgVzPFIZuEDQFN/z+tQKF0WJoNVpOA9g=
+MIME-Version: 1.0
+Received: by 10.68.36.69 with SMTP id o5mr384900pbj.46.1322686477841; Wed, 30
+ Nov 2011 12:54:37 -0800 (PST)
+Received: by 10.142.75.10 with HTTP; Wed, 30 Nov 2011 12:54:37 -0800 (PST)
+In-Reply-To: <A735B08F-9B63-474B-A596-E8E71B512BB7@eenet.ee>
+References: <A735B08F-9B63-474B-A596-E8E71B512BB7@eenet.ee>
+Date: Wed, 30 Nov 2011 12:54:37 -0800
+Message-ID:
+ <CADGZSSe17LzpvEZ1AevpzMbBbLNVb6R8YhAaWB0BTF==dnNp_Q@mail.gmail.com>
+Subject: Re: COW friendly GC and PostgreSQL
+From: Jeremy Evans <jeremyevans0@gmail.com>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+On Wed, Nov 30, 2011 at 7:24 AM, Laas Toom <laas.toom@eenet.ee> wrote:
+> Hello,
+>
+> I stumbled upon a weird issue when upgrading a Rails app and trying to run in on Unicorn!:
+> http://stackoverflow.com/questions/8262803/unicorn-and-postgresql/
+>
+> The problem manifested itself via a few different error messages as if garbage/nil was returned from database instead of actual data and it only happened with more than one concurrent request (i.e under load test).
+>
+> This turned out to be an issue with COW-friendly GC that I had enabled (taken from the example unicorn.conf). Removing this from unicorn.conf made the app run smooth again.
+>
+> Is this something known or did I do something wrong?
+
+If you didn't disconnect the database connection before forking, that
+could be the cause of the problem, though you should have issues
+regardless of whether the GC is CoW or not.  Did you just turn off
+CoW, or did you turn off preload_app as well?
+
+Looking at your config file, try adding a before_fork callback that
+disconnects the database connection and things may work fine.
+
+Jeremy
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
