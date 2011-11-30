@@ -1,0 +1,69 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.7 required=5.0 tests=RP_MATCHES_RCVD
+ shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (rubyforge.org [205.234.109.19]) by
+ dcvr.yhbt.net (Postfix) with ESMTP id 6CA5621031 for <archivist@yhbt.net>;
+ Wed, 30 Nov 2011 20:38:11 +0000 (UTC)
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 50D67185837C; Wed, 30 Nov 2011 15:38:10 -0500 (EST)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from muheleja.eenet.ee (muheleja.eenet.ee [193.40.0.132]) by
+ rubyforge.org (Postfix) with ESMTP id DC1D0185837C for
+ <mongrel-unicorn@rubyforge.org>; Wed, 30 Nov 2011 15:12:40 -0500 (EST)
+Received: from muheleja.eenet.ee (localhost [127.0.0.1]) by
+ localhost.eenet.ee (Postfix) with ESMTP id EF6421CC2E for
+ <mongrel-unicorn@rubyforge.org>; Wed, 30 Nov 2011 17:24:13 +0200 (EET)
+X-Virus-Scanned: amavisd-new at eenet.ee
+Received: from muheleja.eenet.ee ([127.0.0.1]) by muheleja.eenet.ee
+ (muheleja.eenet.ee [127.0.0.1]) (amavisd-new, port 10024) with ESMTP id
+ iiwFlyRCsuJr for <mongrel-unicorn@rubyforge.org>; Wed, 30 Nov 2011 17:24:11
+ +0200 (EET)
+Received: from lennutaja.eenet.ee (lennutaja.eenet.ee [193.40.0.224]) by
+ muheleja.eenet.ee (Postfix) with ESMTPSA id C79351CC2A for
+ <mongrel-unicorn@rubyforge.org>; Wed, 30 Nov 2011 17:24:11 +0200 (EET)
+From: Laas Toom <laas.toom@eenet.ee>
+Subject: COW friendly GC and PostgreSQL
+Date: Wed, 30 Nov 2011 17:24:11 +0200
+Message-Id: <A735B08F-9B63-474B-A596-E8E71B512BB7@eenet.ee>
+To: mongrel-unicorn@rubyforge.org
+Mime-Version: 1.0 (Apple Message framework v1251.1)
+X-Mailer: Apple Mail (2.1251.1)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Hello,
+
+I stumbled upon a weird issue when upgrading a Rails app and trying to run in on Unicorn!:
+http://stackoverflow.com/questions/8262803/unicorn-and-postgresql/
+
+The problem manifested itself via a few different error messages as if garbage/nil was returned from database instead of actual data and it only happened with more than one concurrent request (i.e under load test).
+
+This turned out to be an issue with COW-friendly GC that I had enabled (taken from the example unicorn.conf). Removing this from unicorn.conf made the app run smooth again.
+
+Is this something known or did I do something wrong? 
+
+Best regards,
+Laas
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
