@@ -1,0 +1,114 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,RP_MATCHES_RCVD
+ shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (rubyforge.org [205.234.109.19]) by
+ dcvr.yhbt.net (Postfix) with ESMTP id 642A6211AF for <archivist@yhbt.net>;
+ Thu,  8 Dec 2011 20:30:41 +0000 (UTC)
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id D6EF61678368; Thu,  8 Dec 2011 15:30:40 -0500 (EST)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 7B01B1678364 for <mongrel-unicorn@rubyforge.org>;
+ Thu,  8 Dec 2011 15:23:41 -0500 (EST)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id C402321051; Thu,  8 Dec 2011 20:23:40 +0000 (UTC)
+Date: Thu, 8 Dec 2011 12:23:40 -0800
+From: Eric Wong <normalperson@yhbt.net>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Subject: Re: Master repeatedly killing workers due to timeouts
+Message-ID: <20111208202340.GA29425@dcvr.yhbt.net>
+References:
+ <CAF5DW8+BNqYEdxkfUuYj72jxpfsA1C3B8iPoFh9tkdSHkM--vA@mail.gmail.com>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To:
+ <CAF5DW8+BNqYEdxkfUuYj72jxpfsA1C3B8iPoFh9tkdSHkM--vA@mail.gmail.com>
+User-Agent: Mutt/1.5.21 (2010-09-15)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Jonathan del Strother <maillist@steelskies.com> wrote:
+> Hi,
+> We're using unicorn as a Rails server on Solaris, and it's been
+> running great for several months.  We've recently been having a few
+> problems and I'm at a loss what might cause it.  A number of times in
+> the past few days, our unicorn slaves keep timing out & the master
+> keeps restarting them.  unicorn.log looks something like :
+
+Which versions of Ruby and Unicorn are you running?
+
+> E, [2011-12-08T18:11:32.912237 #26661] ERROR -- : worker=5 PID:15367
+> timeout (61s > 60s), killing
+> E, [2011-12-08T18:11:32.952041 #26661] ERROR -- : reaped
+> #<Process::Status: pid 15367 SIGKILL (signal 9)> worker=5
+> I, [2011-12-08T18:11:32.985925 #17824]  INFO -- : worker=5 ready
+
+The time between the "killing" and "ready" lines is small enough
+to suggest the app isn't getting killed while it's loading
+
+> E, [2011-12-08T18:11:42.962869 #26661] ERROR -- : worker=3 PID:15499
+> timeout (61s > 60s), killing
+
+Most of these timeouts are several minutes apart.  How many requests
+do you service per second/minute during these times?
+
+<snip>
+
+> - which seems like quite a lot of timeouts.  However, our database
+> connection, network, NFS etc all seem fine.  There's no useful errors
+> in the rails log files.  The master still serves occasional requests,
+> but drops a high percentage of them.
+
+Since the errors you showed us were several minutes apart,
+"high percentage" suggests your app sits idle for longish periods
+of time.  Is there any external dependency that doesn't like periods
+of idleness?
+
+60s is an eternity for a typical HTTP request for Rails.
+
+> Can anyone suggest where to look into this?  I'm not even sure if that
+> timeout is occurring during the initial fork of the worker process, or
+> if it's timing out during a slow rails request.
+
+It seems to be the latter based on the timestamps.
+
+You can try auditing potential slow paths in your code, and maybe
+add alerts/timeouts to something lower than 60s.  Also, take a
+look at: http://unicorn.bogomips.org/Application_Timeouts.html
+if you haven't already.
+
+I've also seen inexperienced developers do things like:
+"SELECT * FROM huge_table" to kill servers in production because
+their test fixtures only had 30 rows in huge_table while the
+production DB has millions of rows.
+
+MySQL has the ability to log slow queries, other DBs should, too.  Can
+you check to see if you don't have any of those taking a long time?
+
+
+In a related note, I also released the terrible_timeout RubyGem
+yesterday: http://bogomips.org/terrible_timeout/
+I hate it, but at least it documents is failings :)
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
