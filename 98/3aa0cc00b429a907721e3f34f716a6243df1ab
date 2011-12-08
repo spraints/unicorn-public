@@ -1,0 +1,83 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.6 required=5.0
+ tests=FREEMAIL_FROM,RP_MATCHES_RCVD, T_DKIM_INVALID shortcircuit=no
+ autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (rubyforge.org [205.234.109.19]) by
+ dcvr.yhbt.net (Postfix) with ESMTP id CDA41211AF for <archivist@yhbt.net>;
+ Thu,  8 Dec 2011 22:45:35 +0000 (UTC)
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id DB053167836F; Thu,  8 Dec 2011 17:45:30 -0500 (EST)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+X-Greylist: delayed 404 seconds by postgrey-1.31 at rubyforge.org; Thu, 08
+ Dec 2011 17:31:00 EST
+Received: from mail-ee0-f50.google.com (mail-ee0-f50.google.com
+ [74.125.83.50]) by rubyforge.org (Postfix) with ESMTP id 46C021858386 for
+ <mongrel-unicorn@rubyforge.org>; Thu,  8 Dec 2011 17:31:00 -0500 (EST)
+Received: by eeke53 with SMTP id e53so1525840eek.23 for
+ <mongrel-unicorn@rubyforge.org>; Thu, 08 Dec 2011 14:30:59 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com; s=gamma;
+ h=subject:references:from:content-type:x-mailer:in-reply-to
+ :message-id:date:to:content-transfer-encoding:mime-version;
+ bh=rcO7gJtS3XeV2sN/gME6m/r8O7CvI4N9RaWtmsGZ3lw=;
+ b=OvSgC1M+JdNd2N62r2Bzn+dSxmDJkTDhZBvABCbZFWBoAfs/YeWvb1VrZBa5vWj6ab
+ 3lU9f72AePCt2DeX6KeHlX6rnVqwf1TZkpx3TKrm3628mR1ww4e6utu34Kn+TbwS+/+P
+ NK+HHf7fbVUhjwAbuqrqmOSMmDM7FCqB35Smc=
+Received: by 10.14.20.3 with SMTP id o3mr414325eeo.102.1323383052842; Thu, 08
+ Dec 2011 14:24:12 -0800 (PST)
+Received: from [192.168.0.5] (027a8348.bb.sky.com. [2.122.131.72]) by
+ mx.google.com with ESMTPS id 49sm22947398eec.1.2011.12.08.14.24.11
+ (version=TLSv1/SSLv3 cipher=OTHER); Thu, 08 Dec 2011 14:24:12 -0800 (PST)
+Subject: Re: Master repeatedly killing workers due to timeouts
+References:
+ <CAF5DW8+BNqYEdxkfUuYj72jxpfsA1C3B8iPoFh9tkdSHkM--vA@mail.gmail.com>
+ <20111208202340.GA29425@dcvr.yhbt.net>
+From: Jonathan del Strother <jdelstrother@gmail.com>
+X-Mailer: iPad Mail (9A405)
+In-Reply-To: <20111208202340.GA29425@dcvr.yhbt.net>
+Message-Id: <47F45444-7824-4F31-9F42-6D07AEFC0C96@gmail.com>
+Date: Thu, 8 Dec 2011 22:24:10 +0000
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Mime-Version: 1.0 (1.0)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+On 8 Dec 2011, at 20:23, Eric Wong <normalperson@yhbt.net> wrote:
+
+> Jonathan del Strother <maillist@steelskies.com> wrote:
+>> Hi,
+>> We're using unicorn as a Rails server on Solaris, and it's been
+>> running great for several months.  We've recently been having a few
+>> problems and I'm at a loss what might cause it.  A number of times in
+>> the past few days, our unicorn slaves keep timing out & the master
+>> keeps restarting them.  unicorn.log looks something like :
+> 
+> Which versions of Ruby and Unicorn are you running?
+> <snip>
+
+Hi Eric, thanks for the comprehensive reply. As it happens, shortly after posting this, the problem started again...in the past it's been fairly sporadic, whereas this time it was extremely persistent so we were forced into tracking it down then & there. I ended up replacing unicorn with a single webrick instance, which would serve a few requests then hang...after a long debugging session we finally managed to track down the problem to a hung sphinx instance, which we use for our search engine.  Ruby would try to talk to that and just sit there without ever timing out. I'm going to go through the sphinx code tomorrow and see if I can figure out why that might occur.
+
+Thanks for the help,
+Jonathan
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
