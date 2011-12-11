@@ -1,0 +1,103 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,RP_MATCHES_RCVD
+ shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (rubyforge.org [205.234.109.19]) by
+ dcvr.yhbt.net (Postfix) with ESMTP id 7576E211BE for <archivist@yhbt.net>;
+ Sun, 11 Dec 2011 20:25:16 +0000 (UTC)
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id E87431678368; Sun, 11 Dec 2011 15:25:15 -0500 (EST)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 3906F1678367 for <mongrel-unicorn@rubyforge.org>;
+ Sun, 11 Dec 2011 15:13:41 -0500 (EST)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 57387211B2; Sun, 11 Dec 2011 20:13:41 +0000 (UTC)
+Date: Sun, 11 Dec 2011 20:13:41 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Subject: Re: Master repeatedly killing workers due to timeouts
+Message-ID: <20111211201340.GA32406@dcvr.yhbt.net>
+References:
+ <CAF5DW8+BNqYEdxkfUuYj72jxpfsA1C3B8iPoFh9tkdSHkM--vA@mail.gmail.com>
+ <4EE4BC04.60609@mrtech.ru>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To: <4EE4BC04.60609@mrtech.ru>
+User-Agent: Mutt/1.5.20 (2009-06-14)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Troex Nevelin <list@mrtech.ru> wrote:
+> Hello,
+> 
+> I have a simillar problem that started after update, 3 days ago we
+> moved from REE 1.8 / Rails 2 to Ruby 1.9.3 and Rails 3.1, also we
+> replaced memcached with redis so this is huge update and there are
+> many places where we can have an issue.
+> 
+> I also have checked my MySQL slow log and there are no requests which
+> take more than 5 seconds to complete.
+> 
+> My question is it possible to log the last request (URI) made to the
+> worker before killing it on timeout?
+
+There's no way to trap/handle SIGKILL in the worker, and telling the
+master every URI the worker makes is too expensive.
+
+This is horrible middleware, but _may_ work if you just forgot a timeout
+and Ruby itself isn't blocked (due to a bad C extension):
+
+    class LogBeforeTimeout < Struct.new(:app)
+      def call(env)
+        thr = Thread.new do
+          sleep(59) # set this to Unicorn timeout - 1
+          unless Thread.current[:done]
+            path = env["PATH_INFO"]
+            qs = env["QUERY_STRING"] and path = "#{path}?#{qs}"
+            env["rack.logger"].warn("#{path} about to die from SIGKILL")
+          end
+        end
+        app.call(env)
+      ensure
+        thr[:done] = true
+        thr.run
+      end
+    end
+
+Or you can just log the nev before app.call:
+
+  def call(env)
+    path = env["PATH_INFO"]
+    qs = env["QUERY_STRING"] and path = "#{path}?#{qs}"
+    env["rack.logger"].debug "START #{path}"
+    app.call(env)
+  ensure
+    env["rack.logger"].debug "FINISH #{path}"
+  end
+
+And look for START lines without corresponding FINISH lines.
+
+All code in this post is totally untested, so may contain syntax errors
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
