@@ -1,0 +1,86 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.7 required=5.0 tests=RP_MATCHES_RCVD
+ shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (rubyforge.org [205.234.109.19]) by
+ dcvr.yhbt.net (Postfix) with ESMTP id 056E2211BE for <archivist@yhbt.net>;
+ Sun, 11 Dec 2011 15:08:09 +0000 (UTC)
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 08B281858361; Sun, 11 Dec 2011 10:08:04 -0500 (EST)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+X-Greylist: delayed 399 seconds by postgrey-1.31 at rubyforge.org; Sun, 11
+ Dec 2011 09:27:14 EST
+Received: from nora.it-orbita.ru (nora.it-orbita.ru [188.127.226.182]) by
+ rubyforge.org (Postfix) with ESMTP id 96FC31858300 for
+ <mongrel-unicorn@rubyforge.org>; Sun, 11 Dec 2011 09:27:14 -0500 (EST)
+Received: from mail.nora.it-orbita.ru (nora.it-orbita.ru [188.127.226.182])
+ by nora.it-orbita.ru (underworld-mx) with ESMTP/inet id pBBEJol4028481 for
+ <mongrel-unicorn@rubyforge.org>; Sun, 11 Dec 2011 14:19:52 GMT
+Received: from [192.168.1.220] (108.254.224.159.triolan.net [159.224.254.108]
+ (may be forged)) (authenticated with PLAIN as list@mrtech.ru) by
+ mail.nora.it-orbita.ru (underworld-user) with ESMTP/inet id pBBEJnLu028477
+ (using TLSv1/SSLv3 with cipher DHE-RSA-AES256-SHA/256 verify NOT) for
+ <mongrel-unicorn@rubyforge.org>; Sun, 11 Dec 2011 14:19:50 GMT
+Message-ID: <4EE4BC04.60609@mrtech.ru>
+Date: Sun, 11 Dec 2011 16:19:48 +0200
+From: Troex Nevelin <list@mrtech.ru>
+User-Agent: Mozilla/5.0 (X11; Linux i686; rv:8.0) Gecko/20111124
+ Thunderbird/8.0
+MIME-Version: 1.0
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Subject: Re: Master repeatedly killing workers due to timeouts
+References:
+ <CAF5DW8+BNqYEdxkfUuYj72jxpfsA1C3B8iPoFh9tkdSHkM--vA@mail.gmail.com>
+In-Reply-To:
+ <CAF5DW8+BNqYEdxkfUuYj72jxpfsA1C3B8iPoFh9tkdSHkM--vA@mail.gmail.com>
+X-Greylist: Sender is SPF-compliant, not delayed by milter-greylist-4.0
+ (nora.it-orbita.ru [188.127.226.182]); Sun, 11 Dec 2011 14:19:52 +0000 (UTC)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset="us-ascii"; Format="flowed"
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Hello,
+
+I have a simillar problem that started after update, 3 days ago we
+moved from REE 1.8 / Rails 2 to Ruby 1.9.3 and Rails 3.1, also we
+replaced memcached with redis so this is huge update and there are
+many places where we can have an issue.
+
+I also have checked my MySQL slow log and there are no requests which
+take more than 5 seconds to complete.
+
+My question is it possible to log the last request (URI) made to the
+worker before killing it on timeout?
+
+It's really hard to track this problem, usually unicorn start killing
+workers when we got 1500-2000 rpms on 8 workers.
+
+-- 
+E, [2011-12-11T18:11:42.335656 #31736] ERROR -- : worker=1 PID:1632 
+timeout (61s > 60s), killing
+E, [2011-12-11T18:11:42.364076 #31736] ERROR -- : reaped 
+#<Process::Status: pid 1632 SIGKILL (signal 9)> worker=1
+I, [2011-12-11T18:11:42.364364 #31736]  INFO -- : worker=1 spawning...
+I, [2011-12-11T18:11:42.366721 #5869]  INFO -- : worker=1 spawned pid=5869
+I, [2011-12-11T18:11:42.366942 #5869]  INFO -- : Refreshing Gem list
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
