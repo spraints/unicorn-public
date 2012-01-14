@@ -1,0 +1,69 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,RP_MATCHES_RCVD
+ shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (rubyforge.org [205.234.109.19]) by
+ dcvr.yhbt.net (Postfix) with ESMTP id E9AE220E61 for <archivist@yhbt.net>;
+ Sat, 14 Jan 2012 21:21:31 +0000 (UTC)
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 595D81858363; Sat, 14 Jan 2012 16:21:31 -0500 (EST)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 2213218581B2 for <mongrel-unicorn@rubyforge.org>;
+ Sat, 14 Jan 2012 16:03:58 -0500 (EST)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 3E7F71F4E9; Sat, 14 Jan 2012 21:03:58 +0000 (UTC)
+Date: Sat, 14 Jan 2012 21:03:57 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Subject: Re: Two log entries for every request
+Message-ID: <20120114210357.GA7152@dcvr.yhbt.net>
+References: <3BF033F699484A0F9E6F71C6066CD033@roberocity.com>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To: <3BF033F699484A0F9E6F71C6066CD033@roberocity.com>
+User-Agent: Mutt/1.5.20 (2009-06-14)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Rob Sutherland <rob@roberocity.com> wrote:
+> These are lines from a local dev log. Notice the two identical (except
+> for time taken) entries for the requests. Every request has two
+> entries with the 2nd entry taking longer. This is a dev environment so
+> the .css is referenced. On the server this same app is doing the same
+> thing.
+> 
+> Any ideas? Is it bug in my code? 
+
+It looks like you're redundantly loading Rack::CommonLogger
+
+Rack adds Rack::CommonLogger to the middleware stack in both
+"development" and "deployment" envirnoments.  The longer time is
+probably from Rack::Lint, which also gets added to the "development"
+environment.
+
+You can also specify "RACK_ENV=none" to have Rack not load any
+middleware by default, giving you (or at least your higher-level
+framework) full control over what middleware you load.
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
