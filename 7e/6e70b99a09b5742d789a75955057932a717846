@@ -1,0 +1,94 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.7 required=5.0 tests=AWL,RP_MATCHES_RCVD
+ shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (rubyforge.org [205.234.109.19]) by
+ dcvr.yhbt.net (Postfix) with ESMTP id 6448120E61 for <archivist@yhbt.net>;
+ Sat, 14 Jan 2012 23:09:48 +0000 (UTC)
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id DD0C81779953; Sat, 14 Jan 2012 18:09:47 -0500 (EST)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from mail-gy0-f178.google.com (mail-gy0-f178.google.com
+ [209.85.160.178]) by rubyforge.org (Postfix) with ESMTP id 2F1FB1858367 for
+ <mongrel-unicorn@rubyforge.org>; Sat, 14 Jan 2012 17:40:39 -0500 (EST)
+Received: by ghrr14 with SMTP id r14so1511900ghr.23 for
+ <mongrel-unicorn@rubyforge.org>; Sat, 14 Jan 2012 14:40:38 -0800 (PST)
+Received: by 10.236.129.177 with SMTP id h37mr9892025yhi.9.1326580837542;
+ Sat, 14 Jan 2012 14:40:37 -0800 (PST)
+Received: from Shrimp.local (67-61-138-120.cpe.cableone.net. [67.61.138.120])
+ by mx.google.com with ESMTPS id i6sm35875164and.3.2012.01.14.14.40.36
+ (version=TLSv1/SSLv3 cipher=OTHER); Sat, 14 Jan 2012 14:40:36 -0800 (PST)
+Date: Sat, 14 Jan 2012 16:40:34 -0600
+From: Rob Sutherland <rob@roberocity.com>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Message-ID: <6317FF2703B3497B8444EB005B8A6D76@roberocity.com>
+In-Reply-To: <20120114210357.GA7152@dcvr.yhbt.net>
+References: <3BF033F699484A0F9E6F71C6066CD033@roberocity.com>
+ <20120114210357.GA7152@dcvr.yhbt.net>
+Subject: Re: Two log entries for every request
+X-Mailer: sparrow 1.5 (build 1043.1)
+MIME-Version: 1.0
+Content-Disposition: inline
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Eric Wong. That was exactly the problem. 
+
+The app is a Sinatra app and Sinatra and rack were both writing to the log.
+
+Rob 
+
+-- 
+Rob Sutherland
+
+
+On Saturday, January 14, 2012 at 3:03 PM, Eric Wong wrote:
+
+> Rob Sutherland <rob@roberocity.com (mailto:rob@roberocity.com)> wrote:
+> > These are lines from a local dev log. Notice the two identical (except
+> > for time taken) entries for the requests. Every request has two
+> > entries with the 2nd entry taking longer. This is a dev environment so
+> > the .css is referenced. On the server this same app is doing the same
+> > thing.
+> > 
+> > Any ideas? Is it bug in my code? 
+> 
+> It looks like you're redundantly loading Rack::CommonLogger
+> 
+> Rack adds Rack::CommonLogger to the middleware stack in both
+> "development" and "deployment" envirnoments. The longer time is
+> probably from Rack::Lint, which also gets added to the "development"
+> environment.
+> 
+> You can also specify "RACK_ENV=none" to have Rack not load any
+> middleware by default, giving you (or at least your higher-level
+> framework) full control over what middleware you load.
+> _______________________________________________
+> Unicorn mailing list - mongrel-unicorn@rubyforge.org (mailto:mongrel-unicorn@rubyforge.org)
+> http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+> Do not quote signatures (like this one) or top post when replying
+
+
+
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
