@@ -1,0 +1,100 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,MSGID_FROM_MTA_HEADER,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Devin Ben-Hur <dbenhur@whitepages.com>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Re: Default Socket Location
+Date: Fri, 20 Jan 2012 09:22:48 -0800
+Organization: Whitepages.com
+Message-ID: <4F19A2E8.7050206@whitepages.com>
+References:
+ <CAL2S26Xuv9yFMq0icQhHKxXf_UpoofgUR8A+t1Y=nvZnoof-+A@mail.gmail.com>
+NNTP-Posting-Host: lo.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"; Format="flowed"
+Content-Transfer-Encoding: 7bit
+X-Trace: dough.gmane.org 1327081953 17134 80.91.229.12 (20 Jan 2012 17:52:33
+ GMT)
+X-Complaints-To: usenet@dough.gmane.org
+NNTP-Posting-Date: Fri, 20 Jan 2012 17:52:33 +0000 (UTC)
+To: <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Fri Jan 20 18:52:29
+ 2012
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+X-Greylist: delayed 326 seconds by postgrey-1.31 at rubyforge.org; Fri, 20
+ Jan 2012 12:28:37 EST
+User-Agent: Mozilla/5.0 (X11; U; Linux x86_64; en-US; rv:1.9.2.24)
+ Gecko/20111109 Thunderbird/3.1.16
+In-Reply-To:
+ <CAL2S26Xuv9yFMq0icQhHKxXf_UpoofgUR8A+t1Y=nvZnoof-+A@mail.gmail.com>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:1280
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/1280>
+Received: from rubyforge.org ([205.234.109.19]) by lo.gmane.org with esmtp
+ (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1RoIdV-00078V-34 for gclrug-mongrel-unicorn@m.gmane.org; Fri, 20 Jan 2012
+ 18:52:25 +0100
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 6E8011678366; Fri, 20 Jan 2012 12:52:24 -0500 (EST)
+Received: from ex0.corp.w3data.com (mail0.w3data.com [64.124.61.209]) by
+ rubyforge.org (Postfix) with ESMTP id 015B71678364 for
+ <mongrel-unicorn@rubyforge.org>; Fri, 20 Jan 2012 12:28:37 -0500 (EST)
+Received: from [IPv6:::1] (172.25.0.182) by ex0.corp.w3data.com (172.25.0.29)
+ with Microsoft SMTP Server id 8.3.213.0; Fri, 20 Jan 2012 09:22:59 -0800
+
+On 01/20/2012 07:35 AM, Steven Garcia wrote:
+> I am collaborating on a Rails app with a very minimal unicorn config
+> (the socket dir is not specified)
+>
+> I have booted up the app and created the necessary nginx server config
+> for it, but it does not seem to be finding the socket file (502 error)
+>
+> Was just wondering where this file would be by default. Looking at
+> unicorn's documentation I had expected it to be living in the /tmp
+> directory, but no such luck.
+>
+> For good measure I also checked my app's tmp/sockets folder but no dice either
+
+You could use `sudo lsof -p <unicorn-PID>` to see all the open files of 
+a running unicorn.  This will show you shared objects, files, pipes, 
+sockets, etc.
+
+> Since this app is a joint effort, specifying the socket location in
+> the config is not an option
+
+Unicorn defaults to listening on TCP 0.0.0.0:8080 unless you tell it 
+something else. It wont listen on a unix domain socket unless you 
+configure it to.
+
+You can use --listen with the unicorn startup script 
+<http://unicorn.bogomips.org/unicorn_1.html> or the 
+listen(address,options) method in your unicorn.conf 
+<http://unicorn.bogomips.org/Unicorn/Configurator.html> to change this.
+
+I don't see how being a collaborator on a joint effort means you can't 
+change config, it just means you need to discuss and agree on the common 
+configuration.
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
