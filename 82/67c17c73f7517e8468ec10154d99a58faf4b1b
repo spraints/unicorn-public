@@ -1,0 +1,98 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,RP_MATCHES_RCVD
+ shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (rubyforge.org [205.234.109.19]) by
+ dcvr.yhbt.net (Postfix) with ESMTP id 090F0216C2 for <archivist@yhbt.net>;
+ Mon, 23 Jan 2012 09:20:26 +0000 (UTC)
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 3D1F81D78464; Mon, 23 Jan 2012 04:20:25 -0500 (EST)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 01C0C1678364 for <mongrel-unicorn@rubyforge.org>;
+ Mon, 23 Jan 2012 04:20:13 -0500 (EST)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id DE14020E5D; Mon, 23 Jan 2012 09:20:12 +0000 (UTC)
+Date: Mon, 23 Jan 2012 09:20:12 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: mongrel-unicorn@rubyforge.org
+Subject: release unicorn v4.2.0 soon?
+Message-ID: <20120123092012.GA8909@dcvr.yhbt.net>
+MIME-Version: 1.0
+Content-Disposition: inline
+User-Agent: Mutt/1.5.20 (2009-06-14)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+I just realized we haven't had a release in a while.  There's nothing
+major that needs fixing, but I figure we should release 4.2.0 to
+get some changes that have been brewing for a while.
+
+The SSL support is still unaudited, but since Unicorn is only good on
+LAN, it should be at least useful enough to detect network corruption.
+TCP checksums are weak, so SSL can add an additional layer of
+checksumming to the data stream if you're intent on end-to-end data
+integrity.  (Rack apps can also support the Content-MD5 header/trailer
+without SSL too)
+
+Here are the changes since v4.1.1 in git://bogomips.org/unicorn.git
+
+Brian P O'Rourke (1):
+      Detect daemonization via configuration.
+
+Eric Wong (18):
+      add GPLv3 option to the license
+      http_server: a few more things eligible for GC in worker
+      http_server: update comment on tick == 0
+      Links: add a link to the UnXF middleware
+      add preliminary SSL support
+      t: ensure SSL certificates exist on fresh test
+      configurator: limit timeout to 30 days
+      tests: just use the sha1sum implemented in Ruby
+      tests: try to set a shorter path for Unix domain sockets
+      bump dependencies
+      socket_helper: remove out-of-date comment for TCP_NODELAY
+      socket_helper: set SO_KEEPALIVE on TCP sockets
+      socket_helper: fix grammerr fail
+      quiet possible IOError from SIGUSR1 (reopen logs)
+      cleanup exception handling on SIGUSR1
+      http: test case for "Connection: TE"
+      update tests for rack 1.4.0
+      Rakefile: swap freshmeat.net URL for freecode.com
+
+Jeremy Evans (2):
+      t0011: fix test under OpenBSD
+      test_helper: ensure test client connects to valid address
+
+Yuichi Tateno (1):
+      OobGC: force GC.start
+
+In the future, feel free to ping me if you want an official release, I'm
+forgetful sometimes and sometimes get completely immersed in other
+projects.  "master" on unicorn.git is usually in a releasable state
+anyways.
+
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
