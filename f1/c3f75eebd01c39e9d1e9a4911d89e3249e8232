@@ -1,0 +1,111 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.7 required=5.0 tests=RP_MATCHES_RCVD
+ shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (rubyforge.org [205.234.109.19]) by
+ dcvr.yhbt.net (Postfix) with ESMTP id 9F20D1FEE0; Tue, 31 Jan 2012 18:29:34
+ +0000 (UTC)
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 3E40E1678364; Tue, 31 Jan 2012 13:29:34 -0500 (EST)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+X-Greylist: delayed 342 seconds by postgrey-1.31 at rubyforge.org; Tue, 31
+ Jan 2012 12:28:32 EST
+Received: from bvpn1.moneybookers.com (bvpn1.moneybookers.com [193.105.47.8])
+ by rubyforge.org (Postfix) with ESMTP id ADBF71858367 for
+ <mongrel-unicorn@rubyforge.org>; Tue, 31 Jan 2012 12:28:31 -0500 (EST)
+Received: from bravo2.lon.moneybookers.net (bravo2.lon.moneybookers.net
+ [10.50.33.46]) by bvpn1.moneybookers.com (Postfix) with ESMTPS id B9F13F74BC
+ for <mongrel-unicorn@rubyforge.org>; Tue, 31 Jan 2012 18:22:46 +0100 (CET)
+Received: from BRAVO1.lon.moneybookers.net ([fe80::dda4:1f6f:7efe:109]) by
+ bravo2.lon.moneybookers.net ([fe80::b800:a534:71f0:9f04%27]) with mapi id
+ 14.01.0355.002; Tue, 31 Jan 2012 17:22:46 +0000
+From: Philipp Bruell <Philipp.Bruell@skrill.com>
+To: "mongrel-unicorn@rubyforge.org" <mongrel-unicorn@rubyforge.org>
+Subject: FreeBSD jail and unicorn
+Thread-Topic: FreeBSD jail and unicorn
+Thread-Index: AQHM4Dzypdxm7l8sZ02quAxqrzMjQQ==
+Date: Tue, 31 Jan 2012 17:22:45 +0000
+Message-ID: <CB4DE1F5.7D9%philipp.bruell@skrill.com>
+Accept-Language: de-DE, en-US
+Content-Language: en-US
+X-MS-Has-Attach: 
+X-MS-TNEF-Correlator: 
+x-originating-ip: [10.80.15.154]
+Content-ID: <79C1CFB3B8FEE4429B74343147FF3671@moneybookers.com>
+MIME-Version: 1.0
+X-Virus-Scanned: clamav-milter 0.97 at vpn1.bunker.moneybookers.net
+X-Virus-Status: Clean
+Cc: Charles Hornberger <Charles.Hornberger@skrill.com>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Hello,
+
+I'm using unicorn since a while, but now I try to run it the first time
+inside a FreeBSD jail.
+
+The initial start of unicorn works fine and it serves all the requests.
+But if I want to restart it using the USR2 signal, it (more or less)
+slowly starts using more and more CPU cycles. There is no error message in
+the logs and it quite hard to reproduce that error. In 1 of 20 tries,
+unicorn restarts correctly, but in the other cases I have to "kill -9" the
+process. I haven't found anything that gives some indication.
+
+I've tried unicorn version 4.1.1 and 4.2.0. The FreeBSD version is
+8.2-STABLE amd64.
+
+That my config:
+---
+listen "/home/deploy/staging/unicorn.sock"
+pid "/home/deploy/staging/unicorn.pid"
+
+preload_app true
+
+stderr_path "/home/deploy/staging/unicorn.stderr.log"
+stdout_path "/home/deploy/staging/unicorn.stdout.log"
+
+before_fork do |server, worker|
+  old_pid = "#{server.config[:pid]}.oldbin"
+    if old_pid != server.pid
+    begin
+      process_id = File.read(old_pid).to_i
+      puts "sending QUIT to #{process_id}"
+      Process.kill :QUIT, process_id
+    rescue Errno::ENOENT, Errno::ESRCH
+    end
+  end
+end
+---
+
+
+I've tried without the before_fork-block, but I think, that's not the
+critical part, since it doesn't reach to point where two master processes
+exists. There is just the old master consuming all the CPU cycles.
+
+Does someone ran into the same problem? Does someone has an idea?
+
+Thanks in advance
+Philipp
+
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
