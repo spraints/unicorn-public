@@ -1,0 +1,79 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,RP_MATCHES_RCVD
+ shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (rubyforge.org [205.234.109.19]) by
+ dcvr.yhbt.net (Postfix) with ESMTP id BC39C1FEE1 for <archivist@yhbt.net>;
+ Tue, 31 Jan 2012 19:36:42 +0000 (UTC)
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 1A9E6121826E; Tue, 31 Jan 2012 14:36:42 -0500 (EST)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id E0DB81678364 for <mongrel-unicorn@rubyforge.org>;
+ Tue, 31 Jan 2012 14:05:02 -0500 (EST)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 6EB811FEE0; Tue, 31 Jan 2012 19:05:02 +0000 (UTC)
+Date: Tue, 31 Jan 2012 19:05:02 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: Charles Hornberger <Charles.Hornberger@skrill.com>
+Subject: Re: FreeBSD jail and unicorn
+Message-ID: <20120131190502.GA8578@dcvr.yhbt.net>
+References: <20120131183901.GA8518@dcvr.yhbt.net>
+ <CB4DF58A.4C0D%charles.hornberger@skrill.com>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To: <CB4DF58A.4C0D%charles.hornberger@skrill.com>
+User-Agent: Mutt/1.5.20 (2009-06-14)
+Cc: unicorn list <mongrel-unicorn@rubyforge.org>, Philipp Bruell
+ <Philipp.Bruell@skrill.com>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Charles Hornberger <Charles.Hornberger@skrill.com> wrote:
+> On 1/31/12 7:39 PM, normalperson@yhbt.net wrote:
+> >If that didn't work, maybe checking stderr.log will tell you something
+> >more.
+> 
+> Nothing shows up in stderr.log It's as if the master doesn't even get the
+> -USR2 signal. Or as if whatever it's sending to stderr is not actually
+> getting to the filesystem...
+> 
+> In any case, we don't see anything.
+
+Can you check if the signal is received in the master via truss/dtruss?
+
+Do other signals (USR1, HUP, QUIT) work?
+
+You might need to enable the equivalent of "-f" for strace (follow child
+processes/threads) since Ruby 1.9 uses a dedicated thread for receiving
+signals.
+
+> Any further ideas for how to debug would be much appreciated, and my
+> apologies in advance for mixing up any details; Philipp was doing the work
+> on this, not me.
+
+Also, which version of Ruby are you using?  I'm pretty familiar
+with the 1.9.3 implementation, the earlier 1.9.x releases were
+messier and noisy wrt signal handling.
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
