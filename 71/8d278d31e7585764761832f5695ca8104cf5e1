@@ -1,0 +1,138 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,RP_MATCHES_RCVD
+ shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (rubyforge.org [205.234.109.19]) by
+ dcvr.yhbt.net (Postfix) with ESMTP id 357921FEE8 for <archivist@yhbt.net>;
+ Wed,  1 Feb 2012 18:55:21 +0000 (UTC)
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 8C5821D78464; Wed,  1 Feb 2012 13:55:20 -0500 (EST)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 516231D78464 for <mongrel-unicorn@rubyforge.org>;
+ Wed,  1 Feb 2012 13:14:46 -0500 (EST)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 93EE21FEE6; Wed,  1 Feb 2012 18:14:45 +0000 (UTC)
+Date: Wed, 1 Feb 2012 18:14:45 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Subject: Re: FreeBSD jail and unicorn
+Message-ID: <20120201181445.GA31624@dcvr.yhbt.net>
+References: <20120131190502.GA8578@dcvr.yhbt.net>
+ <CB4EBD2A.7DF%philipp.bruell@skrill.com>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To: <CB4EBD2A.7DF%philipp.bruell@skrill.com>
+User-Agent: Mutt/1.5.20 (2009-06-14)
+Cc: Philipp Bruell <Philipp.Bruell@skrill.com>, Charles Hornberger
+ <Charles.Hornberger@skrill.com>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Philipp Bruell <Philipp.Bruell@skrill.com> wrote:
+> First of all, thank you for your fast reply.
+
+No problem, depends on the time of day of course :>
+
+> The behaviour details Charles described are correct and we are using ruby
+> version 1.9.3.
+> 
+> It's good that you've asked for the other signals. I've checked them in
+> particular and it seems that it is a common signal handling problem. The
+> process freaks out on each of them :-(
+> 
+> I've attached the output of truss -f for a QUIT signal. That signal took a
+> quite long time to get processed (and took all CPU cycles), but finally
+> worked.
+
+I only saw the output from the master process there, nothing from the
+worker.  It seems like the master is OK, but trying to kill the worker
+is not.  I wonder if it's related to
+https://bugs.ruby-lang.org/issues/5240
+
+With the following script, can you try sending SIGQUIT to the parent
+and see what happens?
+
+------------------------------- 8< -----------------------------
+pid = fork do
+  r, w = IO.pipe
+  trap(:QUIT) do
+    puts "SIGQUIT received in child, exiting"
+    w.close
+  end
+  r.read
+end
+
+trap(:QUIT) do
+  puts "SIGQUIT received in parent, killing child"
+  Process.kill(:QUIT, pid)
+  p Process.waitpid2(pid)
+  exit
+end
+sleep 1 # wait for child to setup sig handler
+puts "Child ready on #{pid}, parent on #$$"
+sleep
+----------------------------------------------------------------
+If the above fails, try with different variables:
+
+* without a jail on the same FreeBSD version/release/patchlevel
+* Ruby 1.9.2 (which has a different signal handling implementation)
+* different FreeBSD version
+* different architecture[1]
+
+Mixing either signal handling or fork()-ing in the presence of threads
+is tricky.  Ruby 1.9 uses a dedicated thread internally for signal
+handling, I wouldn't be surprised if there's a bug lingering somewhere
+in FreeBSD or Ruby...
+
+Have you checked the FreeBSD mailing lists/bug trackers?  I don't recall
+seeing anything other than the aforementioned bug in ruby-core...
+
+[1] - I expect there's ASM involved in signal/threading implementation
+      details, so there's a chance it's x86_64-specific...
+
+> The output of USR2 signal is too long to attach it to a mail, but at a
+> first sight, it repeats the following calls over and over again.
+
+Don't send monster attachments, host it somewhere else so mail servers
+won't reject it for wasting bandwidth.  The mailman limit on rubyforge
+is apparently 256K (already huge IMHO).  Also, don't top post
+
+> 24864: 
+> thr_kill(0x18c32,0x1a,0x800a8edc0,0x18a86,0x7fffffbeaf80,0x80480c000) = 0
+> (0x0)
+> 24864: select(4,{3},0x0,0x0,{0.100000 })         = 1 (0x1)
+> 24864: read(3,"!",1024)                          = 1 (0x1)
+
+OK, so the signal is received correctly by the Ruby VM in the master.
+I just don't see anything in the worker, but the master does attempt
+to forward SIGQUIT to the worker.
+
+> It also seems to me, that observing the processes with truss changes the
+> behaviour a lot. During the observed USR2 the master process spawns a lot
+> (about 30) of <defunct> processes. I never had this before.
+
+Some processes react strangely to being traced.  Maybe there's something
+better than truss nowadays?
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
