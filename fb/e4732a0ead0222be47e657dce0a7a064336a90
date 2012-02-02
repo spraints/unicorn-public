@@ -1,0 +1,91 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,RP_MATCHES_RCVD
+ shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (rubyforge.org [205.234.109.19]) by
+ dcvr.yhbt.net (Postfix) with ESMTP id 2208A1FEEE for <archivist@yhbt.net>;
+ Thu,  2 Feb 2012 19:31:47 +0000 (UTC)
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 1BF6A121827C; Thu,  2 Feb 2012 14:31:42 -0500 (EST)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 523F41218278 for <mongrel-unicorn@rubyforge.org>;
+ Thu,  2 Feb 2012 14:31:37 -0500 (EST)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 0AF9F1FEEC; Thu,  2 Feb 2012 19:31:37 +0000 (UTC)
+Date: Thu, 2 Feb 2012 19:31:36 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Subject: Re: FreeBSD jail and unicorn
+Message-ID: <20120202193136.GA1478@dcvr.yhbt.net>
+References: <20120201181445.GA31624@dcvr.yhbt.net>
+ <CB5014D7.892%philipp.bruell@skrill.com>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To: <CB5014D7.892%philipp.bruell@skrill.com>
+User-Agent: Mutt/1.5.20 (2009-06-14)
+Cc: Philipp Bruell <Philipp.Bruell@skrill.com>, Charles Hornberger
+ <Charles.Hornberger@skrill.com>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Philipp Bruell <Philipp.Bruell@skrill.com> wrote:
+> On 01/02/2012 19:14, "Eric Wong" <normalperson@yhbt.net> wrote:
+> >Philipp Bruell <Philipp.Bruell@skrill.com> wrote:
+
+> The scripts behaves exactly like unicorn. The master received the QUIT and
+> passes it to the child. The child also receives it, but don't exit. While
+> the master is waiting for the child to exit, it consumes all the cpu
+> cycles.
+
+Interesting, I suspect it's some bad interaction with fork() causing
+signal handlers/pthreads to go bad.  I expect the following simple
+script to work flawlessly since it doesn't fork:
+
+----------------------------------------
+trap(:QUIT) { exit(0) }
+puts "Ready for SIGQUIT on #$$"
+sleep
+----------------------------------------
+
+> I don't have the option, to test without jail, on a different FreeBSD
+> version nor a different architecture (and FreeBSD - on Mac OS X everything
+> works perfect). But I tried ruby version 1.9.2 and that works! So I guess
+> it's a bug with 1.9.3 on FreeBSD.
+
+Can you report this as a bug to the Ruby core folks on
+https://bugs.ruby-lang.org/ and also to whereever the FreeBSD hackers
+take bug reports?  Somebody from one of those camps should be able
+to resolve the issue.
+
+The good thing is my small sample script is enough to reproduce the
+issue, so it should be easy for an experienced FreeBSD hacker to
+track down.
+
+> I've attached the truss -f output of the child process of the test script.
+> But the observation with truss made the problem disappear again :-(
+
+It could be a timing or race condition issue.  I've had strace on linux
+find/hide bugs because it slowed the program down enough.
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
