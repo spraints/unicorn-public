@@ -1,0 +1,72 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,RP_MATCHES_RCVD
+ shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (rubyforge.org [205.234.109.19]) by
+ dcvr.yhbt.net (Postfix) with ESMTP id 177DB1FEF7 for <archivist@yhbt.net>;
+ Sun,  5 Feb 2012 21:45:25 +0000 (UTC)
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 819691218277; Sun,  5 Feb 2012 16:45:24 -0500 (EST)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 8E437121826E for <mongrel-unicorn@rubyforge.org>;
+ Sun,  5 Feb 2012 16:45:19 -0500 (EST)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 23A071FEF6; Sun,  5 Feb 2012 21:45:17 +0000 (UTC)
+Date: Sun, 5 Feb 2012 21:45:16 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Subject: Re: Deployment with Capistrano and Foreman
+Message-ID: <20120205214516.GA21881@dcvr.yhbt.net>
+References: <7343F347-B9FB-404A-A6CF-21C20A0850C0@gmail.com>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To: <7343F347-B9FB-404A-A6CF-21C20A0850C0@gmail.com>
+User-Agent: Mutt/1.5.20 (2009-06-14)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Dmytrii Nagirniak <dnagir@gmail.com> wrote:
+> I wonder how do you deploy Unicorn Rails apps using Foreman and the upstart.
+> 
+> The things I'm not sure how to deal with are:
+>  
+> - restarting the Unicorn with no downtime. With upstart I think the master
+> process gets restarted.
+
+I'll defer to actual Foreman/upstart users for this.  Any solution that
+works with nginx (while keeping the master process in use) should work
+with unicorn, too.  I designed unicorn so it could be managed nearly
+identically to nginx.
+
+> - running app as unprivileged user (not sure how to use Forman with
+> upstat at all here).
+
+You can use the "user" directive in the unicorn config file, this
+only affects the worker processes, though.
+http://unicorn.bogomips.org/Unicorn/Configurator.html#method-i-user
+
+You can always use su or sudo to ensure the master process is
+unprivileged, too.
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
