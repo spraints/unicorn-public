@@ -1,0 +1,87 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14383 205.234.109.0/24
+X-Spam-Status: No, score=-0.5 required=5.0 tests=AWL,RP_MATCHES_RCVD
+ shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (rubyforge.org [205.234.109.19]) by
+ dcvr.yhbt.net (Postfix) with ESMTP id 57E871F75E for <archivist@yhbt.net>;
+ Fri, 17 Feb 2012 06:03:38 +0000 (UTC)
+Received: from rubyforge.org (rubyforge.org [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id C5BA5185838C; Fri, 17 Feb 2012 01:03:37 -0500 (EST)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 946B0185837B for <mongrel-unicorn@rubyforge.org>;
+ Thu, 16 Feb 2012 22:59:21 -0500 (EST)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id A6A0C1F75D; Fri, 17 Feb 2012 03:59:20 +0000 (UTC)
+Date: Fri, 17 Feb 2012 03:59:20 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Subject: Re: Bug in unicorn_rails when Encoding.default_internal is set
+Message-ID: <20120217035920.GA31001@dcvr.yhbt.net>
+References:
+ <CAMXxzZvtyy2XZ2JvT6onrxJLuroybm9sfZ+gpCE_GrU5iAjUMg@mail.gmail.com>
+ <CAMXxzZtdxutLeAPUzd+1s7Mdt1in9CJ-U2NHYyM9_+pma2E-_Q@mail.gmail.com>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To:
+ <CAMXxzZtdxutLeAPUzd+1s7Mdt1in9CJ-U2NHYyM9_+pma2E-_Q@mail.gmail.com>
+User-Agent: Mutt/1.5.21 (2010-09-15)
+Cc: Lucas Parry <lucas@envato.com>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Lucas Parry <lucas@envato.com> wrote:
+> On Fri, Feb 17, 2012 at 1:29 PM, Lucas Parry <lucas@envato.com> wrote:
+> > We recently made the switch to 1.9 for our large rails 2.3.14 project
+
+(odd, neither I nor gmane got your original message:
+ http://rubyforge.org/pipermail/mongrel-unicorn/2012-February/001310.html
+ Perhaps Mailman misdelivers UTF-8...
+)
+
+> I guess I should be more precise; This problem is occurring on MRI1.9.2-p290
+
+Setting Encoding.default_* is probably a bad idea in your app.
+If you run Ruby with warnings (-w switch), you'll see setting
+Encoding.default_* will generate warnings to discourage their use.
+
+If you want UTF-8, set LANG=en_US.UTF-8 in the environment _before_
+starting Ruby, which will only set Encoding.default_external.
+
+I've always just left Encoding.default_internal alone.  I'll let others
+on the list with more Rails/encoding experience help you with that.
+
+> All subsequent requests to that worker will fail with the same
+> exception.
+
+Seems to be Rails bug.  Rails 3.2.1 seems to handle the situation
+without difficulty.
+
+
+Fwiw, neither Rack nor HTTP specify an encoding for HTTP headers/paths.
+The only place where encoding is specified for Rack is "rack.input",
+which must be binary.  There was talk on the Rack mailing list a long
+while back about enforcing encodings for certain headers, but nothing
+came of it.
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
