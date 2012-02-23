@@ -1,0 +1,94 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=-0.2 required=5.0 tests=AWL shortcircuit=no
+ autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id 106421F7A9 for
+ <archivist@yhbt.net>; Thu, 23 Feb 2012 04:37:59 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id BC8B5262FF4; Thu, 23 Feb 2012 04:37:57 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+X-Greylist: delayed 460 seconds by postgrey-1.31 at rubyforge; Thu, 23 Feb
+ 2012 04:37:52 UTC
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id DD269262FE6 for <mongrel-unicorn@rubyforge.org>; Thu,
+ 23 Feb 2012 04:37:52 +0000 (UTC)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id E6A331F7A7; Thu, 23 Feb 2012 04:30:07 +0000 (UTC)
+Date: Thu, 23 Feb 2012 04:30:07 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Subject: Re: using unicorn as a local development server
+Message-ID: <20120223043007.GA20356@dcvr.yhbt.net>
+References: <alpine.OSX.2.00.1202221825220.1173@vincent.local>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To: <alpine.OSX.2.00.1202221825220.1173@vincent.local>
+User-Agent: Mutt/1.5.20 (2009-06-14)
+Cc: Patrick J Collins <patrick@collinatorstudios.com>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+"Patrick J. Collins" <patrick@collinatorstudios.com> wrote:
+> Hi Unicorn friends,
+> 
+> I wanted to try out Unicorn as my development server and I see that I
+> need to perform some configuration to make this work nicely with rails.
+> >From what I can tell the only real things I need to do to make unicorn
+> similar to the default rails server is to supply a config file with:
+> 
+> listen 3000
+> logger Logger.new(STDOUT)
+
+Hi Patrick,
+
+You shouldn't even need the logger directive, it goes to stderr by
+default so your console will still show it.
+
+> After creating this file, I was kind of confused as to how to proceed..
+> Should I made a bash alias like
+> 
+> alias unicorn="unicorn_rails -c /path/to/unicorn_config.rb"
+
+I generally avoid shell aliases for per-app/project things since I
+split my work across different apps + terminals + machines.
+
+If I'm (rarely) developing an app that _requires_ a persistently running
+web server, I'd just run in the foreground and Ctrl-C/<uparrow+enter> to
+use my shell history.
+
+Normally I just write integration tests (sometimes starting unicorn (or
+zbatery) + hitting it with curl, but often just mocking a Rack env).
+Unlike most folks that develop apps that run over HTTP, I have a strong
+aversion to web browsers.  I'd rather pipe curl output to "vim -" if I
+have to look at any text output from the application.
+
+You'll probably get different answers from other folks here :)
+
+> and lastly, is there a convention where a configuration file like this
+> should go on a unix/OS X system?
+
+Nothing that I know of.  It's quite common for Rails apps to have a
+config/ directory, so maybe the unicorn config file is suitable there...
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
