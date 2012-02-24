@@ -1,0 +1,100 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=-0.2 required=5.0 tests=AWL shortcircuit=no
+ autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id DC6BD1F73F for
+ <archivist@yhbt.net>; Fri, 24 Feb 2012 23:10:33 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 60576262783; Fri, 24 Feb 2012 23:10:33 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 4474326276D for <mongrel-unicorn@rubyforge.org>; Fri,
+ 24 Feb 2012 23:10:23 +0000 (UTC)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 44C611F4F5; Fri, 24 Feb 2012 23:10:23 +0000 (UTC)
+Date: Fri, 24 Feb 2012 23:10:22 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Subject: Re: using unicorn as a local development server
+Message-ID: <20120224231022.GA13091@dcvr.yhbt.net>
+References:
+ <CAAs37=UJXSmUvcX=nCXt13QBHjEWeC_5Z=x5Qnci6N+8CQvMvA@mail.gmail.com>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To:
+ <CAAs37=UJXSmUvcX=nCXt13QBHjEWeC_5Z=x5Qnci6N+8CQvMvA@mail.gmail.com>
+User-Agent: Mutt/1.5.21 (2010-09-15)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Matt Smith <matt@nearapogee.com> wrote:
+> Eric Wong wrote:
+> > Normally I just write integration tests (sometimes starting unicorn (or
+> > zbatery) + hitting it with curl, but often just mocking a Rack env).
+> > Unlike most folks that develop apps that run over HTTP, I have a strong
+> > aversion to web browsers. I'd rather pipe curl output to "vim -" if I
+> > have to look at any text output from the application.
+> 
+> This is slightly off topic, so I will make this concise, or this can
+> be taken offline.
+> 
+> What you are talking about, Eric, is exactly the workflow I am working
+> toward. I am almost there, but still too dependent on the browser. So
+> 2 questions:
+> 1) Would you share what you use for integrations tests for rails and
+> rack apps in general? (rack test, minitest, capybara, etc.)
+
+For Rack apps, I normally use test/unit (minitest in 1.9) + Rack::Mock*.
+test/test_watcher.rb in raindrops[1] is a public example of that.
+
+I don't develop a lot of Rack apps, though.  I haven't touched Rails in
+ages, but last time I used test/unit and some builtin Rails test
+extensions.
+
+If I'm testing within Ruby, I stay with test/unit because it's
+bundled/maintained with the latest version(s) of Ruby.  Back in the day,
+I know some projects had trouble migrating to Ruby 1.9.1 because rspec
+wasn't 1.9-compatible at the time (it is now).
+
+
+Back to Unicorn (and Rainbows!)
+-------------------------------
+
+For testing HTTP servers (or anything that interacts with
+non-Ruby-components), I'll use scripts in other languages
+(shell/Perl/awk) and external tools (e.g. curl) to shake out potential
+bugs.
+
+I worry about "self-cancelling" bugs which can be hidden from tests
+because I didn't understand something (often Ruby itself) well enough.
+Ruby 1.9 encodings is/was especially confusing to me, so I reached
+outside of Ruby in many cases.
+
+
+[1] - git clone git://bogomips.org/raindrops
+
+[2] - For the few Rack apps I write, almost all of them are APIs or
+      targeted at lynx or curl users.  I hate pretty things :)
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
