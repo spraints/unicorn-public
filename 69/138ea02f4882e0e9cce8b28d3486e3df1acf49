@@ -1,0 +1,97 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=0.0 required=5.0 tests=none shortcircuit=no
+ autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id 060521F7A9 for
+ <archivist@yhbt.net>; Tue, 28 Feb 2012 18:40:31 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 5EC62263053; Tue, 28 Feb 2012 18:40:30 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from mail-iy0-f178.google.com (mail-iy0-f178.google.com
+ [209.85.210.178]) by rubyforge.org (Postfix) with ESMTP id 7CAA9263027 for
+ <mongrel-unicorn@rubyforge.org>; Tue, 28 Feb 2012 18:34:05 +0000 (UTC)
+Received: by iakl21 with SMTP id l21so6660460iak.23 for
+ <mongrel-unicorn@rubyforge.org>; Tue, 28 Feb 2012 10:34:05 -0800 (PST)
+Received-SPF: pass (google.com: domain of eike@herzbach.net designates
+ 10.50.11.129 as permitted sender) client-ip=10.50.11.129; 
+Authentication-Results: mr.google.com; spf=pass (google.com: domain of
+ eike@herzbach.net designates 10.50.11.129 as permitted sender)
+ smtp.mail=eike@herzbach.net
+Received: from mr.google.com ([10.50.11.129]) by 10.50.11.129 with SMTP id
+ q1mr23715310igb.23.1330454045145 (num_hops = 1); Tue, 28 Feb 2012 10:34:05
+ -0800 (PST)
+MIME-Version: 1.0
+Received: by 10.50.11.129 with SMTP id q1mr19255261igb.23.1330454045063; Tue,
+ 28 Feb 2012 10:34:05 -0800 (PST)
+Received: by 10.50.179.1 with HTTP; Tue, 28 Feb 2012 10:34:05 -0800 (PST)
+X-Originating-IP: [83.125.71.254]
+Date: Tue, 28 Feb 2012 19:34:05 +0100
+Message-ID:
+ <CAHQT9biBWBuzApZ6Pjjiny-O0PUNDxQskHihGg4trvgFc1uRAg@mail.gmail.com>
+Subject: Suggestion for improvement of examples/nginx.conf
+From: Eike Herzbach <eike@herzbach.net>
+To: mongrel-unicorn@rubyforge.org
+X-Gm-Message-State:
+ ALoCoQlMTXCCs3EXIS8OPZ7VUwYkEYVT8ahpThI2UkLybqQ0oRd5P9YDG1Q32YRZsSnTYrsOkZHO
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Hi,
+
+what do you think about that:
+
+diff --git a/examples/nginx.conf b/examples/nginx.conf
+index cc1038a..5ef43f3 100644
+--- a/examples/nginx.conf
++++ b/examples/nginx.conf
+@@ -55,7 +55,7 @@ http {
+   # faster or not than doing compression via nginx.  It's easier
+   # to configure it all in one place here for static files and also
+   # to disable gzip for clients who don't get gzip/deflate right.
+-  # There are other other gzip settings that may be needed used to deal with
++  # There are other gzip settings that may be needed used to deal with
+   # bad clients out there, see http://wiki.nginx.org/NginxHttpGzipModule
+   gzip on;
+   gzip_http_version 1.0;
+@@ -120,9 +120,9 @@ http {
+       #   http://en.wikipedia.org/wiki/X-Forwarded-For
+       proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+
+-      # enable this if and only if you use HTTPS, this helps Rack
++      # enable this if you use HTTPS, this helps Rack
+       # set the proper protocol for doing redirects:
+-      # proxy_set_header X-Forwarded-Proto https;
++      # proxy_set_header X-Forwarded-Proto $scheme;
+
+       # pass the Host: header from the client right along so redirects
+       # can be set properly within the Rack application
+
+I haven't found an easy way to only set the header if the scheme is
+https, but I don't see any problems in sending the header for all
+requests either.
+
+Regards,
+Eike
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
