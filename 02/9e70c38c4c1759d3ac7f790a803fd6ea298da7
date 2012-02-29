@@ -1,0 +1,93 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=0.0 required=5.0 tests=T_DKIM_INVALID
+ shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id 3C64C1F850 for
+ <archivist@yhbt.net>; Wed, 29 Feb 2012 14:42:40 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id AC54D263045; Wed, 29 Feb 2012 14:42:38 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+X-Greylist: delayed 467 seconds by postgrey-1.31 at rubyforge; Wed, 29 Feb
+ 2012 14:42:31 UTC
+Received: from mail-ww0-f54.google.com (mail-ww0-f54.google.com
+ [74.125.82.54]) by rubyforge.org (Postfix) with ESMTP id AE349263042 for
+ <mongrel-unicorn@rubyforge.org>; Wed, 29 Feb 2012 14:42:31 +0000 (UTC)
+Received: by wgbdq13 with SMTP id dq13so2128742wgb.23 for
+ <mongrel-unicorn@rubyforge.org>; Wed, 29 Feb 2012 06:42:31 -0800 (PST)
+Received-SPF: pass (google.com: domain of graham.bleach@gmail.com designates
+ 10.180.78.230 as permitted sender) client-ip=10.180.78.230; 
+Authentication-Results: mr.google.com; spf=pass (google.com: domain of
+ graham.bleach@gmail.com designates 10.180.78.230 as permitted sender)
+ smtp.mail=graham.bleach@gmail.com; dkim=pass header.i=graham.bleach@gmail.com
+Received: from mr.google.com ([10.180.78.230]) by 10.180.78.230 with SMTP id
+ e6mr16269161wix.22.1330526551130 (num_hops = 1); Wed, 29 Feb 2012 06:42:31
+ -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com; s=gamma;
+ h=mime-version:sender:date:x-google-sender-auth:message-id:subject
+ :from:to:content-type; bh=iaApBXBDBUlDrQ3noiYOjt/xRWRy/4K6izTdF7wPuK8=;
+ b=NJxLM1+KO6Ag6hCLmIDivqIiQPpk8EVTgiYmDTfrchr6Ost5NYJZNc4S7P2xFdcrrV
+ 2Ufml4W86QmIi6GFyZLJ6EjsA4Al00lE1S+rUtjBqFgSo01utOx/Fmv+013NGRfzCBuM
+ cgJTbpwwxz9E9Ni4yqRltHHrhQhW4pF2WI7WM=
+MIME-Version: 1.0
+Received: by 10.180.78.230 with SMTP id e6mr12965989wix.22.1330526084261;
+ Wed, 29 Feb 2012 06:34:44 -0800 (PST)
+Received: by 10.180.88.161 with HTTP; Wed, 29 Feb 2012 06:34:44 -0800 (PST)
+Date: Wed, 29 Feb 2012 14:34:44 +0000
+X-Google-Sender-Auth: mMkG8EpYUkYMdM-u-crKus26gPY
+Message-ID:
+ <CAJ4ZL52jVH50jMAEmRHKsQSt_1N_mRYRRmq1Go2BqYx9AQe8Uw@mail.gmail.com>
+Subject: [PATCH] Start the server if another user has a PID matching our
+ stale pidfile.
+From: Graham Bleach <graham@darkskills.org.uk>
+To: mongrel-unicorn@rubyforge.org
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+If unicorn doesn't get terminated cleanly (for example if the machine
+has its power interrupted) and the pid in the pidfile gets used by
+another process, the current unicorn code will exit and not start a
+server. This tiny patch fixes that behaviour.
+
+
+---
+ lib/unicorn/http_server.rb |    2 +-
+ 1 files changed, 1 insertions(+), 1 deletions(-)
+
+diff --git a/lib/unicorn/http_server.rb b/lib/unicorn/http_server.rb
+index 7d2c623..0c2af5d 100644
+--- a/lib/unicorn/http_server.rb
++++ b/lib/unicorn/http_server.rb
+@@ -656,7 +656,7 @@ class Unicorn::HttpServer
+     wpid <= 0 and return
+     Process.kill(0, wpid)
+     wpid
+-    rescue Errno::ESRCH, Errno::ENOENT
++    rescue Errno::ESRCH, Errno::ENOENT, Errno::EPERM
+       # don't unlink stale pid files, racy without non-portable locking...
+   end
+
+-- 
+1.7.5.4
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
