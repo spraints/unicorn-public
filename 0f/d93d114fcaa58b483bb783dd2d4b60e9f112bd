@@ -1,0 +1,157 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=-0.2 required=5.0 tests=AWL,FREEMAIL_FROM,
+ T_DKIM_INVALID shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id A41D81F863 for
+ <archivist@yhbt.net>; Fri,  2 Mar 2012 01:12:51 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id E2A6E263025; Fri,  2 Mar 2012 01:12:50 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+X-Greylist: delayed 1770 seconds by postgrey-1.31 at rubyforge; Fri, 02 Mar
+ 2012 01:04:20 UTC
+Received: from mail-yx0-f178.google.com (mail-yx0-f178.google.com
+ [209.85.213.178]) by rubyforge.org (Postfix) with ESMTP id A29BB26276B for
+ <mongrel-unicorn@rubyforge.org>; Fri,  2 Mar 2012 01:04:20 +0000 (UTC)
+Received: by yenm14 with SMTP id m14so682501yen.23 for
+ <mongrel-unicorn@rubyforge.org>; Thu, 01 Mar 2012 17:04:20 -0800 (PST)
+Received-SPF: pass (google.com: domain of cliftonk@gmail.com designates
+ 10.236.79.202 as permitted sender) client-ip=10.236.79.202; 
+Authentication-Results: mr.google.com; spf=pass (google.com: domain of
+ cliftonk@gmail.com designates 10.236.79.202 as permitted sender)
+ smtp.mail=cliftonk@gmail.com; dkim=pass header.i=cliftonk@gmail.com
+Received: from mr.google.com ([10.236.79.202]) by 10.236.79.202 with SMTP id
+ i50mr10704779yhe.61.1330650260490 (num_hops = 1); Thu, 01 Mar 2012 17:04:20
+ -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com;
+ s=20120113; h=content-type:mime-version:subject:from:in-reply-to:date
+ :content-transfer-encoding:message-id:references:to:x-mailer;
+ bh=tx6mcVM/789kMaP88mbWvdGSctcv1ikELjALY7SqZO4=;
+ b=SZHN3Mscs64dLKPyVVTbuksa5MAgBgDzb+ewSrS0KOq+kLrETITqVrQPgmdVf21VfN
+ okwA1MOWsmqoT2tcrQODBmExN1A5j9e3GkNDsTqazfSj2nNgFnOPpG6AeiS+df1XooRl
+ tfGMdHseghustk/AUgAupjYjQ2bQXNb08OFEb2s+PNmfP2EDvOhIFUsAOj+M/As8mmsB
+ PwzuiLXDmvuUR8GRqOGXEz7Zk9W6e0A5IE40jSfQwdNhR2+qKgwhu5LeuVPTMY+KLtc8
+ 0AZwQ5xZIZFA07PILvEjnmrlS7Wg4HZbR2gGMUsgoyKAOcJ98ICN/aMvEHU+6xELeR1M AYDg==
+Received: by 10.236.79.202 with SMTP id i50mr8314635yhe.61.1330647142410;
+ Thu, 01 Mar 2012 16:12:22 -0800 (PST)
+Received: from [192.168.168.47] (rrcs-50-84-167-122.sw.biz.rr.com.
+ [50.84.167.122]) by mx.google.com with ESMTPS id
+ n12sm9076746yhe.10.2012.03.01.16.12.21 (version=TLSv1/SSLv3 cipher=OTHER);
+ Thu, 01 Mar 2012 16:12:21 -0800 (PST)
+Mime-Version: 1.0 (Apple Message framework v1257)
+Subject: Re: murdering high-memory workers and auto-scaling
+From: Clifton King <cliftonk@gmail.com>
+In-Reply-To:
+ <CAO1NZAqqfQRHhSz0jxcTtO6ngxOxFSq5dQm7UPJdXm7uidV79g@mail.gmail.com>
+Date: Thu, 1 Mar 2012 18:12:20 -0600
+Message-Id: <7AADD66C-3140-4D06-8D1D-FE015C649BE5@gmail.com>
+References:
+ <CAO1NZAqqfQRHhSz0jxcTtO6ngxOxFSq5dQm7UPJdXm7uidV79g@mail.gmail.com>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+X-Mailer: Apple Mail (2.1257)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+We use the following at the bottom of a God config. I believe it's in an example
+somewhere.
+
+Bloated worker gets sent a QUIT and it will finish processing the request and
+exits gracefully. We never really use TTOU and TTIN since the # of workers used
+is basically determined by the ram in the machine in question.
+
+```ruby
+# unicorn workers
+unicorn_worker_memory_limit = 220_000
+
+Thread.new do
+  loop do
+    begin
+      workers = `ps -e -www -o pid,rss,command | grep '[u]nicorn_rails worker'`
+      workers.split("\n").each do |line|
+        parts = line.split(' ')
+        if parts[1].to_i > unicorn_worker_memory_limit
+          # tell the worker to die after it finishes serving its request
+          ::Process.kill('QUIT', parts[0].to_i)
+        end
+      end
+    rescue Object
+      # don't die ever once we've tested this
+      nil
+    end
+
+    sleep 30
+  end
+end
+
+```
+
+Clifton
+
+On Mar 1, 2012, at 5:52 PM, Ben Somers wrote:
+
+> Two ideas, one more controversial than the other.
+> First: auto-killing bloated workers. My current app has some memory
+> leakage that wasn't really visible on our older passenger setup, since
+> the auto-scaling meant that bloated workers got killed periodically.
+> In a perfect world, we'd find and patch all of the leaks, but in the
+> meantime (and as a safety net) I'd like to get the bloated workers
+> auto-killed. It looks like it'd be simple to add in a bloated-worker
+> check at the same point when we check for timeout violations, and it
+> could be hidden behind a config setting. Alternately, I could write
+> this in a separate script.
+> 
+> Pros: might be a useful built-in feature, looks easy to implement the killing
+> Cons: Getting the memory usage might actually be surprisingly
+> difficult. Comparing to passenger's memory management code, where they
+> actually use platform-specific system calls, and we might get a
+> sizeable quantity of code that we don't want dirtying up the unicorn
+> internals. Also, some methods of checking appear to have performance
+> risks.
+> 
+> Second: in my use case, I have webservers running as VMs, sharing a
+> physical box with backend utility servers. The util servers run lots
+> of very CPU- and memory-hungry jobs, mostly at night; the webservers
+> handle requests, mostly in the daytime. Currently, most of these
+> webservers are running passenger, which is very polite about not using
+> more resources than it needs to handle requests. Unicorn, by contrast
+> (and by design) is very resource-greedy, what with the "scale to what
+> you can theoretically handle" strategy. If I spin down my number of
+> unicorn workers when they're not needed, I free up resources for my
+> util servers, which is important. TTOU and TTIN signals give me a
+> (very nice) means to write an auto-scaling module outside of unicorn,
+> but it might be nice to have it included as an optional component. (I
+> expect this will get voted down, as I expect the dev team is not
+> interested in it).
+> 
+> Happy to work on implementing these myself, just wanted to poll to see
+> if it'd be worth developing them as part of unicorn proper rather than
+> standalone scripts.
+> 
+> -ben
+> _______________________________________________
+> Unicorn mailing list - mongrel-unicorn@rubyforge.org
+> http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+> Do not quote signatures (like this one) or top post when replying
+
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
