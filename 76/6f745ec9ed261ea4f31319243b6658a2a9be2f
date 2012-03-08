@@ -1,0 +1,86 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=0.0 required=5.0 tests=T_DKIM_INVALID
+ shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id E5C3E1F862 for
+ <archivist@yhbt.net>; Thu,  8 Mar 2012 07:01:03 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 74CC6263027; Thu,  8 Mar 2012 07:01:02 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from mail-iy0-f178.google.com (mail-iy0-f178.google.com
+ [209.85.210.178]) by rubyforge.org (Postfix) with ESMTP id 899A9263027 for
+ <mongrel-unicorn@rubyforge.org>; Thu,  8 Mar 2012 05:58:30 +0000 (UTC)
+Received: by iakl21 with SMTP id l21so257986iak.23 for
+ <mongrel-unicorn@rubyforge.org>; Wed, 07 Mar 2012 21:58:30 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com;
+ s=20120113;
+ h=sender:subject:mime-version:content-type:from:in-reply-to:date:cc
+ :content-transfer-encoding:message-id:references:to:x-mailer;
+ bh=gLjWrx/LxYlC/0AEVE0+wSqqK208rVoWy8bAPvNeE0g=;
+ b=WgwWH0QanpPXYEWWjS85AqqGvvL78UxZgTfMs7oI6N7xy9q30WuwCPfD39KvR9ubhj
+ 9xPFbYbXAxgqX2eZI+cvcyAjk+MiK4AT9Czxg1lYEsgys37P1qXPamhlgHkXDYRIZEc9
+ hsM+duodg97OZoyn9zBcpA+qgVGUL6xAlkTvdqI5NxeZk+5S+PztQZd8tNlXiTbbfnhY
+ MHwEB3GPcAynk6/p66GvFpEzubezRmDx9vRyxb1slNNs9g2aXpNrGI+UGhfPZn5Sg9R/
+ xhhtsnjkqQ41AMGHzAils7lBJ3qv9Oi1QpO5LEd8SmNSAjBEMzV7nLaJA1PBoh2iR1gS xMmg==
+Received: by 10.50.194.133 with SMTP id hw5mr2939233igc.57.1331186310305;
+ Wed, 07 Mar 2012 21:58:30 -0800 (PST)
+Received: from [10.0.100.14] (c-24-130-189-109.hsd1.ca.comcast.net.
+ [24.130.189.109]) by mx.google.com with ESMTPS id
+ a9sm708413igd.3.2012.03.07.21.58.27 (version=TLSv1/SSLv3 cipher=OTHER); Wed,
+ 07 Mar 2012 21:58:28 -0800 (PST)
+Subject: Re: Running unicorn gracefully on Heroku
+Mime-Version: 1.0 (Apple Message framework v1257)
+From: Jamie Wilkinson <jamie@jamiedubs.com>
+In-Reply-To: <AFB6D2BEB13740858F3DE5A9F6AB900C@gmail.com>
+Date: Wed, 7 Mar 2012 21:58:24 -0800
+Message-Id: <0F44E152-42AA-446B-938E-4A5ED999D797@jamiedubs.com>
+References: <4F5791B4.9040102@abshere.net>
+ <20120307202212.GA11637@dcvr.yhbt.net>
+ <AFB6D2BEB13740858F3DE5A9F6AB900C@gmail.com>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+X-Mailer: Apple Mail (2.1257)
+Cc: Seamus Abshere <seamus@abshere.net>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+On Mar 7, 2012, at 1:27 PM, Alex Sharp wrote:
+
+> This guy seems to have figured it out: http://michaelvanrooijen.com/articles/2011/06/01-more-concurrency-on-a-single-heroku-dyno-with-the-new-celadon-cedar-stack/
+
+Yeah this works great, I've used it for all my Heroku rails apps without issue for a while now. You just put unicorn in your bundle, make a Procfile like
+
+	web: bundle exec unicorn -p $PORT -c ./config/unicorn.rb
+
+and a config/unicorn.rb like
+
+	worker_processes 2
+	timeout 5 # Heroku timeout is 5s
+
+Related: like this post[1] I'm also interested in a smarter way to trap Heroku's SIGINT restarts into a unicorn USR2-styl restart, so we can actually take advantage of unicorn. At high concurrency Heroku's "kill world" restarts cause a lot of errors.
+
+[1] <http://stackoverflow.com/questions/9605703/how-can-i-tell-unicorn-to-understand-herokus-signals>
+
+
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
