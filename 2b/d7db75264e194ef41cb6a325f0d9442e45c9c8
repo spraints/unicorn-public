@@ -1,0 +1,81 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=-0.2 required=5.0 tests=AWL shortcircuit=no
+ autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id EF7FD1F525 for
+ <archivist@yhbt.net>; Fri,  9 Mar 2012 22:30:35 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 81BA1263046; Fri,  9 Mar 2012 22:30:35 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id B2FAF263034 for <mongrel-unicorn@rubyforge.org>; Fri,
+ 9 Mar 2012 22:24:13 +0000 (UTC)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id D228B1F4C8; Fri,  9 Mar 2012 22:24:12 +0000 (UTC)
+Date: Fri, 9 Mar 2012 22:24:12 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Subject: Re: Unicorn_rails ignores USR2 signal
+Message-ID: <20120309222412.GA21753@dcvr.yhbt.net>
+References:
+ <E8D9E7CCC2621343A0A3BB45E8DEDFA91C6738D58E@CRPMBOXPRD04.polycom.com>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To:
+ <E8D9E7CCC2621343A0A3BB45E8DEDFA91C6738D58E@CRPMBOXPRD04.polycom.com>
+User-Agent: Mutt/1.5.21 (2010-09-15)
+Cc: "Yeung, Jeffrey" <Jeffrey.Yeung@polycom.com>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+"Yeung, Jeffrey" <Jeffrey.Yeung@polycom.com> wrote:
+>  $ ruby -v
+>  ruby 1.9.1p376 (2009-12-07 revision 26041) [x86_64-linux]
+> 
+> The Rails gem version is 2.3.14.  Unicorn gem version 4.2.0.
+
+> I have done my best to debug it using strace and the stderr logs.  The
+> unicorn_rails master process handles HUP, QUIT, and USR1 signals as
+> expected, no problems.  However, the USR2 signal is being completely
+> ignored.
+
+> While monitoring the master with strace, there are no calls observed
+> when sending a kill -USR2.  Nothing is logged to STDERR when sending
+> this signal, either.
+
+Really strange, especially since other signals seem to work...
+
+Since you're on Ruby (>= 1.9.0 && < 1.9.3), are you stracing with -f?
+
+If you're not already, try using: strace -f -e '!futex'
+
+1.9.x versions use a dedicated timer thread to accept signals, so you
+won't see system signal handlers in the VM without "strace -f".
+The "-e '!futex'" filters out the noise from the polling wakeup in
+<1.9.3 versions of Ruby.
+
+Can you try Ruby 1.9.3?  The signal handling got completely reworked
+(for the better) and you won't need "-e '!futex'"
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
