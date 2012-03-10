@@ -1,0 +1,110 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=-0.2 required=5.0 tests=AWL shortcircuit=no
+ autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id B8AA31F652 for
+ <archivist@yhbt.net>; Sat, 10 Mar 2012 01:49:18 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 195A9263035; Sat, 10 Mar 2012 01:49:17 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 3AD0126302E for <mongrel-unicorn@rubyforge.org>; Sat,
+ 10 Mar 2012 01:30:51 +0000 (UTC)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 55EB11F652; Sat, 10 Mar 2012 01:30:51 +0000 (UTC)
+Date: Fri, 9 Mar 2012 17:30:51 -0800
+From: Eric Wong <normalperson@yhbt.net>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Subject: Re: Unicorn_rails ignores USR2 signal
+Message-ID: <20120310013051.GA32091@dcvr.yhbt.net>
+References:
+ <E8D9E7CCC2621343A0A3BB45E8DEDFA91C6738D58E@CRPMBOXPRD04.polycom.com>
+ <20120309222412.GA21753@dcvr.yhbt.net>
+ <E8D9E7CCC2621343A0A3BB45E8DEDFA91C6738D5B7@CRPMBOXPRD04.polycom.com>
+ <20120310000239.GA27195@dcvr.yhbt.net>
+ <E8D9E7CCC2621343A0A3BB45E8DEDFA91C6738D5F8@CRPMBOXPRD04.polycom.com>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To:
+ <E8D9E7CCC2621343A0A3BB45E8DEDFA91C6738D5F8@CRPMBOXPRD04.polycom.com>
+User-Agent: Mutt/1.5.21 (2010-09-15)
+Cc: "Yeung, Jeffrey" <Jeffrey.Yeung@polycom.com>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+"Yeung, Jeffrey" <Jeffrey.Yeung@polycom.com> wrote:
+> I have it configured for 4 workers.  I just turned it down to 1 worker
+> and tested both TTIN and TTOU.  They both work, creating and killing
+> workers, respectively.  The following is the strace capture from an
+> TTOU signal, followed by a USR2 signal.  Yes, that is the only output
+> from the USR2 signal.  Behavior doesn't change if the master is
+> freshly started, or has been running for a while.  One other thing I
+> did not mention earlier is that the <pid>.oldbin file never gets
+> created on the USR2 signal, but that's probably obvious already.
+
+I also asked for sending another signal after USR2, can you try that?
+
+However, there's another possibility I hadn't considered, what if you
+disable preload_app?  Your app or some libs it uses may be intercepting
+USR2 for something it does.
+
+Maybe this patch can work, but this may also silently break your
+application/lib, too...
+
+diff --git a/lib/unicorn/http_server.rb b/lib/unicorn/http_server.rb
+index 7d2c623..1b9d693 100644
+--- a/lib/unicorn/http_server.rb
++++ b/lib/unicorn/http_server.rb
+@@ -128,8 +128,7 @@ class Unicorn::HttpServer
+     # setup signal handlers before writing pid file in case people get
+     # trigger happy and send signals as soon as the pid file exists.
+     # Note that signals don't actually get handled until the #join method
+-    QUEUE_SIGS.each { |sig| trap(sig) { SIG_QUEUE << sig; awaken_master } }
+-    trap(:CHLD) { awaken_master }
++    master_siginit
+     self.pid = config[:pid]
+ 
+     self.master_pid = $$
+@@ -689,6 +688,9 @@ class Unicorn::HttpServer
+         Gem.refresh
+       end
+       self.app = app.call
++
++      # override signal handlers the app may have set
++      master_siginit if preload_app
+     end
+   end
+ 
+@@ -736,4 +738,9 @@ class Unicorn::HttpServer
+     config_listeners.each { |addr| listen(addr) }
+     raise ArgumentError, "no listeners" if LISTENERS.empty?
+   end
++
++  def master_siginit
++    QUEUE_SIGS.each { |sig| trap(sig) { SIG_QUEUE << sig; awaken_master } }
++    trap(:CHLD) { awaken_master }
++  end
+ end
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
