@@ -1,0 +1,89 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=-0.2 required=5.0 tests=AWL shortcircuit=no
+ autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id B9A751F652 for
+ <archivist@yhbt.net>; Sat, 10 Mar 2012 00:56:59 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 2E0C3263035; Sat, 10 Mar 2012 00:56:59 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 3984726302E for <mongrel-unicorn@rubyforge.org>; Sat,
+ 10 Mar 2012 00:02:40 +0000 (UTC)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 66C261F525; Sat, 10 Mar 2012 00:02:39 +0000 (UTC)
+Date: Sat, 10 Mar 2012 00:02:39 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Subject: Re: Unicorn_rails ignores USR2 signal
+Message-ID: <20120310000239.GA27195@dcvr.yhbt.net>
+References:
+ <E8D9E7CCC2621343A0A3BB45E8DEDFA91C6738D58E@CRPMBOXPRD04.polycom.com>
+ <20120309222412.GA21753@dcvr.yhbt.net>
+ <E8D9E7CCC2621343A0A3BB45E8DEDFA91C6738D5B7@CRPMBOXPRD04.polycom.com>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To:
+ <E8D9E7CCC2621343A0A3BB45E8DEDFA91C6738D5B7@CRPMBOXPRD04.polycom.com>
+User-Agent: Mutt/1.5.21 (2010-09-15)
+Cc: "Yeung, Jeffrey" <Jeffrey.Yeung@polycom.com>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+"Yeung, Jeffrey" <Jeffrey.Yeung@polycom.com> wrote:
+> Thanks Eric.  New strace capture as follows:
+> 
+>  $ sudo strace -f -e '!futex' -p 14255
+>  Process 14255 attached with 12 threads - interrupt to quit
+
+>From that, you have 5 worker processes?
+
+For debugging this, it can cut down on noise to only use one worker
+process, too.  You can check if SIGTTOU works, too :)
+
+Also, can you reproduce this on a freshly-started master?  Or has
+the master been running and handling other signals for a while?
+
+The most common cause of USR2 failures is due to an executable or
+library being moved/replaced/upgraded away (sometimes due to
+Capistrano), but that should definitely get logged and doesn't seem to
+be the case for you.
+
+>  [pid 14322] restart_syscall(<... resuming interrupted call ...> <unfinished ...>
+>  [pid 14271] restart_syscall(<... resuming interrupted call ...> <unfinished ...>
+>  [pid 14267] accept(12,  <unfinished ...>
+>  [pid 14264] restart_syscall(<... resuming interrupted call ...> <unfinished ...>
+>  [pid 14255] select(6, [5], NULL, NULL, {42, 86504} <unfinished ...>
+>  [pid 14322] <... restart_syscall resumed> ) = -1 ETIMEDOUT (Connection timed out)
+>  [pid 14271] <... restart_syscall resumed> ) = -1 ETIMEDOUT (Connection timed out)
+>  [pid 14264] <... restart_syscall resumed> ) = -1 ETIMEDOUT (Connection timed out)
+>  [pid 14262] --- SIGUSR2 (User defined signal 2) @ 0 (0) ---
+>  [pid 14262] rt_sigreturn(0x20)          = 202
+> 
+> The last two lines do not say much for the event.  :(
+
+Anything more after that?  What happens when you send a previously
+working signal (USR1, HUP) after sending a failed USR2 to that process?
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
