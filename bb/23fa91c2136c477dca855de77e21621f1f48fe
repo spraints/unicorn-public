@@ -1,0 +1,260 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=0.0 required=5.0 tests=none shortcircuit=no
+ autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id D19671F525 for
+ <archivist@yhbt.net>; Sat, 10 Mar 2012 01:29:15 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id EA012263035; Sat, 10 Mar 2012 01:29:14 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from Crpehubprd01.polycom.com (crpehubprd01.polycom.com
+ [140.242.64.158]) by rubyforge.org (Postfix) with ESMTP id AB25526302E for
+ <mongrel-unicorn@rubyforge.org>; Sat, 10 Mar 2012 01:07:55 +0000 (UTC)
+Received: from CRPMBOXPRD04.polycom.com ([fe80::3472:d06:af7a:aa56]) by
+ Crpehubprd01.polycom.com ([fe80::5efe:10.236.0.158%14]) with mapi; Fri, 9 Mar
+ 2012 17:07:55 -0800
+From: "Yeung, Jeffrey" <Jeffrey.Yeung@polycom.com>
+To: Eric Wong <normalperson@yhbt.net>, unicorn list
+ <mongrel-unicorn@rubyforge.org>
+Date: Fri, 9 Mar 2012 17:07:47 -0800
+Subject: RE: Unicorn_rails ignores USR2 signal
+Thread-Topic: Unicorn_rails ignores USR2 signal
+Thread-Index: Acz+UR6hT0/jQhDET3mqBDUOuT1YUgABx/jA
+Message-ID:
+ <E8D9E7CCC2621343A0A3BB45E8DEDFA91C6738D5F8@CRPMBOXPRD04.polycom.com>
+References:
+ <E8D9E7CCC2621343A0A3BB45E8DEDFA91C6738D58E@CRPMBOXPRD04.polycom.com>
+ <20120309222412.GA21753@dcvr.yhbt.net>
+ <E8D9E7CCC2621343A0A3BB45E8DEDFA91C6738D5B7@CRPMBOXPRD04.polycom.com>
+ <20120310000239.GA27195@dcvr.yhbt.net>
+In-Reply-To: <20120310000239.GA27195@dcvr.yhbt.net>
+Accept-Language: en-US
+Content-Language: en-US
+X-MS-Has-Attach: 
+X-MS-TNEF-Correlator: 
+acceptlanguage: en-US
+MIME-Version: 1.0
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+I have it configured for 4 workers.  I just turned it down to 1 worker and tested both TTIN and TTOU.  They both work, creating and killing workers, respectively.  The following is the strace capture from an TTOU signal, followed by a USR2 signal.  Yes, that is the only output from the USR2 signal.  Behavior doesn't change if the master is freshly started, or has been running for a while.  One other thing I did not mention earlier is that the <pid>.oldbin file never gets created on the USR2 signal, but that's probably obvious already.
+
+[pid 14463] --- SIGTTOU (Stopped (tty output)) @ 0 (0) ---
+[pid 14463] rt_sigreturn(0x16)          = -1 EINTR (Interrupted system call)
+[pid 14483] rt_sigprocmask(SIG_SETMASK, ~[SEGV VTALRM RTMIN RT_1], NULL, 8) = 0
+[pid 14483] rt_sigprocmask(SIG_SETMASK, [], NULL, 8) = 0
+[pid 14483] tgkill(14456, 14456, SIGVTALRM) = 0
+[pid 14456] <... select resumed> )      = ? ERESTARTNOHAND (To be restarted)
+[pid 14456] --- SIGVTALRM (Virtual timer expired) @ 0 (0) ---
+[pid 14456] rt_sigreturn(0x1a)          = -1 EINTR (Interrupted system call)
+[pid 14456] fcntl(6, F_GETFL)           = 0x801 (flags O_WRONLY|O_NONBLOCK)
+[pid 14456] write(6, ".", 1)            = 1
+[pid 14456] select(6, [5], NULL, NULL, {30, 755188}) = 1 (in [5], left {30, 755184})
+[pid 14456] fcntl(5, F_GETFL)           = 0x800 (flags O_RDONLY|O_NONBLOCK)
+[pid 14456] read(5, ".", 11)            = 1
+[pid 14456] wait4(-1, 0x7fffcb5560ec, WNOHANG, NULL) = 0
+[pid 14456] wait4(-1, 0x7fffcb5560ec, WNOHANG, NULL) = 0
+[pid 14456] kill(14482, SIGQUIT <unfinished ...>
+[pid 14482] <... select resumed> )      = ? ERESTARTNOHAND (To be restarted)
+[pid 14456] <... kill resumed> )        = 0
+[pid 14482] --- SIGQUIT (Quit) @ 0 (0) ---
+[pid 14456] select(6, [5], NULL, NULL, {83, 0} <unfinished ...>
+[pid 14482] rt_sigreturn(0x3)           = -1 EINTR (Interrupted system call)
+[pid 14482] sched_yield()               = 0
+[pid 14482] sched_yield()               = 0
+[pid 14482] sched_yield()               = 0
+[pid 14482] sched_yield()               = 0
+[pid 14482] sched_yield()               = 0
+[pid 14482] sched_yield()               = 0
+[pid 14482] sched_yield()               = 0
+[pid 14482] sched_yield()               = 0
+[pid 14482] sched_yield()               = 0
+[pid 14482] sched_yield()               = 0
+[pid 14482] sched_yield()               = 0
+[pid 14482] sched_yield()               = 0
+[pid 14482] sched_yield()               = 0
+[pid 14482] sched_yield()               = 0
+[pid 14482] sched_yield()               = 0
+[pid 14482] sched_yield()               = 0
+[pid 14482] sched_yield()               = 0
+[pid 14482] sched_yield()               = 0
+[pid 14482] sched_yield()               = 0
+[pid 14482] sched_yield()               = 0
+[pid 14482] sched_yield()               = 0
+[pid 14482] sched_yield()               = 0
+[pid 14482] sched_yield()               = 0
+[pid 14482] sched_yield()               = 0
+[pid 14482] sched_yield()               = 0
+[pid 14482] sched_yield()               = 0
+[pid 14482] sched_yield()               = 0
+[pid 14482] sched_yield()               = 0
+[pid 14482] sched_yield()               = 0
+[pid 14482] sched_yield()               = 0
+[pid 14482] sched_yield()               = 0
+[pid 14482] sched_yield()               = 0
+[pid 14482] sched_yield()               = 0
+[pid 14482] sched_yield()               = 0
+[pid 14482] sched_yield()               = 0
+[pid 14482] sched_yield()               = 0
+[pid 14482] sched_yield()               = 0
+[pid 14482] sched_yield()               = 0
+[pid 14482] sched_yield()               = 0
+[pid 14482] sched_yield()               = 0
+[pid 14482] sched_yield()               = 0
+[pid 14482] sched_yield()               = 0
+[pid 14482] sched_yield()               = 0
+[pid 14482] sched_yield()               = 0
+[pid 14482] sched_yield()               = 0
+[pid 14482] sched_yield()               = 0
+[pid 14482] sched_yield()               = 0
+[pid 14482] sched_yield()               = 0
+[pid 14482] sched_yield()               = 0
+[pid 14482] sched_yield()               = 0
+[pid 14482] sched_yield()               = 0
+[pid 14482] sched_yield()               = 0
+[pid 14482] sched_yield()               = 0
+[pid 14482] sched_yield()               = 0
+[pid 14482] sched_yield()               = 0
+[pid 14482] sched_yield()               = 0
+[pid 14482] sched_yield()               = 0
+[pid 14482] sched_yield()               = 0
+[pid 14482] sched_yield()               = 0
+[pid 14482] sched_yield()               = 0
+[pid 14482] sched_yield()               = 0
+[pid 14482] sched_yield()               = 0
+[pid 14482] sched_yield()               = 0
+[pid 14482] sched_yield()               = 0
+[pid 14482] sched_yield()               = 0
+[pid 14482] sched_yield()               = 0
+[pid 14482] sched_yield()               = 0
+[pid 14482] sched_yield()               = 0
+[pid 14482] sched_yield()               = 0
+[pid 14482] sched_yield()               = 0
+[pid 14482] sched_yield()               = 0
+[pid 14482] sched_yield()               = 0
+[pid 14482] sched_yield()               = 0
+[pid 14482] sched_yield()               = 0
+[pid 14482] sched_yield()               = 0
+[pid 14482] sched_yield()               = 0
+[pid 14482] sched_yield()               = 0
+[pid 14482] sched_yield()               = 0
+[pid 14482] sched_yield()               = 0
+[pid 14482] sched_yield()               = 0
+[pid 14482] sched_yield()               = 0
+[pid 14482] sched_yield()               = 0
+[pid 14482] sched_yield()               = 0
+[pid 14482] sched_yield()               = 0
+[pid 14482] sched_yield()               = 0
+[pid 14482] sched_yield()               = 0
+[pid 14482] sched_yield()               = 0
+[pid 14482] sched_yield()               = 0
+[pid 14482] sched_yield()               = 0
+[pid 14482] sched_yield()               = 0
+[pid 14482] sched_yield()               = 0
+[pid 14482] sched_yield()               = 0
+[pid 14482] sched_yield()               = 0
+[pid 14482] sched_yield()               = 0
+[pid 14482] sched_yield( <unfinished ...>
+[pid 14485] rt_sigprocmask(SIG_SETMASK, ~[SEGV VTALRM RTMIN RT_1], NULL, 8) = 0
+[pid 14485] rt_sigprocmask(SIG_SETMASK, [], NULL, 8) = 0
+[pid 14482] <... sched_yield resumed> ) = 0
+[pid 14482] close(3)                    = 0
+[pid 14482] select(6, [3], NULL, [4 5], {22, 883208}) = -1 EBADF (Bad file descriptor)
+[pid 14482] rt_sigprocmask(SIG_SETMASK, ~[HUP INT QUIT KILL USR1 SEGV USR2 TERM CHLD STOP TTIN TTOU VTALRM WINCH RTMIN RT_1], NULL, 8) = 0
+[pid 14482] rt_sigprocmask(SIG_SETMASK, ~[HUP INT QUIT KILL USR1 SEGV USR2 TERM CHLD STOP TTIN TTOU VTALRM WINCH RTMIN RT_1], NULL, 8) = 0
+[pid 14482] rt_sigprocmask(SIG_SETMASK, ~[HUP INT QUIT KILL USR1 SEGV USR2 TERM CHLD STOP TTIN TTOU VTALRM WINCH RTMIN RT_1], NULL, 8) = 0
+[pid 14482] getrlimit(RLIMIT_STACK, {rlim_cur=8192*1024, rlim_max=RLIM_INFINITY}) = 0
+[pid 14485] _exit(0)                    = ?
+Process 14485 detached
+[pid 14482] rt_sigaction(SIGINT, {SIG_IGN, [], SA_RESTORER|SA_SIGINFO, 0x7f10515428f0}, {0x48fc00, [], SA_RESTORER|SA_SIGINFO, 0x7f10515428f0}, 8) = 0
+[pid 14482] rt_sigaction(SIGINT, {SIG_DFL, [], SA_RESTORER|SA_SIGINFO, 0x7f10515428f0}, {SIG_IGN, [], SA_RESTORER|SA_SIGINFO, 0x7f10515428f0}, 8) = 0
+[pid 14482] munmap(0x7f10517b4000, 4096) = 0
+[pid 14482] close(4)                    = 0
+[pid 14482] close(5)                    = 0
+[pid 14482] close(7)                    = 0
+[pid 14482] close(12)                   = 0
+[pid 14482] unlink("/tmp/.java_pid14456") = -1 EPERM (Operation not permitted)
+[pid 14482] exit_group(0)               = ?
+Process 14482 detached
+[pid 14463] --- SIGCHLD (Child exited) @ 0 (0) ---
+[pid 14463] rt_sigreturn(0x11)          = -1 EINTR (Interrupted system call)
+[pid 14483] rt_sigprocmask(SIG_SETMASK, ~[SEGV VTALRM RTMIN RT_1], NULL, 8) = 0
+[pid 14483] rt_sigprocmask(SIG_SETMASK, [], NULL, 8) = 0
+[pid 14483] tgkill(14456, 14456, SIGVTALRM) = 0
+[pid 14456] <... select resumed> )      = ? ERESTARTNOHAND (To be restarted)
+[pid 14456] --- SIGVTALRM (Virtual timer expired) @ 0 (0) ---
+[pid 14456] rt_sigreturn(0x1a)          = -1 EINTR (Interrupted system call)
+[pid 14456] fcntl(6, F_GETFL)           = 0x801 (flags O_WRONLY|O_NONBLOCK)
+[pid 14456] write(6, ".", 1)            = 1
+[pid 14456] select(6, [5], NULL, NULL, {82, 908414}) = 1 (in [5], left {82, 908410})
+[pid 14456] fcntl(5, F_GETFL)           = 0x800 (flags O_RDONLY|O_NONBLOCK)
+[pid 14456] read(5, ".", 11)            = 1
+[pid 14456] wait4(-1, [{WIFEXITED(s) && WEXITSTATUS(s) == 0}], WNOHANG, NULL) = 14482
+[pid 14456] write(2, "reaped #<Process::Status: pid 14"..., 53) = 53
+[pid 14456] wait4(-1, 0x7fffcb5560ec, WNOHANG, NULL) = 0
+[pid 14456] select(6, [5], NULL, NULL, {91, 0}
+
+
+ <unfinished ...>
+[pid 14463] --- SIGUSR2 (User defined signal 2) @ 0 (0) ---
+[pid 14463] rt_sigreturn(0x20)          = 202
+
+
+-----Original Message-----
+From: Eric Wong [mailto:normalperson@yhbt.net] 
+Sent: Friday, March 09, 2012 4:03 PM
+To: unicorn list
+Cc: Yeung, Jeffrey
+Subject: Re: Unicorn_rails ignores USR2 signal
+
+"Yeung, Jeffrey" <Jeffrey.Yeung@polycom.com> wrote:
+> Thanks Eric.  New strace capture as follows:
+> 
+>  $ sudo strace -f -e '!futex' -p 14255  Process 14255 attached with 12 
+> threads - interrupt to quit
+
+>From that, you have 5 worker processes?
+
+For debugging this, it can cut down on noise to only use one worker process, too.  You can check if SIGTTOU works, too :)
+
+Also, can you reproduce this on a freshly-started master?  Or has the master been running and handling other signals for a while?
+
+The most common cause of USR2 failures is due to an executable or library being moved/replaced/upgraded away (sometimes due to Capistrano), but that should definitely get logged and doesn't seem to be the case for you.
+
+>  [pid 14322] restart_syscall(<... resuming interrupted call ...> 
+> <unfinished ...>  [pid 14271] restart_syscall(<... resuming 
+> interrupted call ...> <unfinished ...>  [pid 14267] accept(12,  
+> <unfinished ...>  [pid 14264] restart_syscall(<... resuming 
+> interrupted call ...> <unfinished ...>  [pid 14255] select(6, [5], 
+> NULL, NULL, {42, 86504} <unfinished ...>  [pid 14322] <... 
+> restart_syscall resumed> ) = -1 ETIMEDOUT (Connection timed out)  [pid 
+> 14271] <... restart_syscall resumed> ) = -1 ETIMEDOUT (Connection 
+> timed out)  [pid 14264] <... restart_syscall resumed> ) = -1 ETIMEDOUT (Connection timed out)  [pid 14262] --- SIGUSR2 (User defined signal 2) @ 0 (0) ---
+>  [pid 14262] rt_sigreturn(0x20)          = 202
+> 
+> The last two lines do not say much for the event.  :(
+
+Anything more after that?  What happens when you send a previously working signal (USR1, HUP) after sending a failed USR2 to that process?
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
