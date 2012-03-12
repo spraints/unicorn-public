@@ -1,0 +1,127 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=0.0 required=5.0 tests=none shortcircuit=no
+ autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id A583A1F786 for
+ <archivist@yhbt.net>; Mon, 12 Mar 2012 22:39:23 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 2977326302E; Mon, 12 Mar 2012 22:39:22 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from Crpehubprd01.polycom.com (crpehubprd01.polycom.com
+ [140.242.64.158]) by rubyforge.org (Postfix) with ESMTP id 0213626302E for
+ <mongrel-unicorn@rubyforge.org>; Mon, 12 Mar 2012 22:39:13 +0000 (UTC)
+Received: from CRPMBOXPRD04.polycom.com ([fe80::3472:d06:af7a:aa56]) by
+ Crpehubprd01.polycom.com ([fe80::5efe:10.236.0.158%14]) with mapi; Mon, 12
+ Mar 2012 15:39:12 -0700
+From: "Yeung, Jeffrey" <Jeffrey.Yeung@polycom.com>
+To: Eric Wong <normalperson@yhbt.net>, unicorn list
+ <mongrel-unicorn@rubyforge.org>
+Date: Mon, 12 Mar 2012 15:39:24 -0700
+Subject: RE: Unicorn_rails ignores USR2 signal
+Thread-Topic: Unicorn_rails ignores USR2 signal
+Thread-Index: Ac0AlhP4Xtt+gu4EREesE5dmx3+SUwACGQww
+Message-ID:
+ <E8D9E7CCC2621343A0A3BB45E8DEDFA91C682DD23D@CRPMBOXPRD04.polycom.com>
+References:
+ <E8D9E7CCC2621343A0A3BB45E8DEDFA91C6738D58E@CRPMBOXPRD04.polycom.com>
+ <20120309222412.GA21753@dcvr.yhbt.net>
+ <E8D9E7CCC2621343A0A3BB45E8DEDFA91C6738D5B7@CRPMBOXPRD04.polycom.com>
+ <20120310000239.GA27195@dcvr.yhbt.net>
+ <E8D9E7CCC2621343A0A3BB45E8DEDFA91C6738D5F8@CRPMBOXPRD04.polycom.com>
+ <20120310013051.GA32091@dcvr.yhbt.net> <20120312212119.GA26451@dcvr.yhbt.net>
+In-Reply-To: <20120312212119.GA26451@dcvr.yhbt.net>
+Accept-Language: en-US
+Content-Language: en-US
+X-MS-Has-Attach: 
+X-MS-TNEF-Correlator: 
+acceptlanguage: en-US
+MIME-Version: 1.0
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Hi Eric,
+
+Sorry for the delay.  It looks like disabling preload_app did the trick.  A new master was created after sending the USR2.  Now the $$$ question is, what in the world is intercepting the signal?  :S
+
+And this is a little late now, but here's the strace of a USR2 signal followed by a TTOU signal, with preload_app true (latter signal working okay in this case):
+
+[pid 14542] --- SIGUSR2 (User defined signal 2) @ 0 (0) ---
+[pid 14542] rt_sigreturn(0x20)          = 202
+[pid 14535] <... select resumed> )      = 0 (Timeout)
+[pid 14535] wait4(-1, 0x7fff6bcccb9c, WNOHANG, NULL) = 0
+[pid 14535] select(6, [5], NULL, NULL, {60, 0} <unfinished ...>
+[pid 14542] --- SIGTTOU (Stopped (tty output)) @ 0 (0) ---
+[pid 14542] rt_sigreturn(0x16)          = -1 EINTR (Interrupted system call)
+[pid 14553] rt_sigprocmask(SIG_SETMASK, ~[SEGV VTALRM RTMIN RT_1], NULL, 8) = 0
+[pid 14553] rt_sigprocmask(SIG_SETMASK, [], NULL, 8) = 0
+[pid 14553] tgkill(14535, 14535, SIGVTALRM) = 0
+[pid 14535] <... select resumed> )      = ? ERESTARTNOHAND (To be restarted)
+[pid 14535] --- SIGVTALRM (Virtual timer expired) @ 0 (0) ---
+[pid 14535] rt_sigreturn(0x1a)          = -1 EINTR (Interrupted system call)
+[pid 14535] fcntl(6, F_GETFL)           = 0x1 (flags O_WRONLY)
+[pid 14535] fcntl(6, F_SETFL, O_WRONLY|O_NONBLOCK) = 0
+[pid 14535] write(6, ".", 1)            = 1
+[pid 14535] select(6, [5], NULL, NULL, {59, 939700}) = 1 (in [5], left {59, 939696})
+[pid 14535] fcntl(5, F_GETFL)           = 0 (flags O_RDONLY)
+[pid 14535] fcntl(5, F_SETFL, O_RDONLY|O_NONBLOCK) = 0
+[pid 14535] read(5, ".", 11)            = 1
+[pid 14535] wait4(-1, 0x7fff6bcccb9c, WNOHANG, NULL) = 0
+[pid 14535] wait4(-1, 0x7fff6bcccb9c, WNOHANG, NULL) = 0
+[pid 14535] kill(14552, SIGQUIT)        = 0
+[pid 14535] select(6, [5], NULL, NULL, {60, 0} <unfinished ...>
+[pid 14542] --- SIGCHLD (Child exited) @ 0 (0) ---
+[pid 14542] rt_sigreturn(0x11)          = -1 EINTR (Interrupted system call)
+[pid 14553] rt_sigprocmask(SIG_SETMASK, ~[SEGV VTALRM RTMIN RT_1], NULL, 8) = 0
+[pid 14553] rt_sigprocmask(SIG_SETMASK, [], NULL, 8) = 0
+[pid 14553] tgkill(14535, 14535, SIGVTALRM) = 0
+[pid 14535] <... select resumed> )      = ? ERESTARTNOHAND (To be restarted)
+[pid 14535] --- SIGVTALRM (Virtual timer expired) @ 0 (0) ---
+[pid 14535] rt_sigreturn(0x1a)          = -1 EINTR (Interrupted system call)
+[pid 14535] fcntl(6, F_GETFL)           = 0x801 (flags O_WRONLY|O_NONBLOCK)
+[pid 14535] write(6, ".", 1)            = 1
+[pid 14535] select(6, [5], NULL, NULL, {59, 880004}) = 1 (in [5], left {59, 880001})
+[pid 14535] fcntl(5, F_GETFL)           = 0x800 (flags O_RDONLY|O_NONBLOCK)
+[pid 14535] read(5, ".", 11)            = 1
+[pid 14535] wait4(-1, [{WIFEXITED(s) && WEXITSTATUS(s) == 0}], WNOHANG, NULL) = 14552
+[pid 14535] write(2, "reaped #<Process::Status: pid 14"..., 53) = 53
+[pid 14535] wait4(-1, 0x7fff6bcccb9c, WNOHANG, NULL) = -1 ECHILD (No child processes)
+[pid 14535] rt_sigprocmask(SIG_SETMASK, [], NULL, 8) = 0
+[pid 14535] select(6, [5], NULL, NULL, {119, 0}
+
+-----Original Message-----
+From: Eric Wong [mailto:normalperson@yhbt.net] 
+Sent: Monday, March 12, 2012 2:21 PM
+To: unicorn list
+Cc: Yeung, Jeffrey
+Subject: Re: Unicorn_rails ignores USR2 signal
+
+Eric Wong <normalperson@yhbt.net> wrote:
+> However, there's another possibility I hadn't considered, what if you 
+> disable preload_app?  Your app or some libs it uses may be 
+> intercepting
+> USR2 for something it does.
+
+Ping?  Was this it?
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
