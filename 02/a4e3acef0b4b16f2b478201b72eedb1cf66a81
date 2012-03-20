@@ -1,0 +1,112 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=-0.2 required=5.0 tests=AWL shortcircuit=no
+ autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id ED96D1F78D for
+ <archivist@yhbt.net>; Tue, 20 Mar 2012 20:00:09 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 831E6263041; Tue, 20 Mar 2012 20:00:09 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id EBF85263041 for <mongrel-unicorn@rubyforge.org>; Tue,
+ 20 Mar 2012 19:59:58 +0000 (UTC)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 7D0C71F75F; Tue, 20 Mar 2012 19:59:58 +0000 (UTC)
+Date: Tue, 20 Mar 2012 19:59:58 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Subject: Re: Suggestion for improvement of examples/nginx.conf
+Message-ID: <20120320195958.GB1187@dcvr.yhbt.net>
+References:
+ <CAHQT9biBWBuzApZ6Pjjiny-O0PUNDxQskHihGg4trvgFc1uRAg@mail.gmail.com>
+ <20120228210136.GA2808@dcvr.yhbt.net>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To: <20120228210136.GA2808@dcvr.yhbt.net>
+User-Agent: Mutt/1.5.20 (2009-06-14)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Eric Wong <normalperson@yhbt.net> wrote:
+> Eike Herzbach <eike@herzbach.net> wrote:
+> > Hi,
+> > 
+> > what do you think about that:
+> > 
+> > diff --git a/examples/nginx.conf b/examples/nginx.conf
+> > index cc1038a..5ef43f3 100644
+> > --- a/examples/nginx.conf
+> > +++ b/examples/nginx.conf
+> > @@ -55,7 +55,7 @@ http {
+> >    # faster or not than doing compression via nginx.  It's easier
+> >    # to configure it all in one place here for static files and also
+> >    # to disable gzip for clients who don't get gzip/deflate right.
+> > -  # There are other other gzip settings that may be needed used to deal with
+> > +  # There are other gzip settings that may be needed used to deal with
+> 
+> Obviously correct, will apply.  Thanks.
+
+Pushed:
+http://bogomips.org/unicorn.git/patch/?id=0daedd92d3e896a9fcd301bbb58e85bb54a939ee
+
+> > -      # enable this if and only if you use HTTPS, this helps Rack
+> > +      # enable this if you use HTTPS, this helps Rack
+> >        # set the proper protocol for doing redirects:
+> > -      # proxy_set_header X-Forwarded-Proto https;
+> > +      # proxy_set_header X-Forwarded-Proto $scheme;
+> > 
+> >        # pass the Host: header from the client right along so redirects
+> >        # can be set properly within the Rack application
+> > 
+> > I haven't found an easy way to only set the header if the scheme is
+> > https, but I don't see any problems in sending the header for all
+> > requests either.
+> 
+> Setting it for all requests uses an extra hash slot and leads to extra
+> method dispatches in Rack (and possibly code elsewhere).  I suppose
+> it doesn't matter for most setups, though.
+> 
+> How about this?
+> 
+> --- a/examples/nginx.conf
+> +++ b/examples/nginx.conf
+> @@ -120,9 +120,9 @@ http {
+>        #   http://en.wikipedia.org/wiki/X-Forwarded-For
+>        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+>  
+> -      # enable this if and only if you use HTTPS, this helps Rack
+> -      # set the proper protocol for doing redirects:
+> -      # proxy_set_header X-Forwarded-Proto https;
+> +      # enable this if you forward HTTPS traffic to unicorn,
+> +      # this helps Rack set the proper URL scheme for doing redirects:
+> +      # proxy_set_header X-Forwarded-Proto $scheme;
+>  
+>        # pass the Host: header from the client right along so redirects
+>        # can be set properly within the Rack application
+
+Also pushed this:
+
+http://bogomips.org/unicorn.git/patch/?id=9fc5c24920726d3c10bc9f39d8e97686b93cbbe0
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
