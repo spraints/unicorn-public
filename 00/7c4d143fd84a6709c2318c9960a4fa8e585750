@@ -1,0 +1,120 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=0.0 required=5.0 tests=none shortcircuit=no
+ autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id 4C1791F78D for
+ <archivist@yhbt.net>; Tue, 20 Mar 2012 23:09:40 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id A0FC2263042; Tue, 20 Mar 2012 23:09:38 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from crpehubprd02.polycom.com (crpehubprd01.polycom.com
+ [140.242.64.158]) by rubyforge.org (Postfix) with ESMTP id 57843263041 for
+ <mongrel-unicorn@rubyforge.org>; Tue, 20 Mar 2012 23:09:35 +0000 (UTC)
+Received: from CRPMBOXPRD04.polycom.com ([fe80::3472:d06:af7a:aa56]) by
+ crpehubprd02.polycom.com ([fe80::5efe:10.236.0.154%12]) with mapi; Tue, 20
+ Mar 2012 16:09:35 -0700
+From: "Yeung, Jeffrey" <Jeffrey.Yeung@polycom.com>
+To: Eric Wong <normalperson@yhbt.net>, unicorn list
+ <mongrel-unicorn@rubyforge.org>
+Date: Tue, 20 Mar 2012 16:09:34 -0700
+Subject: RE: Unicorn_rails ignores USR2 signal
+Thread-Topic: Unicorn_rails ignores USR2 signal
+Thread-Index: Ac0G078MlwW2rM2jRae6qN7l4g+aAAAGieoQ
+Message-ID:
+ <E8D9E7CCC2621343A0A3BB45E8DEDFA91C6869D9F3@CRPMBOXPRD04.polycom.com>
+References:
+ <E8D9E7CCC2621343A0A3BB45E8DEDFA91C6738D58E@CRPMBOXPRD04.polycom.com>
+ <20120309222412.GA21753@dcvr.yhbt.net>
+ <E8D9E7CCC2621343A0A3BB45E8DEDFA91C6738D5B7@CRPMBOXPRD04.polycom.com>
+ <20120310000239.GA27195@dcvr.yhbt.net>
+ <E8D9E7CCC2621343A0A3BB45E8DEDFA91C6738D5F8@CRPMBOXPRD04.polycom.com>
+ <20120310013051.GA32091@dcvr.yhbt.net> <20120312212119.GA26451@dcvr.yhbt.net>
+ <E8D9E7CCC2621343A0A3BB45E8DEDFA91C682DD23D@CRPMBOXPRD04.polycom.com>
+ <20120312224419.GA2942@dcvr.yhbt.net> <20120320195748.GA1187@dcvr.yhbt.net>
+In-Reply-To: <20120320195748.GA1187@dcvr.yhbt.net>
+Accept-Language: en-US
+Content-Language: en-US
+X-MS-Has-Attach: 
+X-MS-TNEF-Correlator: 
+acceptlanguage: en-US
+MIME-Version: 1.0
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Eric,
+
+I have been unable to narrow down the cause of the conflict so far.  The list of Ruby gems (and gem versions) on the affected deployment are identical to the ones on another deployment where Unicorn is upgrading just fine (with preloaded app).  Grep'ing for USR2 in the gem installations did not reveal anything,  unfortunately.  Since then, I haven't been able to spend further time investigating.  Not sure where else to look, really, but I'm open to further suggestions.
+
+-Jeff
+
+-----Original Message-----
+From: Eric Wong [mailto:normalperson@yhbt.net] 
+Sent: Tuesday, March 20, 2012 12:58 PM
+To: unicorn list
+Cc: Yeung, Jeffrey
+Subject: Re: Unicorn_rails ignores USR2 signal
+
+Eric Wong <normalperson@yhbt.net> wrote:
+> "Yeung, Jeffrey" <Jeffrey.Yeung@polycom.com> wrote:
+> > Sorry for the delay.  It looks like disabling preload_app did the 
+> > trick.  A new master was created after sending the USR2.  Now the 
+> > $$$ question is, what in the world is intercepting the signal?  :S
+> 
+> Good to know, I'd just grep the installation directories for all your 
+> Ruby libs + gems for USR2.  I haven't seen this problem before, but 
+> it'd be good to document the conflict, at least.
+
+Btw, did you ever figure out what was causing the conflict?
+
+Pushing this out to git://bogomips.org/unicorn.git
+
+>From 1e13ffee3469997286e65e0563b6433e7744388a Mon Sep 17 00:00:00 2001
+From: Eric Wong <normalperson@yhbt.net>
+Date: Tue, 20 Mar 2012 19:51:35 +0000
+Subject: [PATCH] KNOWN_ISSUES: document signal conflicts in libs/apps
+
+Jeffrey Yeung confirmed this issue on the mailing list.
+
+ref: <E8D9E7CCC2621343A0A3BB45E8DEDFA91C682DD23D@CRPMBOXPRD04.polycom.com>
+---
+ KNOWN_ISSUES |    5 +++++
+ 1 file changed, 5 insertions(+)
+
+diff --git a/KNOWN_ISSUES b/KNOWN_ISSUES index f323c68..38263e7 100644
+--- a/KNOWN_ISSUES
++++ b/KNOWN_ISSUES
+@@ -3,6 +3,11 @@
+ Occasionally odd {issues}[link:ISSUES.html] arise without a transparent or  acceptable solution.  Those issues are documented here.
+ 
++* Some libraries/applications may install signal handlers which 
++conflict
++  with signal handlers unicorn uses.  Leaving "preload_app false"
++  (the default) will allow unicorn to always override existing signal
++  handlers.
++
+ * Issues with FreeBSD jails can be worked around as documented by Tatsuya Ono:
+   http://mid.gmane.org/CAHBuKRj09FdxAgzsefJWotexw-7JYZGJMtgUp_dhjPz9VbKD6Q@mail.gmail.com
+ 
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
