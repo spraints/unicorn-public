@@ -1,0 +1,94 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=-0.2 required=5.0 tests=AWL shortcircuit=no
+ autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id 47CB91F78D for
+ <archivist@yhbt.net>; Tue, 20 Mar 2012 20:12:42 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 9627F263041; Tue, 20 Mar 2012 20:12:41 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id A4B3F263041 for <mongrel-unicorn@rubyforge.org>; Tue,
+ 20 Mar 2012 20:10:11 +0000 (UTC)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id DC5C31F75F; Tue, 20 Mar 2012 20:10:10 +0000 (UTC)
+Date: Tue, 20 Mar 2012 20:10:10 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Subject: Re: [PATCH] Start the server if another user has a PID matching our
+ stale pidfile.
+Message-ID: <20120320201010.GA6857@dcvr.yhbt.net>
+References:
+ <CAJ4ZL52jVH50jMAEmRHKsQSt_1N_mRYRRmq1Go2BqYx9AQe8Uw@mail.gmail.com>
+ <20120229172559.GA26211@dcvr.yhbt.net>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To: <20120229172559.GA26211@dcvr.yhbt.net>
+User-Agent: Mutt/1.5.20 (2009-06-14)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Eric Wong <normalperson@yhbt.net> wrote:
+> Graham Bleach <graham@darkskills.org.uk> wrote:
+> > If unicorn doesn't get terminated cleanly (for example if the machine
+> > has its power interrupted) and the pid in the pidfile gets used by
+> > another process, the current unicorn code will exit and not start a
+> > server. This tiny patch fixes that behaviour.
+> 
+> Thanks!  Acked-by: Eric Wong <normalperson@yhbt.net>
+> 
+> and pushed to master on git://bogomips.org/unicorn.git
+
+Btw, I also pushed this to be a little more informative:
+
+>From d0e7d8d770275654024887a05d9e986589ba358c Mon Sep 17 00:00:00 2001
+From: Eric Wong <normalperson@yhbt.net>
+Date: Tue, 20 Mar 2012 20:05:59 +0000
+Subject: [PATCH] log EPERM errors from invalid pid files
+
+In some cases, EPERM may indicate a real configuration problem,
+but it can also just mean the pid file is stale.
+---
+ lib/unicorn/http_server.rb |    5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
+
+diff --git a/lib/unicorn/http_server.rb b/lib/unicorn/http_server.rb
+index 0c2af5d..ede6264 100644
+--- a/lib/unicorn/http_server.rb
++++ b/lib/unicorn/http_server.rb
+@@ -656,7 +656,10 @@ class Unicorn::HttpServer
+     wpid <= 0 and return
+     Process.kill(0, wpid)
+     wpid
+-    rescue Errno::ESRCH, Errno::ENOENT, Errno::EPERM
++    rescue Errno::EPERM
++      logger.info "pid=#{path} possibly stale, got EPERM signalling PID:#{wpid}"
++      nil
++    rescue Errno::ESRCH, Errno::ENOENT
+       # don't unlink stale pid files, racy without non-portable locking...
+   end
+ 
+-- 
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
