@@ -1,0 +1,88 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=-0.2 required=5.0 tests=AWL shortcircuit=no
+ autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id 8BDCA1F78D for
+ <archivist@yhbt.net>; Wed, 21 Mar 2012 02:42:40 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id C1510263041; Wed, 21 Mar 2012 02:42:39 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+X-Greylist: delayed 321 seconds by postgrey-1.31 at rubyforge; Wed, 21 Mar
+ 2012 02:33:07 UTC
+Received: from ex0.corp.w3data.com (mail0.w3data.com [64.124.61.209]) by
+ rubyforge.org (Postfix) with ESMTP id 0B103263043 for
+ <mongrel-unicorn@rubyforge.org>; Wed, 21 Mar 2012 02:33:07 +0000 (UTC)
+Received: from wpm120.corp.w3data.com (172.26.4.75) by ex0.corp.w3data.com
+ (172.25.0.29) with Microsoft SMTP Server id 8.3.213.0; Tue, 20 Mar 2012
+ 19:27:41 -0700
+Message-ID: <4F693C9D.7020702@whitepages.com>
+Date: Tue, 20 Mar 2012 19:27:41 -0700
+From: Devin Ben-Hur <dbenhur@whitepages.com>
+User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10.6; rv:10.0.2)
+ Gecko/20120216 Thunderbird/10.0.2
+MIME-Version: 1.0
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Subject: Re: Unicorn_rails ignores USR2 signal
+References:
+ <E8D9E7CCC2621343A0A3BB45E8DEDFA91C6738D58E@CRPMBOXPRD04.polycom.com>
+ <20120309222412.GA21753@dcvr.yhbt.net>
+ <E8D9E7CCC2621343A0A3BB45E8DEDFA91C6738D5B7@CRPMBOXPRD04.polycom.com>
+ <20120310000239.GA27195@dcvr.yhbt.net>
+ <E8D9E7CCC2621343A0A3BB45E8DEDFA91C6738D5F8@CRPMBOXPRD04.polycom.com>
+ <20120310013051.GA32091@dcvr.yhbt.net> <20120312212119.GA26451@dcvr.yhbt.net>
+ <E8D9E7CCC2621343A0A3BB45E8DEDFA91C682DD23D@CRPMBOXPRD04.polycom.com>
+ <20120312224419.GA2942@dcvr.yhbt.net>	<20120320195748.GA1187@dcvr.yhbt.net>
+ <E8D9E7CCC2621343A0A3BB45E8DEDFA91C6869D9F3@CRPMBOXPRD04.polycom.com>
+In-Reply-To:
+ <E8D9E7CCC2621343A0A3BB45E8DEDFA91C6869D9F3@CRPMBOXPRD04.polycom.com>
+X-Brightmail-Tracker: AAAAAQAAAWE=
+Cc: "Yeung, Jeffrey" <Jeffrey.Yeung@polycom.com>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset="us-ascii"; Format="flowed"
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+On 3/20/12 4:09 PM, Yeung, Jeffrey wrote:
+> I have been unable to narrow down the cause of the conflict so far.  The list of Ruby gems (and gem versions) on the affected deployment are identical to the ones on another deployment where Unicorn is upgrading just fine (with preloaded app).  Grep'ing for USR2 in the gem installations did not reveal anything,  unfortunately.  Since then, I haven't been able to spend further time investigating.  Not sure where else to look, really, but I'm open to further suggestions.
+
+Jeffery,
+
+To uncover the culprit, you might try monkey-patching Kernel.trap and 
+Signal.trap so it logs the last few entries in caller when it's called 
+with USR2.
+
+Put something like this really early in you app bootstrap:
+
+[Kernel,Signal].each |klass|
+   class << klass
+     alias :orig_trap :trap
+     def trap *args, &block
+       if args.first.to_s =~ /USR2$/i || args.first.to_i == 31
+         $stderr.puts "Caught someone trapping USR2 caller is:", 
+caller.last(2)
+       end
+       orig_trap *args, &block
+     end
+   end
+end
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
