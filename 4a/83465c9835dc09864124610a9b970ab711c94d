@@ -1,0 +1,99 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=0.0 required=5.0 tests=T_DKIM_INVALID
+ shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id EC4EA1F79F for
+ <archivist@yhbt.net>; Thu, 22 Mar 2012 07:23:25 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id D8FBE263035; Thu, 22 Mar 2012 07:23:23 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from mail-we0-f178.google.com (mail-we0-f178.google.com
+ [74.125.82.178]) by rubyforge.org (Postfix) with ESMTP id C3CCC26302F for
+ <mongrel-unicorn@rubyforge.org>; Thu, 22 Mar 2012 07:22:39 +0000 (UTC)
+Received: by wera13 with SMTP id a13so1915755wer.23 for
+ <mongrel-unicorn@rubyforge.org>; Thu, 22 Mar 2012 00:22:38 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com;
+ s=20120113; h=sender:from:to:cc:subject:date:message-id:x-mailer;
+ bh=Jg6vVgzUAaNg+fqfTdPU+rdYOVq1fcUz3TIo/ieEulA=;
+ b=UVlcr1w4POlR6vgyKMlmmO0NELqx/lqiwo3qpmthsHCuyNKorbmGeEtuAzAh9R0/wU
+ x482VKAJxRp0iR9KPFEfF730yaUAfqssujbReu2evY1x9s3L0dt/eF/yFXt7KaSupGcC
+ 9s0iyYMeD3r6Jnj81ZuBaup4qSSWTJpH/qhelbqO8WFHZ5+x5+lj4DsaIV3Vxl57H8Z2
+ d5AVoTVo8y1By6sMYGZHSY0O5SirlpTXV8NRLGKrimI6+S/VJx8KQh8fdxWffu/2eKd/
+ auZfGUAzxis2/VcYHUdFPeY2+FE6n/5xQlvWyfAF1vz9A8qt3H5KX7nfxmFLkap12D/w c5Jg==
+Received: by 10.180.82.136 with SMTP id i8mr2451913wiy.19.1332400499618; Thu,
+ 22 Mar 2012 00:14:59 -0700 (PDT)
+Received: from localhost.localdomain (dev.zentoo.org. [176.9.28.173]) by
+ mx.google.com with ESMTPS id k7sm5300997wia.5.2012.03.22.00.14.57
+ (version=TLSv1/SSLv3 cipher=OTHER); Thu, 22 Mar 2012 00:14:58 -0700 (PDT)
+From: =?UTF-8?q?Benedikt=20B=C3=B6hm?= <bb@xnull.de>
+To: mongrel-unicorn@rubyforge.org
+Subject: [PATCH] make stderr_path/stdout_path support IO objects directly
+Date: Thu, 22 Mar 2012 08:14:09 +0100
+Message-Id: <1332400449-25478-1-git-send-email-bb@xnull.de>
+X-Mailer: git-send-email 1.7.4.5
+Cc: =?UTF-8?q?Benedikt=20B=C3=B6hm?= <bb@xnull.de>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+MIME-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+---
+ lib/unicorn/configurator.rb |    2 +-
+ lib/unicorn/http_server.rb  |    6 +++++-
+ 2 files changed, 6 insertions(+), 2 deletions(-)
+
+diff --git a/lib/unicorn/configurator.rb b/lib/unicorn/configurator.rb
+index 89cbf5c..c9b6816 100644
+--- a/lib/unicorn/configurator.rb
++++ b/lib/unicorn/configurator.rb
+@@ -559,7 +559,7 @@ private
+ 
+   def set_path(var, path) #:nodoc:
+     case path
+-    when NilClass, String
++    when NilClass, String, IO
+       set[var] = path
+     else
+       raise ArgumentError
+diff --git a/lib/unicorn/http_server.rb b/lib/unicorn/http_server.rb
+index 0c2af5d..bd71fbf 100644
+--- a/lib/unicorn/http_server.rb
++++ b/lib/unicorn/http_server.rb
+@@ -698,7 +698,11 @@ class Unicorn::HttpServer
+   end
+ 
+   def redirect_io(io, path)
+-    File.open(path, 'ab') { |fp| io.reopen(fp) } if path
++    if path.is_a?(IO)
++      io.reopen(path)
++    elsif path
++      io.reopen(path, 'ab')
++    end
+     io.sync = true
+   end
+ 
+-- 
+1.7.4.5
+
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
