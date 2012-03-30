@@ -1,0 +1,144 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=0.0 required=5.0 tests=none shortcircuit=no
+ autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id 97E701F4C8 for
+ <archivist@yhbt.net>; Fri, 30 Mar 2012 22:24:08 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id BED0426303F; Fri, 30 Mar 2012 22:24:07 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from Crpehubprd01.polycom.com (crpehubprd01.polycom.com
+ [140.242.64.158]) by rubyforge.org (Postfix) with ESMTP id 85ECD26303E for
+ <mongrel-unicorn@rubyforge.org>; Fri, 30 Mar 2012 22:16:41 +0000 (UTC)
+Received: from CRPMBOXPRD04.polycom.com ([fe80::3472:d06:af7a:aa56]) by
+ Crpehubprd01.polycom.com ([fe80::5efe:10.236.0.158%14]) with mapi; Fri, 30
+ Mar 2012 15:16:40 -0700
+From: "Yeung, Jeffrey" <Jeffrey.Yeung@polycom.com>
+To: Eric Wong <normalperson@yhbt.net>, unicorn list
+ <mongrel-unicorn@rubyforge.org>
+Date: Fri, 30 Mar 2012 15:16:38 -0700
+Subject: RE: Unicorn_rails ignores USR2 signal
+Thread-Topic: Unicorn_rails ignores USR2 signal
+Thread-Index: Ac0G078MlwW2rM2jRae6qN7l4g+aAAHMZqGw
+Message-ID:
+ <E8D9E7CCC2621343A0A3BB45E8DEDFA91C688BD14D@CRPMBOXPRD04.polycom.com>
+References:
+ <E8D9E7CCC2621343A0A3BB45E8DEDFA91C6738D58E@CRPMBOXPRD04.polycom.com>
+ <20120309222412.GA21753@dcvr.yhbt.net>
+ <E8D9E7CCC2621343A0A3BB45E8DEDFA91C6738D5B7@CRPMBOXPRD04.polycom.com>
+ <20120310000239.GA27195@dcvr.yhbt.net>
+ <E8D9E7CCC2621343A0A3BB45E8DEDFA91C6738D5F8@CRPMBOXPRD04.polycom.com>
+ <20120310013051.GA32091@dcvr.yhbt.net> <20120312212119.GA26451@dcvr.yhbt.net>
+ <E8D9E7CCC2621343A0A3BB45E8DEDFA91C682DD23D@CRPMBOXPRD04.polycom.com>
+ <20120312224419.GA2942@dcvr.yhbt.net> <20120320195748.GA1187@dcvr.yhbt.net>
+In-Reply-To: <20120320195748.GA1187@dcvr.yhbt.net>
+Accept-Language: en-US
+Content-Language: en-US
+X-MS-Has-Attach: 
+X-MS-TNEF-Correlator: 
+acceptlanguage: en-US
+MIME-Version: 1.0
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+I have little to report, unfortunately.  I still have not identified what is trapping USR2 in my application, if something is indeed doing that.
+
+I've attempted to do a bit more investigation work in my spare time this week, and the results are still rather mysterious.
+
+First, I applied your patch to http_server.rb that you suggested in this thread back on March 9th (quoted below), which re-overrides the signal handlers in build_app!().  The patch did work.  Okay, that seems to reconfirm that the app is doing something with the USR2 signal handler...
+
+Then I modified the master_siginit() method a bit further to provide more info:
+  def master_siginit
+    QUEUE_SIGS.each { |sig|
+      old_handler = trap(sig) { SIG_QUEUE << sig; awaken_master }
+      logger.info("old handler for #{sig.to_s}: #{old_handler.inspect}")
+    }
+    trap(:CHLD) { awaken_master }
+  end
+
+And the output was a bit surprising.  Here is the Unicorn stderr log when starting up the service.  master_siginit() is called twice, as expected...
+
+I, [2012-03-30T14:57:51.301839 #15828]  INFO -- : listening on addr=0.0.0.0:8080 fd=3
+I, [2012-03-30T14:57:51.302341 #15828]  INFO -- : old handler for WINCH: nil
+I, [2012-03-30T14:57:51.302435 #15828]  INFO -- : old handler for QUIT: "DEFAULT"
+I, [2012-03-30T14:57:51.302505 #15828]  INFO -- : old handler for INT: "DEFAULT"
+I, [2012-03-30T14:57:51.302573 #15828]  INFO -- : old handler for TERM: "DEFAULT"
+I, [2012-03-30T14:57:51.302641 #15828]  INFO -- : old handler for USR1: "DEFAULT"
+I, [2012-03-30T14:57:51.302709 #15828]  INFO -- : old handler for USR2: "DEFAULT"
+I, [2012-03-30T14:57:51.302786 #15828]  INFO -- : old handler for HUP: "DEFAULT"
+I, [2012-03-30T14:57:51.302853 #15828]  INFO -- : old handler for TTIN: nil
+I, [2012-03-30T14:57:51.302917 #15828]  INFO -- : old handler for TTOU: nil
+I, [2012-03-30T14:57:51.303502 #15828]  INFO -- : Refreshing Gem list
+old handler for WINCH: #<Proc:0x00000002d97488@/usr/local/lib/ruby/gems/1.9.1/gems/unicorn-4.2.0/lib/unicorn/http_server.rb:745>
+old handler for QUIT: #<Proc:0x00000002d97098@/usr/local/lib/ruby/gems/1.9.1/gems/unicorn-4.2.0/lib/unicorn/http_server.rb:745>
+old handler for INT: #<Proc:0x00000002d96c70@/usr/local/lib/ruby/gems/1.9.1/gems/unicorn-4.2.0/lib/unicorn/http_server.rb:745>
+old handler for TERM: #<Proc:0x00000002d96848@/usr/local/lib/ruby/gems/1.9.1/gems/unicorn-4.2.0/lib/unicorn/http_server.rb:745>
+old handler for USR1: #<Proc:0x00000002d96420@/usr/local/lib/ruby/gems/1.9.1/gems/unicorn-4.2.0/lib/unicorn/http_server.rb:745>
+old handler for USR2: #<Proc:0x00000002d95ff8@/usr/local/lib/ruby/gems/1.9.1/gems/unicorn-4.2.0/lib/unicorn/http_server.rb:745>
+old handler for HUP: #<Proc:0x00000002d95bd0@/usr/local/lib/ruby/gems/1.9.1/gems/unicorn-4.2.0/lib/unicorn/http_server.rb:745>
+old handler for TTIN: #<Proc:0x00000002d957a8@/usr/local/lib/ruby/gems/1.9.1/gems/unicorn-4.2.0/lib/unicorn/http_server.rb:745>
+old handler for TTOU: #<Proc:0x00000002d953b8@/usr/local/lib/ruby/gems/1.9.1/gems/unicorn-4.2.0/lib/unicorn/http_server.rb:745>
+master process ready
+worker=0 ready
+
+Which to me, looks like the USR2 handler was unchanged in the second master_siginit() call.  Yet, if I remove that second master_siginit() call from there, USR2 ceases to work.  :S
+
+-Jeff
+
+-----Original Message-----
+diff --git a/lib/unicorn/http_server.rb b/lib/unicorn/http_server.rb index 7d2c623..1b9d693 100644
+--- a/lib/unicorn/http_server.rb
++++ b/lib/unicorn/http_server.rb
+@@ -128,8 +128,7 @@ class Unicorn::HttpServer
+     # setup signal handlers before writing pid file in case people get
+     # trigger happy and send signals as soon as the pid file exists.
+     # Note that signals don't actually get handled until the #join method
+-    QUEUE_SIGS.each { |sig| trap(sig) { SIG_QUEUE << sig; awaken_master } }
+-    trap(:CHLD) { awaken_master }
++    master_siginit
+     self.pid = config[:pid]
+ 
+     self.master_pid = $$
+@@ -689,6 +688,9 @@ class Unicorn::HttpServer
+         Gem.refresh
+       end
+       self.app = app.call
++
++      # override signal handlers the app may have set
++      master_siginit if preload_app
+     end
+   end
+ 
+@@ -736,4 +738,9 @@ class Unicorn::HttpServer
+     config_listeners.each { |addr| listen(addr) }
+     raise ArgumentError, "no listeners" if LISTENERS.empty?
+   end
++
++  def master_siginit
++    QUEUE_SIGS.each { |sig| trap(sig) { SIG_QUEUE << sig; awaken_master } }
++    trap(:CHLD) { awaken_master }
++  end
+ end
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
