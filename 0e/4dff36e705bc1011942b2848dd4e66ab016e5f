@@ -1,0 +1,148 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=0.1 required=5.0 tests=AWL,T_DKIM_INVALID
+ shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id EB3D51F5A9 for
+ <archivist@yhbt.net>; Thu,  5 Apr 2012 07:27:32 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id E21E64A80F; Thu,  5 Apr 2012 07:27:31 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+X-Greylist: delayed 347 seconds by postgrey-1.31 at rubyforge; Thu, 05 Apr
+ 2012 07:26:50 UTC
+Received: from out1-smtp.messagingengine.com (out1-smtp.messagingengine.com
+ [66.111.4.25]) by rubyforge.org (Postfix) with ESMTP id EA2823AFFE for
+ <mongrel-unicorn@rubyforge.org>; Thu,  5 Apr 2012 07:26:50 +0000 (UTC)
+Received: from compute2.internal (compute2.nyi.mail.srv.osa [10.202.2.42]) by
+ gateway1.nyi.mail.srv.osa (Postfix) with ESMTP id 157A321D4D for
+ <mongrel-unicorn@rubyforge.org>; Thu,  5 Apr 2012 03:21:03 -0400 (EDT)
+Received: from frontend2.nyi.mail.srv.osa ([10.202.2.161]) by
+ compute2.internal (MEProxy); Thu, 05 Apr 2012 03:21:03 -0400
+DKIM-Signature: v=1; a=rsa-sha1; c=relaxed/relaxed; d= airbladesoftware.com;
+ h=from:content-type :content-transfer-encoding:date:subject:to:message-id
+ :mime-version; s=mesmtp; bh=3XNHxDOESzQcohoRWtgKlqAuTpE=; b=Pl3G
+ vqP1lhVJU96Mhk1YHKXhr2ONBrPF0xWAtvjETRQ843sbKmAtedobTQ52R5RJX9Tk
+ yjxxybnIRQeAECejdha+gVxc59qwjtpnhCoeUSDXNvRYQr9Q0g42oKb8+Uf5RAsH
+ mZepkUVuIX5EIiDXhDm8xqOM+asWV51zcHWCyA8=
+DKIM-Signature: v=1; a=rsa-sha1; c=relaxed/relaxed; d= messagingengine.com;
+ h=from:content-type :content-transfer-encoding:date:subject:to:message-id
+ :mime-version; s=smtpout; bh=3XNHxDOESzQcohoRWtgKlqAuTpE=; b=ZoM
+ fkLC6LD8AKOYdu7BrTsS8EcG6Ca9j3zJsItdhn6fXChK+ZUI78HskuqtMwiyNfgM
+ 5w0nY+/XasxUdEhj71iNOIMPdNApwypdoK8uyuJJOfq8zVFiNcdUz5pCGV69Go3U
+ MTME1hmc6dHUWk5pYYTxRmeKIb9fCiYAgootL3p4=
+X-Sasl-enc: CehLEUIWP7IW0y/dk4S6daCoJazEEuWnfV94apjzsvlv 1333610462
+Received: from [192.168.88.252] (firewall.rst.de [80.146.246.2]) by
+ mail.messagingengine.com (Postfix) with ESMTPSA id 519BF483531; Thu,  5 Apr
+ 2012 03:21:02 -0400 (EDT)
+From: Andrew Stewart <boss@airbladesoftware.com>
+Date: Thu, 5 Apr 2012 09:21:01 +0200
+Subject: Problem restarting Unicorn
+To: mongrel-unicorn@rubyforge.org
+Message-Id: <1D1E83EF-886F-409D-B61E-22F7309C3690@airbladesoftware.com>
+Mime-Version: 1.0 (Apple Message framework v1084)
+X-Mailer: Apple Mail (2.1084)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Hello,
+
+I seem to be confused about how to restart Unicorn when deploying updates to a Rails app via Capistrano.
+
+I just had a problem where a bundled gem wasn't being seen by the Unicorn processes, even though app code I introduced at the same time was being served by the Unicorn processes.  I had restarted Unicorn numerous times using `bundle exec cap deploy:restart` (see the code below), which I thought was the right way to do zero-downtime restarts, but my problem was only solved by doing a hard restart of Unicorn with `bundle exec cap deploy:hard_restart`.
+
+With each "normal" restart I tailed the stderr log to check everything was ok; everything appeared fine, with gems refreshed etc.
+
+Please could somebody explain what I'm doing wrong with my normal restarts?
+
+config/deploy.rb:
+
+    set :unicorn_config, "#{current_path}/config/unicorn.rb"
+    set :unicorn_pid,    "#{shared_path}/pids/unicorn.pid"
+
+    namespace :deploy do
+      task :start, :roles => :app, :except => { :no_release => true } do
+        run "cd #{current_path} && #{sudo_workaround} bundle exec unicorn -c #{unicorn_config} -E #{rails_env} -D"
+      end
+      task :stop, :roles => :app, :except => { :no_release => true } do
+        run "#{sudo_workaround} kill -s QUIT `cat #{unicorn_pid}`"
+      end
+      task :hard_stop, :roles => :app, :except => { :no_release => true } do
+        run "#{sudo_workaround} kill `cat #{unicorn_pid}`"
+      end
+      task :restart, :roles => :app, :except => { :no_release => true } do
+        run "#{sudo_workaround} kill -s USR2 `cat #{unicorn_pid}`"
+      end
+      task :hard_restart, :roles => :app, :except => { :no_release => true } do
+        hard_stop
+        start
+      end
+    end
+    
+    # Works around Ubuntu changing the PATH when you use sudo.
+    # sudo's path can find common commands like echo but not much else.
+    def sudo_workaround
+      "sudo env PATH=$PATH"
+    end
+
+
+config/unicorn.rb:
+
+    APP_PATH = '/var/www/apps/sparkle'
+    worker_processes 4
+    user 'rails', 'rails'
+    working_directory "#{APP_PATH}/current"
+    listen "/tmp/unicorn_sparkle.sock", :backlog => 64
+    timeout 30
+    pid "#{APP_PATH}/shared/pids/unicorn.pid"
+    stderr_path "#{APP_PATH}/shared/log/unicorn.stderr.log"
+    stdout_path "#{APP_PATH}/shared/log/unicorn.stdout.log"
+    preload_app true
+    GC.respond_to?(:copy_on_write_friendly=) and GC.copy_on_write_friendly = true
+    
+    before_fork do |server, worker|
+      defined?(ActiveRecord::Base) and ActiveRecord::Base.connection.disconnect!
+    
+      old_pid = "#{server.config[:pid]}.oldbin"
+      if old_pid != server.pid
+        begin
+          sig = (worker.nr + 1) >= server.worker_processes ? :QUIT : :TTOU
+          Process.kill(sig, File.read(old_pid).to_i)
+        rescue Errno::ENOENT, Errno::ESRCH
+        end
+      end
+    end
+    
+    after_fork do |server, worker|
+      defined?(ActiveRecord::Base) and ActiveRecord::Base.establish_connection
+    end
+
+This is all with Unicorn 4.2.0 and Rails 3.0.11.
+
+Many thanks in advance,
+
+Andy Stewart
+----
+http://airbladesoftware.com
+
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
