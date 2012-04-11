@@ -1,0 +1,75 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=-0.2 required=5.0 tests=AWL shortcircuit=no
+ autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id C20531F5AD for
+ <archivist@yhbt.net>; Wed, 11 Apr 2012 21:21:26 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 2F6D83AFFA; Wed, 11 Apr 2012 21:21:26 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 21DCA263046 for <mongrel-unicorn@rubyforge.org>; Wed,
+ 11 Apr 2012 20:30:53 +0000 (UTC)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id E499C1F5A3; Wed, 11 Apr 2012 20:30:52 +0000 (UTC)
+Date: Wed, 11 Apr 2012 20:30:54 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: Nuo Yan <yan.nuo@gmail.com>
+Subject: Re: Request-URI Too Long from mongrel-unicorn
+Message-ID: <20120411203054.GB22267@dcvr.yhbt.net>
+References: <CB935F19-72B8-4EC2-8A1D-5084B37C09F2@gmail.com>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To: <CB935F19-72B8-4EC2-8A1D-5084B37C09F2@gmail.com>
+User-Agent: Mutt/1.5.21 (2010-09-15)
+Cc: unicorn list <mongrel-unicorn@rubyforge.org>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Nuo Yan <yan.nuo@gmail.com> wrote:
+> In my understanding, the mongrel request uri limit is 12k. 
+
+Correct, that's the entire REQUEST_URI, though:
+  REQUEST_PATH?QUERY_STRING#FRAGMENT
+
+> My request uri is certainly not that long (about 1445 bytes), but for
+> some reason I'm getting  414 Request-URI Too Long from the server. 
+
+Perhaps one of your URI components (perhaps REQUEST_PATH) is too long?
+
+The current limits are as follows (in ext/unicorn_http/global_variables.h)
+
+  DEF_MAX_LENGTH(REQUEST_URI, 1024 * 12);
+  DEF_MAX_LENGTH(FRAGMENT, 1024); /* Don't know if this length is specified somewhere or not */
+  DEF_MAX_LENGTH(REQUEST_PATH, 1024);
+  DEF_MAX_LENGTH(QUERY_STRING, (1024 * 10));
+
+I will consider upping REQUEST_PATH to 4096 (and REQUEST_URI to 15K)
+since 4096 is a common filesystem PATH_MAX on modern systems.
+
+Would anybody object to this?  Given we already allow huge headers and
+Ruby uses quite a bit of memory, I don't think a potential extra 3K
+will negatively impact anybody.
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
