@@ -1,0 +1,100 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=0.0 required=5.0 tests=AWL,FREEMAIL_FROM,
+ T_DKIM_INVALID shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id C45811F5B2 for
+ <archivist@yhbt.net>; Thu, 12 Apr 2012 00:25:02 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id B75D13AFFC; Thu, 12 Apr 2012 00:25:01 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from mail-pz0-f45.google.com (mail-pz0-f45.google.com
+ [209.85.210.45]) by rubyforge.org (Postfix) with ESMTP id 46F9B263046 for
+ <mongrel-unicorn@rubyforge.org>; Wed, 11 Apr 2012 23:43:11 +0000 (UTC)
+Received: by dacx6 with SMTP id x6so1849018dac.18 for
+ <mongrel-unicorn@rubyforge.org>; Wed, 11 Apr 2012 16:43:10 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com;
+ s=20120113; h=content-type:mime-version:subject:from:in-reply-to:date
+ :content-transfer-encoding:message-id:references:to:x-mailer;
+ bh=hi0ETYNOV+5ChQ5jw+1ds20WOKsTahK1HjMp7jX6gGU=;
+ b=v8HXsb5M+rFUq/TkBc5S0CQZ4TJ2Cs5aiLUZOW/mi9qV22jvExJM2FuhUvxYRXIapX
+ rKv3S/+DOb5MJmdrKXp2I68ZpTznXGNaQxHDoMo5z8hcbMUmq/NAIJ+SiJOVOWu/6SmR
+ QDn+fi/c3J4u8+MJUOYVMwQmyiZ871d18J7TIlWgJKFVgZHt8KkQlyY01prRVzG6KlAk
+ bCdB98g3QjwMLxqEkeXsLslvyjJkdIplTyAHnpFVM2ZNJ2vURw44I/L4iJEBQpFr7EnE
+ ygBunPoay3rn+eew/6G6gfgPzsqR91I4FJfTq9pa9K6ynPYrp2+QQR7TnM8u1EDloiQI GJzQ==
+Received: by 10.68.218.198 with SMTP id pi6mr1707981pbc.100.1334187790782;
+ Wed, 11 Apr 2012 16:43:10 -0700 (PDT)
+Received: from [10.0.1.5] (80.84.233.220.static.exetel.com.au.
+ [220.233.84.80]) by mx.google.com with ESMTPS id
+ r9sm4148080pbi.53.2012.04.11.16.43.07 (version=TLSv1/SSLv3 cipher=OTHER);
+ Wed, 11 Apr 2012 16:43:08 -0700 (PDT)
+Mime-Version: 1.0 (Apple Message framework v1257)
+Subject: Re: Request-URI Too Long from mongrel-unicorn
+From: Lawrence Pit <lawrence.pit@gmail.com>
+In-Reply-To: <20120411203054.GB22267@dcvr.yhbt.net>
+Date: Thu, 12 Apr 2012 09:43:03 +1000
+Message-Id: <1437AF4F-9109-4B9B-B30C-C364D16C61B0@gmail.com>
+References: <CB935F19-72B8-4EC2-8A1D-5084B37C09F2@gmail.com>
+ <20120411203054.GB22267@dcvr.yhbt.net>
+To: Unicorn List <mongrel-unicorn@rubyforge.org>
+X-Mailer: Apple Mail (2.1257)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Hi Eric & All,
+
+> DEF_MAX_LENGTH(REQUEST_URI, 1024 * 12);
+> DEF_MAX_LENGTH(FRAGMENT, 1024); /* Don't know if this length is specified somewhere or not */
+> DEF_MAX_LENGTH(REQUEST_PATH, 1024);
+> DEF_MAX_LENGTH(QUERY_STRING, (1024 * 10));
+> 
+> I will consider upping REQUEST_PATH to 4096 (and REQUEST_URI to 15K)
+> since 4096 is a common filesystem PATH_MAX on modern systems.
+
+IE browsers up to and including IEv8 have a max URL length of 2,083 characters : http://support.microsoft.com/kb/208427. 
+
+IE9 seems to allow up to 5K last time I checked.
+
+There may be other clients (ruby http clients, bots, traffic analysers, database clients with limited column spaces to hold URLs, etc.) that can't handle long URLs if you take it too far. So practically it's advisable to keep your URLs within limits.
+
+Having said that, the HTTP/1.1 spec state that servers SHOULD be able to handle URIs of unbounded length. So yes, unicorn should allow this if one chooses.
+
+> Given we already allow huge headers and
+> Ruby uses quite a bit of memory, I don't think a potential extra 3K
+> will negatively impact anybody.
+
+Should there be a limit at all in unicorn? Should it not be assumed this is configured at the webserver level, like:
+
+http://wiki.nginx.org/NginxHttpCoreModule#large_client_header_buffers
+
+nginx currently uses a default of 4 buffers of 8K. (i.e. a path_max of 8K)
+
+The webserver takes care of bombing out with a 414 before it even reaches unicorn. If traffic does reach unicorn then unicorn should be able to handle whatever length it's given.
+
+PS. I'm fine with 4096 as well of course, I keep to the 2K limit anyways ;-)
+
+Cheers,
+Lawrence
+
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
