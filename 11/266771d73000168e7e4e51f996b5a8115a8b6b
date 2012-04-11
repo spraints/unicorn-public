@@ -1,0 +1,86 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=0.0 required=5.0 tests=FREEMAIL_FROM,T_DKIM_INVALID
+ shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id B1DF91F5AD for
+ <archivist@yhbt.net>; Wed, 11 Apr 2012 22:07:49 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 0A0633AFFB; Wed, 11 Apr 2012 22:07:47 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from mail-pz0-f45.google.com (mail-pz0-f45.google.com
+ [209.85.210.45]) by rubyforge.org (Postfix) with ESMTP id D0D363AFF9 for
+ <mongrel-unicorn@rubyforge.org>; Wed, 11 Apr 2012 21:44:14 +0000 (UTC)
+Received: by dacx6 with SMTP id x6so1749255dac.18 for
+ <mongrel-unicorn@rubyforge.org>; Wed, 11 Apr 2012 14:44:14 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com;
+ s=20120113; h=subject:mime-version:content-type:from:in-reply-to:date:cc
+ :content-transfer-encoding:message-id:references:to:x-mailer;
+ bh=t/9tO5GuVpXIudzHtoup9u+EvqP47KpWIj47uOydCXI=;
+ b=VDwsxQTEiCKzD2WSB9eWxyKwngAgHw3D2oSFD3PKr+dQ6mXYemDZSNb8Qh2d2PNsVL
+ Sh8swAfHoQ8c+padRkdtf+VN2XAOIBUrY9cxP+LBhVAlLeH8AZJzO3xsCPqLnK+gKukz
+ 08NEs6a2mPDiBVNCeyJC9EhTsSby9nlG1rN2aZ/odscKS0cP9ngZVSE3laC6tEWobHHi
+ vQHX7ytn8qm7dhzxFUJN6z+8hjYV5lN9BQWzMTgDKhFPZlobJHqQJQdsB8sHchWF7PTx
+ s149oB33MUkpz3h+VC1OhlW+qsBj5+zPFyE6Y0z9twB0xGVyFS9JWyrR0QPm7fvXEX0a DMSw==
+Received: by 10.68.218.33 with SMTP id pd1mr1022985pbc.96.1334180654414; Wed,
+ 11 Apr 2012 14:44:14 -0700 (PDT)
+Received: from [10.0.1.28] (75-145-23-74-Washington.hfc.comcastbusiness.net.
+ [75.145.23.74]) by mx.google.com with ESMTPS id
+ f8sm3910698pbe.42.2012.04.11.14.44.10 (version=TLSv1/SSLv3 cipher=OTHER);
+ Wed, 11 Apr 2012 14:44:12 -0700 (PDT)
+Subject: Re: Request-URI Too Long from mongrel-unicorn
+Mime-Version: 1.0 (Apple Message framework v1257)
+From: Nuo Yan <yan.nuo@gmail.com>
+In-Reply-To: <20120411203054.GB22267@dcvr.yhbt.net>
+Date: Wed, 11 Apr 2012 14:44:09 -0700
+Message-Id: <DA54B80C-E3A4-4D8C-B593-5D10B9E8E83C@gmail.com>
+References: <CB935F19-72B8-4EC2-8A1D-5084B37C09F2@gmail.com>
+ <20120411203054.GB22267@dcvr.yhbt.net>
+To: Eric Wong <normalperson@yhbt.net>
+X-Mailer: Apple Mail (2.1257)
+Cc: unicorn list <mongrel-unicorn@rubyforge.org>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Hi Eric,
+
+On Apr 11, 2012, at 1:30 PM, Eric Wong wrote:
+> 
+> I will consider upping REQUEST_PATH to 4096 (and REQUEST_URI to 15K)
+> since 4096 is a common filesystem PATH_MAX on modern systems.
+> 
+> Would anybody object to this?  Given we already allow huge headers and
+> Ruby uses quite a bit of memory, I don't think a potential extra 3K
+> will negatively impact anybody.
+
+Lately I figured REQUEST_PATH should probably be the reason as well. It would be great if you bump that up to 4096 - so that we could continue to use released versions instead of having to patch on our own. 
+
+4k makes sense to me. When do you think you can cut a gem on this?
+
+Also, what do you think about making these values configurable in the conf file? I understand these were hard coded by design to protect the server. However, I think it would be nice if it defaults to these small values and can be configured flexibly. 
+
+Thanks a lot,
+Nuo
+
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
