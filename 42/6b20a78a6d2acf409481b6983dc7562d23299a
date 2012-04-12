@@ -1,0 +1,70 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=-0.2 required=5.0 tests=AWL shortcircuit=no
+ autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id 40D431F5A8 for
+ <archivist@yhbt.net>; Thu, 12 Apr 2012 08:21:36 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 8C81B263035; Thu, 12 Apr 2012 08:21:35 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 89AAA263033 for <mongrel-unicorn@rubyforge.org>; Thu,
+ 12 Apr 2012 08:18:32 +0000 (UTC)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 9F3BB1F5A5; Thu, 12 Apr 2012 08:18:31 +0000 (UTC)
+Date: Thu, 12 Apr 2012 08:18:31 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Subject: Re: Request-URI Too Long from mongrel-unicorn
+Message-ID: <20120412081831.GA968@dcvr.yhbt.net>
+References: <CB935F19-72B8-4EC2-8A1D-5084B37C09F2@gmail.com>
+ <20120411203054.GB22267@dcvr.yhbt.net>
+ <1437AF4F-9109-4B9B-B30C-C364D16C61B0@gmail.com>
+ <20120412034546.GA19006@dcvr.yhbt.net>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To: <20120412034546.GA19006@dcvr.yhbt.net>
+User-Agent: Mutt/1.5.20 (2009-06-14)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Eric Wong <normalperson@yhbt.net> wrote:
+> Lawrence Pit <lawrence.pit@gmail.com> wrote:
+> > Should there be a limit at all in unicorn? Should it not be assumed
+> > this is configured at the webserver level, like:
+> > 
+> > http://wiki.nginx.org/NginxHttpCoreModule#large_client_header_buffers
+> 
+> There should be a limit in unicorn, it's cheap to enforce and there
+> could be corner cases (nginx bugs, internal security probes) where it's
+> helpful.  The unicorn parser is also used by servers (Rainbows!) that
+> expect untrusted/malicious clients without nginx to protect it.
+
+On the other hand, the _granularity_ of limits may unnecessary.  There
+is already a 112K limit on the overall header size (which IMHO is really
+huge).  However, this 112K overall limit is tunable on Rainbows! because
+Rainbows! is designed to handle hundreds/thousands of clients in one
+process.
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
