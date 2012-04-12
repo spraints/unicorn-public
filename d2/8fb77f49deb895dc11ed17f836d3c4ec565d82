@@ -1,0 +1,111 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=-0.2 required=5.0 tests=AWL shortcircuit=no
+ autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id 6C2B01F5B3 for
+ <archivist@yhbt.net>; Thu, 12 Apr 2012 20:59:26 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 874683AFF5; Thu, 12 Apr 2012 20:59:25 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id B5B81263044 for <mongrel-unicorn@rubyforge.org>; Thu,
+ 12 Apr 2012 20:39:57 +0000 (UTC)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 9151A1F5B2; Thu, 12 Apr 2012 20:39:56 +0000 (UTC)
+Date: Thu, 12 Apr 2012 20:39:56 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Subject: Re: Background jobs with #fork
+Message-ID: <20120412203956.GA8980@dcvr.yhbt.net>
+References:
+ <CAOG6bOTseAPbjU5LYchODqjdF3-Ez4+M8jo-D_D2Wq0jkdc4Rw@mail.gmail.com>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To:
+ <CAOG6bOTseAPbjU5LYchODqjdF3-Ez4+M8jo-D_D2Wq0jkdc4Rw@mail.gmail.com>
+User-Agent: Mutt/1.5.21 (2010-09-15)
+Cc: paddor <paddor@gmail.com>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+paddor <paddor@gmail.com> wrote:
+> Hi
+> 
+> I've migrated from Passenger to Unicorn about a week ago. It's great.
+> Great transparency and management, thanks for this great software!
+
+:>
+
+> A few of my Rails applications start background jobs using
+> Kernel#fork. Of course, the ActiveRecord connections are closed and
+> reopened again in the parent and child processes. The child process
+> also does its job.
+
+OK, that's good.
+
+> Unfortunately, it seems that the parent (a Unicorn worker) waits for
+> the child (background job) to finish before serving any new requests.
+> Process.detach is done in the child. Process.setsid is not done. The
+> child's STDOUT, STDERR and the Rails logger are redirected to their
+> own files right after forking.
+
+So you're only calling fork and not exec (or system/popen, right?)  It
+may be the case that the client socket is kept alive in the background
+process.
+
+The client socket has the close-on-exec flag (FD_CLOEXEC) set, but
+there's no close-on-fork flag, so you might have to find + close it
+yourself.  Here's is a nasty workaround for the child process:
+
+  ObjectSpace.each_object(Kgio::Socket) do |io|
+    io.close unless io.closed?
+  end
+
+> The problem persists even when multiple workers are started. And the
+> problem was not present in the old setup with Passenger.
+> 
+> My question: Does Unicorn somehow check/wait for child processes
+> forked by the worker processes?
+
+Unicorn workers do not explicitly wait on child processes themselves,
+unicorn workers set: trap(:CHLD,"DEFAULT") after forking, even (the
+unicorn master must handle SIGCHLD, of course)
+
+The difference between nginx+unicorn and Passenger is probabably: nginx
+relies on unicorn generating an EOF to signal the end-of-response (nginx
+<-> unicorn uses HTTP/1.0), this I'm sure about.  I think Passenger uses a
+protocol which can signal the end-of-request inline without relying on
+an EOF on the socket (Hongli can correct me on this if I'm wrong).
+
+However, nginx can still forward subsequent requests to the same unicorn
+(even the same unicorn worker), because as far as the unicorn worker is
+concerned (but not the OS), it's done with the original request.  It's
+just the original request (perhaps the original client) is stuck
+waiting for the background process to finish.
+
+I can probably writeup a better explanation (perhaps on the usp.ruby
+(Unix Systems Programming for Ruby mailing list) if this doesn't make
+sense.
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
