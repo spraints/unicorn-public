@@ -1,0 +1,105 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=0.0 required=5.0 tests=AWL,FREEMAIL_FROM,
+ T_DKIM_INVALID shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id B8FF71F5B3 for
+ <archivist@yhbt.net>; Thu, 12 Apr 2012 22:41:41 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 15EDE263048; Thu, 12 Apr 2012 22:41:41 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from mail-wg0-f54.google.com (mail-wg0-f54.google.com
+ [74.125.82.54]) by rubyforge.org (Postfix) with ESMTP id 87E98263044 for
+ <mongrel-unicorn@rubyforge.org>; Thu, 12 Apr 2012 22:41:36 +0000 (UTC)
+Received: by wgbdq13 with SMTP id dq13so2231496wgb.23 for
+ <mongrel-unicorn@rubyforge.org>; Thu, 12 Apr 2012 15:41:35 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com;
+ s=20120113; h=subject:mime-version:content-type:from:in-reply-to:date:cc
+ :content-transfer-encoding:message-id:references:to:x-mailer;
+ bh=ksi2FvHEmfolA9BlU7A1Gi1oECOQyoqIHkN69tH5/fw=;
+ b=U/23RasBrcIApSeB+Vrhsau6yBXuEtjbhBvduLrWuoX+0LzpHbn5fvXEIciyY6vqVR
+ xo80TZWvf/iv46+l9D3ynItPA9P+eYTpBluh5yofZt9a4legtAS/0AEjq1WSIK7qg4kd
+ r7WVkvpWElFPA67M0mwnD0CuaJ77zsERSUSoeXqWYMvoaOz033hI4s64ieY0ZkOwkuGe
+ IY9Y44XyOkbPli+OiGYyde+nwHNkQ98aM05xIan8fQdLquOilYrHVQLFiFy1o0tm3G4T
+ g3VzBOM420KlhDpWnELGYyJgn9McpYHdbloF7KOPWKVrWmwXBtOSfBB3OM6OEneEe1sy DYDw==
+Received: by 10.180.102.129 with SMTP id fo1mr9627116wib.6.1334270495891;
+ Thu, 12 Apr 2012 15:41:35 -0700 (PDT)
+Received: from [192.168.1.47] (47-79.195-178.cust.bluewin.ch.
+ [178.195.79.47]) by mx.google.com with ESMTPS id
+ u9sm542099wix.0.2012.04.12.15.41.34 (version=TLSv1/SSLv3 cipher=OTHER); Thu,
+ 12 Apr 2012 15:41:35 -0700 (PDT)
+Subject: Re: Background jobs with #fork
+Mime-Version: 1.0 (Apple Message framework v1257)
+From: Patrik Wenger <paddor@gmail.com>
+In-Reply-To: <20120412203956.GA8980@dcvr.yhbt.net>
+Date: Fri, 13 Apr 2012 00:41:03 +0200
+Message-Id: <EA11A18D-57EC-4B56-8F24-9943EDCC9E66@gmail.com>
+References:
+ <CAOG6bOTseAPbjU5LYchODqjdF3-Ez4+M8jo-D_D2Wq0jkdc4Rw@mail.gmail.com>
+ <20120412203956.GA8980@dcvr.yhbt.net>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+X-Mailer: Apple Mail (2.1257)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Thanks for the answers.
+
+> So you're only calling fork and not exec (or system/popen, right?)  It
+> may be the case that the client socket is kept alive in the background
+> process.
+
+Yes, I'm only calling Kernel#fork. @Eric, your guess makes sense to me.
+
+> The client socket has the close-on-exec flag (FD_CLOEXEC) set, but
+> there's no close-on-fork flag, so you might have to find + close it
+> yourself.  Here's is a nasty workaround for the child process:
+> 
+>  ObjectSpace.each_object(Kgio::Socket) do |io|
+>    io.close unless io.closed?
+>  end
+
+Isn't there another way to retrieve the right socket?
+
+Here some additional info that might bring some clarification.
+
+Another action in the same controller which does about the same regarding the background job works (check.run!).
+The only differences I see are:
+
+1) it's called via AJAX
+2) the response is nothing (render :nothing => true) instead of a redirect (redirect_to checks_path)
+
+I reckon the second difference kind of confirms Eric's guess, as the client socket probably isn't considered anymore with render :nothing => true.
+
+> However, nginx can still forward subsequent requests to the same unicorn
+> (even the same unicorn worker), because as far as the unicorn worker is
+> concerned (but not the OS), it's done with the original request.  It's
+> just the original request (perhaps the original client) is stuck
+> waiting for the background process to finish.
+> 
+> I can probably writeup a better explanation (perhaps on the usp.ruby
+> (Unix Systems Programming for Ruby mailing list) if this doesn't make
+> sense.
+
+Yeah I don't really understand this part. The "hanging" Unicorn worker can read another request because the client socket wasn't closed because it's still open in the child process? I would appreciate a better explanation, thank you.
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
