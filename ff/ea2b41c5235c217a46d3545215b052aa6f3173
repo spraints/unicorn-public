@@ -1,0 +1,91 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=0.0 required=5.0 tests=AWL,FREEMAIL_FROM,
+ T_DKIM_INVALID shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id 7B4331F5B3 for
+ <archivist@yhbt.net>; Thu, 12 Apr 2012 17:44:19 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 43064263050; Thu, 12 Apr 2012 17:44:18 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from mail-lpp01m010-f50.google.com (mail-lpp01m010-f50.google.com
+ [209.85.215.50]) by rubyforge.org (Postfix) with ESMTP id 6EBD726304A for
+ <mongrel-unicorn@rubyforge.org>; Thu, 12 Apr 2012 17:36:26 +0000 (UTC)
+Received: by lahm13 with SMTP id m13so2054742lah.23 for
+ <mongrel-unicorn@rubyforge.org>; Thu, 12 Apr 2012 10:36:25 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com;
+ s=20120113; h=mime-version:date:message-id:subject:from:to:content-type;
+ bh=WFuuZuSb0b3lL+xzr5SOAvMeuR5ipodMncA+C4Ubj80=;
+ b=j5XwpdigA+syxdwyKUdoz2lIwF+5XA4UKysgRg2mJS1q0pnp2043luerxf4hoGtg0q
+ vzXdieKXyD7qOWBJULaZBMHWafw3g2uJV8rEvf5Vkcdb4t2Pg6pbpQrTWEF68lR+Gf4/
+ WnE3f2kEndcnXh2czzmqAG3kCgmGGEfb1/W5q83UxnCDovhYNAzQjrkKOOkeXziGoZUh
+ 9+HyHhP/ewmSBkb9BEZnqRTVHb1Z7wxzOIECK9qMkwKzmBhaXd7sZJFRJIUSEWDxa07S
+ jg6NxrnpEMVAKFKV+fktWWQr7nJ4ArHHoeT48Yg3PIEqIkbit1YxOnyuGNuvCoyMkiLi DNWw==
+MIME-Version: 1.0
+Received: by 10.112.38.6 with SMTP id c6mr1456295lbk.106.1334252185420; Thu,
+ 12 Apr 2012 10:36:25 -0700 (PDT)
+Received: by 10.152.6.131 with HTTP; Thu, 12 Apr 2012 10:36:25 -0700 (PDT)
+Date: Thu, 12 Apr 2012 19:36:25 +0200
+Message-ID:
+ <CAOG6bOTseAPbjU5LYchODqjdF3-Ez4+M8jo-D_D2Wq0jkdc4Rw@mail.gmail.com>
+Subject: Background jobs with #fork
+From: paddor <paddor@gmail.com>
+To: mongrel-unicorn@rubyforge.org
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Hi
+
+I've migrated from Passenger to Unicorn about a week ago. It's great.
+Great transparency and management, thanks for this great software!
+
+A few of my Rails applications start background jobs using
+Kernel#fork. Of course, the ActiveRecord connections are closed and
+reopened again in the parent and child processes. The child process
+also does its job.
+
+Unfortunately, it seems that the parent (a Unicorn worker) waits for
+the child (background job) to finish before serving any new requests.
+Process.detach is done in the child. Process.setsid is not done. The
+child's STDOUT, STDERR and the Rails logger are redirected to their
+own files right after forking.
+
+Software used:
+ruby 1.9.1p376
+Rubygems 1.8.17
+Linux 2.6.16.60-0.21-smp (SUSE 10.2)
+unicorn 4.2.1
+nginx 0.8.53
+
+The problem persists even when multiple workers are started. And the
+problem was not present in the old setup with Passenger.
+
+My question: Does Unicorn somehow check/wait for child processes
+forked by the worker processes?
+
+Thanks in advance for your help.
+
+-- 
+paddor
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
