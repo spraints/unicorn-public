@@ -1,0 +1,76 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=-0.2 required=5.0 tests=AWL shortcircuit=no
+ autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id A2C201F5B3 for
+ <archivist@yhbt.net>; Thu, 12 Apr 2012 04:04:55 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id D53AC263030; Thu, 12 Apr 2012 04:04:54 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id DFC1426302E for <mongrel-unicorn@rubyforge.org>; Thu,
+ 12 Apr 2012 03:45:47 +0000 (UTC)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id BB4811F5B2; Thu, 12 Apr 2012 03:45:46 +0000 (UTC)
+Date: Thu, 12 Apr 2012 03:45:46 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Subject: Re: Request-URI Too Long from mongrel-unicorn
+Message-ID: <20120412034546.GA19006@dcvr.yhbt.net>
+References: <CB935F19-72B8-4EC2-8A1D-5084B37C09F2@gmail.com>
+ <20120411203054.GB22267@dcvr.yhbt.net>
+ <1437AF4F-9109-4B9B-B30C-C364D16C61B0@gmail.com>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To: <1437AF4F-9109-4B9B-B30C-C364D16C61B0@gmail.com>
+User-Agent: Mutt/1.5.20 (2009-06-14)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Lawrence Pit <lawrence.pit@gmail.com> wrote:
+> IE browsers up to and including IEv8 have a max URL length of 2,083
+> characters : http://support.microsoft.com/kb/208427. 
+
+Ah, that probably explains why MAX_URI_LENGTH=2083 in WEBrick
+(lib/webrick/httprequest.rb).
+
+> There may be other clients (ruby http clients, bots, traffic
+> analysers, database clients with limited column spaces to hold URLs,
+> etc.) that can't handle long URLs if you take it too far. So
+> practically it's advisable to keep your URLs within limits.
+
+Agreed.  I'm really hoping no apps out there depend on the
+Mongrel/unicorn internal limits to enforce database column length :)
+
+> Should there be a limit at all in unicorn? Should it not be assumed
+> this is configured at the webserver level, like:
+> 
+> http://wiki.nginx.org/NginxHttpCoreModule#large_client_header_buffers
+
+There should be a limit in unicorn, it's cheap to enforce and there
+could be corner cases (nginx bugs, internal security probes) where it's
+helpful.  The unicorn parser is also used by servers (Rainbows!) that
+expect untrusted/malicious clients without nginx to protect it.
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
