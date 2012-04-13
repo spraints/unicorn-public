@@ -1,0 +1,93 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=0.0 required=5.0 tests=FREEMAIL_FROM,T_DKIM_INVALID
+ shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id BC1B51F5B3 for
+ <archivist@yhbt.net>; Fri, 13 Apr 2012 01:31:08 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id D5FC8263046; Fri, 13 Apr 2012 01:31:07 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from mail-wg0-f54.google.com (mail-wg0-f54.google.com
+ [74.125.82.54]) by rubyforge.org (Postfix) with ESMTP id 688C2263046 for
+ <mongrel-unicorn@rubyforge.org>; Fri, 13 Apr 2012 01:10:52 +0000 (UTC)
+Received: by wgbdq13 with SMTP id dq13so2299073wgb.23 for
+ <mongrel-unicorn@rubyforge.org>; Thu, 12 Apr 2012 18:10:51 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com;
+ s=20120113; h=subject:mime-version:content-type:from:in-reply-to:date:cc
+ :content-transfer-encoding:message-id:references:to:x-mailer;
+ bh=snO5LS6w6OM/FpCAwn0aAnnq8hCwvRvxcpr/KCxnfaE=;
+ b=jMgr8V+pWQSB3frGMDxQ9G/85fiaY9rradPLGAZC/6vg3smqWHX/6HEaLhbJAqxWCc
+ Pu0xiyyU6f7GGMP2vv5IWyRGMUzsQ7A7gwqmSPLhmCqkC5vY1pblZUeBUH1ZSBAqCxKv
+ fqBQAWCkwHZCYpc2FbCS4BNFIrWpY6Yka9qRFVOAprMWtGsvTmfqv6KMu/69AxRQEhR6
+ ArNIC2skpg3xSPh93Bj8HSJNpVG4euF07+IhkDp1wRNkVxrgfTdrDW1i2IDfWTbh1zaV
+ qd8uelZ2PNC8zPwGlFBBcImj0orbGdlKeVlL5olt5H6L1ygwn6pNEyijcGkCDu/mqN1W O1Ng==
+Received: by 10.216.137.149 with SMTP id y21mr140802wei.110.1334279451752;
+ Thu, 12 Apr 2012 18:10:51 -0700 (PDT)
+Received: from [192.168.1.47] (47-79.195-178.cust.bluewin.ch.
+ [178.195.79.47]) by mx.google.com with ESMTPS id
+ ff2sm1969476wib.9.2012.04.12.18.10.50 (version=TLSv1/SSLv3 cipher=OTHER);
+ Thu, 12 Apr 2012 18:10:51 -0700 (PDT)
+Subject: Re: Background jobs with #fork
+Mime-Version: 1.0 (Apple Message framework v1257)
+From: Patrik Wenger <paddor@gmail.com>
+In-Reply-To: <20120412230457.GC22276@dcvr.yhbt.net>
+Date: Fri, 13 Apr 2012 03:04:24 +0200
+Message-Id: <FC3E4A2E-807E-44D8-A3E2-53D58418B677@gmail.com>
+References:
+ <CAOG6bOTseAPbjU5LYchODqjdF3-Ez4+M8jo-D_D2Wq0jkdc4Rw@mail.gmail.com>
+ <20120412203956.GA8980@dcvr.yhbt.net>
+ <EA11A18D-57EC-4B56-8F24-9943EDCC9E66@gmail.com>
+ <20120412230457.GC22276@dcvr.yhbt.net>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+X-Mailer: Apple Mail (2.1257)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+> Actually, I think my proposed patch (in reply to Hongli) at
+> http://mid.gmane.org/20120412221022.GA20640@dcvr.yhbt.net
+> should fix your issue.
+
+Oh, this sounds great! I see it's just one line. I'll try adding this line and see if it fixes my problem.
+Thanks already!
+
+> Basically, fork() has a similar effect as dup() in that it creates
+> multiple references to the same kernel object (the client socket).
+> 
+> close() basically lowers the refcount of a kernel object, when the
+> refcount is zero, resources inside the kernel are freed.  When
+> the refcount of a kernel object reaches zero, a shutdown(SHUT_RDWR)
+> is implied.
+> 
+> This works for 99% of Rack apps since they don't fork() nor call dup()
+> on the client socket, so refcount==1 when unicorn calls close(), leading
+> to unicorn setting refcount=0 upon close() => everything is freed.
+> 
+> However, since the client socket increments refcount via fork(),
+> close() in the parent (unicorn worker) no longer implies
+> shutdown(SHUT_RDWR).
+
+I don't know much about system calls (honestly, never heard of shutdown() before) but I think I understand.
+The kernel then doesn't fee the allocated client socket and thus Unicorn (or Nginx? That's the other end of the client socket, I think...) thinks there's still more to come.
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
