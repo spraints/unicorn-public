@@ -1,0 +1,110 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=-0.2 required=5.0 tests=AWL shortcircuit=no
+ autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id C0B941F5B4 for
+ <archivist@yhbt.net>; Fri, 13 Apr 2012 02:45:04 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 405AE3AFF5; Fri, 13 Apr 2012 02:45:04 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 21080263046 for <mongrel-unicorn@rubyforge.org>; Fri,
+ 13 Apr 2012 02:10:54 +0000 (UTC)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 4E1A61F5A2; Fri, 13 Apr 2012 02:10:54 +0000 (UTC)
+Date: Fri, 13 Apr 2012 02:10:54 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: Patrik Wenger <paddor@gmail.com>
+Subject: Re: Background jobs with #fork
+Message-ID: <20120413021054.GA18934@dcvr.yhbt.net>
+References:
+ <CAOG6bOTseAPbjU5LYchODqjdF3-Ez4+M8jo-D_D2Wq0jkdc4Rw@mail.gmail.com>
+ <20120412203956.GA8980@dcvr.yhbt.net>
+ <EA11A18D-57EC-4B56-8F24-9943EDCC9E66@gmail.com>
+ <20120412230457.GC22276@dcvr.yhbt.net>
+ <FC3E4A2E-807E-44D8-A3E2-53D58418B677@gmail.com>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To: <FC3E4A2E-807E-44D8-A3E2-53D58418B677@gmail.com>
+User-Agent: Mutt/1.5.21 (2010-09-15)
+Cc: unicorn list <mongrel-unicorn@rubyforge.org>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Patrik Wenger <paddor@gmail.com> wrote:
+> > Actually, I think my proposed patch (in reply to Hongli) at
+> > http://mid.gmane.org/20120412221022.GA20640@dcvr.yhbt.net
+> > should fix your issue.
+> 
+> Oh, this sounds great! I see it's just one line. I'll try adding this line and see if it fixes my problem.
+> Thanks already!
+
+No problem.  I've also pushed it out as a commit + test case:
+
+  http://bogomips.org/unicorn.git/patch?id=b26d3e2c4387707c
+
+I'm looking at releasing unicorn 4.3.0 early next week, probably
+Tuesday (including REQUEST_PATH/REQUEST_URI length limit tweaks).
+
+> I don't know much about system calls (honestly, never heard of
+> shutdown() before) but I think I understand.
+> The kernel then doesn't fee the allocated client socket and thus
+> Unicorn (or Nginx? That's the other end of the client socket, I
+> think...) thinks there's still more to come.
+
+Sorta, I think I conflated the shutdown vs releasing resources a bit.
+
+Releasing kernel resources happens for all file descriptors.
+
+However, connected sockets may negotiate a graceful termination
+of the connection, and that's what shutdown() can do.  However,
+close() will do it implicitly.
+
+If a kernel were implemented in Ruby, close() would be something like
+this, showing how shutdown() can get called automatically:
+
+  def SYS_close(fd)
+    # assume @fd_map is an array mapping fd to file/socket objects
+    io_object = @fd_map[fd]
+
+    return Errno::EBADF if io_object.nil?
+
+    # allow +fd+ to be reused immediately
+    @fd_map[fd] = nil
+
+    io_object.refcount -= 1
+
+    # if there are no more references, do other work:
+    if io_object.refcount == 0
+      if io_object.kind_of?(Socket)
+        # assume this is idempotent
+        SYS_shutdown(fd, SHUT_RDWR)
+      end
+
+      # free memory and any other resources allocated
+      io_object.destroy!
+    end
+  end
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
