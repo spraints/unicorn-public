@@ -1,0 +1,75 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=-0.2 required=5.0 tests=AWL shortcircuit=no
+ autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id 427201F5AA for
+ <archivist@yhbt.net>; Fri, 27 Apr 2012 21:23:44 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 1CC11263044; Fri, 27 Apr 2012 21:23:43 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id A71A5263027 for <mongrel-unicorn@rubyforge.org>; Fri,
+ 27 Apr 2012 21:15:37 +0000 (UTC)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id CE0911F5A8; Fri, 27 Apr 2012 21:15:36 +0000 (UTC)
+Date: Fri, 27 Apr 2012 21:15:36 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: Matt Smith <matt@nearapogee.com>
+Subject: Re: app error: Socket is not connected (Errno::ENOTCONN)
+Message-ID: <20120427211536.GA4903@dcvr.yhbt.net>
+References:
+ <CAJ8Ae37w-UNEMrUn60LOJ47o1AYv0Q8+M3ndkim_oC8MnCPu1w@mail.gmail.com>
+ <20120427185940.GA27312@dcvr.yhbt.net>
+ <CACsAZRR=NP4O+EB0koAr0aeUwth=M+5aQnA8vtVLEXqFHd=jnA@mail.gmail.com>
+ <20120427195100.GA322@dcvr.yhbt.net>
+ <CAAs37=VhpMaX_Ym5jchTCWqSdPzCpCOi0k_39_vsdZzANgxj9w@mail.gmail.com>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To:
+ <CAAs37=VhpMaX_Ym5jchTCWqSdPzCpCOi0k_39_vsdZzANgxj9w@mail.gmail.com>
+User-Agent: Mutt/1.5.21 (2010-09-15)
+Cc: mongrel-unicorn@rubyforge.org, George <lists@southernohio.net>, Joel
+ Nimety <jnimety@continuity.net>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Matt Smith <matt@nearapogee.com> wrote:
+> I just tried on a 64-bit Ubuntu 11.10 (kernel 3.0.0-17-generic), ruby
+> 1.9.3p0 (2011-10-30 revision 33570) [x86_64-linux]. No issue. Reloaded
+> a several pages, many times. No ENOTCONN. Not one. Same app.
+
+OK, thank you for the confirmation.  I wouldn't rule out an occasional
+ENOTCONN, though, even if nginx <-> unicorn are on the same LAN.
+
+So I'll still push out my change to ignore Errno::ENOTCONN.  Since it's
+highly uncommon in production environments, I'm not concerned about the
+performance overhead.
+
+> BSD issue?
+
+It doesn't affect my FreeBSD 9.0 nor Debian/kFreeBSD 6.0 VMs, either.
+OSX is non-Free Software, so unicorn cannot officially support it and
+performance is irrelevant on it.
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
