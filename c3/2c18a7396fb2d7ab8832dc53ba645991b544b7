@@ -1,0 +1,86 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=-0.2 required=5.0 tests=AWL shortcircuit=no
+ autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id B38251F5AA for
+ <archivist@yhbt.net>; Fri, 27 Apr 2012 19:54:04 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 7A2A13AFF8; Fri, 27 Apr 2012 19:54:04 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 06A07263027 for <mongrel-unicorn@rubyforge.org>; Fri,
+ 27 Apr 2012 19:53:58 +0000 (UTC)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id ABFBB1F5A8; Fri, 27 Apr 2012 19:53:58 +0000 (UTC)
+Date: Fri, 27 Apr 2012 19:53:58 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: mongrel-unicorn@rubyforge.org
+Subject: Re: app error: Socket is not connected (Errno::ENOTCONN)
+Message-ID: <20120427195358.GA985@dcvr.yhbt.net>
+References:
+ <CAJ8Ae37w-UNEMrUn60LOJ47o1AYv0Q8+M3ndkim_oC8MnCPu1w@mail.gmail.com>
+ <20120427185940.GA27312@dcvr.yhbt.net>
+ <CACsAZRR=NP4O+EB0koAr0aeUwth=M+5aQnA8vtVLEXqFHd=jnA@mail.gmail.com>
+ <20120427195100.GA322@dcvr.yhbt.net>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To: <20120427195100.GA322@dcvr.yhbt.net>
+User-Agent: Mutt/1.5.21 (2010-09-15)
+Cc: Joel Nimety <jnimety@continuity.net>, George <lists@SouthernOhio.net>,
+ Matt Smith <matt@nearapogee.com>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Eric Wong <normalperson@yhbt.net> wrote:
+> George <lists@SouthernOhio.net> wrote:
+> > Just fyi, my dev logs are now rife with these: http://j.mp/IezMAu
+> > 
+> > Will plug your patch in, but will have to figure out another option for
+> > heroku deployment.
+> 
+> Is this affecting your heroku deployment?  What OS/kernel version
+> are you running?  From what Joel and Matt say, it could be more likely
+> to trigger on *BSD-based systems.
+
+Also, if you revert my previous patch, does this also prevent the error
+from manifesting?
+
+(I expect ignoring ENOTCONN _once_in_a_while_ will be required,
+ but definitely not every request).
+
+diff --git a/lib/unicorn/http_server.rb b/lib/unicorn/http_server.rb
+index 14a6f9a..bb91e7f 100644
+--- a/lib/unicorn/http_server.rb
++++ b/lib/unicorn/http_server.rb
+@@ -537,7 +537,7 @@ class Unicorn::HttpServer
+     end
+     @request.headers? or headers = nil
+     http_response_write(client, status, headers, body)
+-    client.shutdown # in case of fork() in Rack app
++    client.close_write # in case of fork() in Rack app
+     client.close # flush and uncork socket immediately, no keepalive
+   rescue => e
+     handle_error(client, e)
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
