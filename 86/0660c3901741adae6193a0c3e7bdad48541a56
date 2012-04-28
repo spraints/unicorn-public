@@ -1,0 +1,172 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=0.0 required=5.0 tests=FREEMAIL_FROM,T_DKIM_INVALID
+ shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id 81A611F427 for
+ <archivist@yhbt.net>; Sat, 28 Apr 2012 21:37:50 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id EE0BA3AFF5; Sat, 28 Apr 2012 21:37:49 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from mail-qc0-f178.google.com (mail-qc0-f178.google.com
+ [209.85.216.178]) by rubyforge.org (Postfix) with ESMTP id 4E8FC263042 for
+ <mongrel-unicorn@rubyforge.org>; Sat, 28 Apr 2012 21:33:50 +0000 (UTC)
+Received: by qcse14 with SMTP id e14so1076602qcs.23 for
+ <mongrel-unicorn@rubyforge.org>; Sat, 28 Apr 2012 14:33:50 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com;
+ s=20120113; h=mime-version:date:message-id:subject:from:to:content-type;
+ bh=vfrfqpO7ZYGlid833yIwTwBlbbwBVhtaCc+Rh176ODQ=;
+ b=j5+WMfBwKXNG3xkF5rbez/YaaxBgX8WH9hZxDQWijEYfTIdkE5Xg6mJR2Sf0agD6gW
+ 5JgXQzV+ox2TrhHNgIVLKS9AAB/4IW1AnV0LJ+eHjl4W8UKiulO7B4z7/KQOqONJx/T7
+ pAEIYis9Qnh30o2tXKw2dY5HnXZsvQLSHtfEBGKt01TUulmReJ5/wWAjjW8eYtbwGk/c
+ 3Gag7Gt0BRR/MIcEMvhwqNLsvSSZ6YgVMgBJqjiQzpEGvXJAnJJjocR6VPKtcZFMGEFZ
+ 5yhx9ZV8Vb/TAGdy5Tp2lT4vD5Qf884nemkozpQLBjkewh5lED56Cxg4eDtZc7NVQdJa 4F3Q==
+MIME-Version: 1.0
+Received: by 10.224.210.10 with SMTP id gi10mr13426025qab.47.1335648829684;
+ Sat, 28 Apr 2012 14:33:49 -0700 (PDT)
+Received: by 10.229.165.18 with HTTP; Sat, 28 Apr 2012 14:33:49 -0700 (PDT)
+Date: Sat, 28 Apr 2012 14:33:49 -0700
+Message-ID:
+ <CALr1QpqWnCQnmy6ka50fH_c5nviW6f03pVbQ+qf0kqaiEBjYMA@mail.gmail.com>
+Subject: Socket errors and nginx 502 gateway errors
+From: Pico Aeterna <flippedootninja@gmail.com>
+To: mongrel-unicorn@rubyforge.org
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Hi,
+
+We've been getting reports that our users have been getting random 502
+Errors.  After investigating I noticed 'upstream prematurely closed
+connection while reading response header from upstream' in my nginx
+error logs.  From using strace it appears that there's numerous socket
+SO_ERROR..  I temporarily switched out the domain sockets with TCP,
+however am seeing the same result/issue.
+
+Strace and Nginx error log below:
+
+7366  epoll_ctl(16, EPOLL_CTL_ADD, 89, {EPOLLIN|EPOLLOUT|EPOLLET,
+{u32=2473356496, u64=46963645770960}}) = 0
+7366  connect(89, {sa_family=AF_FILE,
+path="/var/www/domain/shared/sockets/unicorn.sock"...}, 110) = 0
+7366  getsockopt(89, SOL_SOCKET, SO_ERROR, [1422340301959200768], [4]) = 0
+7366  writev(89, [{"GET /natalieliao HTTP/1.0\r\nX-Forwarded-For:
+94.224.228.239, 94.224.228.239\r\nHost"..., 1084}], 1) = 1084
+7366  epoll_wait(16, {{EPOLLOUT, {u32=2473356496,
+u64=46963645770960}}, {EPOLLOUT, {u32=2473355152,
+u64=46963645769616}}}, 512, 4316) = 2
+7366  recvfrom(88, 0x7fff856374b7, 1, 2, 0, 0) = -1 EAGAIN (Resource
+temporarily unavailable)
+7366  epoll_wait(16, {{EPOLLIN|EPOLLOUT|EPOLLHUP, {u32=2473356496,
+u64=46963645770960}}}, 512, 4315) = 1
+7366  recvfrom(89, "", 4096, 0, NULL, NULL) = 0
+7366  write(3, "2012/04/28 17:14:45 [error] 7366#0: *21826315 upstream
+prematurely closed connec"..., 319) = 319
+7366  close(89)                         = 0
+7366  stat("/var/www/domain/current/public/system/maintenance.html",
+0x7fff85637210) = -1 ENOENT (No such file or directory)
+7366  stat("/var/www/domain/current/public/500.html/index.html",
+0x7fff85637190) = -1 ENOENT (No such file or directory)
+7366  stat("/var/www/domain/current/public/500.html.html",
+0x7fff85637190) = -1 ENOENT (No such file or directory)
+7366  stat("/var/www/domain/current/public/500.html", 0x7fff85637190)
+= -1 ENOENT (No such file or directory)
+7366  socket(PF_FILE, SOCK_STREAM, 0)   = 89
+7366  ioctl(89, FIONBIO, [1])           = 0
+7366  epoll_ctl(16, EPOLL_CTL_ADD, 89, {EPOLLIN|EPOLLOUT|EPOLLET,
+{u32=2473356497, u64=46963645770961}}) = 0
+7366  connect(89, {sa_family=AF_FILE,
+path="/var/www/domain/shared/sockets/unicorn.sock"...}, 110) = 0
+7366  getsockopt(89, SOL_SOCKET, SO_ERROR, [1422495985933746176], [4]) = 0
+7366  writev(89, [{"GET /natalieliao HTTP/1.0\r\nX-Forwarded-For:
+94.224.228.239, 94.224.228.239\r\nHost"..., 1084}], 1) = 1084
+7366  epoll_wait(16, {{EPOLLOUT, {u32=2473356497,
+u64=46963645770961}}}, 512, 4285) = 1
+7366  epoll_wait(16, {{EPOLLIN|EPOLLOUT|EPOLLHUP, {u32=2473356497,
+u64=46963645770961}}}, 512, 4284) = 1
+7366  recvfrom(89, "", 4096, 0, NULL, NULL) = 0
+7366  write(3, "2012/04/28 17:14:45 [error] 7366#0: *21826315 upstream
+prematurely closed connec"..., 319) = 319
+7366  close(89)                         = 0
+7366  writev(88, [{"HTTP/1.1 502 Bad Gateway\r\nServer: nginx\r\nDate:
+Sat, 28 Apr 2012 21:14:45 GMT\r\nCo"..., 145},
+{"<html>\r\n<head><title>502 Bad Gateway</title></head>\r\n<body
+bgcolor=\"white\">\r\n<ce"..., 120},
+{"<hr><center>nginx</center>\r\n</body>\r\n</html>\r\n", 46}], 3) =
+311
+7366  shutdown(88, 1 /* send */)        = 0
+
+
+2012/04/28 17:14:45 [error] 7366#0: *21826315 upstream prematurely
+closed connection while reading response header from upstream,
+client:94.224.228.239, server: *.domain.nu, request: "GET /natalieliao
+HTTP/1.1", upstream:
+"http://unix:/var/www/domain/shared/sockets/unicorn.sock:/natalieliao",
+host: "domain.nu"
+2012/04/28 17:14:45 [error] 7366#0: *21826315 upstream prematurely
+closed connection while reading response header from upstream, client:
+94.224.228.239, server: *.domain.nu, request: "GET /natalieliao
+HTTP/1.1", upstream:
+"http://unix:/var/www/domain/shared/sockets/unicorn.sock:/natalieliao",
+host: "domain.nu"
+
+Nginx information:
+nginx version: nginx/1.0.15
+built by gcc 4.1.2 20080704 (Red Hat 4.1.2-52)
+TLS SNI support disabled
+configure arguments: --prefix=/etc/nginx --with-http_ssl_module
+--sbin-path=/usr/sbin --http-log-path=/var/log/nginx/access.log
+--error-log-path=/var/log/nginx/error.log --with-http_realip_module
+--with-http_stub_status_module --pid-path=/var/run/nginx.pid
+
+Unicorn information:
+$ bundle show unicorn
+/var/www/lookbook/shared/bundle/ruby/1.8/gems/unicorn-4.2.1
+
+Ruby:
+ruby:
+    interpreter:  "ruby"
+    version:      "1.8.7"
+    date:         "2011-02-18"
+    platform:     "x86_64-linux"
+    patchlevel:   "2011-02-18 patchlevel 334"
+    full_version: "ruby 1.8.7 (2011-02-18 patchlevel 334)
+[x86_64-linux], MBARI 0x6770, Ruby Enterprise Edition 2011.03"
+
+Setup:
+Load balancer (HaProxy) => nginx => unicorn
+
+Relevant sysctl.conf changes
+
+net.ipv4.ip_local_port_range = 1024 65535
+net.ipv4.tcp_fin_timeout = 15
+#timewait sockets
+net.ipv4.tcp_tw_reuse = 1
+net.ipv4.tcp_tw_recycle = 1
+net.core.netdev_max_backlog = 4096
+net.core.somaxconn = 4096
+
+Just curious to know if there's a socket bug that I missed with the
+current version of unicorn that's installed?
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
