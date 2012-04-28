@@ -1,0 +1,96 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=-0.2 required=5.0 tests=AWL shortcircuit=no
+ autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id BA3E01F427 for
+ <archivist@yhbt.net>; Sat, 28 Apr 2012 21:59:12 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 4B11B3AFF5; Sat, 28 Apr 2012 21:59:12 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 49C00263042 for <mongrel-unicorn@rubyforge.org>; Sat,
+ 28 Apr 2012 21:59:05 +0000 (UTC)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 8C9D71F408; Sat, 28 Apr 2012 21:59:04 +0000 (UTC)
+Date: Sat, 28 Apr 2012 21:59:04 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Subject: Re: Socket errors and nginx 502 gateway errors
+Message-ID: <20120428215904.GA6524@dcvr.yhbt.net>
+References:
+ <CALr1QpqWnCQnmy6ka50fH_c5nviW6f03pVbQ+qf0kqaiEBjYMA@mail.gmail.com>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To:
+ <CALr1QpqWnCQnmy6ka50fH_c5nviW6f03pVbQ+qf0kqaiEBjYMA@mail.gmail.com>
+User-Agent: Mutt/1.5.20 (2009-06-14)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Pico Aeterna <flippedootninja@gmail.com> wrote:
+> Hi,
+> 
+> We've been getting reports that our users have been getting random 502
+> Errors.  After investigating I noticed 'upstream prematurely closed
+> connection while reading response header from upstream' in my nginx
+> error logs.  From using strace it appears that there's numerous socket
+> SO_ERROR..  I temporarily switched out the domain sockets with TCP,
+> however am seeing the same result/issue.
+> 
+> Strace and Nginx error log below:
+
+Can you show us an strace of a unicorn worker, too?  (use
+"worker_processes 1" when debugging this)
+
+Also, the unicorn stderr log can be helpful.
+
+> 7366  epoll_ctl(16, EPOLL_CTL_ADD, 89, {EPOLLIN|EPOLLOUT|EPOLLET,
+> {u32=2473356496, u64=46963645770960}}) = 0
+> 7366  connect(89, {sa_family=AF_FILE,
+> path="/var/www/domain/shared/sockets/unicorn.sock"...}, 110) = 0
+> 7366  getsockopt(89, SOL_SOCKET, SO_ERROR, [1422340301959200768], [4]) = 0
+> 7366  writev(89, [{"GET /natalieliao HTTP/1.0\r\nX-Forwarded-For:
+> 94.224.228.239, 94.224.228.239\r\nHost"..., 1084}], 1) = 1084
+
+Can you pass "-s 2048" (or larger value) when stracing?  It'll be
+helpful to know what else is in the HTTP header.
+
+> Load balancer (HaProxy) => nginx => unicorn
+
+Does hitting unicorn directly with curl (TCP) give an expected result?
+(You can use the strace output above to have curl mimic what nginx
+sends, or even use printf | socat which works with Unix sockets).
+
+> Relevant sysctl.conf changes
+
+Probably not relevant since you switched to Unix sockets, but
+consider default sysctl values while debugging (especially tcp_tw_*)
+
+> net.ipv4.ip_local_port_range = 1024 65535
+> net.ipv4.tcp_fin_timeout = 15
+> #timewait sockets
+> net.ipv4.tcp_tw_reuse = 1
+> net.ipv4.tcp_tw_recycle = 1
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
