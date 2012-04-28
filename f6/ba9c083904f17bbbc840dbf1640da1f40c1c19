@@ -1,0 +1,70 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=0.0 required=5.0 tests=FREEMAIL_FROM,T_DKIM_INVALID
+ shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id B8BE41F6BA for
+ <archivist@yhbt.net>; Sat, 28 Apr 2012 02:50:26 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id EE7A9263041; Sat, 28 Apr 2012 02:50:24 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from mail-pz0-f45.google.com (mail-pz0-f45.google.com
+ [209.85.210.45]) by rubyforge.org (Postfix) with ESMTP id 880E526302F for
+ <mongrel-unicorn@rubyforge.org>; Sat, 28 Apr 2012 02:46:31 +0000 (UTC)
+Received: by dacx6 with SMTP id x6so1686060dac.18 for
+ <mongrel-unicorn@rubyforge.org>; Fri, 27 Apr 2012 19:46:31 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com;
+ s=20120113; h=mime-version:date:message-id:subject:from:to:content-type;
+ bh=JmDr/J3n/96pmvlgevew9w2GI/chlbp2DZNM2O6o47I=;
+ b=GDWY+Y2QnEpjWI9YtXO745IhbeLb3lZjI0JKYl4dvAEezy9AWb5kR8rHoawg94G+3Y
+ FQPZTAC62aZ1Bg/62OY573zKuLVN4nmBS/me1v/0eHsKytSo417QJNojfzGecBkOONY4
+ 3D5G8NtupZ7/t8uoza93o8WAo5acWcShLB9R7l7AjvZs3QmB1GWXGlV/nRHPvOvdmHXz
+ GucflTP67w5Fvg2y7SKGu0RqFqhsb6KjFhG6VDIhsEJPAF8EQYeJXAWWhH9MoPn4CFmf
+ bEtbek9XOzFlmgikPlNRQMB9nDNBDkUjxUvOYWv6uyRW3jwvyY//H1rdXxTf/LCYp7wL V3Lw==
+MIME-Version: 1.0
+Received: by 10.68.72.138 with SMTP id d10mr28366622pbv.15.1335581191069;
+ Fri, 27 Apr 2012 19:46:31 -0700 (PDT)
+Received: by 10.142.109.10 with HTTP; Fri, 27 Apr 2012 19:46:31 -0700 (PDT)
+Date: Fri, 27 Apr 2012 19:46:31 -0700
+Message-ID:
+ <CAAEBALGLs2kS7Ykz_fofzU-JsLxArx3URADVWoQbyb2qW1UERQ@mail.gmail.com>
+Subject: unicorn + sleep = long wake up loading time
+From: adam k <adam.ffa@gmail.com>
+To: mongrel-unicorn@rubyforge.org
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Hey,
+
+I'm running unicorn behind nginx. If the site isn't accessed for a
+long period of time, the next access of the site is loads very slowly,
+sometimes even a 404 error shows. Subsequent requests have a normal
+loading time until the site isn't accessed for a long period of time
+again. How do I stop this behavior?
+
+I looked at the code for unicorn and it seems to happen when unicorn
+is looking to kill "lazy" workers and then if it chooses not to, it
+creates a sleep period based on a timeout + 1. I also read the
+documentation and searched the mailing list starting from 2011.
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
