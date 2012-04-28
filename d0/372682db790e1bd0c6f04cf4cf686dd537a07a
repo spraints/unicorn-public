@@ -1,0 +1,92 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=-0.2 required=5.0 tests=AWL shortcircuit=no
+ autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id EAE8D1F6BA for
+ <archivist@yhbt.net>; Sat, 28 Apr 2012 04:42:58 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 9F9C03AFF4; Sat, 28 Apr 2012 04:42:57 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 44E1126302F for <mongrel-unicorn@rubyforge.org>; Sat,
+ 28 Apr 2012 04:40:04 +0000 (UTC)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 05ED41F6B8; Sat, 28 Apr 2012 04:40:03 +0000 (UTC)
+Date: Sat, 28 Apr 2012 04:40:03 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Subject: Re: unicorn + sleep = long wake up loading time
+Message-ID: <20120428044003.GA10474@dcvr.yhbt.net>
+References:
+ <CAAEBALGLs2kS7Ykz_fofzU-JsLxArx3URADVWoQbyb2qW1UERQ@mail.gmail.com>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To:
+ <CAAEBALGLs2kS7Ykz_fofzU-JsLxArx3URADVWoQbyb2qW1UERQ@mail.gmail.com>
+User-Agent: Mutt/1.5.20 (2009-06-14)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+adam k <adam.ffa@gmail.com> wrote:
+> I'm running unicorn behind nginx. If the site isn't accessed for a
+> long period of time, the next access of the site is loads very slowly,
+> sometimes even a 404 error shows. Subsequent requests have a normal
+> loading time until the site isn't accessed for a long period of time
+> again. How do I stop this behavior?
+
+unicorn is likely getting swapped out or a backend connection
+(e.g. database connection) is getting timed out due to
+inactivity.
+
+* How much memory (RSS) is each worker using when the site is active?
+* Is RSS noticeably lower when the site's been idle for a long time?
+* How many unicorn worker processes?
+
+(the above 3 questions also apply to nginx, but nginx usually uses
+ much less memory than unicorn)
+
+* How much physical RAM do you have?
+* What is the timeout value of unicorn? (default is 60s)
+* What else is running on the machine?
+* Anything mentioned in the unicorn stderr logs, or your application logs?
+
+The updatedb cronjob is one major culprit of causing apps to swap out,
+but it could be any number of things (backup jobs, rootkit scanners,
+prelink, ...).
+
+Try setting up a cronjob run curl to hit an endpoint of your app
+every few minutes.  Make sure that endpoint exercises whatever
+non-local dependencies (hits the DB, etc...) your app has.
+
+> I looked at the code for unicorn and it seems to happen when unicorn
+> is looking to kill "lazy" workers and then if it chooses not to, it
+> creates a sleep period based on a timeout + 1. I also read the
+> documentation and searched the mailing list starting from 2011.
+
+I think you're looking at the master process, which shouldn't
+affect performance of the workers.  The workers wake up whenever
+there's socket activity, but it can take longer if they're swapped
+out.
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
