@@ -1,0 +1,125 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=-0.2 required=5.0 tests=AWL shortcircuit=no
+ autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id CDCE21F6CF for
+ <archivist@yhbt.net>; Sun, 29 Apr 2012 19:19:36 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 0FF813AFF5; Sun, 29 Apr 2012 19:19:36 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 0D2B43AFF4 for <mongrel-unicorn@rubyforge.org>; Sun,
+ 29 Apr 2012 19:18:26 +0000 (UTC)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 184391F43C; Sun, 29 Apr 2012 19:18:26 +0000 (UTC)
+Date: Sun, 29 Apr 2012 12:18:25 -0700
+From: Eric Wong <normalperson@yhbt.net>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Subject: Re: Socket errors and nginx 502 gateway errors
+Message-ID: <20120429191825.GA14919@dcvr.yhbt.net>
+References:
+ <CALr1QpqWnCQnmy6ka50fH_c5nviW6f03pVbQ+qf0kqaiEBjYMA@mail.gmail.com>
+ <20120428215904.GA6524@dcvr.yhbt.net>
+ <CALr1QpqSYiR5xwbdRF5XDW0hw4zC4UK3wrCLXMXemkKZyM=a+Q@mail.gmail.com>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To:
+ <CALr1QpqSYiR5xwbdRF5XDW0hw4zC4UK3wrCLXMXemkKZyM=a+Q@mail.gmail.com>
+User-Agent: Mutt/1.5.20 (2009-06-14)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Pico Aeterna <flippedootninja@gmail.com> wrote:
+> reaped #<Process::Status: pid=9103,signaled(SIGIOT=6)> worker=9
+> /var/www/domain/releases/20120427011507/app/controllers/application_controller.rb:172:
+> [BUG] Segmentation fault
+
+OK, something (most likely your app) is causing Ruby to segfault.
+This is completely unrelated to nginx, so it'll be easier to hit
+unicorn directly to diagnose this.
+
+Since you're new to debugging, I'll try to walk you through dealing
+with core dumps:
+
+* Enable core dumps in the same shell process before starting unicorn
+  (ulimit -c unlimited && unicorn -c /path/to/config ...)
+
+* On Linux, /proc/sys/kernel/core_* sysctls control where your core dumps
+  are created.
+
+And when you get a core dump (a "core" or core.$PID file), you can run
+gdb on it:
+
+   gdb /path/to/ruby /path/to/core
+
+Make sure you're using the same ruby binary that unicorn is using.
+Ruby should be compiled with debugging symbols ('-g' or '-ggdb') by
+default, but if not, you'll probably want to recompile.
+
+> 7369  writev(31, [{"GET
+> /widget/looks.js?id=1172821&thumbs=3&source=my_looks&gender=both&align=center&r=1320622693&hash=36189f21135680efbe2d076d0b56bb06
+> HTTP/1.0\r\nX-Forwarded
+> -For: 83.9.20.243, 83.9.20.243\r\nHost: domain.nu\r\nConnection:
+> close\r\nUser-Agent: Mozilla/5.0 (Windows NT 6.1; WOW64)
+> AppleWebKit/534.55.3 (KHTML, like Gecko) Version/5.1.5
+> Safari/534.55.3\r\nAccept: */*\r\nReferer:
+> http://www.xxxxx.com/\r\nAccept-Language: pl-PL\r\nAccept-Encoding:
+> gzip, deflate\r\nCookie:
+> __utma=78941577.1641012066.1319789648.1325094074.1325949868.3;
+> __utmz=78941577.1325949868.3.3.utmcsr=xxxx.com|utmccn=(referral)|utmcmd=referral|utmcct=/l.php;
+> __gads=ID=269c5cea8f09aea0:T=1319789648:S=ALNI_MaqwdMaIFS5I3FeqLnv86oivdVDuA;
+> __qca=P0-1390452860-1319789648200\r\n\r\n", 745}], 1) = 7457369
+
+> Using the following I was able to get a 200 response
+> 
+> req='GET / HTTP/1.1\r\nHost: domain.com\r\n\r\n'
+> printf "$req" | socat - UNIX:/var/www/domain/shared/sockets/unicorn.sock
+
+OK, I think your printf request needs to more closely match what nginx
+is sending to trigger the segfault.  I would add/remove
+headers/parameters you see above until things start segfaulting.
+
+With socat, you may also want to wait a bit for the response for
+slower endpoints:
+
+  (printf "$req"; sleep $SECONDS) | socat - ...
+
+Otherwise socat will disconnect immediately after its written to
+the socket without waiting for a response.
+
+(a better, but complicated way would be to setup a FIFO as the
+ integration tests in unicorn do).
+
+If you're familiar with Rack::Mock*, you may also want to isolate this
+to just a Rack application.  It's likely the segfault can be triggered
+for your app without unicorn, too.
+
+> Sorry but i'm new to debugging Unicorn.  Hopefully some of this is helpful.
+
+It is helpful.  Debugging unicorn isn't different than debugging
+anything else.  The most important is to understand the problem, and
+that's done by isolating variables to get a small, reproducible test
+case.
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
