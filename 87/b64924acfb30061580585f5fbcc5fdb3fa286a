@@ -1,0 +1,98 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=-0.2 required=5.0 tests=AWL shortcircuit=no
+ autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id 5C1991F427 for
+ <archivist@yhbt.net>; Wed,  9 May 2012 07:06:24 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id B76F83AFF9; Wed,  9 May 2012 07:06:23 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id BA3163AFF5 for <mongrel-unicorn@rubyforge.org>; Wed, 
+ 9 May 2012 07:02:30 +0000 (UTC)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id EF3DC1F426; Wed,  9 May 2012 07:02:29 +0000 (UTC)
+Date: Wed, 9 May 2012 07:02:29 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Subject: Re: unicorn 4 does not compile on Joyent (SmartOS/Solaris) due to
+ raindrops dependency
+Message-ID: <20120509070229.GA26345@dcvr.yhbt.net>
+References:
+ <CAD2+hjeCSLp7j4i+P1zKwOrdd_5ywt4d6-S2=WScqL1VZc1DpA@mail.gmail.com>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To:
+ <CAD2+hjeCSLp7j4i+P1zKwOrdd_5ywt4d6-S2=WScqL1VZc1DpA@mail.gmail.com>
+User-Agent: Mutt/1.5.20 (2009-06-14)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Konstantin Gredeskoul <kig@wanelo.com> wrote:
+> However, the raindrops dependency introduced in 4.0 breaks raindrops
+> (and therefore unicorn 4) on SmartOS.
+> 
+> The fact that the compilation breaks in the file named
+> "linux_inet_diag.c" makes me believe that perhaps the authors may not
+> have anticipated usage beyond Linux, or there may be some other
+
+That file is Linux-specific, but the rest of raindrops (and unicorn)
+works on FreeBSD, OpenBSD and probably others.  I have every expectation
+it'd work on SmartOS[1]
+
+> > uname -a
+> SunOS demo001.dev 5.11 joyent_XXXX i86pc i386 i86pc Solaris
+                                           ^^^^
+
+> > file .rvm/rubies/ruby-1.9.3-p194/bin/ruby
+> .rvm/rubies/ruby-1.9.3-p194/bin/ruby:   ELF 64-bit LSB executable
+> AMD64 Version 1, dynamically linked, not stripped
+  ^^^^^
+
+Are you running a mixed 32-bit/64-bit installation?
+Can you check the build system isn't picking the wrong compiler
+or compiler flags?
+
+> make
+> compiling linux_inet_diag.c
+> linux_inet_diag.c:1:0: error: CPU you selected does not support x86-64
+> instruction set
+
+That's odd, the first line is just #include <ruby.h>
+
+You can try emptying/removing that file completely?  (maybe
+linux_tcp_diag.c, too).
+
+Your env shouldn't define the __linux__ macro.  The linux_* files is
+wrapped with an #ifdef __linux__, so those files shouldn't even
+be compiled on other OSes.
+
+The portable part of raindrops does use CPU-specific atomics
+(which GCC or libatomic_ops provides).  Ruby 1.9.3 itself uses
+these instructions, too.
+
+
+[1] - SmartOS seems to be Free Software, so I can actually support it :)
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
