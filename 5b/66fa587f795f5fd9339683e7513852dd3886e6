@@ -1,0 +1,94 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=0.0 required=5.0 tests=none shortcircuit=no
+ autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id 953FB1F42E for
+ <archivist@yhbt.net>; Wed,  9 May 2012 19:29:16 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 4F9A23AFF9; Wed,  9 May 2012 19:29:15 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from mail-lb0-f178.google.com (mail-lb0-f178.google.com
+ [209.85.217.178]) by rubyforge.org (Postfix) with ESMTP id 64BB0263035 for
+ <mongrel-unicorn@rubyforge.org>; Wed,  9 May 2012 19:29:10 +0000 (UTC)
+Received: by lbbgj10 with SMTP id gj10so626487lbb.23 for
+ <mongrel-unicorn@rubyforge.org>; Wed, 09 May 2012 12:29:09 -0700 (PDT)
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com;
+ s=20120113; h=mime-version:x-originating-ip:in-reply-to:references:date
+ :message-id:subject:from:to:content-type:x-gm-message-state;
+ bh=mOFh4ZxzVbZKqjU/VZclmeCFyTmFLGoFXyCClJFy0QQ=;
+ b=Fe7XVwVT2W32FdtfZ1d10DpYJrlf8GoPL1+Asxfl7vpU6ko4xK53QM9332gKhrCj2G
+ 4vLGY18utnbiY+QbXhEieoSrnFA+HzxA1HlDwQvUMROOY3DzB7t3Ed3ir78hSNpx2uQ1
+ vjWoQv618ihF/U6HjyUaa0q2y/+Cf/sn7odXbu5vUC/N6YwkB2KRsCe9bemA9qw6GRRm
+ p56oza80o3NWWTpX7eTZPgsETNl5/P8ppOm+V50r8ktZYtI+aEddWK/38aQ0IQaFrVvy
+ pgKhvNLx9SctrM2/MZ68NZ9hth70wYfy5s1dHDoTOCrPrDZMeY4M+YUZ/IY2S/sq8rm9 gcXg==
+MIME-Version: 1.0
+Received: by 10.112.98.162 with SMTP id ej2mr585777lbb.98.1336591749433; Wed,
+ 09 May 2012 12:29:09 -0700 (PDT)
+Received: by 10.112.10.201 with HTTP; Wed, 9 May 2012 12:29:09 -0700 (PDT)
+X-Originating-IP: [186.32.61.159]
+In-Reply-To: <mailman.115.1336591316.12224.mongrel-unicorn@rubyforge.org>
+References: <mailman.115.1336591316.12224.mongrel-unicorn@rubyforge.org>
+Date: Wed, 9 May 2012 13:29:09 -0600
+Message-ID:
+ <CAAPaQ=g0q9+mZ-W4UKfgb6uEY-0DvPjxqZD_YX7GiPgF0L1H0g@mail.gmail.com>
+Subject: Unicorn doesn't play nice with Capistrano deployment?
+From: Luis Fernando Urrea <lfurrea@simplecs.net>
+To: mongrel-unicorn <mongrel-unicorn@rubyforge.org>
+X-Gm-Message-State:
+ ALoCoQkNiLT3eqYdIqaisZxBCp5LM/r0lcYt87hbeeUO/szZNjTAEXi8wZCMxxsgiCB5w1728yjJ
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+I am having issues when using unicorn with a Capistrano deployment.
+>From what I have been able to understand Capistrano uses a scheme in
+wich every release is deployed inside the releases directory under a
+unique name and if the transaction was successful, creates a symlink
+named current that will point to that release.
+
+So I end up with a deployment directory such as:
+
+/home/deployer/apps/sample_app/current
+
+Then when I try to start unicorn from the binstubs directory all the
+unicorn methods look for things in the following path, particularly in
+the configurator.rb module:
+
+/home/deployer/apps/sample_app
+
+I haven't been able to fully understand how unicorn sets the
+working_directory from here:
+
+https://github.com/defunkt/unicorn/raw/master/lib/unicorn/configurator.rb
+
+But I wanted to check with the community if I am missing something
+evident due to the noob nature in me.
+
+TIA
+
+
+--
+O: 2248-2483
+C: 8723-2518
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
