@@ -1,0 +1,89 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=-0.2 required=5.0 tests=AWL shortcircuit=no
+ autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id 7C7B01F42E for
+ <archivist@yhbt.net>; Wed,  9 May 2012 20:09:56 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 2939E3AFFD; Wed,  9 May 2012 20:09:56 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 5CB2D3AFF9 for <mongrel-unicorn@rubyforge.org>; Wed, 
+ 9 May 2012 20:07:31 +0000 (UTC)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id C202D1F427; Wed,  9 May 2012 20:07:30 +0000 (UTC)
+Date: Wed, 9 May 2012 20:07:30 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Subject: Re: Unicorn doesn't play nice with Capistrano deployment?
+Message-ID: <20120509200730.GC6078@dcvr.yhbt.net>
+References: <mailman.115.1336591316.12224.mongrel-unicorn@rubyforge.org>
+ <CAAPaQ=g0q9+mZ-W4UKfgb6uEY-0DvPjxqZD_YX7GiPgF0L1H0g@mail.gmail.com>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To:
+ <CAAPaQ=g0q9+mZ-W4UKfgb6uEY-0DvPjxqZD_YX7GiPgF0L1H0g@mail.gmail.com>
+User-Agent: Mutt/1.5.21 (2010-09-15)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Luis Fernando Urrea <lfurrea@simplecs.net> wrote:
+> I am having issues when using unicorn with a Capistrano deployment.
+> >From what I have been able to understand Capistrano uses a scheme in
+> wich every release is deployed inside the releases directory under a
+> unique name and if the transaction was successful, creates a symlink
+> named current that will point to that release.
+
+Correct.
+
+> So I end up with a deployment directory such as:
+> 
+> /home/deployer/apps/sample_app/current
+> 
+> Then when I try to start unicorn from the binstubs directory all the
+> unicorn methods look for things in the following path, particularly in
+> the configurator.rb module:
+> 
+> /home/deployer/apps/sample_app
+> 
+> I haven't been able to fully understand how unicorn sets the
+> working_directory from here:
+> 
+> https://github.com/defunkt/unicorn/raw/master/lib/unicorn/configurator.rb
+
+Just put the following line at the top of your config file:
+
+  working_directory "/home/deployer/apps/sample_app/current"
+
+When I used Capistrano, I would start unicorn inside the "current"
+directory to avoid that config line:
+
+  cd /home/deployer/apps/sample_app/current
+  unicorn -c $PWD/config/unicorn.conf.rb
+
+That said, I don't deploy with Capistrano anymore.  I package apps into
+gem/rpm/deb/any-other-packaging-system for multi-machine deployments,
+and use a git checkout for single-instance deployments.
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
