@@ -1,0 +1,126 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=0.0 required=5.0 tests=none shortcircuit=no
+ autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id 810A11F42E for
+ <archivist@yhbt.net>; Wed,  9 May 2012 19:39:58 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 292933AFFD; Wed,  9 May 2012 19:39:56 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from mail-wi0-f176.google.com (mail-wi0-f176.google.com
+ [209.85.212.176]) by rubyforge.org (Postfix) with ESMTP id 9C6913AFF5 for
+ <mongrel-unicorn@rubyforge.org>; Wed,  9 May 2012 19:33:16 +0000 (UTC)
+Received: by wibhn14 with SMTP id hn14so1760268wib.5 for
+ <mongrel-unicorn@rubyforge.org>; Wed, 09 May 2012 12:33:16 -0700 (PDT)
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com;
+ s=20120113; h=mime-version:x-originating-ip:in-reply-to:references:date
+ :message-id:subject:from:to:content-type:content-transfer-encoding
+ :x-gm-message-state; bh=oShzwpGojkkrpaAZzZk4fD70XIS9TO8dTR/ItCYxMjs=;
+ b=Vt6PCJ/Yr6VGFcQg3LBR0YgdVEVROkT9Vzn7F3NhU/zYGWdIvH9uGlT3tgoxzESleY
+ 8At+NFrTh4mrucKIzLjA7ao2pQ5fVfiugXa1nX4OFkJe2zBV9q/VZpMCC2J1rmPvZfJi
+ nX1MDS4yc9Y2e7t2GJdQ5Xw0XwtmP6io3c8BVZ2ZKa+gcvk63b6H1w/aGf5bmrfo7yqn
+ oqUfvmNHPUZ9n7VayokEun5I1EJRPJlJ1KuJSw67GRJJghRTsUfUjlGDxku/UbLqth/W
+ csQpZJoTRTklEymnSB4ReiYSfFtQB9bInIPAsVD1h6aSM6Dl9Bn4JS+07a6sGfdAXmMb 8dNw==
+MIME-Version: 1.0
+Received: by 10.180.80.104 with SMTP id q8mr2996864wix.14.1336591995742; Wed,
+ 09 May 2012 12:33:15 -0700 (PDT)
+Received: by 10.180.104.196 with HTTP; Wed, 9 May 2012 12:33:15 -0700 (PDT)
+X-Originating-IP: [173.247.207.18]
+In-Reply-To:
+ <CAAPaQ=g0q9+mZ-W4UKfgb6uEY-0DvPjxqZD_YX7GiPgF0L1H0g@mail.gmail.com>
+References: <mailman.115.1336591316.12224.mongrel-unicorn@rubyforge.org>
+ <CAAPaQ=g0q9+mZ-W4UKfgb6uEY-0DvPjxqZD_YX7GiPgF0L1H0g@mail.gmail.com>
+Date: Wed, 9 May 2012 12:33:15 -0700
+Message-ID:
+ <CAD2+hjfgsNQj-Mzp+KTaLuCzHi5q+8-jxnpLi4gFdEQhcZNzvA@mail.gmail.com>
+Subject: Re: Unicorn doesn't play nice with Capistrano deployment?
+From: Konstantin Gredeskoul <kig@wanelo.com>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+X-Gm-Message-State:
+ ALoCoQlAUeqzXbKe908TfaScZ++FjErpo0pOkBC71uKPZRDOmFK7s54ETXNS9OFRuMibAEXYaQl1
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="iso-8859-1"
+Content-Transfer-Encoding: quoted-printable
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+I highly recommend using the gem for this:
+https://github.com/sosedoff/capistrano-unicorn
+
+instead of rolling your own.  I typically start unicorn (and any other
+task) by first doing a CD into the application directory (either
+release_path or current_path depending on when during your deployment
+the command runs).
+
+When you set this up, please check your
+config/unicorn/"#{Rails.env}".rb, perhaps that is what's pointing to
+the wrong path?
+
+Hope this helps
+K
+
+On Wed, May 9, 2012 at 12:29 PM, Luis Fernando Urrea
+<lfurrea@simplecs.net> wrote:
+> I am having issues when using unicorn with a Capistrano deployment.
+> >From what I have been able to understand Capistrano uses a scheme in
+> wich every release is deployed inside the releases directory under a
+> unique name and if the transaction was successful, creates a symlink
+> named current that will point to that release.
+>
+> So I end up with a deployment directory such as:
+>
+> /home/deployer/apps/sample_app/current
+>
+> Then when I try to start unicorn from the binstubs directory all the
+> unicorn methods look for things in the following path, particularly in
+> the configurator.rb module:
+>
+> /home/deployer/apps/sample_app
+>
+> I haven't been able to fully understand how unicorn sets the
+> working_directory from here:
+>
+> https://github.com/defunkt/unicorn/raw/master/lib/unicorn/configurator.rb
+>
+> But I wanted to check with the community if I am missing something
+> evident due to the noob nature in me.
+>
+> TIA
+>
+>
+> --
+> O: 2248-2483
+> C: 8723-2518
+> _______________________________________________
+> Unicorn mailing list - mongrel-unicorn@rubyforge.org
+> http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+> Do not quote signatures (like this one) or top post when replying
+
+
+
+-- =
+
+
+Konstantin Gredeskoul
+CTO=A0:: Wanelo Inc
+cell:=A0(415) 265 1054
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
