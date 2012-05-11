@@ -1,0 +1,113 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=-0.2 required=5.0 tests=AWL shortcircuit=no
+ autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id D45BE1F449 for
+ <archivist@yhbt.net>; Fri, 11 May 2012 01:12:30 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 302883AFF6; Fri, 11 May 2012 01:12:30 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 641193AFF4 for <mongrel-unicorn@rubyforge.org>; Fri,
+ 11 May 2012 01:12:18 +0000 (UTC)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 7D73A1F43A; Fri, 11 May 2012 01:12:17 +0000 (UTC)
+Date: Thu, 10 May 2012 18:12:17 -0700
+From: Eric Wong <normalperson@yhbt.net>
+To: mongrel-unicorn@rubyforge.org
+Subject: [raindrops] testers on 32-bit FreeBSD wanted
+Message-ID: <20120511011217.GB24952@dcvr.yhbt.net>
+MIME-Version: 1.0
+Content-Disposition: inline
+User-Agent: Mutt/1.5.21 (2010-09-15)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Since unicorn users are raindrops users, I'd appreciate it if
+32-bit FreeBSD users can give this a try.  Thanks!
+
+ref: http://mid.gmane.org/20120510215457.GA11961@dcvr.yhbt.net
+
+Eric Wong <normalperson@yhbt.net> wrote:
+> I've just pushed this out to master on git://bogomips.org/raindrops
+> 
+> The original check for "i386" arch was causing builds on SmartOS
+> to fail.
+> 
+> Also available as a prerelease gem (0.8.0.5.g71f8):
+> 
+>   gem install --pre raindrops
+> 
+> >From 71f80afdbcb45245a01ee2c278ebda692587e92a Mon Sep 17 00:00:00 2001
+> From: Eric Wong <normalperson@yhbt.net>
+> Date: Thu, 10 May 2012 14:49:39 -0700
+> Subject: [PATCH] extconf: better check for GCC atomic builtins
+> 
+> Attempting to test for CMPXCHG on x86 should allow this check to
+> fail on i386 systems.  We also won't need try_run as a result,
+> enabling cross-compilation.  The configure.in check in Ruby
+> 1.9.3 does something similar and that's far more widely used
+> than raindrops is.
+> ---
+>  ext/raindrops/extconf.rb |   15 ++++++---------
+>  1 file changed, 6 insertions(+), 9 deletions(-)
+> 
+> diff --git a/ext/raindrops/extconf.rb b/ext/raindrops/extconf.rb
+> index 9f5de95..447a90a 100644
+> --- a/ext/raindrops/extconf.rb
+> +++ b/ext/raindrops/extconf.rb
+> @@ -13,23 +13,20 @@ have_func('rb_thread_blocking_region')
+>  have_func('rb_thread_io_blocking_region')
+>  
+>  checking_for "GCC 4+ atomic builtins" do
+> +  # we test CMPXCHG anyways even though we don't need it to filter out
+> +  # ancient i386-only targets without CMPXCHG
+>    src = <<SRC
+>  int main(int argc, char * const argv[]) {
+> -        volatile unsigned long i = 0;
+> +        unsigned long i = 0;
+> +        __sync_lock_test_and_set(&i, 0);
+> +        __sync_lock_test_and_set(&i, 1);
+>          __sync_add_and_fetch(&i, argc);
+>          __sync_sub_and_fetch(&i, argc);
+>          return 0;
+>  }
+>  SRC
+>  
+> -  if try_run(src)
+> -    # some systems target GCC for i386 and don't get the atomic builtins
+> -    # when building shared objects
+> -    arch = `#{CONFIG['CC']} -dumpmachine`.split(/-/)[0]
+> -    if arch == "i386" && $CFLAGS !~ /\b-march=/
+> -      $CFLAGS += " -march=i486 "
+> -    end
+> -
+> +  if try_link(src)
+>      $defs.push(format("-DHAVE_GCC_ATOMIC_BUILTINS"))
+>      true
+>    else
+> -- 
+> Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
