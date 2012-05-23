@@ -1,0 +1,98 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=-0.2 required=5.0 tests=AWL shortcircuit=no
+ autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id 7D6951F5A2 for
+ <archivist@yhbt.net>; Wed, 23 May 2012 18:50:32 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 8ADD33AFF9; Wed, 23 May 2012 18:50:31 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 707523AFF8 for <mongrel-unicorn@rubyforge.org>; Wed,
+ 23 May 2012 18:50:23 +0000 (UTC)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 7843C1F520; Wed, 23 May 2012 18:50:22 +0000 (UTC)
+Date: Wed, 23 May 2012 18:50:22 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Subject: Re: [Suggestion] Add upstream param to listen statement
+Message-ID: <20120523185022.GA30532@dcvr.yhbt.net>
+References: <4FBCE633.6060909@gmail.com>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To: <4FBCE633.6060909@gmail.com>
+User-Agent: Mutt/1.5.20 (2009-06-14)
+Cc: Manuel Valente <manuel.valente@gmail.com>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Manuel Valente <manuel.valente@gmail.com> wrote:
+> Hi,
+> 
+> It would be nice to be able to reject all incoming requests to
+> unicorn if they do not originate from our upstream http server.
+> 
+> An additional parameter to the listen statement is perhaps the best
+> way to achieve this :
+> 
+> server.listen(addr, :tries => -1, :delay => 5, :backlog => 128,
+> :upstream => '10.0.0.1')
+> 
+> This param could be a string or an array of IP addresses.
+
+iptables (or whatever firewall module that comes with your OS)
+is far more efficient than anything in userspace for rejecting
+IPs entirely.
+
+You can also do this in middleware by checking env["REMOTE_ADDR"].
+I'll sometimes do something like this to reject certain HTTP
+methods (/POST/PUT/DELETE), but let GET/HEAD requests through:
+
+# totally untested code for Rack middleware:
+class Rejector
+  def new(app, bad_ips)
+    @bad_ips = bad_ips
+    @app = app
+  end
+
+  def call(env)
+    case env["REQUEST_METHOD"]
+    when "POST", "DELETE", "PUT"
+      return [ 403, {}, [] ] if @bad_ips.include?(env["REMOTE_ADDR"])
+    end
+    @app.call(env)
+  end
+end
+
+---------- config.ru --------------
+require 'set'
+require 'rejector'
+use Rejector, Set.new("10.0.0.1")
+run YourApp.new
+
+
+Instead of Set, you can also check out rpatricia for netmasks:
+http://www.goto.info.waseda.ac.jp/~tatsuya/rpatricia/
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
