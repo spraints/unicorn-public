@@ -1,0 +1,91 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=-0.2 required=5.0 tests=AWL shortcircuit=no
+ autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id 062691F42C for
+ <archivist@yhbt.net>; Sat,  2 Jun 2012 19:41:57 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id A31B33AFFC; Sat,  2 Jun 2012 19:41:54 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 17BF63AFF9 for <mongrel-unicorn@rubyforge.org>; Sat, 
+ 2 Jun 2012 19:41:48 +0000 (UTC)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 49D981F427; Sat,  2 Jun 2012 19:41:48 +0000 (UTC)
+Date: Sat, 2 Jun 2012 19:41:48 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: mongrel-unicorn@rubyforge.org
+Subject: [RFC/PATCH] FreeBSD: do not attempt to set TCP_NOPUSH to false
+Message-ID: <20120602194148.GA390@dcvr.yhbt.net>
+MIME-Version: 1.0
+Content-Disposition: inline
+User-Agent: Mutt/1.5.20 (2009-06-14)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Can some FreeBSD users review this?  Thank you.
+This issue was reported privately by a FreeBSD 8.1-RELEASE user.
+
+>From a837437b4ca7903b3fcb90af1f257d841c9bd22f Mon Sep 17 00:00:00 2001
+From: Eric Wong <normalperson@yhbt.net>
+Date: Sat, 2 Jun 2012 19:29:58 +0000
+Subject: [PATCH] FreeBSD: do not attempt to set TCP_NOPUSH to false
+
+Instead of blindly turning TCP_NOPUSH off when setting up the
+listen socket, only enable TCP_NOPUSH (if requested by the user)
+but never disable it.
+
+A FreeBSD 8.1-RELEASE user privately reported EADDRNOTAVAIL
+errors when setting up the TCP listener due to the default
+(tcp_nopush: false) value:
+
+  ERROR -- : $HOST:$PORT{:tcp_defer_accept=>1, :accept_filter=>"httpready", :backlog=>1024, :tcp_nopush=>false, :tcp_nodelay=>true}: Can't assign requested address (Errno::EADDRNOTAVAIL)*
+
+Additionally, the user reported the listen(backlog: 1024) value
+got dropped and reset back to 5.
+
+This unfortunately means we won't be able disable TCP_NOPUSH
+once turned on (via SIGHUP/SIGUSR2).
+---
+ lib/unicorn/socket_helper.rb | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/lib/unicorn/socket_helper.rb b/lib/unicorn/socket_helper.rb
+index 21c52e3..1a6e374 100644
+--- a/lib/unicorn/socket_helper.rb
++++ b/lib/unicorn/socket_helper.rb
+@@ -66,7 +66,8 @@ module Unicorn
+       val = val ? 1 : 0
+       if defined?(TCP_CORK) # Linux
+         sock.setsockopt(IPPROTO_TCP, TCP_CORK, val)
+-      elsif defined?(TCP_NOPUSH) # TCP_NOPUSH is untested (FreeBSD)
++      elsif defined?(TCP_NOPUSH) && val == 1
++        # TCP_NOPUSH is lightly-tested (FreeBSD)
+         sock.setsockopt(IPPROTO_TCP, TCP_NOPUSH, val)
+       end
+ 
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
