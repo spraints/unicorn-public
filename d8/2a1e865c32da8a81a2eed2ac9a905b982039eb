@@ -1,0 +1,81 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=-0.2 required=5.0 tests=AWL,FREEMAIL_FROM,
+ T_DKIM_INVALID shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id 24F931F4F5 for
+ <archivist@yhbt.net>; Mon,  4 Jun 2012 16:28:13 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 695C93AFFF; Mon,  4 Jun 2012 16:28:12 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from mail-ob0-f178.google.com (mail-ob0-f178.google.com
+ [209.85.214.178]) by rubyforge.org (Postfix) with ESMTP id BD44C3AFFD for
+ <mongrel-unicorn@rubyforge.org>; Mon,  4 Jun 2012 16:28:04 +0000 (UTC)
+Received: by obceq6 with SMTP id eq6so9647177obc.23 for
+ <mongrel-unicorn@rubyforge.org>; Mon, 04 Jun 2012 09:28:04 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com;
+ s=20120113; h=content-type:mime-version:subject:from:in-reply-to:date
+ :content-transfer-encoding:message-id:references:to:x-mailer;
+ bh=GRJiSEKyj94LTK1NuY9YnoiS6VD6QZhsX78N1gZx/ow=;
+ b=Dk/EWxa7FrMsNgn6zNxTJ0SVfWlxdwqKlF294eII2bOd3FN3iJivTd/LVhEFlo+7Qv
+ yo7K5crZitePAdXHRTdn/gHnAObjD03JJJa8r4Jj5KGZXzO0rJJu3InXchFVnzPttYQH
+ oPShwvymv4bryJP7VBWHnRbn+R6oyS75junMHN2wMi6AzjFboWZp48zJFxfPdS7smjCb
+ 88R2LVdDpDC+8o3Uds8NEanOmgkC8hJIXhT9OyY/LpVVpifXZxvExEq2waxUAsUXMfmP
+ wE3cg0X792t4AxyhHPqYnJPCWFIaskus1y4tkBEndRLADDQ9BB0hKVmGvMNg1J8hqagc vwxw==
+Received: by 10.182.47.105 with SMTP id c9mr12721254obn.49.1338827284473;
+ Mon, 04 Jun 2012 09:28:04 -0700 (PDT)
+Received: from [192.168.168.156] (rrcs-50-84-167-122.sw.biz.rr.com.
+ [50.84.167.122]) by mx.google.com with ESMTPS id
+ rr9sm8563036obc.8.2012.06.04.09.28.02 (version=TLSv1/SSLv3 cipher=OTHER);
+ Mon, 04 Jun 2012 09:28:03 -0700 (PDT)
+Mime-Version: 1.0 (Apple Message framework v1278)
+Subject: Re: Triggering OobGC when heap is nearly full
+From: Clifton King <cliftonk@gmail.com>
+In-Reply-To:
+ <CAHOTMVJBydjzmEUVLnKtvW69E+CHXJQt4-LmnAn+Zs-RzTiK_g@mail.gmail.com>
+Date: Mon, 4 Jun 2012 11:28:00 -0500
+Message-Id: <604691B6-15A0-4A1C-9F0F-F454EF0C52F2@gmail.com>
+References:
+ <CAHOTMVJBydjzmEUVLnKtvW69E+CHXJQt4-LmnAn+Zs-RzTiK_g@mail.gmail.com>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+X-Mailer: Apple Mail (2.1278)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Tony <bascule@gmail.com> wrote:
+> It seems like OobGC configuration is all predicated around a number of
+> requests to process before OobGCing. However, REE exposes heap/GC
+> stats that could be used to make that decision intelligently at
+> runtime.
+
+We're having the exact same issues here. Also, I find using God to kill
+workers over memory limits as relatively awkward. It would be great if
+we could have a proc run after each request.
+
+It would be nice if we could check memory usage and then either run the
+GC or signal QUIT if too much memory has leaked (usually happens after
+around 10 minutes for us).
+
+Clifton
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
