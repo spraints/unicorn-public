@@ -1,0 +1,75 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=-0.2 required=5.0 tests=AWL shortcircuit=no
+ autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id 0B7201F42C for
+ <archivist@yhbt.net>; Mon,  4 Jun 2012 04:56:49 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 212813AFF7; Mon,  4 Jun 2012 04:56:47 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 5C7F03AFF7 for <mongrel-unicorn@rubyforge.org>; Mon, 
+ 4 Jun 2012 04:47:35 +0000 (UTC)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 1B70D1F429; Mon,  4 Jun 2012 04:47:34 +0000 (UTC)
+Date: Mon, 4 Jun 2012 04:47:33 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Subject: Re: Triggering OobGC when heap is nearly full
+Message-ID: <20120604044733.GA8251@dcvr.yhbt.net>
+References:
+ <CAHOTMVJBydjzmEUVLnKtvW69E+CHXJQt4-LmnAn+Zs-RzTiK_g@mail.gmail.com>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To:
+ <CAHOTMVJBydjzmEUVLnKtvW69E+CHXJQt4-LmnAn+Zs-RzTiK_g@mail.gmail.com>
+User-Agent: Mutt/1.5.20 (2009-06-14)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Tony <bascule@gmail.com> wrote:
+> We've started using OobGC at my workplace and it's definitely helping,
+> however the amount of garbage various requests in our app can generate
+> is quite the chunky stew.
+
+Cool! (though I can't say I've ever /liked/ OobGC :x)
+
+> It seems like OobGC configuration is all predicated around a number of
+> requests to process before OobGCing. However, REE exposes heap/GC
+> stats that could be used to make that decision intelligently at
+> runtime.
+> 
+> Is there any way presently to use some heuristics around the current
+> state of the heap to decide when to OobGC, or barring that, a way to
+> pass a proc I would write into OobGC that can answer the question
+> "should I OobGC?" with true/false rather than relying on a certain
+> number of requests?
+
+Not right now, but OobGC is only ~20 lines of code or so it
+should be easy to figure out how to add/change.
+
+Btw, I'm still really curious to know how the lazy-sweep GC in 1.9.3
+behaves with OobGC, I think 1.9.3+ should make OobGC obsolete.
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
