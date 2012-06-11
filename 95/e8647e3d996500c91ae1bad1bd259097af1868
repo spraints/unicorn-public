@@ -1,0 +1,71 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=0.0 required=5.0 tests=T_DKIM_INVALID
+ shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id 5B8903F93E for
+ <archivist@yhbt.net>; Mon, 11 Jun 2012 23:55:19 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 1ED1D3AFFC; Mon, 11 Jun 2012 23:55:18 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from mail-pb0-f50.google.com (mail-pb0-f50.google.com
+ [209.85.160.50]) by rubyforge.org (Postfix) with ESMTP id 0FA413AFFA for
+ <mongrel-unicorn@rubyforge.org>; Mon, 11 Jun 2012 23:49:49 +0000 (UTC)
+Received: by pbbrr4 with SMTP id rr4so6724195pbb.23 for
+ <mongrel-unicorn@rubyforge.org>; Mon, 11 Jun 2012 16:49:49 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com;
+ s=20120113; h=sender:from:content-type:content-transfer-encoding:subject:date
+ :message-id:to:mime-version:x-mailer;
+ bh=D7tuW0t0KFwhVxObiXFgDWoHm7zM8+qE7LlZi/R5b1g=;
+ b=qSt1fXnw8g3Os9I8k9OWVHGTV7hoMb3hK/0OJ9Q0Mn6LXJ24k+VJVVeXiUkoi6P6oI
+ myLQGomTYnFr1iV1tGJ8l9lVua8rP9OhOa5SyjYAz9clIedwEJfE9Aa+x51bxhrW75CT
+ R6FdVn4KbMtqpvFMx1bHQ/TKVI3/JXO1+z0kL0+MoA8nPuU2HHQ+27exosSOU7C6Xoz4
+ f6yfSjcjZxQF7jLF0FMfRabJ5nCjbiY41iEszs/P+YOzzfeYQtsAlju4nwXmeNFvYWYH
+ Vj8FFSMINJv3JQqemjiYCpSBxyhLxHrd+ngkIyjKf0Pn/ZfTjlxrNQaSL/LCanydPDri midQ==
+Received: by 10.68.192.97 with SMTP id hf1mr29757171pbc.132.1339458589668;
+ Mon, 11 Jun 2012 16:49:49 -0700 (PDT)
+Received: from dyn-4-203.sf.pivotallabs.com (gateway-sf.pivotallabs.com.
+ [204.15.0.254]) by mx.google.com with ESMTPS id
+ mt9sm20065934pbb.14.2012.06.11.16.49.47 (version=TLSv1/SSLv3 cipher=OTHER);
+ Mon, 11 Jun 2012 16:49:47 -0700 (PDT)
+From: Jamie Wilkinson <jamie@jamiedubs.com>
+Subject: unicorn-heroku
+Date: Mon, 11 Jun 2012 16:49:46 -0700
+Message-Id: <A183C9A1-2D38-4460-BF70-70A9096C8926@jamiedubs.com>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Mime-Version: 1.0 (Apple Message framework v1278)
+X-Mailer: Apple Mail (2.1278)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Ran into a gem today that swaps unicorn's signal handling to align with Heroku's restart process, which uses TERM to indicate start-graceful-shutdown rather than QUIT[1]
+
+https://github.com/michaelfairley/unicorn-heroku
+
+I don't have a Heroku app doing enough traffic to know if this helps with dropped connections or other issues during deployment, but I'm curious if anyone on-list has tried it out and seen benefits.
+
+Heroku still sends a KILL after 10s so we still can't do proper USR2 rolling restarts, but this seems like a small step in the right direction.
+
+[1] https://devcenter.heroku.com/articles/ps#graceful_shutdown_with_sigterm
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
