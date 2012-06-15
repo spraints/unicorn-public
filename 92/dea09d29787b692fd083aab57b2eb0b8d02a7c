@@ -1,0 +1,137 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=-0.2 required=5.0 tests=AWL shortcircuit=no
+ autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id 7035A1F50F for
+ <archivist@yhbt.net>; Fri, 15 Jun 2012 21:26:00 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 92F092E065; Fri, 15 Jun 2012 21:25:59 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 847402E065 for <mongrel-unicorn@rubyforge.org>; Fri,
+ 15 Jun 2012 21:22:44 +0000 (UTC)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 22D481F43A; Fri, 15 Jun 2012 21:22:44 +0000 (UTC)
+Date: Fri, 15 Jun 2012 21:22:43 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Subject: Re: Sinatra app fails to perform at scale
+Message-ID: <20120615212243.GA20282@dcvr.yhbt.net>
+References:
+ <CAD-vGFTDxDu9KWydhL9dA-CXMG=VOyDRWYwO=Jre7WBNNK+teA@mail.gmail.com>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To:
+ <CAD-vGFTDxDu9KWydhL9dA-CXMG=VOyDRWYwO=Jre7WBNNK+teA@mail.gmail.com>
+User-Agent: Mutt/1.5.20 (2009-06-14)
+Cc: Eliot Shepard <eshepard@slower.net>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Eliot Shepard <eshepard@slower.net> wrote:
+> Hello,
+> 
+> We're attempting to move our set of Rails and Sinatra apps from
+> Passenger/REE to Unicorn/1.9.3. We've started with one of the Sinatra
+> apps, which typically sees about 50 req/s. It happens to talk to both
+> Redis (Resque) and MongoDB GridFS.
+
+Are you having problems at 50 req/s or higher than that with ab?
+
+> The basic setup works fine when tested under ab, but we're having
+> trouble getting the deploy into production. It performs fine for a
+> bit, then the nginx write queue fills up and begins returning 502s.
+
+Is ab hitting nginx or unicorn?  You'll probably get more
+accurate/consistent results using ab with keepalive (-k) and hitting
+nginx with ab.
+
+> A colleague has posted a more detailed description of the issue and our
+> setup on ServerFault:
+> http://serverfault.com/questions/398972/need-to-increase-nginx-throughput-to-an-upstream-unix-socket-linux-kernel-tun
+
+Fwiw, I don't (and don't intend to) monitor external websites for
+questions, especially when they require signups.  Feel free to post
+my response in part or full (or link back to this ML archive).
+
+I'll quote the relevant parts
+
+<snip> nginx config looks fine.
+
+The Unicorn config would be helpful here, too.
+
+Can you try setting the listen:backlog directive to a higher number?
+Something like:
+
+  listen "/tmp/app.sock", :backlog => 8192
+
+You'll want to stay within your net.core.somaxconn = 8192 value or raise
+that sysctl to match unicorn.  However, if you have multiple machines
+and want to load balance, I recommend trying a lower backlog.
+
+>    The issue is, it just seems that past a certain amount of load, nginx
+>    can't get requests through the socket at a fast enough rate. It doesn't
+>    matter how many app server processes I set up, it doesn't even matter
+>    what the app is (tried it with a dummy app with just a single endpoint
+>    that returned an empty page with status 404). The bottleneck seems to
+>    be the socket, not the app.
+
+>    I'm getting a flood of these messages in the nginx error log:
+>    connect() to unix:/tmp/app.sock failed (11: Resource temporarily
+>    unavailable) wh ile connecting to upstream
+
+>    Many requests result in status code 502, and those that don't take a
+>    long time to complete. The nginx write queue stat hovers around 1000.
+
+Can you also verify unicorn is correctly closing connections that nginx
+opens to it?  unicorn 4.3.1 should be fine in this regard...
+
+> Additional information on the environment
+> curbed@app1:~$ uname -a
+> Linux app1 3.2.0-24-generic #39-Ubuntu SMP Mon May 21 16:52:17 UTC
+> 2012 x86_64 x86_64 x86_64 GNU/Linux
+> curbed@app1:~$ ruby -v
+> ruby 1.9.3p194 (2012-04-20 revision 35410) [x86_64-linux]
+> curbed@app1:~$ unicorn -v
+> unicorn v4.3.1
+> curbed@app1:~$ nginx -V
+> nginx version: nginx/1.2.1
+
+I haven't tested with nginx 1.2.x, yet, but I expect it to be fine.
+I know 1.2.x also supports keepalive to backend connections, but
+I don't expect it to benefit on a fast LAN or local Unix socket...
+
+> Any suggestions on configuration, kernel tuning, etc. would be
+> welcomed (here or on SF). Please CC me if you answer through the list.
+> Thanks for your time.
+
+Thanks for reminding us to Cc: :)
+
+I think Tom had a similar question a few years ago
+http://mid.gmane.org/20090918064831.GA5285@dcvr.yhbt.net
+
+However, hitting issues with the default backlog (1024) with 50 req/s
+wouldn't be expected...
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
