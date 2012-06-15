@@ -1,0 +1,117 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=0.0 required=5.0 tests=none shortcircuit=no
+ autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id 3FAA71F50F for
+ <archivist@yhbt.net>; Fri, 15 Jun 2012 18:10:02 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 6E5A32E061; Fri, 15 Jun 2012 18:10:00 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from mail-vc0-f178.google.com (mail-vc0-f178.google.com
+ [209.85.220.178]) by rubyforge.org (Postfix) with ESMTP id C35322E061 for
+ <mongrel-unicorn@rubyforge.org>; Fri, 15 Jun 2012 18:09:50 +0000 (UTC)
+Received: by vcdm8 with SMTP id m8so2206678vcd.23 for
+ <mongrel-unicorn@rubyforge.org>; Fri, 15 Jun 2012 11:09:50 -0700 (PDT)
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com;
+ s=20120113; h=mime-version:date:message-id:subject:from:to:content-type
+ :x-gm-message-state; bh=KdMOWrf6olXF/kvYRtWwPvNydW4gzFYaKWn+1w5Imfc=;
+ b=B8KHlNCYBitTqG3s/lK/301MUlcAnnPKIDTT8Zfp7j8xyd8aZR3lZ9BJyXlmrLerA+
+ luERFdODrwTT5DW3FNL/daevdI+r9Wq92H5q1X4/y05KFVCF1B16AMIEvTZd5n9Lu1Sm
+ cOG/E2lFi+V4JPvaZHXLJeRmEBZB+ba93tXrhzOdKumfXUnbDYH+KboAmJ77fR/Jc3K2
+ AlgKDgzH+1Lyu6tJLyn1hxjAohAAp1Pm+mkOOP6+X3uUQr9a3W2Vkb5O35l5yaVRQ2nW
+ hvdPwAk8w2TcK+THM3rH9lfzJrpt2IWShyNVz/8eAfVM06NVVAVppby0bLSv9p05ZjK/ cV8A==
+MIME-Version: 1.0
+Received: by 10.52.100.36 with SMTP id ev4mr2758146vdb.43.1339783789731; Fri,
+ 15 Jun 2012 11:09:49 -0700 (PDT)
+Received: by 10.220.21.6 with HTTP; Fri, 15 Jun 2012 11:09:49 -0700 (PDT)
+Date: Fri, 15 Jun 2012 14:09:49 -0400
+Message-ID:
+ <CAD-vGFTDxDu9KWydhL9dA-CXMG=VOyDRWYwO=Jre7WBNNK+teA@mail.gmail.com>
+Subject: Sinatra app fails to perform at scale
+From: Eliot Shepard <eshepard@slower.net>
+To: mongrel-unicorn@rubyforge.org
+X-Gm-Message-State:
+ ALoCoQnJR4IZbah+0/nRO/4bvkac6nkHWKA/rm48I75mj0fjCloUw2PVoV2AUGm2R7q8l9aYw+7q
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Hello,
+
+We're attempting to move our set of Rails and Sinatra apps from
+Passenger/REE to Unicorn/1.9.3. We've started with one of the Sinatra
+apps, which typically sees about 50 req/s. It happens to talk to both
+Redis (Resque) and MongoDB GridFS.
+
+The basic setup works fine when tested under ab, but we're having
+trouble getting the deploy into production. It performs fine for a
+bit, then the nginx write queue fills up and begins returning 502s. A
+colleague has posted a more detailed description of the issue and our
+setup on ServerFault:
+http://serverfault.com/questions/398972/need-to-increase-nginx-throughput-to-an-upstream-unix-socket-linux-kernel-tun
+
+Additional information on the environment
+curbed@app1:~$ uname -a
+Linux app1 3.2.0-24-generic #39-Ubuntu SMP Mon May 21 16:52:17 UTC
+2012 x86_64 x86_64 x86_64 GNU/Linux
+curbed@app1:~$ ruby -v
+ruby 1.9.3p194 (2012-04-20 revision 35410) [x86_64-linux]
+curbed@app1:~$ unicorn -v
+unicorn v4.3.1
+curbed@app1:~$ nginx -V
+nginx version: nginx/1.2.1
+built by gcc 4.6.3 (Ubuntu/Linaro 4.6.3-1ubuntu5)
+TLS SNI support enabled
+configure arguments: --prefix=/usr/local/nginx --with-http_ssl_module
+--with-cc-opt=-Wno-error --with-http_gzip_static_module
+--with-http_stub_status_module
+--add-module=/home/curbed/src/nginx-modules/nginx-gridfs
+--add-module=/home/curbed/src/nginx-modules/ngx_http_redis-0.3.6
+--add-module=/home/curbed/src/nginx-modules/headers-more-nginx-module
+
+Kernel tweaks:
+net.core.rmem_default = 65536
+net.core.wmem_default = 65536
+net.core.rmem_max = 16777216
+net.core.wmem_max = 16777216
+net.ipv4.tcp_rmem = 4096 87380 16777216
+net.ipv4.tcp_wmem = 4096 65536 16777216
+net.ipv4.tcp_mem = 16777216 16777216 16777216
+net.ipv4.tcp_window_scaling = 1
+net.ipv4.route.flush = 1
+net.ipv4.tcp_no_metrics_save = 1
+net.ipv4.tcp_moderate_rcvbuf = 1
+net.core.somaxconn = 8192
+net.netfilter.nf_conntrack_max = 131072
+
+Any suggestions on configuration, kernel tuning, etc. would be
+welcomed (here or on SF). Please CC me if you answer through the list.
+Thanks for your time.
+
+Eliot
+
+-- 
+Eliot Shepard
+Head of Tech, Curbed Network
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
