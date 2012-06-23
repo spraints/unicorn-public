@@ -1,0 +1,83 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=0.0 required=5.0 tests=none shortcircuit=no
+ autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id 6B8421F435 for
+ <archivist@yhbt.net>; Sat, 23 Jun 2012 16:25:23 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 670AE2E068; Sat, 23 Jun 2012 16:25:22 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from smtpfb2-g21.free.fr (smtpfb2-g21.free.fr [212.27.42.10]) by
+ rubyforge.org (Postfix) with ESMTP id A17A62E067 for
+ <mongrel-unicorn@rubyforge.org>; Sat, 23 Jun 2012 16:21:31 +0000 (UTC)
+Received: from smtp6-g21.free.fr (smtp6-g21.free.fr [212.27.42.6]) by
+ smtpfb2-g21.free.fr (Postfix) with ESMTP id 4E4ACD1A04E for
+ <mongrel-unicorn@rubyforge.org>; Sat, 23 Jun 2012 18:12:45 +0200 (CEST)
+Received: from Aurora.agora.int (unknown [82.231.123.109]) by
+ smtp6-g21.free.fr (Postfix) with ESMTP id 9B9B382279; Sat, 23 Jun 2012
+ 18:12:33 +0200 (CEST)
+From: Cedric Maion <cedric@maion.com>
+To: mongrel-unicorn@rubyforge.org
+Subject: [PATCH] `kill -SIGTRAP <worker pid>` to get a live ruby backtrace +
+ generate backtrace when murdered worker due to timeout
+Date: Sat, 23 Jun 2012 18:12:24 +0200
+Message-Id: <1340467944-23621-2-git-send-email-cedric@maion.com>
+X-Mailer: git-send-email 1.7.9.5
+In-Reply-To: <1340467944-23621-1-git-send-email-cedric@maion.com>
+References: <1340467944-23621-1-git-send-email-cedric@maion.com>
+Cc: Cedric Maion <cedric@maion.com>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+MIME-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+---
+ lib/unicorn/http_server.rb |    3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/lib/unicorn/http_server.rb b/lib/unicorn/http_server.rb
+index 14a6f9a..8507fe4 100644
+--- a/lib/unicorn/http_server.rb
++++ b/lib/unicorn/http_server.rb
+@@ -457,6 +457,8 @@ class Unicorn::HttpServer
+       next_sleep = 0
+       logger.error "worker=#{worker.nr} PID:#{wpid} timeout " \
+                    "(#{diff}s > #{@timeout}s), killing"
++      kill_worker(:TRAP, wpid)
++      sleep(0.5)
+       kill_worker(:KILL, wpid) # take no prisoners for timeout violations
+     end
+     next_sleep <= 0 ? 1 : next_sleep
+@@ -594,6 +596,7 @@ class Unicorn::HttpServer
+     # closing anything we IO.select on will raise EBADF
+     trap(:USR1) { nr = -65536; SELF_PIPE[0].close rescue nil }
+     trap(:QUIT) { worker = nil; LISTENERS.each { |s| s.close rescue nil }.clear }
++    trap(:TRAP) { logger.info("worker=#{worker.nr} pid:#{$$} received TRAP signal, showing backtrace:\n#{caller.join("\n")}") }
+     logger.info "worker=#{worker.nr} ready"
+ 
+     begin
+-- 
+1.7.9.5
+
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
