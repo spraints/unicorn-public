@@ -1,0 +1,98 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=-0.2 required=5.0 tests=AWL shortcircuit=no
+ autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id A5A823ED82 for
+ <archivist@yhbt.net>; Sat, 23 Jun 2012 18:55:44 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 112D12E06A; Sat, 23 Jun 2012 18:55:43 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id DFA9C2E06B for <mongrel-unicorn@rubyforge.org>; Sat,
+ 23 Jun 2012 18:55:35 +0000 (UTC)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 09E7F3ED81; Sat, 23 Jun 2012 18:55:35 +0000 (UTC)
+Date: Sat, 23 Jun 2012 18:55:34 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Subject: Re: [PATCH] `kill -SIGTRAP <worker pid>`
+Message-ID: <20120623185534.GA17517@dcvr.yhbt.net>
+References: <1340467944-23621-1-git-send-email-cedric@maion.com>
+ <1340467944-23621-2-git-send-email-cedric@maion.com>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To: <1340467944-23621-2-git-send-email-cedric@maion.com>
+User-Agent: Mutt/1.5.20 (2009-06-14)
+Cc: Cedric Maion <cedric@maion.com>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Subject: [PATCH] `kill -SIGTRAP <worker pid>` to get a live ruby
+ backtrace + generate backtrace when murdered worker due to timeout
+
+Please keep Subject lines a reasonable length (git recommends the commit
+message subject wrap at ~50 columns or so) and wrap code at <= 80
+columns
+
+Cedric Maion <cedric@maion.com> wrote:
+> ---
+>  lib/unicorn/http_server.rb |    3 +++
+>  1 file changed, 3 insertions(+)
+> 
+> diff --git a/lib/unicorn/http_server.rb b/lib/unicorn/http_server.rb
+> index 14a6f9a..8507fe4 100644
+> --- a/lib/unicorn/http_server.rb
+> +++ b/lib/unicorn/http_server.rb
+> @@ -457,6 +457,8 @@ class Unicorn::HttpServer
+>        next_sleep = 0
+>        logger.error "worker=#{worker.nr} PID:#{wpid} timeout " \
+>                     "(#{diff}s > #{@timeout}s), killing"
+> +      kill_worker(:TRAP, wpid)
+> +      sleep(0.5)
+>        kill_worker(:KILL, wpid) # take no prisoners for timeout violations
+
+SIGKILL timeout is only a last line of defense when the Ruby VM itself
+is completely broken.  Handling SIGTRAP implies the worker can still
+respond (and /can/ be rescued), so your SIGTRAP handler is worthless if
+SIGKILL is required to kill a process.
+
+See http://unicorn.bogomips.org/Application_Timeouts.html
+
+Sleeping here is also unacceptable since it blocks the main loop,
+making masters signal handlers non-responsive for too long.
+
+> @@ -594,6 +596,7 @@ class Unicorn::HttpServer
+>      # closing anything we IO.select on will raise EBADF
+>      trap(:USR1) { nr = -65536; SELF_PIPE[0].close rescue nil }
+>      trap(:QUIT) { worker = nil; LISTENERS.each { |s| s.close rescue nil }.clear }
+> +    trap(:TRAP) { logger.info("worker=#{worker.nr} pid:#{$$} received TRAP signal, showing backtrace:\n#{caller.join("\n")}") }
+>      logger.info "worker=#{worker.nr} ready"
+
+Using the Logger class inside a signal handler can deadlock.  Logger
+attempts to acquire a non-reentrant lock when called.  Unicorn doesn't
+use threads itself, but the Rack app may use threads internally.
+
+Thanks for your interest in unicorn!
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
