@@ -1,0 +1,107 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=0.0 required=5.0 tests=none shortcircuit=no
+ autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id CF6F01F435 for
+ <archivist@yhbt.net>; Sun, 24 Jun 2012 11:07:12 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id C56C32E05D; Sun, 24 Jun 2012 11:07:11 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from smtp6-g21.free.fr (smtp6-g21.free.fr [212.27.42.6]) by
+ rubyforge.org (Postfix) with ESMTP id AA60D2E05D for
+ <mongrel-unicorn@rubyforge.org>; Sun, 24 Jun 2012 11:06:00 +0000 (UTC)
+Received: from [192.168.0.21] (unknown [82.231.123.109]) by smtp6-g21.free.fr
+ (Postfix) with ESMTP id 2D07A82293; Sun, 24 Jun 2012 13:05:54 +0200 (CEST)
+Message-ID: <4FE6F491.6070108@maion.com>
+Date: Sun, 24 Jun 2012 13:05:53 +0200
+From: Cedric Maion <cedric@maion.com>
+User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:12.0) Gecko/20120430
+ Thunderbird/12.0.1
+MIME-Version: 1.0
+To: Eric Wong <normalperson@yhbt.net>
+Subject: Re: [PATCH] `kill -SIGTRAP <worker pid>`
+References: <1340467944-23621-1-git-send-email-cedric@maion.com>
+ <1340467944-23621-2-git-send-email-cedric@maion.com>
+ <20120623185534.GA17517@dcvr.yhbt.net>
+In-Reply-To: <20120623185534.GA17517@dcvr.yhbt.net>
+X-Enigmail-Version: 1.4.2
+Cc: unicorn list <mongrel-unicorn@rubyforge.org>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+
+-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA1
+
+Hi,
+
+> Please keep Subject lines a reasonable length (git recommends the commit
+> message subject wrap at ~50 columns or so) and wrap code at <= 80
+> columns
+ok
+> SIGKILL timeout is only a last line of defense when the Ruby VM itself
+> is completely broken. Handling SIGTRAP implies the worker can still
+> respond (and /can/ be rescued), so your SIGTRAP handler is worthless if
+> SIGKILL is required to kill a process.
+Sure. But if the VM is responding, being able to get a backtrace is nice.
+And if it's stuck, you won't get anything indeed, but that's still an
+information (in that case, one may eventually want to get a gdb
+backtrace too). No?
+> See http://unicorn.bogomips.org/Application_Timeouts.html
+Yes, I'm well aware of this. However, when you still get rare unicorn
+timeouts, debugging them is not obvious.
+In my case, a server in a loadbalanced farm sometimes sees all it's
+unicorn workers timeout in the same minute (approx once a day at what
+seems a random time) -- other servers are fine. Couldn't correlate this
+with any specific network/disk/misc system/user activity yet.
+
+> Sleeping here is also unacceptable since it blocks the main loop,
+> making masters signal handlers non-responsive for too long.
+ok.
+>
+> Using the Logger class inside a signal handler can deadlock. Logger
+> attempts to acquire a non-reentrant lock when called. Unicorn doesn't
+> use threads itself, but the Rack app may use threads internally.
+ok, can be replaced with a $stdout.write then.
+> Thanks for your interest in unicorn!
+
+Thanks for your feedback,
+Kind regards,
+
+    Cedric
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.4.11 (GNU/Linux)
+Comment: Using GnuPG with Mozilla - http://enigmail.mozdev.org/
+
+iQEcBAEBAgAGBQJP5vSRAAoJEA15MS+4e3PCyekH/2ffXVT5UrXt0t7iou6cH9kt
+q2mDMIbotRZp2iB21K0H1QtPTgrU6h4TrfEyiz3bfgtMLDCbAcXQal6x78sjNqPh
+lIzs78TKgjkzh5SfqwIAyVVXuuU5AtGJleQeG2opHTgrZUxDRSOpJGxq2sYZU/rC
+OiCybOiYyh8nFudbg0v7BBTrYyCA/uWOO6zweGh0euJzrLrg0qeTMnexsEXzITkX
+OWZS6ALNt6UUq/DRSfGk9ciuWes/za5NaXob/60qgyqOinDuMUaTrR+KXZfliCu0
+69C/mh7qpSPc/n91qjzvjklfc9bTd2WiUPeODQLayyEZ5QVEVsLMS1zlCDlyXck=
+=XeZq
+-----END PGP SIGNATURE-----
+
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
