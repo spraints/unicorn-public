@@ -1,0 +1,152 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=-0.2 required=5.0 tests=AWL shortcircuit=no
+ autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id 56F5A1F439 for
+ <archivist@yhbt.net>; Mon, 25 Jun 2012 21:13:40 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id C3B972E062; Mon, 25 Jun 2012 21:13:39 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 0D9562E062 for <mongrel-unicorn@rubyforge.org>; Mon,
+ 25 Jun 2012 21:10:10 +0000 (UTC)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 29DC21F43C; Mon, 25 Jun 2012 21:10:10 +0000 (UTC)
+Date: Mon, 25 Jun 2012 21:10:10 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Subject: Re: Address already in use
+Message-ID: <20120625211010.GA25739@dcvr.yhbt.net>
+References: <0B72D3D4-CB04-47F2-B188-CAFDF41B8B1F@gmail.com>
+ <0C6B40126128400FB2DD3A620F4CDB21@gmail.com>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To: <0C6B40126128400FB2DD3A620F4CDB21@gmail.com>
+User-Agent: Mutt/1.5.20 (2009-06-14)
+Cc: Aaron Suggs <aaron@ktheory.com>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Aaron Suggs <aaron@ktheory.com> wrote:
+> I've run in to this problem using the included example init.sh script.
+> The `sleep 2` on line 48 is too short in some cases.
+> (http://bogomips.org/unicorn.git/tree/examples/init.sh#n48)
+> 
+> I use a patched example init script that uses `ps` to monitor the
+> upgrade process instead of sleeping:
+
+> https://gist.github.com/2988633
+
+(quoted from the README in the gist above)
+> The salient part of the current upgrade task is:
+> 
+>    sig USR2 && sleep 2 && sig 0 && oldsig QUIT
+>    # then wait for the old pid to disappear
+> 
+> We found that on tiny or busy servers, the "sleep 2" was too short. A
+> too short sleep leaves the server in an undesirable state. The init
+> script fails, and both the old and new unicorn processes are running.
+> To resolve, I'd manually send a QUIT to the old master to clean things
+> up.
+> 
+> We tried increasing the sleep time, and this issue became less common,
+> but still happens. I'd like to avoid the sleep altogether.
+
+Yeah, I'm not too happy about the sleeps, either.
+
+> Second, the old workers are terminated before the new workers are
+> ready to handle requests. This causes requests to hang (for about 25
+> seconds in our case) until the app is loaded and the new workers begin
+> responding to requests. I'd like to minimize the impact that code
+> deploys have on our app's performance.
+> 
+> With this patch, the `upgrade` task:
+> 
+> 1. Sends a USR2 signal to the current (old) master. This seems to
+> immediately rename the pid to pid.oldbin.
+
+That's good in your case.  Don't rely on it being immediate on a very
+busy system.
+
+> 2. Waits for the master pid to exist, and for that process to have
+> children. When preload_app is true, the presence of child processes
+> means that those workers are nearly ready to handle requests (afaik,
+> they just need to execute the after_fork block)
+
+Correct.  preload_app true makes it much faster to start large
+workers up.
+
+> 3. Once the master process has children, send a QUIT to the old
+> master. (If the old master is already gone, that means the new master
+> failed to start. Exit with an error. Otherwise, wait for the old
+> master to spin down.)
+> 
+> Caveats: with my patch, it's more likely that for a second both old
+> any new workers are responding to requests. We find that this doesn't
+> usually happen, and it's not bad if it does. The way I find child
+> processes "ps --no-headers --ppid `cat $PID`" is a totally linux-ism.
+> If someone can suggest a more portable command (OS X, etc), I'd
+> appreciate it.
+
+I agree, I can't accept the patch as-is with a ps(1) dependency like
+that.
+
+> (The first patch converts tabs to spaces, as is common for ruby projects).
+
+NACK.  Don't change the indentation style (of /any/ project) without
+discussion and agreement of the project leaders first.
+
+In this case, I'm strongly against this change.  The shell script is not
+Ruby.  Most of the init scripts in my systems use hard tabs for
+indentation and I believe it's friendlier to sysadmins (who may not be
+familiar with Ruby at all).
+
+Fwiw, my preferred C indentation style is hard tabs, but I continue to
+use only 2 spaces in the unicorn_http parser C extension because the
+code was inherited from Mongrel.  This also allows patches to flow
+between projects more easily (unicorn <-> mongrel <-> thin <-> kcar) if
+needed.
+
+> I realize this patch may be particular to our use case and may not
+> generally appropriate. I'd appreciate learning what scripts others use
+> for fast, reliable unicorn upgrades (capistrano-unicorn gem looks
+> neat).
+> 
+> Thanks!
+
+Anyways, thanks for the suggestions and sharing it here.  Perhaps
+wrapping the non-portable ps(1) dependency with:
+
+	case $(uname -o) in
+	GNU/Linux)
+		...
+		;;
+	*)
+		...
+		;;
+	esac
+
+would be beneficial given the amount of Linux users in production.
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
