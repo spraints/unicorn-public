@@ -1,0 +1,72 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=-0.2 required=5.0 tests=AWL shortcircuit=no
+ autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id B65611F7F9 for
+ <archivist@yhbt.net>; Wed, 27 Jun 2012 18:35:14 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 129AC2E060; Wed, 27 Jun 2012 18:35:13 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 027DE2E05D for <mongrel-unicorn@rubyforge.org>; Wed,
+ 27 Jun 2012 18:35:05 +0000 (UTC)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id CB1301F7F8; Wed, 27 Jun 2012 18:35:04 +0000 (UTC)
+Date: Wed, 27 Jun 2012 11:35:04 -0700
+From: Eric Wong <normalperson@yhbt.net>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Subject: Re: Unicorn workers under Monit
+Message-ID: <20120627183504.GA19169@dcvr.yhbt.net>
+References: <D0681F41-F3FA-4BAA-ABF3-CE2433913B77@gmail.com>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To: <D0681F41-F3FA-4BAA-ABF3-CE2433913B77@gmail.com>
+User-Agent: Mutt/1.5.21 (2010-09-15)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Manuel Palenciano Guerrero <mpalenciano@gmail.com> wrote:
+> Hi there,
+> 
+> I would like to config Monit to monitor our production-unicorn-workers
+> 
+> What memory size would you recommend to be the maximum reachable for a
+> worker? so Monit can restart it.
+
+It depends :)
+
+Memory size varies widely between applications/deployments.
+It depends on your:
+
+* application + libraries + gems (including framework used)
+* Ruby implementation/version (MRI 1.8 vs 1.9 vs Rubinius)
+* machine architecture (32-bit vs 64-bit)
+* malloc implementation/tuning
+...
+
+I have seen deployments processes where 20-30M (RSS) per-worker was
+expected and have also seen deployments where 300-400M was expected for
+the application.
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
