@@ -1,0 +1,82 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=-0.1 required=5.0 tests=AWL,FREEMAIL_FROM,
+ T_DKIM_INVALID shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id 164D31F451 for
+ <archivist@yhbt.net>; Thu, 19 Jul 2012 22:56:41 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 42E652E06C; Thu, 19 Jul 2012 22:56:40 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from mail-yx0-f178.google.com (mail-yx0-f178.google.com
+ [209.85.213.178]) by rubyforge.org (Postfix) with ESMTP id 7AEB92E06C for
+ <mongrel-unicorn@rubyforge.org>; Thu, 19 Jul 2012 22:56:35 +0000 (UTC)
+Received: by yenl6 with SMTP id l6so4088882yen.23 for
+ <mongrel-unicorn@rubyforge.org>; Thu, 19 Jul 2012 15:56:35 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com;
+ s=20120113;
+ h=mime-version:in-reply-to:references:from:date:message-id:subject:to
+ :content-type; bh=lsFY1SNJGwpvhXuZs4U85Pb1zysBMLaasjVrl2ijmmM=;
+ b=L3LBUSu++rJoCP+GfcigtgkbtVKgHIMiOazy23MRxfOP0MaN05ReUDCFXfE2uFYCpr
+ ETn8Y4ADyuoaXEp782CYwkDs6jbpl7djScSiUKwAk3KkL+A+MK3xW242Iv1ZqxXSeSg9
+ 4DMnbuQhPts9SEQkF30QGIALHwMs7uBF2jgmEIiPYc2R6xRdbeuUXLP8NRk0OCwu67lJ
+ iklUbPISsoLOlk/zLybis1/WYmBTk9D63VKMuYMlf6s3vSoKKYDr4tV7SyK7MNV20/jx
+ 5VBTmh8lo5kTciU7u1g6QrIKUkYERLicdbQ396WYOcQv4PyqS+8BrALY8NZKk5b8JrX/ VSeg==
+Received: by 10.50.219.162 with SMTP id pp2mr6891127igc.40.1342738595106;
+ Thu, 19 Jul 2012 15:56:35 -0700 (PDT)
+MIME-Version: 1.0
+Received: by 10.231.229.195 with HTTP; Thu, 19 Jul 2012 15:55:54 -0700 (PDT)
+In-Reply-To:
+ <CAJf_-Utd8NE4rL68mj-8=4q+O+9NrMF8j7e213N13Xcw718A=Q@mail.gmail.com>
+References:
+ <CAJf_-Utd8NE4rL68mj-8=4q+O+9NrMF8j7e213N13Xcw718A=Q@mail.gmail.com>
+From: Ben Somers <somers.ben@gmail.com>
+Date: Thu, 19 Jul 2012 15:55:54 -0700
+Message-ID:
+ <CAO1NZApAHvQVy9WzToZ60svR1KygnaAAEfuB+hi=feGqwNVbuQ@mail.gmail.com>
+Subject: Re: Detecting unicorn / defining after_fork after master startup
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+> 1. What is the best way to determine whether the app is indeed running
+> inside a unicorn server?
+
+I actually wound up just setting an environment variable for this. I
+manage unicorn through an init.d, and just export UNICORN=true before
+it starts up the server. We have the exact scenario you describe,
+Unicorn in production and Passenger on our dev machines.
+
+> 2. Is there an established way for adding an after_fork hook after
+> Unicorn has already started up?
+
+I just recently had to solve this problem for my team. In my case,
+I've got multiple applications getting their unicorn configs managed
+through chef, and so didn't want to fill the chef with app-specific
+switches. Since the unicorn config file is just ruby code, I just have
+my config files check the app directory for a unicorn directory
+containing before_fork.rb and after_fork.rb files and load the files
+if they exist. It doesn't register the hooks after Unicorn starts, but
+it does let you define them outside of the config file.
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
