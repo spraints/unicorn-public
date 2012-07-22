@@ -1,0 +1,86 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=-0.2 required=5.0 tests=AWL shortcircuit=no
+ autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id 17EC91F42E for
+ <archivist@yhbt.net>; Sun, 22 Jul 2012 21:20:37 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 84BC62E05E; Sun, 22 Jul 2012 21:20:34 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 91A992E05E for <mongrel-unicorn@rubyforge.org>; Sun,
+ 22 Jul 2012 21:20:27 +0000 (UTC)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 67A961F42C; Sun, 22 Jul 2012 21:20:26 +0000 (UTC)
+Date: Sun, 22 Jul 2012 14:20:26 -0700
+From: Eric Wong <normalperson@yhbt.net>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Subject: Re: Detecting unicorn / defining after_fork after master startup
+Message-ID: <20120722212026.GA17948@dcvr.yhbt.net>
+References:
+ <CAJf_-Utd8NE4rL68mj-8=4q+O+9NrMF8j7e213N13Xcw718A=Q@mail.gmail.com>
+ <20120719231334.GA19342@dcvr.yhbt.net>
+ <CAJf_-UsSYXQGeArVoUXTOewnR8esfaoeu6rwnbD3Np+Vh6bFJQ@mail.gmail.com>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To:
+ <CAJf_-UsSYXQGeArVoUXTOewnR8esfaoeu6rwnbD3Np+Vh6bFJQ@mail.gmail.com>
+User-Agent: Mutt/1.5.21 (2010-09-15)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Matt Sanders <matt@modal.org> wrote:
+> On Thu, Jul 19, 2012 at 6:13 PM, Eric Wong <normalperson@yhbt.net> wrote:
+> > Matt Sanders <matt@modal.org> wrote:
+> >> 2. Is there an established way for adding an after_fork hook after
+> >> Unicorn has already started up?
+> >
+> > Nothing that I know of.
+> >
+> >> I'm aware of the ability to do this via the config file but I don't
+> >> want my users to have to add something to their unicorn config file.
+> >> Is there an equivalent to passenger's
+> >> PhusionPassenger.on_event(:starting_worker_process) method?
+> >
+> > Lately, I've been favoring the following pattern instead:
+
+(top-posting corrected)
+
+> Thanks! I definitely agree in general with that pattern. In this case
+> I'd ideally like some activity on the forked child before the next
+> request cycle - that is, if the forked child doesn't serve any
+> requests for a little bit, I'd still like my behavior to be
+> initialized.
+
+Yes, that sucks.  I'll often just throw some requests at the child
+just to start something up if I need it, or initiate a separate daemon.
+
+> Do you know of a way to get this behavior without a direct after fork hook?
+
+No, unfortunately not.  I have considered petitioning for something
+along the lines of pthread_atfork() in Ruby, but pthread_atfork() itself
+also has unfortunate drawbacks (it makes fork() async-signal un-safe,
+and thus _Fork() will be introduced in the next version of POSIX).
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
