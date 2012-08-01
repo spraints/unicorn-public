@@ -1,0 +1,86 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=0.0 required=5.0 tests=none shortcircuit=no
+ autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id E82791F7BB for
+ <archivist@yhbt.net>; Wed,  1 Aug 2012 20:42:33 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id E3C1C2E067; Wed,  1 Aug 2012 20:42:32 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from mail-pb0-f50.google.com (mail-pb0-f50.google.com
+ [209.85.160.50]) by rubyforge.org (Postfix) with ESMTP id 597952E05E for
+ <mongrel-unicorn@rubyforge.org>; Wed,  1 Aug 2012 20:42:26 +0000 (UTC)
+Received: by pbbrr4 with SMTP id rr4so1836801pbb.23 for
+ <mongrel-unicorn@rubyforge.org>; Wed, 01 Aug 2012 13:42:25 -0700 (PDT)
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com;
+ s=20120113;
+ h=mime-version:in-reply-to:references:from:date:message-id:subject:to
+ :content-type:x-gm-message-state;
+ bh=6WEbKVnFjiA1UTFI/c3EU+qMZSr4OpIVhIcyElqrsb8=;
+ b=U4EFuBnqITZweysJc7YOykMA92kEDfG/9s4aFpBIAusnYYNB29qu3v+oLzVHH59rta
+ Gpf4Nrhg2MVUh1TKQCXhB2pgz+dSM1+gb1dfvxvp3wobJHLeKj1bAPFtbk3Fbu2cDMvK
+ CxJpGyfbSwhqabD0Bl54AtfQBtY6lXsvRa3uuyJ7BIEJ4vOxXE7oOyK24weXNVD+b0cR
+ vE399PXsxtXOeKsOPMb1VlfbVYBWTFzYQLOy03UXvk5/YQIU3hhCm2ny3C0DkvCUxewB
+ Ye2ud1Y0DgVKS/1wh6eZIVAj2edBbTQw8am9UFl/1apjKRIKtT3C34Pu6MgBv6N4vxlc 4U3g==
+Received: by 10.68.221.74 with SMTP id qc10mr54624963pbc.31.1343853745809;
+ Wed, 01 Aug 2012 13:42:25 -0700 (PDT)
+MIME-Version: 1.0
+Received: by 10.68.213.106 with HTTP; Wed, 1 Aug 2012 13:42:05 -0700 (PDT)
+In-Reply-To: <20120801203405.GA4094@dcvr.yhbt.net>
+References: <20120630001708.GA23513@dcvr.yhbt.net>
+ <20120801203405.GA4094@dcvr.yhbt.net>
+From: Nic Benders <nic@newrelic.com>
+Date: Wed, 1 Aug 2012 13:42:05 -0700
+Message-ID:
+ <CAJt61vuKS2jauxpKjOpgfAo7oLA_itzPAEew5_X7w64ABQc4uQ@mail.gmail.com>
+Subject: Re: [RFC/PATCH] bind listeners after loading for preload_app users
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+X-Gm-Message-State:
+ ALoCoQl8lsSk8NBeot35YiAMD4rCLkSYHBnTrnU1TXj/Nse+QEceXUrvo6IlvR892+Y027WnDd3q
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+On Wed, Aug 1, 2012 at 1:34 PM, Eric Wong <normalperson@yhbt.net> wrote:
+> > Hey all, this is probably a sensible change to make for unicorn 4.4.0
+> >
+> > There's a small chance of introducing an incompatibility if an app
+> > somehow internally depends on having a listen socket ready while it's
+> > loading.  A test case to avoid one breakage with Raindrops::Middleware
+> > is included.
+> >
+> > (original bug reporter Bcc-ed)
+>
+> Any comments?   I'm leaning towards applying this to master
+
+
+I would like to see this on master.  It would definitely benefit us
+here at New Relic.  In addition to the case of a listener being bound
+that can't yet serve requests, we also have some trouble caused by
+forked processes inheriting the listen sockets during the application
+startup.  Not binding them until afterwards would allow us to remove
+our special case code around that.
+
+-Nic
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
