@@ -1,0 +1,114 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=0.0 required=5.0 tests=none shortcircuit=no
+ autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id 97FB21F4CB for
+ <archivist@yhbt.net>; Tue,  7 Aug 2012 07:40:58 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id A2BA32E069; Tue,  7 Aug 2012 07:40:57 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+X-Greylist: delayed 456 seconds by postgrey-1.31 at rubyforge; Tue, 07 Aug
+ 2012 07:33:54 UTC
+Received: from tigris.id.au (tigris.id.au [91.121.166.102]) by rubyforge.org
+ (Postfix) with ESMTP id D9F7A2E05F for <mongrel-unicorn@rubyforge.org>; Tue, 
+ 7 Aug 2012 07:33:54 +0000 (UTC)
+Received: from mail-ob0-f178.google.com (mail-ob0-f178.google.com
+ [209.85.214.178]) by tigris.id.au (Postfix) with ESMTPA id 9626D5F5B6 for
+ <mongrel-unicorn@rubyforge.org>; Tue,  7 Aug 2012 17:26:13 +1000 (EST)
+Received: by obbwd20 with SMTP id wd20so9323305obb.23 for
+ <mongrel-unicorn@rubyforge.org>; Tue, 07 Aug 2012 00:26:12 -0700 (PDT)
+MIME-Version: 1.0
+Received: by 10.60.7.104 with SMTP id i8mr23111848oea.31.1344324372622; Tue,
+ 07 Aug 2012 00:26:12 -0700 (PDT)
+Received: by 10.182.75.193 with HTTP; Tue, 7 Aug 2012 00:26:12 -0700 (PDT)
+Date: Tue, 7 Aug 2012 17:26:12 +1000
+Message-ID:
+ <CAK6b7HBannMJ_oyhtNN=-SrCebT-QjOm9Mw---zY2Fm5fobozg@mail.gmail.com>
+Subject: SIGUSR2 from symlinked working directory
+From: Danial Pearce <danial@tigris.id.au>
+To: mongrel-unicorn@rubyforge.org
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Hi all,
+
+I am battling with my unicorn deploy scripts at the moment. First it
+was the "sleep" thing after sending a SIGUSR2 which I read about on
+the mailing list just now so it seems I'm not the only one there. The
+default of "2" was rarely working for me, upping that to 5 helps out
+but still not ideal as it still fails occasionally, e.g. you might
+sleep for the perfect amount of time to the point where the
+unicorn.pid file disappears for a very short period of time.
+
+Anyway, my main issue is that I am keeping 5 deploys, capistrano style
+where it symlinks the current deploy as "current". I have made sure my
+unicorn init scripts and configs all only use this "current" path,
+nothing refers directly to the timestamped path invented by the deploy
+system (chef in my case).
+
+Yet, I am see that when I send SIGUSR2 to the unicorn master, the
+following ends up in the log:
+
+I, [2012-08-07T06:54:34.716138 #26569]  INFO -- : executing
+["/home/my_user/my_app/releases/20120807030020/gems/ruby/1.9.1/bin/unicorn_rails",
+"-D", "-E", "production", "-c",
+"/home/my_user/my_app/current/config/unicorn.rb",
+{7=>#<Kgio::TCPServer:fd 7>}] (in
+/home/my_user/my_app/releases/20120807065124)
+
+I presume here the first path is the current running unicorn and the
+second path is the supposed working directory. Neither of these are
+correct, since it has gone and followed the "current" symlink when
+executing that unicorn the first time, as well as when resolving the
+working directory that second time. (Since you will notice they are 2
+different releases). The first incorrect path is from when I first did
+an initial start of the unicorn_rails command.
+
+I say "incorrect path", those paths do in fact exist, for now. The
+issue is when that first release that I used to "start" the unicorn
+process becomes older than the 5th release and is deleted from disk.
+Then the SIGUSR2 will fail saying it can't find that path to restart
+the app. I then need to jump in and send a QUIT manually and start it
+again.
+
+I'm sure heaps of people must be doing this, so clearly I'm doing
+something wrong, I just can't figure out what it is. As mentioned,
+I've triple checked and I am not referencing the "20120807030020" path
+anywhere, according to grep anyway. My config/init script most
+definitely just reference /home/my_user/my_app/current.
+
+Furthmore, this one just weirds me out, the "gems" path is also a
+symlink, to /home/my_user/my_app/shared/gems, so why would unicorn be
+following the symlink on /home/my_user/my_app/current but not on
+/home/my_user/my_app/current/gems?
+
+I'm not subscribed to this mailing list, so if you could CC me in
+response that would be super. Although I will be checking the archives
+anyway to make sure I don't miss a possible solution.
+
+
+regards,
+Danial
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
