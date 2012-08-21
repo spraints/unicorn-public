@@ -1,0 +1,119 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=-0.2 required=5.0 tests=AWL shortcircuit=no
+ autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id 281BE1F435 for
+ <archivist@yhbt.net>; Tue, 21 Aug 2012 09:11:54 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 534BA2E061; Tue, 21 Aug 2012 09:11:53 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id DF1D32E060 for <mongrel-unicorn@rubyforge.org>; Tue,
+ 21 Aug 2012 09:11:43 +0000 (UTC)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id C0D8B1F42E; Tue, 21 Aug 2012 09:11:42 +0000 (UTC)
+Date: Tue, 21 Aug 2012 09:11:42 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Subject: Re: Unused Unicorn processes
+Message-ID: <20120821091142.GA4678@dcvr.yhbt.net>
+References: <mailman.0.1345509654.31187.mongrel-unicorn@rubyforge.org>
+ <CAD2+hjctLVtn_+PQALbXMGz_reSSdTue5LW+g3Vy53=CmksYDg@mail.gmail.com>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To:
+ <CAD2+hjctLVtn_+PQALbXMGz_reSSdTue5LW+g3Vy53=CmksYDg@mail.gmail.com>
+User-Agent: Mutt/1.5.20 (2009-06-14)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Konstantin Gredeskoul <kig@wanelo.com> wrote:
+> Greetings!
+> 
+> I have a question on optimal # of unicorn worker processes.
+> 
+> We are running Unicorn 4.3.1 + Rails 3.2.6 (without threading), on
+> ruby 1.9.3-p194, hosted on SmartOS/Joyent.
+> 
+> At the moment, unicorns are configured to start 30 worker processes. I
+> know this is a lot, and I am going to reduce this number. But in
+> trying to figure out what is a more appropriate number of workers to
+> run, I noticed something interesting that I couldn't explain.
+> 
+> If I look at the process table on each machine (see top output below),
+> I notice that some unicorn processes are heavily used (and have
+> accumulated longer CPU times, as well as have grown their RAM usage
+> since boot time), but other processes (at the bottom of the top
+> output) appear to potentially not having been used at all.  There are
+> several processes with RSS size of 143Mb, which I believe is unicorn
+> size before it processes any requests.
+> 
+> What I am gathering from this, is that only 16 unicorn processes are
+> actually processing requests, while the rest are just sitting there
+> idle.
+> 
+> Is this expected behavior?
+
+It's not _unexpected_ if your load is low.  The OS scheduler does the
+load balancing itself as unicorn uses non-blocking accept().  The
+scheduler may choose busier processes because they're likely to be
+hotter in cache/memory.
+
+So you're probably getting better performance than if you had perfectly
+balanced traffic.
+
+Another possible explanation is something is killing some workers
+(timeout, or crash buts, check stderr logs to confirm).  But even in a
+situation where workers never die, it's perfectly normal to see workers
+that never/rarely serve traffic.
+
+> This Joyent SmartMachine can burst up to 8 cores. Given that our web
+> requests spend only 80% of their time in ruby, I figured we could run
+> 10 unicorn processes for maximum efficiency.  However seeing that 16
+> are actually used I am curious whether 16 is actually a better number.
+
+It depends what your app is waiting on.
+
+The only rule is your machine should not be swap thrashing under
+peak load.
+
+Extra workers won't be detrimental as long as you:
+1) have enough memory
+2) have enough backend resources (e.g DB connections)
+
+I know of deployments that run 30 processes/core because the app spends
+much time waiting on slow HTTP/DB requests[1]
+
+But if your app is completely bound by resources local to a machine (no
+external DB/HTTP/memcached/redis/etc requests), then a 1:1 worker:core
+(or even 1:1 worker:disk) relationship will work, too.
+
+
+
+[1] Arguably a multi-threaded or non-blocking server such as Rainbows!
+would be most efficient of machine resources if you're waiting on HTTP
+calls, but the developers decided human time was more important and
+did not want to worry about thread-safety.
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
