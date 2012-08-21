@@ -1,0 +1,130 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=0.0 required=5.0 tests=none shortcircuit=no
+ autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id 12FC31F520 for
+ <archivist@yhbt.net>; Tue, 21 Aug 2012 00:46:09 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 28FF42E072; Tue, 21 Aug 2012 00:46:08 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from mail-vb0-f50.google.com (mail-vb0-f50.google.com
+ [209.85.212.50]) by rubyforge.org (Postfix) with ESMTP id 037FB2E05F for
+ <mongrel-unicorn@rubyforge.org>; Tue, 21 Aug 2012 00:45:04 +0000 (UTC)
+Received: by vbal1 with SMTP id l1so7787244vba.23 for
+ <mongrel-unicorn@rubyforge.org>; Mon, 20 Aug 2012 17:45:04 -0700 (PDT)
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com;
+ s=20120113; h=mime-version:x-originating-ip:in-reply-to:references:from:date
+ :message-id:subject:to:content-type:x-gm-message-state;
+ bh=pBZpR5sHaPT0m002aqpdMiVGQnr4LX6pUp7bo4XhTmI=;
+ b=HP/+bDFlIT2MSSFAyj+Wg3yc8ZJSDN40svxLjBRl+dHH9EsNizVAIyoRrawAdUs1ZA
+ miryvY5XK2r7CekopkZNx3I3B92lWNKiuKZIflZIa+o2/hjqAFyRxlC741Nmf60DUj0u
+ Zs5lZTMPBYRmzFfpw/l3nbw3Q1EI60QvdSMfapxmQn1SgdWKRHXSY7ghjMo5Of6qMVc7
+ T1uy5w6KMZ74QguzBJMWv0bNx99Bl8/oVbvwtd0I3cgTzBSshjkHicpa/eG2I06Z7xt7
+ lQSYMR4cEv7spHeOIuCWYGo1o54TlTcDSm6AcxF8Q8QRlFJvFv/03GKpfj/g0NHJQyEX 1NIw==
+Received: by 10.221.2.8 with SMTP id ns8mr11923595vcb.0.1345509904595; Mon,
+ 20 Aug 2012 17:45:04 -0700 (PDT)
+MIME-Version: 1.0
+Received: by 10.58.181.136 with HTTP; Mon, 20 Aug 2012 17:44:44 -0700 (PDT)
+X-Originating-IP: [173.247.207.18]
+In-Reply-To: <mailman.0.1345509654.31187.mongrel-unicorn@rubyforge.org>
+References: <mailman.0.1345509654.31187.mongrel-unicorn@rubyforge.org>
+From: Konstantin Gredeskoul <kig@wanelo.com>
+Date: Mon, 20 Aug 2012 17:44:44 -0700
+Message-ID:
+ <CAD2+hjctLVtn_+PQALbXMGz_reSSdTue5LW+g3Vy53=CmksYDg@mail.gmail.com>
+Subject: Re: Unused Unicorn processes
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+X-Gm-Message-State:
+ ALoCoQkuKROh0pF2iM5eM8o7S3HxzziHcL/rjS1MQ48VNqTXo3uaTYZmzztsdgpV/qsKWUNLBwV5
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Greetings!
+
+I have a question on optimal # of unicorn worker processes.
+
+We are running Unicorn 4.3.1 + Rails 3.2.6 (without threading), on
+ruby 1.9.3-p194, hosted on SmartOS/Joyent.
+
+At the moment, unicorns are configured to start 30 worker processes. I
+know this is a lot, and I am going to reduce this number. But in
+trying to figure out what is a more appropriate number of workers to
+run, I noticed something interesting that I couldn't explain.
+
+If I look at the process table on each machine (see top output below),
+I notice that some unicorn processes are heavily used (and have
+accumulated longer CPU times, as well as have grown their RAM usage
+since boot time), but other processes (at the bottom of the top
+output) appear to potentially not having been used at all.  There are
+several processes with RSS size of 143Mb, which I believe is unicorn
+size before it processes any requests.
+
+What I am gathering from this, is that only 16 unicorn processes are
+actually processing requests, while the rest are just sitting there
+idle.
+
+Is this expected behavior?
+
+This Joyent SmartMachine can burst up to 8 cores. Given that our web
+requests spend only 80% of their time in ruby, I figured we could run
+10 unicorn processes for maximum efficiency.  However seeing that 16
+are actually used I am curious whether 16 is actually a better number.
+
+Any suggestions appreciated!
+
+load averages:  2.07,  1.97,  2.09;                    up 14+01:56:
+58 processes: 53 sleeping, 5 on cpu
+CPU states: 77.1% idle, 18.2% user,  4.7% kernel,  0.0% iowait,  0.
+Memory: 8192M phys mem, 3157M free mem, 16G total swap, 11G free sw
+
+   PID USERNAME LWP PRI NICE  SIZE   RES STATE    TIME    CPU COMMAND
+ 24800 wanelo    18  59    0  337M  313M sleep   17:21  2.05% ruby
+ 24788 wanelo    18  59    0  223M  200M cpu/14  16:34  3.18% ruby
+ 24787 wanelo    18  59    0  221M  197M sleep   14:55  1.89% ruby
+ 24776 wanelo    18  59    0  217M  193M cpu/2   18:17  3.45% ruby
+ 24804 wanelo    18  59    0  216M  192M cpu/8    7:54  0.33% ruby
+ 24785 wanelo    18  59    0  211M  187M sleep   14:33  0.75% ruby
+ 24783 wanelo    10  59    0  209M  185M sleep   16:09  2.16% ruby
+ 24775 wanelo    18  59    0  205M  181M sleep    5:24  0.03% ruby
+ 24777 wanelo    10  59    0  205M  181M cpu/11   3:53  1.54% ruby
+ 24799 wanelo    18  59    0  204M  179M sleep    0:42  0.00% ruby
+ 24803 wanelo    18  59    0  202M  177M sleep    2:28  0.35% ruby
+ 24802 wanelo     3  59    0  195M  168M sleep    1:45  0.01% ruby
+ 24778 wanelo     3  59    0  192M  165M sleep    1:06  0.01% ruby
+ 24801 wanelo     3  59    0  189M  162M sleep    0:50  0.01% ruby
+ 24798 wanelo     3  59    0  188M  161M sleep    0:30  0.00% ruby
+ 24797 wanelo     3  59    0  187M  159M sleep    0:19  0.00% ruby
+--- unicorns below this line do not appear to be used
+ 24795 wanelo     3  59    0  173M  142M sleep    0:08  0.00% ruby
+ 24792 wanelo     3  59    0  172M  142M sleep    0:07  0.00% ruby
+ 24779 wanelo     3  59    0  172M  143M sleep    0:05  0.00% ruby
+ 24796 wanelo     3  59    0  172M  142M sleep    0:12  0.00% ruby
+ 24790 wanelo     3  59    0  172M  142M sleep    0:06  0.00% ruby
+ 24793 wanelo     3  59    0  172M  142M sleep    0:06  0.00% ruby
+ 24781 wanelo     3  59    0  172M  142M sleep    0:05  0.00% ruby
+ 24791 wanelo     3  59    0  172M  142M sleep    0:04  0.00% ruby
+ 24794 wanelo     3  58    0  172M  142M sleep    0:10  0.00% ruby
+ 24784 wanelo     3  59    0  172M  142M sleep    0:04  0.00% ruby
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
