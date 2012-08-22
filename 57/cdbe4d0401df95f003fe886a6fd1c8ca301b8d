@@ -1,0 +1,158 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=0.0 required=5.0 tests=none shortcircuit=no
+ autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id C910F1F50D for
+ <archivist@yhbt.net>; Wed, 22 Aug 2012 18:26:09 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id CEA522E066; Wed, 22 Aug 2012 18:26:08 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from mail-vb0-f50.google.com (mail-vb0-f50.google.com
+ [209.85.212.50]) by rubyforge.org (Postfix) with ESMTP id 5C06A2E066 for
+ <mongrel-unicorn@rubyforge.org>; Wed, 22 Aug 2012 18:16:41 +0000 (UTC)
+Received: by vbal1 with SMTP id l1so1745183vba.23 for
+ <mongrel-unicorn@rubyforge.org>; Wed, 22 Aug 2012 11:16:41 -0700 (PDT)
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com;
+ s=20120113; h=mime-version:x-originating-ip:in-reply-to:references:from:date
+ :message-id:subject:to:content-type:x-gm-message-state;
+ bh=cPuGfb4rqOBynQNWcoEwvLfIIptsK6L33iZ5KwaFmqY=;
+ b=VaU0/FWMvdFgtFbtvEacTVbfWb/2+9mHgD0O16Zoo81Qv4FS7aV8yW/onxr7VqydBp
+ YCESByiW7roJgPLADd9huBGtixLLs/LQpzmEjSYSjIRo7I5zHbdBQC5nXUMuxa5c7Kwc
+ p0G2lAuMcz91dX82GDIxsetv6HXtxhbsxXCFsUh/zVpQeXN/2y9z6OButxrmX4AV1mbh
+ 5V7ta0y4holMcEjNwv75mi5OCQG6DlXoisC5YlfO7XiV2GeLgLgoypThVP3sim5icPp+
+ CIhRqS7xTwnmWp1IMBiASy646lRPlG4KQokTLdOUu5s6LjInIrXHIDMbXfXfysmO7xUT OBSQ==
+Received: by 10.220.107.198 with SMTP id c6mr17635578vcp.54.1345659400850;
+ Wed, 22 Aug 2012 11:16:40 -0700 (PDT)
+MIME-Version: 1.0
+Received: by 10.58.181.136 with HTTP; Wed, 22 Aug 2012 11:16:20 -0700 (PDT)
+X-Originating-IP: [173.247.207.18]
+In-Reply-To: <20120821091142.GA4678@dcvr.yhbt.net>
+References: <mailman.0.1345509654.31187.mongrel-unicorn@rubyforge.org>
+ <CAD2+hjctLVtn_+PQALbXMGz_reSSdTue5LW+g3Vy53=CmksYDg@mail.gmail.com>
+ <20120821091142.GA4678@dcvr.yhbt.net>
+From: Konstantin Gredeskoul <kig@wanelo.com>
+Date: Wed, 22 Aug 2012 11:16:20 -0700
+Message-ID:
+ <CAD2+hjffoxsWC=CDgx+2wYuo47wM1_5z9sUCpyD_N0vbzmWyuQ@mail.gmail.com>
+Subject: Re: Unused Unicorn processes
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+X-Gm-Message-State:
+ ALoCoQkoc5H096agF8zx+VqyQV5/sq7GVt2Tsp6XLLYAhY7rXjvg6BxWsBmzuEyUYhlPyBxdURs2
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Thanks Eric!  Appreciate well thought out answers.
+
+We are actually using Rainbows also, in an project where long
+server-side HTTP calls are part of the application design and are
+necessary, and it's working out really well.
+
+Our main web app mostly spends it's time in CPU cycles serving web
+pages (about 80% of the request time), and 20% in database operations.
+
+Thanks again
+K
+
+On Tue, Aug 21, 2012 at 2:11 AM, Eric Wong <normalperson@yhbt.net> wrote:
+> Konstantin Gredeskoul <kig@wanelo.com> wrote:
+>> Greetings!
+>>
+>> I have a question on optimal # of unicorn worker processes.
+>>
+>> We are running Unicorn 4.3.1 + Rails 3.2.6 (without threading), on
+>> ruby 1.9.3-p194, hosted on SmartOS/Joyent.
+>>
+>> At the moment, unicorns are configured to start 30 worker processes. I
+>> know this is a lot, and I am going to reduce this number. But in
+>> trying to figure out what is a more appropriate number of workers to
+>> run, I noticed something interesting that I couldn't explain.
+>>
+>> If I look at the process table on each machine (see top output below),
+>> I notice that some unicorn processes are heavily used (and have
+>> accumulated longer CPU times, as well as have grown their RAM usage
+>> since boot time), but other processes (at the bottom of the top
+>> output) appear to potentially not having been used at all.  There are
+>> several processes with RSS size of 143Mb, which I believe is unicorn
+>> size before it processes any requests.
+>>
+>> What I am gathering from this, is that only 16 unicorn processes are
+>> actually processing requests, while the rest are just sitting there
+>> idle.
+>>
+>> Is this expected behavior?
+>
+> It's not _unexpected_ if your load is low.  The OS scheduler does the
+> load balancing itself as unicorn uses non-blocking accept().  The
+> scheduler may choose busier processes because they're likely to be
+> hotter in cache/memory.
+>
+> So you're probably getting better performance than if you had perfectly
+> balanced traffic.
+>
+> Another possible explanation is something is killing some workers
+> (timeout, or crash buts, check stderr logs to confirm).  But even in a
+> situation where workers never die, it's perfectly normal to see workers
+> that never/rarely serve traffic.
+>
+>> This Joyent SmartMachine can burst up to 8 cores. Given that our web
+>> requests spend only 80% of their time in ruby, I figured we could run
+>> 10 unicorn processes for maximum efficiency.  However seeing that 16
+>> are actually used I am curious whether 16 is actually a better number.
+>
+> It depends what your app is waiting on.
+>
+> The only rule is your machine should not be swap thrashing under
+> peak load.
+>
+> Extra workers won't be detrimental as long as you:
+> 1) have enough memory
+> 2) have enough backend resources (e.g DB connections)
+>
+> I know of deployments that run 30 processes/core because the app spends
+> much time waiting on slow HTTP/DB requests[1]
+>
+> But if your app is completely bound by resources local to a machine (no
+> external DB/HTTP/memcached/redis/etc requests), then a 1:1 worker:core
+> (or even 1:1 worker:disk) relationship will work, too.
+>
+>
+>
+> [1] Arguably a multi-threaded or non-blocking server such as Rainbows!
+> would be most efficient of machine resources if you're waiting on HTTP
+> calls, but the developers decided human time was more important and
+> did not want to worry about thread-safety.
+> _______________________________________________
+> Unicorn mailing list - mongrel-unicorn@rubyforge.org
+> http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+> Do not quote signatures (like this one) or top post when replying
+
+
+
+-- 
+
+Konstantin Gredeskoul
+CTO :: Wanelo Inc
+cell: (415) 265 1054
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
