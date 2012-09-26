@@ -1,0 +1,83 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=0.0 required=5.0 tests=T_DKIM_INVALID
+ shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id D773A1F4E1 for
+ <archivist@yhbt.net>; Wed, 26 Sep 2012 22:10:22 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 938A82E079; Wed, 26 Sep 2012 22:10:21 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+X-Greylist: delayed 349 seconds by postgrey-1.31 at rubyforge; Wed, 26 Sep
+ 2012 22:10:16 UTC
+Received: from mail-bk0-f50.google.com (mail-bk0-f50.google.com
+ [209.85.214.50]) by rubyforge.org (Postfix) with ESMTP id 71ECD2E062 for
+ <mongrel-unicorn@rubyforge.org>; Wed, 26 Sep 2012 22:10:16 +0000 (UTC)
+Received: by bkwq16 with SMTP id q16so702515bkw.23 for
+ <mongrel-unicorn@rubyforge.org>; Wed, 26 Sep 2012 15:10:15 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com;
+ s=20120113; h=mime-version:sender:from:date:x-google-sender-auth:message-id
+ :subject:to:content-type; bh=jE+C4RF4D0mm71IhXsnJwEzZUV7y2JkGCyblAsX9ElI=;
+ b=D1l7wfwyWZgevV/9OBdJ1S1o55Dzvjwy7RpO9VgPVgEYOTB8VuhMLnbltF+hLC3/wR
+ SG8japBuMddaHfQZ5uB9mEOFdZIFFi6dw9O+bGfFrrccHZLwXbANsfbyROJbxRAkNSzD
+ G6Qa8wefiNhak3FCSLqeftu5E3Mc4vf15i7+XQplB0VqwI8iXCeMOxiUKhkcQKuEZnA1
+ 5ol9JYR/8fdZLJ3XomAOFIqBNzvtOcKWKZ+8hn8C9MpIPgKa3AzDqJAmZ5MKTKGGPKEU
+ T9aiGh60MT8P+OkadcEiJSBMTGWrs676KmwVaUEqKIyumKHtwxuRKQ445Hnpdbj4g18H k4aQ==
+Received: by 10.152.104.77 with SMTP id gc13mr1721966lab.31.1348697066724;
+ Wed, 26 Sep 2012 15:04:26 -0700 (PDT)
+MIME-Version: 1.0
+Received: by 10.112.109.42 with HTTP; Wed, 26 Sep 2012 15:03:46 -0700 (PDT)
+From: Martin Sarsale <martin@malditainternet.com>
+Date: Wed, 26 Sep 2012 19:03:46 -0300
+X-Google-Sender-Auth: CBtfYdeDvUtNhaxMdpyR6Qd9y3E
+Message-ID:
+ <CAPc3AH2wHmzqOZQ=Wa1_7pgaJZEw6CAUSL9-jXwL5gRfJ8MEtQ@mail.gmail.com>
+Subject: executing code when unicorn worker is SIGKILLed
+To: mongrel-unicorn@rubyforge.org
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Dear all:
+
+I would like to execute some code when the Unicorn worker is killed
+with SIGKILL (ie, incrementing a counter in graphite), what's the
+"nice" way to do this?
+
+E, [2012-09-26T17:51:47.776065 #28499] ERROR -- : worker=4 PID:28520
+timeout (61s > 60s), killing
+E, [2012-09-26T17:51:47.785081 #28499] ERROR -- : reaped
+#<Process::Status: pid 28520 SIGKILL (signal 9)> worker=4
+I, [2012-09-26T17:51:47.786659 #29010]  INFO -- : worker=4 spawned pid=29010
+I, [2012-09-26T17:51:47.786994 #29010]  INFO -- : Refreshing Gem list
+
+ps: thanks for unicorn, it feels great.
+
+-- 
+Martin Sarsale
+msn: martin@malditainternet.com
+jabber: martin.sarsale@gtalk.com
+twitter: http://twitter.com/runixo
+linkedin: http://www.linkedin.com/in/msarsale
+sumavisos: http://www.sumavisos.com
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
