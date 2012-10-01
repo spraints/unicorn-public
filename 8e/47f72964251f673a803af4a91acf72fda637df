@@ -1,0 +1,78 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=0.0 required=5.0 tests=FREEMAIL_FROM,T_DKIM_INVALID
+ shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id 1247632D0D for
+ <archivist@yhbt.net>; Mon,  1 Oct 2012 15:36:08 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 4AED52E06C; Mon,  1 Oct 2012 15:36:07 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from mail-lb0-f178.google.com (mail-lb0-f178.google.com
+ [209.85.217.178]) by rubyforge.org (Postfix) with ESMTP id 0D8762E06C for
+ <mongrel-unicorn@rubyforge.org>; Mon,  1 Oct 2012 15:31:07 +0000 (UTC)
+Received: by lbao2 with SMTP id o2so4821655lba.23 for
+ <mongrel-unicorn@rubyforge.org>; Mon, 01 Oct 2012 08:31:07 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com;
+ s=20120113; h=mime-version:date:message-id:subject:from:to:content-type;
+ bh=RkKYDdeeMxp03L4FgD/XudOt0IsLIzbzV5SdaBlfpvc=;
+ b=lEbKdK2zbmbo1Fv489DwICSPxhijXV9x11yUkZDefggSfh3AmpfC6gcMaIhJbqRA1a
+ uEDyVOv8U0vFLQxrqEotBi/HK06syaihvEti202EaUuh2CZPSsHl4eDkuJWSfoj+v6sv
+ zf8yW+0lFmdL8Igavh/UuTOYa1Yr8jzwQCVNxg+rQDHbyFspkeDJoXei4hoBtBgGvbIt
+ Fo9zb+HsnWfPcZLL8nmsTiejNQRD4sIW6wD8bILYRAcwL+1Zv65wV/Wpf9VU+gMALy+q
+ sgt0zKxnSoNWN6HtZqDD8ExtEjB0f1CvpsMZvjD8Glhs72MYNXAMypgihFf5mb+Uetnz qU4w==
+MIME-Version: 1.0
+Received: by 10.152.104.145 with SMTP id ge17mr12048409lab.34.1349105467071;
+ Mon, 01 Oct 2012 08:31:07 -0700 (PDT)
+Received: by 10.112.94.147 with HTTP; Mon, 1 Oct 2012 08:31:07 -0700 (PDT)
+Date: Mon, 1 Oct 2012 11:31:07 -0400
+Message-ID:
+ <CAEbKVFSAgG=-EhWeVMEGrG9_gLGPg1yS-KXoCpaB0rtJ7E9pPw@mail.gmail.com>
+Subject: after_fork and redis
+From: bradford <fingermark@gmail.com>
+To: mongrel-unicorn@rubyforge.org
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+I'm using unicorn w/ a rails app.  I have the following in my
+environment.rb $redis = MyApplication::Application.config.redis and in
+production.rb I have config.redis = Redis.new(host: "localhost").
+
+I've read I'm supposed to $redis = Redis.new(host: "localhost") in
+after_fork when preload_app is true.
+
+When I don't do this, each worker/pid seems to have their own redis
+instance.  So, why is this needed?  Here's the logs of me printing out
+$redis.client.inspect when both $redis = Redis.new in the after_fork
+and just $redis = Redis.new in the environment.rb.
+
+No after fork
+https://gist.github.com/bc2c2a3bda01c35730e2
+
+After fork
+https://gist.github.com/0c96550660d3926ffe16
+
+The only thing different I notice is Connection::TCPSocket:fd is
+always 13 w/ the after fork.
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
