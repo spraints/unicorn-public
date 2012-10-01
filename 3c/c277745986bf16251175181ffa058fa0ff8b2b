@@ -1,0 +1,87 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=-0.1 required=5.0 tests=AWL,FREEMAIL_FROM,
+ T_DKIM_INVALID shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id A686B32D4C for
+ <archivist@yhbt.net>; Mon,  1 Oct 2012 20:29:14 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 220152E066; Mon,  1 Oct 2012 20:29:13 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from mail-ob0-f178.google.com (mail-ob0-f178.google.com
+ [209.85.214.178]) by rubyforge.org (Postfix) with ESMTP id 2AB382E066 for
+ <mongrel-unicorn@rubyforge.org>; Mon,  1 Oct 2012 20:29:00 +0000 (UTC)
+Received: by obbtb18 with SMTP id tb18so6543290obb.23 for
+ <mongrel-unicorn@rubyforge.org>; Mon, 01 Oct 2012 13:28:59 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com;
+ s=20120113;
+ h=mime-version:in-reply-to:references:from:date:message-id:subject:to
+ :content-type; bh=61f9xR/nVSfQIBaztDnopGZBD0YgFBtKdoXQTxW9nuA=;
+ b=X1tLyPOpbT2DgZPzVEnbjR5ZowiGRLHzaJ3Ar+7G3PHCzPSaXy5DoMF/NmE2WGbeHX
+ hE4lOM9iJMF1pu1Q3qTd8ElMUtYbR2pCB+j2vr8ANRQpk5aTaqcDAyLoMc6DrINMHrME
+ xGhiqFLo1egJ/eA9aPoq1gxR4c6+FbNylovOKXUQLlgord1ZC201Gcw79y9AX65BbN+H
+ alX8GjAmYkWqHLA/s1Bu13mxxpRCWAZnxyxM7e+OLQmRMOsdEwctrB9zzO3fhS98UKaM
+ NyUnZm6LIXY34ci4MNhoe6u7/LFP2qFF1dFHuZ05SAHGWVueAOSvMZ1q/J2KfGWx6zUg kwJw==
+Received: by 10.60.26.41 with SMTP id i9mr12460796oeg.65.1349123339943; Mon,
+ 01 Oct 2012 13:28:59 -0700 (PDT)
+MIME-Version: 1.0
+Received: by 10.60.30.194 with HTTP; Mon, 1 Oct 2012 13:28:19 -0700 (PDT)
+In-Reply-To: <20121001193115.GA23907@dcvr.yhbt.net>
+References:
+ <CAEbKVFSAgG=-EhWeVMEGrG9_gLGPg1yS-KXoCpaB0rtJ7E9pPw@mail.gmail.com>
+ <20121001193115.GA23907@dcvr.yhbt.net>
+From: Ben Somers <somers.ben@gmail.com>
+Date: Mon, 1 Oct 2012 13:28:19 -0700
+Message-ID:
+ <CAO1NZAqKgGwitq3b+UFnxUr-xnuobgOT04qQXJX0thVNkUqsCg@mail.gmail.com>
+Subject: Re: after_fork and redis
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+>> When I don't do this, each worker/pid seems to have their own redis
+>> instance.  So, why is this needed?  Here's the logs of me printing out
+>> $redis.client.inspect when both $redis = Redis.new in the after_fork
+>> and just $redis = Redis.new in the environment.rb.
+
+Checked through the redis.rb source a little bit, and I believe it's
+got code specifically to avoid opening the connection until it's
+needed, to prevent some shared connection problems
+(https://github.com/redis/redis-rb/commit/d1bc88f85bc9bfbb7aabdfc2700bf4b30c0b0115).
+You probably aren't making actual use of the connection until after
+app startup, so that's why things are working so far for you. It's still
+a good idea to initialize Redis in the after_fork, though, because if
+something in your app's startup or initializer code does wind up using
+that redis connection, you'd still get the shared connection problem.
+
+> Sharing stream sockets across processes/threads is nearly
+> always a bad idea: data streams become interleaved and impossible to
+> separate in either direction.
+
+"Nearly always a bad idea" is a bit of an understatement; the
+interleaved data streams tend to create catastrophic errors, things
+like users unable to log in or (god forbid) logging into other
+people's sessions. And they usually manifest as race conditions, so
+they're hard to debug if you don't know what to look for.
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
