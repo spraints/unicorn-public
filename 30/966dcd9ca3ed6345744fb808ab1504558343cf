@@ -1,0 +1,78 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=0.0 required=5.0 tests=none shortcircuit=no
+ autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id CE5AF1F435 for
+ <archivist@yhbt.net>; Tue,  2 Oct 2012 01:50:31 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 3B0102E071; Tue,  2 Oct 2012 01:50:31 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from smtp141.ord.emailsrvr.com (smtp141.ord.emailsrvr.com
+ [173.203.6.141]) by rubyforge.org (Postfix) with ESMTP id CDC852E060 for
+ <mongrel-unicorn@rubyforge.org>; Tue,  2 Oct 2012 01:48:07 +0000 (UTC)
+Received: from localhost (localhost.localdomain [127.0.0.1]) by
+ smtp26.relay.ord1a.emailsrvr.com (SMTP Server) with ESMTP id 879A31C009E;
+ Mon,  1 Oct 2012 21:48:07 -0400 (EDT)
+X-Virus-Scanned: OK
+Received: by smtp26.relay.ord1a.emailsrvr.com (Authenticated sender:
+ joel-AT-expectedbehavior.com) with ESMTPSA id 57D011C009C;  Mon,  1 Oct 2012
+ 21:48:07 -0400 (EDT)
+Message-ID: <506A47D5.5020709@expectedbehavior.com>
+Date: Mon, 01 Oct 2012 21:48:05 -0400
+From: Joel Meador <joel@expectedbehavior.com>
+User-Agent: Postbox 3.0.5 (Macintosh/20120826)
+MIME-Version: 1.0
+To: Eric Wong <normalperson@yhbt.net>
+Subject: Re: [PATCH] chowning /dev/null should be guarded against
+References: <506A3C5C.4020308@expectedbehavior.com>
+ <20121002012731.GA12583@dcvr.yhbt.net>
+In-Reply-To: <20121002012731.GA12583@dcvr.yhbt.net>
+Cc: unicorn list <mongrel-unicorn@rubyforge.org>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset="us-ascii"; Format="flowed"
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Eric Wong wrote:
+> Interesting nobody found this bug earlier (I think pointing logs
+> to /dev/null is bad :)
+Generally agree. Sometimes it happens. :|
+> How about this, instead?  This will work in case some weirdo setups
+> use a non-standard path for /dev/null, and also allows logging to
+> FIFOs (e.g. cronolog users).
+>
+> diff --git a/lib/unicorn/util.rb b/lib/unicorn/util.rb
+> index cde2563..f84241c 100644
+> --- a/lib/unicorn/util.rb
+> +++ b/lib/unicorn/util.rb
+> @@ -7,6 +7,7 @@ def self.is_log?(fp)
+>       append_flags = File::WRONLY | File::APPEND
+>
+>       ! fp.closed?&&
+> +      fp.stat.file?&&
+>         fp.sync&&
+>         (fp.fcntl(Fcntl::F_GETFL)&  append_flags) == append_flags
+>       rescue IOError, Errno::EBADF
+This looks much better as a general solution to the problem. +1 Thanks, 
+Eric!
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
