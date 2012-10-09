@@ -1,0 +1,125 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=-0.2 required=5.0 tests=AWL shortcircuit=no
+ autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id 3B2051F778 for
+ <archivist@yhbt.net>; Tue,  9 Oct 2012 20:03:13 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 6FC652E060; Tue,  9 Oct 2012 20:03:12 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 919A62E060 for <mongrel-unicorn@rubyforge.org>; Tue, 
+ 9 Oct 2012 20:03:08 +0000 (UTC)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id E813A1F772; Tue,  9 Oct 2012 20:03:06 +0000 (UTC)
+Date: Tue, 9 Oct 2012 20:03:06 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Subject: Re: Is a client uploading a file a slow client from unicorn's point
+ of view?
+Message-ID: <20121009200306.GA17437@dcvr.yhbt.net>
+References:
+ <CAHStS5iqBqJxoPZGEUaSHL2qSVf_tfZfbdedc_bRcjcTbcKwAQ@mail.gmail.com>
+ <20121009015800.GA1772@dcvr.yhbt.net>
+ <CFC93863-1061-4710-A195-58CBCCBED7B8@toom.ee>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To: <CFC93863-1061-4710-A195-58CBCCBED7B8@toom.ee>
+User-Agent: Mutt/1.5.21 (2010-09-15)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Laas Toom <laas@toom.ee> wrote:
+> On 09.10.2012, at 4:58, Eric Wong <normalperson@yhbt.net> wrote:
+> > I'm not familiar with the nginx upload module, but stock nginx will
+> > already do full request buffering for you.  It looks like the nginx
+> > upload module[1] is mostly meant for standalone apps written for
+> > nginx, and not when nginx is used as a proxy for Rails app...
+> 
+> AFAIK the upload module will give you two things:
+> 
+> 1) handle the whole body parsing up to the point of storing the file
+> to disk in correct place. Then it strips the file from POST request
+> and replaces with reference to the location on disk.
+
+That sounds awesome performance-wise.
+
+> 2) make the upload progress available, so e.g. AJAX-powered upload forms can show progressbar, which is really neat. No need for Flash-based uploaders.
+
+It does?  I'm not seeing it in the documentation, but I know there's
+a separate upload progress module, though:
+http://wiki.nginx.org/HttpUploadProgressModule
+
+A side note on upload progress: I wrote upr[1] back in the day since I
+wanted to share upload progress state via memcached for multi-machine
+configurations:  http://upr.bogomips.org/
+
+> I have a Rails app that accepts media uploads. All the processing happens in background, front-end handles only the actual upload and stores it to disk.
+> But with uploads as large as 1.4 GB, I've seen Rails response times > 200 secs. This starts to give timeouts in weird places.
+
+Yikes.  I assume you're constrained by disk I/O there?
+
+For some of the large file situations under Linux, I find it beneficial
+to lower the dirty_*ratio/*bytes drastically to avoid large, sudden
+bursts of disk activity and instead favor smaller writes.  I get lower
+throughput, but more consistent performance.
+
+> Eric, correct me if I'm wrong, but doesn't Nginx-Unicorn-Rails stack
+> write the whole file up to 3 times to disk:
+> 
+> 1) Nginx buffers the body (in encoded state)
+
+Correct.
+
+> 2) Unicorn parses the body and writes to TMP folder (as requested by Rails)
+
+Rack does multipart parsing.  Unicorn itself doesn't do body parsing
+other than handling Transfer-Encoding:chunked (which hardly anybody
+sends).
+
+> 3) if Rails accepts the file, it moves it to actual storage. But as /tmp is often different device from storage, this is actually a full copy.
+
+Depends on the Rack/Rails app, but usually this is the case.
+
+For my use, all uploads are PUT requests with "curl -T", so there's no
+multipart parsing involved and much faster :)
+
+> In such a situation the upload module would help out, because instead
+> of simply buffering the body on disk, it actually parses the body. And
+> it is implemented in C, which should make it faster.
+
+Yep.
+
+> Afterwards it will only handle out the file location and Rails can
+> complete it's work a lot faster, freeing up workers.
+> 
+> Unicorn won't even see the file and Rails has the responsibility to
+> delete the file if it's invalid.
+
+I think the only problem with this approach is it won't work well on
+setups where nginx is on separate machines from unicorn.  Shared
+storage would be required, but that ends up adding to network I/O,
+too...
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
