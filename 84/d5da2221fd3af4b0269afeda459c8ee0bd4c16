@@ -1,0 +1,97 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=-0.1 required=5.0 tests=AWL,T_DKIM_INVALID
+ shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id 92C2E1F772 for
+ <archivist@yhbt.net>; Tue,  9 Oct 2012 06:31:50 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 055DB2E072; Tue,  9 Oct 2012 06:31:49 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from mail-we0-f178.google.com (mail-we0-f178.google.com
+ [74.125.82.178]) by rubyforge.org (Postfix) with ESMTP id 691812E05D for
+ <mongrel-unicorn@rubyforge.org>; Tue,  9 Oct 2012 06:31:39 +0000 (UTC)
+Received: by mail-we0-f178.google.com with SMTP id r6so3418387wey.23 for
+ <mongrel-unicorn@rubyforge.org>; Mon, 08 Oct 2012 23:31:38 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com;
+ s=20120113; h=sender:content-type:mime-version:subject:from:in-reply-to:date
+ :content-transfer-encoding:message-id:references:to:x-mailer;
+ bh=kpIin2VBPuvmUrRfs50ry1b1OdA5q4ITx8bXE+Ui/2w=;
+ b=yxdZF9ympfIfZxJj7EoQ/enIp0rUsYpuK9NJJe4YuzjMGv+tuurSTTwW8TIhAUSk8t
+ pSQmiriUg30TWkj5u2mEfASwcLCW9Ay6Gc1whH4KuxCs9TVjv3a2vnV750HNceOV6kXj
+ 9pQiagCrRqYoY5yiRvw9E+lk5/9AF0kUR6nNHx1LrGMck6Mx/TJlOVXWtbbGZBHl31i6
+ vk0MS80bMSrpmyMZrP/MtCf3mFz/iXCSa/LfWDDvyTOcIJHZ2/9A7BlqZ6K5C9TuEdtu
+ wrHApLngqz16NTprPGtXyqvNLFP+4adC8oU6x/KV45bDzLIV/adaAE2hdVZqhhbAluW9 GGwg==
+Received: by 10.180.93.33 with SMTP id cr1mr2030955wib.8.1349764298626; Mon,
+ 08 Oct 2012 23:31:38 -0700 (PDT)
+Received: from lennutaja.eenet.ee (lennutaja.eenet.ee. [193.40.0.224]) by
+ mx.google.com with ESMTPS id b7sm23429781wiz.3.2012.10.08.23.31.37
+ (version=TLSv1/SSLv3 cipher=OTHER); Mon, 08 Oct 2012 23:31:38 -0700 (PDT)
+Mime-Version: 1.0 (Mac OS X Mail 6.1 \(1498\))
+Subject: Re: Is a client uploading a file a slow client from unicorn's point
+ of view?
+From: Laas Toom <laas@toom.ee>
+In-Reply-To: <20121009015800.GA1772@dcvr.yhbt.net>
+Date: Tue, 9 Oct 2012 09:31:36 +0300
+Message-Id: <CFC93863-1061-4710-A195-58CBCCBED7B8@toom.ee>
+References:
+ <CAHStS5iqBqJxoPZGEUaSHL2qSVf_tfZfbdedc_bRcjcTbcKwAQ@mail.gmail.com>
+ <20121009015800.GA1772@dcvr.yhbt.net>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+X-Mailer: Apple Mail (2.1498)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+
+On 09.10.2012, at 4:58, Eric Wong <normalperson@yhbt.net> wrote:
+
+> I'm not familiar with the nginx upload module, but stock nginx will
+> already do full request buffering for you.  It looks like the nginx
+> upload module[1] is mostly meant for standalone apps written for
+> nginx, and not when nginx is used as a proxy for Rails app...
+
+AFAIK the upload module will give you two things:
+
+1) handle the whole body parsing up to the point of storing the file to disk in correct place. Then it strips the file from POST request and replaces with reference to the location on disk.
+
+2) make the upload progress available, so e.g. AJAX-powered upload forms can show progressbar, which is really neat. No need for Flash-based uploaders.
+
+
+I have a Rails app that accepts media uploads. All the processing happens in background, front-end handles only the actual upload and stores it to disk.
+But with uploads as large as 1.4 GB, I've seen Rails response times > 200 secs. This starts to give timeouts in weird places.
+
+Eric, correct me if I'm wrong, but doesn't Nginx-Unicorn-Rails stack write the whole file up to 3 times to disk:
+1) Nginx buffers the body (in encoded state)
+2) Unicorn parses the body and writes to TMP folder (as requested by Rails)
+3) if Rails accepts the file, it moves it to actual storage. But as /tmp is often different device from storage, this is actually a full copy.
+
+In such a situation the upload module would help out, because instead of simply buffering the body on disk, it actually parses the body. And it is implemented in C, which should make it faster.
+Afterwards it will only handle out the file location and Rails can complete it's work a lot faster, freeing up workers.
+
+Unicorn won't even see the file and Rails has the responsibility to delete the file if it's invalid.
+
+
+Best,
+Laas
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
