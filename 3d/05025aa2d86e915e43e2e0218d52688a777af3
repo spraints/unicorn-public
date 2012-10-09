@@ -1,0 +1,109 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=-0.2 required=5.0 tests=AWL,FREEMAIL_FROM,
+ T_DKIM_INVALID shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id 920CC1F4E6 for
+ <archivist@yhbt.net>; Tue,  9 Oct 2012 00:55:51 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 1674A2E061; Tue,  9 Oct 2012 00:55:50 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+X-Greylist: delayed 955 seconds by postgrey-1.31 at rubyforge; Tue, 09 Oct
+ 2012 00:55:43 UTC
+Received: from mail-qa0-f68.google.com (mail-qa0-f68.google.com
+ [209.85.216.68]) by rubyforge.org (Postfix) with ESMTP id 9B9662E061 for
+ <mongrel-unicorn@rubyforge.org>; Tue,  9 Oct 2012 00:55:43 +0000 (UTC)
+Received: by mail-qa0-f68.google.com with SMTP id s11so803961qaa.11 for
+ <mongrel-unicorn@rubyforge.org>; Mon, 08 Oct 2012 17:55:43 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com;
+ s=20120113; h=mime-version:date:message-id:subject:from:to:content-type;
+ bh=tagESRVOzmfmZ9diHcuHz/FPJxU0qGFxfe1JfsU0JHw=;
+ b=Vi/eZu8QynRZ+uL6MVKBZLxcgo+NhyPZR1jiutRl82+p4pGBGgCI1PEC0DplDMOrW1
+ Xzw15D5JPZDKg+lfMm3eeIb7RGAZKNqOP4goJ1Ka6LVtKWm6ZgZWZlcMUGSuDlzdRhdp
+ 3/ar+zd4K6hBuFQ1vgkhJkdkO3Ux764l0ItrYuZyK49ms8dk0MQ95AiSb0QibIWDJ5yr
+ wzscXQj3lqSejwrtBP88XABcSmjsPPSsnrE9xZyCx4qglOR7GtXpd/nb3zlc/Lfg+sbE
+ na+2cEoDrCaRZGpg7vUODtpMZqoNJ9O6Y+oV9mWqjwNklmeemu3PBKISOxXU6dKCpHD7 yxHw==
+MIME-Version: 1.0
+Received: by 10.224.173.84 with SMTP id o20mr32597139qaz.3.1349743185727;
+ Mon, 08 Oct 2012 17:39:45 -0700 (PDT)
+Received: by 10.49.50.34 with HTTP; Mon, 8 Oct 2012 17:39:45 -0700 (PDT)
+Date: Tue, 9 Oct 2012 11:39:45 +1100
+Message-ID:
+ <CAHStS5iqBqJxoPZGEUaSHL2qSVf_tfZfbdedc_bRcjcTbcKwAQ@mail.gmail.com>
+Subject: Is a client uploading a file a slow client from unicorn's point of
+ view?
+From: Jimmy Soho <jimmy.soho@gmail.com>
+To: mongrel-unicorn@rubyforge.org
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Hi All,
+
+I was wondering what would happen when large files were uploaded to
+our system in parallel to endpoints that don't process file uploads.
+In particular I was wondering if we're vulnerable to a simple DoS
+attack.
+
+The setup I tested with was nginx v1.2.4 with upload module (v2.2.0)
+configured only for location /uploads with 2 unicorn (v4.3.1) workers
+with timeout 30 secs, all running on 1 small unix box.
+
+In a few terminals I started this command 3 times in parallel:
+
+   $ curl -i -F importer_input=@/Users/admin/largefile.tar.gz
+https://mywebserver.com/doesnotexist
+
+In a browser I then tried to go a page that would be served by a unicorn worker.
+
+My expectation was that I would not get to see the web page as all
+unicorn workers would be busy with receiving / saving the upload. As
+discussed in for example this article:
+http://stackoverflow.com/questions/9592664/unicorn-rails-large-uploads.
+Or as https://github.com/dwilkie/carrierwave_direct describes it:
+
+  "Processing and saving file uploads are typically long running tasks
+and should be done in a background process."
+
+But I don't see this. The page is served just fine in my setup. The
+requests for the file uploads appear in the nginx access log at the
+same time the curl upload command eventually finishes minutes later
+client side, and then it's handed off to a unicorn/rack worker
+process, which quickly returns a 404 page not found. Response times of
+less than 50ms.
+
+What am I missing here? I'm starting to wonder what's the use of the
+nginx upload module? My understanding was that it's use was to keep
+unicorn workers available as long as a file upload was in progress,
+but it seems that without that module it does the same thing.
+
+Another question (more an nginx question though I guess): is there a
+way to kill an upload request as early as possible if the request is
+not made against known / accepted URI locations, instead of waiting
+for it to be completely uploaded to our system and/or waiting for it
+to reach the unicorn workers?
+
+
+Cheers,
+Jim
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
