@@ -1,0 +1,154 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=-0.2 required=5.0 tests=AWL shortcircuit=no
+ autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id 066841F4E6 for
+ <archivist@yhbt.net>; Tue,  9 Oct 2012 01:58:13 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 7051A2E072; Tue,  9 Oct 2012 01:58:11 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id BC7252E073 for <mongrel-unicorn@rubyforge.org>; Tue, 
+ 9 Oct 2012 01:58:02 +0000 (UTC)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id A65DE1F4CA; Tue,  9 Oct 2012 01:58:00 +0000 (UTC)
+Date: Tue, 9 Oct 2012 01:58:00 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Subject: Re: Is a client uploading a file a slow client from unicorn's point
+ of view?
+Message-ID: <20121009015800.GA1772@dcvr.yhbt.net>
+References:
+ <CAHStS5iqBqJxoPZGEUaSHL2qSVf_tfZfbdedc_bRcjcTbcKwAQ@mail.gmail.com>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To:
+ <CAHStS5iqBqJxoPZGEUaSHL2qSVf_tfZfbdedc_bRcjcTbcKwAQ@mail.gmail.com>
+User-Agent: Mutt/1.5.21 (2010-09-15)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Jimmy Soho <jimmy.soho@gmail.com> wrote:
+> Hi All,
+> 
+> I was wondering what would happen when large files were uploaded to
+> our system in parallel to endpoints that don't process file uploads.
+> In particular I was wondering if we're vulnerable to a simple DoS
+> attack.
+
+nginx will protect you by buffering large requests to disk, so slow
+requests are taken care of (of course you may still run out of disk
+space)
+
+> The setup I tested with was nginx v1.2.4 with upload module (v2.2.0)
+> configured only for location /uploads with 2 unicorn (v4.3.1) workers
+> with timeout 30 secs, all running on 1 small unix box.
+> 
+> In a few terminals I started this command 3 times in parallel:
+> 
+>    $ curl -i -F importer_input=@/Users/admin/largefile.tar.gz
+> https://mywebserver.com/doesnotexist
+> 
+> In a browser I then tried to go a page that would be served by a unicorn worker.
+> 
+> My expectation was that I would not get to see the web page as all
+> unicorn workers would be busy with receiving / saving the upload. As
+> discussed in for example this article:
+> http://stackoverflow.com/questions/9592664/unicorn-rails-large-uploads.
+> Or as https://github.com/dwilkie/carrierwave_direct describes it:
+> 
+>   "Processing and saving file uploads are typically long running tasks
+> and should be done in a background process."
+
+That is true.  It's good to move slow jobs to background processes if
+possible if the bottleneck is either:
+
+a) your application processing
+b) the storage destination of your app (e.g. cloud storage)
+
+However, if your only bottleneck is client <-> your app, then nginx
+will take care of that part for you.
+
+> But I don't see this. The page is served just fine in my setup. The
+> requests for the file uploads appear in the nginx access log at the
+> same time the curl upload command eventually finishes minutes later
+> client side, and then it's handed off to a unicorn/rack worker
+> process, which quickly returns a 404 page not found. Response times of
+> less than 50ms.
+> 
+> What am I missing here? I'm starting to wonder what's the use of the
+> nginx upload module? My understanding was that it's use was to keep
+> unicorn workers available as long as a file upload was in progress,
+> but it seems that without that module it does the same thing.
+
+I'm not familiar with the nginx upload module, but stock nginx will
+already do full request buffering for you.  It looks like the nginx
+upload module[1] is mostly meant for standalone apps written for
+nginx, and not when nginx is used as a proxy for Rails app...
+
+[1] http://www.grid.net.ru/nginx/upload.en.html
+
+> Another question (more an nginx question though I guess): is there a
+> way to kill an upload request as early as possible if the request is
+> not made against known / accepted URI locations, instead of waiting
+> for it to be completely uploaded to our system and/or waiting for it
+> to reach the unicorn workers?
+
+I'm not sure if nginx has this functionality, but unicorn lazily buffers
+uploads.  So your upload will be fully read by nginx, but unicorn
+will only read the uploaded request body if your application wants to
+read it.
+
+Unfortunately, I think most application frameworks (e.g. Rails) will
+attempt to do all the multipart parsing up front.  To get around this,
+you'll probably want some middleware along the following lines (and
+placed in front of whichever part of your stack calls
+Rack::Multipart.parse_multipart)
+
+class BadUploadStopper
+  def initialize(app)
+    @app = app
+  end
+
+  def call(env)
+    case env["REQUEST_METHOD"]
+    when "POST", "PUT"
+      case env["PATH_INFO"]
+      when "/upload_allowed"
+        @app.call(env) # forward to the app
+      else
+        # bad path, don't waste time with @app.call
+        [ 403, {}, [ "Go away\n" ] ]
+      end
+    else
+      @app.call(env)  # forward to the app
+    end
+  end
+end
+
+------------------- config.ru ---------------------
+use BadUploadStopper
+run YourApp.new
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
