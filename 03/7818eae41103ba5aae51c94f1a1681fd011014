@@ -1,0 +1,113 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=-0.2 required=5.0 tests=AWL shortcircuit=no
+ autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id 3CBD01F772 for
+ <archivist@yhbt.net>; Tue,  9 Oct 2012 23:54:48 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 01FA42E079; Tue,  9 Oct 2012 23:54:46 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 03DFB2E079 for <mongrel-unicorn@rubyforge.org>; Tue, 
+ 9 Oct 2012 23:54:36 +0000 (UTC)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 23E181F4DE; Tue,  9 Oct 2012 23:54:36 +0000 (UTC)
+Date: Tue, 9 Oct 2012 16:54:35 -0700
+From: Eric Wong <normalperson@yhbt.net>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Subject: Re: Is a client uploading a file a slow client from unicorn's point
+ of view?
+Message-ID: <20121009235435.GA29908@dcvr.yhbt.net>
+References:
+ <CAHStS5iqBqJxoPZGEUaSHL2qSVf_tfZfbdedc_bRcjcTbcKwAQ@mail.gmail.com>
+ <20121009015800.GA1772@dcvr.yhbt.net>
+ <CFC93863-1061-4710-A195-58CBCCBED7B8@toom.ee>
+ <20121009200306.GA17437@dcvr.yhbt.net>
+ <3EDF9F45-B5FB-4C3B-B0E5-37C28ECFE1D1@toom.ee>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To: <3EDF9F45-B5FB-4C3B-B0E5-37C28ECFE1D1@toom.ee>
+User-Agent: Mutt/1.5.21 (2010-09-15)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Laas Toom <laas@toom.ee> wrote:
+> On 09.10.2012, at 23:03, Eric Wong <normalperson@yhbt.net> wrote:
+> > Laas Toom <laas@toom.ee> wrote:
+> >> Afterwards it will only handle out the file location and Rails can
+> >> complete it's work a lot faster, freeing up workers.
+> >> 
+> >> Unicorn won't even see the file and Rails has the responsibility to
+> >> delete the file if it's invalid.
+> > 
+> > I think the only problem with this approach is it won't work well on
+> > setups where nginx is on separate machines from unicorn.  Shared
+> > storage would be required, but that ends up adding to network I/O,
+> > too...
+> 
+> But won't (almost) the same network I/O be evident anyway, because of
+> nginx transferring the data to Unicorn over network (as they are on
+> different machines)?
+
+It depends on your shared storage implementation.
+
+It'll likely be a win if the shared storage is on the same server as
+nginx (but that might mean you can only have one nginx server).  But I
+think it'll be a loss if there needs to be multiple nginx servers (and
+multiple unicorn servers)...
+
+* With nginx_upload_module + shared storage:
+
+nginx server  ------ shared storage -------- unicorn server
+------------------------------------------------------------------
+1. sequential write to shared storage
+
+2. file could remain cached              do processing on file parts
+   on nginx server, even if              remotely, network latency
+   we'll never need to read              from reads (and possible cache
+   it again                              coherency checks on rereads)
+
+3. unlink on error                       unlink/rename/copy on success
+
+
+* Without nginx_upload_module:
+
+   nginx server -------------------------- unicorn server
+------------------------------------------------------------------
+
+1. sequential write of tempfile
+2. sequential read of tempfile ----------> sequential write by Rack
+3. unlink (able to free up cache)          do processing on file locally
+                                           (no remote cache coherency
+                                           checks)
+
+The benefit of this approach is there's only 2 components interacting at
+any one time, and the network costs are paid in full up front
+
+Basically, it's the message passing concurrency model vs shared
+memory+locking.  There's no clear winner, it just depends on the
+situation.  99% of the time I get away with keeping everything on
+one machine :)
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
