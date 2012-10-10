@@ -1,0 +1,87 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=-0.1 required=5.0 tests=AWL,T_DKIM_INVALID
+ shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id 417A21F777 for
+ <archivist@yhbt.net>; Wed, 10 Oct 2012 06:59:27 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id C329E2E06E; Wed, 10 Oct 2012 06:59:26 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from mail-wg0-f54.google.com (mail-wg0-f54.google.com
+ [74.125.82.54]) by rubyforge.org (Postfix) with ESMTP id 210AF2E06E for
+ <mongrel-unicorn@rubyforge.org>; Wed, 10 Oct 2012 06:59:19 +0000 (UTC)
+Received: by mail-wg0-f54.google.com with SMTP id dt10so139811wgb.23 for
+ <mongrel-unicorn@rubyforge.org>; Tue, 09 Oct 2012 23:59:19 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com;
+ s=20120113; h=sender:content-type:mime-version:subject:from:in-reply-to:date
+ :content-transfer-encoding:message-id:references:to:x-mailer;
+ bh=EaK/6/6ca6wuoqtonIszhT6AJYaUhomGzqXw9A3FxFU=;
+ b=Wlb73lqf+IlV1RyHYmlfBtU6oeGPLsfs/BPuRpKTcgZ/3u5bw0iIBX0RNGR4UEkV+I
+ AWMGb9Pxv/ShaBrnPMreeIRobzlSDmSrKHdtH7vqlrDVSVDv2/fpMY5fJeo/0L37Y0ZY
+ C+wWlK0pALqKdgiTjNt4vd/rhQzV2SWyqJmtg6MCTSPJDad04pekR632DPxbfVTC43cB
+ ZqxYwcg/skpDDN/cJy4IEP35xNL9Y866Z+IlB7QvdcWrN2uyCMLoB52EwrWCmHpcH8z6
+ ELWuo8SoJsuSxouK/ArFqpeAN/VqldJBWRxquHX6SmMJxsIkllWhNDCKhvE5mRaInR8d YGBg==
+Received: by 10.180.99.99 with SMTP id ep3mr10472134wib.15.1349852359306;
+ Tue, 09 Oct 2012 23:59:19 -0700 (PDT)
+Received: from lennutaja.eenet.ee (lennutaja.eenet.ee. [193.40.0.224]) by
+ mx.google.com with ESMTPS id v3sm1202281wiy.5.2012.10.09.23.59.17
+ (version=TLSv1/SSLv3 cipher=OTHER); Tue, 09 Oct 2012 23:59:18 -0700 (PDT)
+Mime-Version: 1.0 (Mac OS X Mail 6.1 \(1498\))
+Subject: Re: Is a client uploading a file a slow client from unicorn's point
+ of view?
+From: Laas Toom <laas@toom.ee>
+In-Reply-To: <20121009235435.GA29908@dcvr.yhbt.net>
+Date: Wed, 10 Oct 2012 09:59:16 +0300
+Message-Id: <35DC89B8-AA73-49EF-845A-50D13A4540E6@toom.ee>
+References:
+ <CAHStS5iqBqJxoPZGEUaSHL2qSVf_tfZfbdedc_bRcjcTbcKwAQ@mail.gmail.com>
+ <20121009015800.GA1772@dcvr.yhbt.net>
+ <CFC93863-1061-4710-A195-58CBCCBED7B8@toom.ee>
+ <20121009200306.GA17437@dcvr.yhbt.net>
+ <3EDF9F45-B5FB-4C3B-B0E5-37C28ECFE1D1@toom.ee>
+ <20121009235435.GA29908@dcvr.yhbt.net>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+X-Mailer: Apple Mail (2.1498)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+
+On 10.10.2012, at 2:54, Eric Wong <normalperson@yhbt.net> wrote:
+
+> Basically, it's the message passing concurrency model vs shared
+> memory+locking.  There's no clear winner, it just depends on the
+> situation.  99% of the time I get away with keeping everything on
+> one machine :)
+
+Exactly.
+For now we have nginx and unicorn on the same machine, both interacting w/ the storage  over network, so there is no difference if the initial write is done by Rails or Nginx.
+
+Later, Resque will pick up the background processing task, which again could be on totally separate machine(s).
+
+And in the most complex scenario - there could be multiple Nginx, multiple Unicorn and multiple Resque nodes, each doing it's part. In such a situation, the Unicorn node can skip the network I/O, if it can base it's upload validation solely on filename and attrs, disregarding the file data itself.
+
+Best,
+Laas
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
