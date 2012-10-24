@@ -1,0 +1,96 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=0.0 required=5.0 tests=none shortcircuit=no
+ autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id B27E81F436 for
+ <archivist@yhbt.net>; Wed, 24 Oct 2012 13:25:31 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id E153A2E07A; Wed, 24 Oct 2012 13:25:29 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from mail-ie0-f178.google.com (mail-ie0-f178.google.com
+ [209.85.223.178]) by rubyforge.org (Postfix) with ESMTP id 6CB532E061 for
+ <mongrel-unicorn@rubyforge.org>; Wed, 24 Oct 2012 13:25:21 +0000 (UTC)
+Received: by mail-ie0-f178.google.com with SMTP id e11so807425iej.23 for
+ <mongrel-unicorn@rubyforge.org>; Wed, 24 Oct 2012 06:25:21 -0700 (PDT)
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com;
+ s=20120113;
+ h=mime-version:in-reply-to:references:date:message-id:subject:from:to
+ :content-type:x-gm-message-state;
+ bh=kt/8h8OsW+4WfSzN6kDyOzWxT7UHPUxmmTdiPTc6/Xo=;
+ b=dKOgsQ0gyuJwLDcTXRA1UrvoxjEm6Cy7m3GUmDs8pd9Yo75HlqJZ3OKvDTvURtC8gx
+ MoG6VVwYyatXNXVjYQgC+7Z3nKQQ0Sih+mR+NC29xrkZCv/BWeb5yxoOQXfK7CUP0OE2
+ ShQj2TzJqyCrpsthZgkmfQoqdybM2FnvCCXTDxr5QaEh+NDw6kVdCVpho6iye3vonq3Q
+ 9hGdx3VWmcyOtjHALYtjRMdtYRyKVSReforLYUWDkw6luGcfbnJ9tDPcYe86qHBYF5LW
+ nVBJdO+gluBy0Jw/Bq+wtuAdY7KcTbwoVXpB6shxnSByNmWdxlDdoeO3jhMB9TB8p2nQ dPHA==
+MIME-Version: 1.0
+Received: by 10.42.103.81 with SMTP id l17mr13660548ico.38.1351085120853;
+ Wed, 24 Oct 2012 06:25:20 -0700 (PDT)
+Received: by 10.64.58.52 with HTTP; Wed, 24 Oct 2012 06:25:20 -0700 (PDT)
+In-Reply-To: <F277EBC4-61EB-46CA-9E51-C5A92DA9CA2B@risingsuntech.net>
+References: <F277EBC4-61EB-46CA-9E51-C5A92DA9CA2B@risingsuntech.net>
+Date: Wed, 24 Oct 2012 09:25:20 -0400
+Message-ID:
+ <CA+EW9occp1BuDcAmxHOw8UUFZehiqMUKfbG4E250Z8QpP81gHQ@mail.gmail.com>
+Subject: Re: Handling timeouts?
+From: Matthew Cupples <mcupples@cloudspace.com>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+X-Gm-Message-State:
+ ALoCoQm7Md5ghie5DehFj6cl9PqPClXdEf8HoMc1RAUYo78hsQVhgNtFtohtP8IA2iIwqaTrb5OH
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+I just handle it by having NRPE grep through the Nginx error log;
+that's where you'll see the timeout come in.
+
+Example timeout:
+2012/10/22 19:52:10 [error] 2071#0: *7269 upstream timed out (110:
+Connection timed out) while reading response header from upstream,
+client: 70.127.166.167, server: www.domain.com, request: "GET
+/follow_outlink?url=http%3A%2F%2Fblogs.orlandosentinel.com%2Fnews_politics%2F2012%2F10%2Frace-for-hd-49-gets-nastier.html&name=Sentinel%3A%20Race%20for%20HD%2049%20gets%20nastier
+HTTP/1.1", upstream:
+"http://unix:/etc/unicorn/domain.sock:/follow_outlink?url=http%3A%2F%2Fblogs.orlandosentinel.com%2Fnews_politics%2F2012%2F10%2Frace-for-hd-49-gets-nastier.html&name=Sentinel%3A%20Race%20for%20HD%2049%20gets%20nastier",
+host: "www.domain.com", referrer: "http://www.domain.com/"
+
+On 10/24/12, Aditya Sanghi <aditya.sanghi@risingsuntech.net> wrote:
+> Hi Guys,
+>
+> Thanks for Unicorn, it makes my world rock. You guy have done a wonderful
+> job and also huge thanks to the predecessors too.
+>
+> The default timeout on my Rails app is 30 seconds. The app works fine most
+> of the time but there are some parts of the app which are slow and
+> occasionally totter over the 30 sec response time and timeout. Is there a
+> clean way for me to hook into timeouts and notify myself when timeouts
+> occur? Something like a chance to email myself or send an airbrake
+> notification?
+>
+> Cheers,
+> Aditya
+> _______________________________________________
+> Unicorn mailing list - mongrel-unicorn@rubyforge.org
+> http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+> Do not quote signatures (like this one) or top post when replying
+>
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
