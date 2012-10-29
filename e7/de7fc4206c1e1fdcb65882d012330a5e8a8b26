@@ -1,0 +1,88 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=0.0 required=5.0 tests=none shortcircuit=no
+ autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id 08D001F438 for
+ <archivist@yhbt.net>; Mon, 29 Oct 2012 22:21:34 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 5AFCC2E076; Mon, 29 Oct 2012 22:21:33 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from mail-ob0-f178.google.com (mail-ob0-f178.google.com
+ [209.85.214.178]) by rubyforge.org (Postfix) with ESMTP id 7F0922E074 for
+ <mongrel-unicorn@rubyforge.org>; Mon, 29 Oct 2012 22:21:23 +0000 (UTC)
+Received: by mail-ob0-f178.google.com with SMTP id tb18so6441449obb.23 for
+ <mongrel-unicorn@rubyforge.org>; Mon, 29 Oct 2012 15:21:23 -0700 (PDT)
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com;
+ s=20120113;
+ h=mime-version:in-reply-to:references:date:message-id:subject:from:to
+ :content-type:x-gm-message-state;
+ bh=hwQ16me4TvwmRxpRF0o5/3w4qo91mx7CwdPFTfbT0Jk=;
+ b=JIU0yTbgGs+FNzdNo0X9cUP+o7wpCX12oB+oCkQ5X/1x1XTB/eIS9NqkMPPBT0CzWQ
+ J+KfJEvKtRSYrmn6Pfk/mLO4avj6CeYC6pM/myCl1T2pQSdsxqQu1opW4mawkTSRggr/
+ uYz60j3/K4ygau5fozD1OafsqSaqa7Dwe5EO1CbqeWh0OSZPSKZCvyrP4n+ZbC6tAecH
+ PMpVG0QuB6DRqHSZHqEzB/AFruIwbq6M0Js8Vqcvyc2DxROGZIpcJb6aP59AxA1lJC8s
+ rt/Yjse9LzUWQbxVRRdOO++RcvdFZS7TjfNkB5SstvuvLm0VIYq06z7vbv1a+MS9h/bz JNVQ==
+MIME-Version: 1.0
+Received: by 10.182.18.142 with SMTP id w14mr22606533obd.65.1351549283207;
+ Mon, 29 Oct 2012 15:21:23 -0700 (PDT)
+Received: by 10.60.4.65 with HTTP; Mon, 29 Oct 2012 15:21:23 -0700 (PDT)
+In-Reply-To: <20121029215312.GA29353@dcvr.yhbt.net>
+References:
+ <CAK4qKG32dGgNbzTzCb6NoH5hu_DrHMOFaFhk-6Xvy-T86++ukA@mail.gmail.com>
+ <20121029184549.GA9690@dcvr.yhbt.net> <20121029215312.GA29353@dcvr.yhbt.net>
+Date: Mon, 29 Oct 2012 18:21:23 -0400
+Message-ID:
+ <CAK4qKG2Znt946ZknCr9jyChRwJYRZq=H_Mw2dGxeOJ_rh1-W0w@mail.gmail.com>
+Subject: Re: Combating nginx 499 HTTP responses during flash traffic scenario
+From: Tom Burns <tom.burns@jadedpixel.com>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+X-Gm-Message-State:
+ ALoCoQkXPQ3DEdYsRQWBUdkh5I5mZDbyR9j8rNBdTSNBSjckHnFj5YsZ++SnOW8rAjqoHetviVE4
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+On Mon, Oct 29, 2012 at 5:53 PM, Eric Wong <normalperson@yhbt.net> wrote:
+> Maybe this gross hack can work for you guys.  It writes the first
+> chunk of the HTTP response header out immediately after reading
+> the request headers, and sends the rest once it gets the status...
+
+Eric, thank you very much for your replies.  We'd debated this as an
+alternate solution along with the two I mentioned in my original
+email, and to be honest your tentative patch is cleaner than I'd had
+expected this solution to look like :)
+
+I will test this and respond back.
+
+One of our goals in solving this problem would be to get any changes
+merged back into unicorn master, and this looks like it would actually
+lead to a cleaner result than having to select() on the socket.
+
+Another side effect of the "select() in a middleware" solution was
+going to be removing the NULL_IO optimization that sets rack.input to
+a StringIO.
+
+Cheers,
+Tom
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
