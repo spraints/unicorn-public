@@ -1,0 +1,106 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=0.0 required=5.0 tests=none shortcircuit=no
+ autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id A05581F42C for
+ <archivist@yhbt.net>; Mon, 29 Oct 2012 17:44:32 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id D2E782E075; Mon, 29 Oct 2012 17:44:31 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from mail-oa0-f50.google.com (mail-oa0-f50.google.com
+ [209.85.219.50]) by rubyforge.org (Postfix) with ESMTP id 797952E05D for
+ <mongrel-unicorn@rubyforge.org>; Mon, 29 Oct 2012 17:44:27 +0000 (UTC)
+Received: by mail-oa0-f50.google.com with SMTP id n16so6216947oag.23 for
+ <mongrel-unicorn@rubyforge.org>; Mon, 29 Oct 2012 10:44:27 -0700 (PDT)
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com;
+ s=20120113; h=mime-version:date:message-id:subject:from:to:content-type
+ :x-gm-message-state; bh=xFpW+shwAR6U76IK92EH2+NMw1655wwO664cwZvOuT0=;
+ b=WpGODJT2imRPyTlbphythUnkd5e+okKxSi1h5LRAAI8M8gupAJKsIHlCfHaah3ryAJ
+ kqlZJzHwbBnm8aaw9llhONXmTE29m7mxZWE4NVt/ZeozCwb3O/+mbAZ0jQ1ClBI2vUOh
+ 3lhtpToLLQ4kTE0LMPZKyXKRJmbGMVJ/vYa1TB2knOIFTqT3vQMtA0MP15YQdJhiKu3H
+ MvzW16AY/ALAAXwARlFsTx7xzyVrd4QWCSl7LPiqQuUvAZhQDMR9W3AWkdxnibjG6GKy
+ qJtmu+ft1rMHBfdG5foSdlRZDz4aWqFAj216FKAiBToHMDwghTtRgQVvC29pd2IcZQu8 lXAA==
+MIME-Version: 1.0
+Received: by 10.60.29.3 with SMTP id f3mr26289020oeh.97.1351532667218; Mon,
+ 29 Oct 2012 10:44:27 -0700 (PDT)
+Received: by 10.60.4.65 with HTTP; Mon, 29 Oct 2012 10:44:27 -0700 (PDT)
+Date: Mon, 29 Oct 2012 13:44:27 -0400
+Message-ID:
+ <CAK4qKG32dGgNbzTzCb6NoH5hu_DrHMOFaFhk-6Xvy-T86++ukA@mail.gmail.com>
+Subject: Combating nginx 499 HTTP responses during flash traffic scenario
+From: Tom Burns <tom.burns@jadedpixel.com>
+To: mongrel-unicorn@rubyforge.org
+X-Gm-Message-State:
+ ALoCoQmiNUOWncCcWMfzRd8aCx3EgDTh4LlkpxBm4Bezmza2PqBg3/5WrQFT/rHZ3gLvbdAdoi5g
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Hi,
+
+We're dealing with an issue with our large-scale deployment of unicorn
+& nginx.  The problem occurs during "flash" scenarios where we receive
+an order magnitude more traffic for up to an hour.  Much of this
+traffic cannot be cached and it's typical for some of our rails
+responses to take a few seconds to generate.  Our preference is to
+queue incoming requests instead of returning 502 if we can respond
+within a reasonable amount of time.
+
+On each of our servers the stack is nginx -> unicorn.
+
+The main connection queue in front of Rails is the unicorn connection
+queue.  Our problem is that when the traffic hits, the unicorn queue
+grows.  When users begin hitting refresh, their abandoned requests in
+the unicorn queue are still passed to the rails application and
+rendered.  In this case we see a 200 HTTP response in our Rails log
+and a 499 in the nginx access log.  Once this starts happening the
+problem can compound: app workers are busy rendering pages for clients
+who have already detached so response time grows and more users hit
+refresh, etc.
+
+Our nginx config:
+6 nginx workers, 1024 worker connections.
+
+Our unicorn config:
+70 unicorn workers, 2048 connection backlog.
+
+Our goal is to not have our app process requests for clients that have
+already disconnected while their connection is still queued in
+unicorn.  We also would prefer not to shrink our queue such that we
+begin to return 502 when our queue is a few seconds deep.
+
+We're looking at potential solutions to this problem, including:
+- modifying unicorn to select() on the client connection after reading
+the request, to see if it's been closed upstream, and avoid calling
+the app.
+- Replacing nginx with haproxy and queuing connections there.  This
+goes against the nginx recommendation at
+http://unicorn.bogomips.org/PHILOSOPHY.html
+
+Any input would be appreciated.
+
+Thanks,
+Tom
+Developer @ Shopify
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
