@@ -1,0 +1,125 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=-0.2 required=5.0 tests=AWL shortcircuit=no
+ autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id 484F71F438 for
+ <archivist@yhbt.net>; Mon, 29 Oct 2012 21:53:21 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id E54312E076; Mon, 29 Oct 2012 21:53:20 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 8C63D2E074 for <mongrel-unicorn@rubyforge.org>; Mon,
+ 29 Oct 2012 21:53:14 +0000 (UTC)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 652861F42C; Mon, 29 Oct 2012 21:53:12 +0000 (UTC)
+Date: Mon, 29 Oct 2012 21:53:12 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Subject: Re: Combating nginx 499 HTTP responses during flash traffic scenario
+Message-ID: <20121029215312.GA29353@dcvr.yhbt.net>
+References:
+ <CAK4qKG32dGgNbzTzCb6NoH5hu_DrHMOFaFhk-6Xvy-T86++ukA@mail.gmail.com>
+ <20121029184549.GA9690@dcvr.yhbt.net>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To: <20121029184549.GA9690@dcvr.yhbt.net>
+User-Agent: Mutt/1.5.20 (2009-06-14)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Eric Wong <normalperson@yhbt.net> wrote:
+> Tom Burns <tom.burns@jadedpixel.com> wrote:
+> > We're looking at potential solutions to this problem, including:
+> > - modifying unicorn to select() on the client connection after reading
+> > the request, to see if it's been closed upstream, and avoid calling
+> > the app.
+> 
+> You should be able to get the socket out of
+> Unicorn::TeeInput/Unicorn::StreamInput object via:
+> 
+>   env["rack.input"].instance_variable_get(:@socket)
+> 
+> Make sure you don't have other middleware which wraps rack.input
+> such as Rack::Lint.  I highly doubt the ivar name will change in
+> the future.
+> 
+> If you're accepting uploads, you (or your app framework) will need to
+> drain the socket of upload data, first (Rails does this for you, I
+> think).
+
+Maybe this gross hack can work for you guys.  It writes the first
+chunk of the HTTP response header out immediately after reading
+the request headers, and sends the rest once it gets the status...
+
+It probably needs :tcp_nodelay => false for it to be reliable, though.
+(I don't think I need each_byte below, two separate write()s should
+be enough Nagle)
+
+It screws up error/exception reporting in some cases, though:
+
+diff --git a/lib/unicorn/const.rb b/lib/unicorn/const.rb
+index b3d8d71..818fac8 100644
+--- a/lib/unicorn/const.rb
++++ b/lib/unicorn/const.rb
+@@ -33,7 +33,7 @@ module Unicorn::Const
+   ERROR_414_RESPONSE = "HTTP/1.1 414 Request-URI Too Long\r\n\r\n"
+   ERROR_413_RESPONSE = "HTTP/1.1 413 Request Entity Too Large\r\n\r\n"
+   ERROR_500_RESPONSE = "HTTP/1.1 500 Internal Server Error\r\n\r\n"
+-  EXPECT_100_RESPONSE = "HTTP/1.1 100 Continue\r\n\r\n"
++  EXPECT_100_RESPONSE = "100 Continue\r\n\r\n HTTP/1.1"
+ 
+   HTTP_EXPECT = "HTTP_EXPECT"
+   # :startdoc:
+diff --git a/lib/unicorn/http_request.rb b/lib/unicorn/http_request.rb
+index a0435d6..73fbd41 100644
+--- a/lib/unicorn/http_request.rb
++++ b/lib/unicorn/http_request.rb
+@@ -70,6 +70,12 @@ class Unicorn::HttpParser
+       # an Exception thrown from the parser will throw us out of the loop
+       false until add_parse(socket.kgio_read!(16384))
+     end
++
++    # detect if the socket is valid by writing a partial response:
++    if headers?
++      "HTTP/1.1 ".each_char { |c| socket.write(c) }
++    end
++
+     e[RACK_INPUT] = 0 == content_length ?
+                     NULL_IO : @@input_class.new(socket, self)
+     e.merge!(DEFAULTS)
+diff --git a/lib/unicorn/http_response.rb b/lib/unicorn/http_response.rb
+index b781e20..c2e9d1d 100644
+--- a/lib/unicorn/http_response.rb
++++ b/lib/unicorn/http_response.rb
+@@ -22,7 +22,7 @@ module Unicorn::HttpResponse
+     status = CODES[status.to_i] || status
+ 
+     if headers
+-      buf = "HTTP/1.1 #{status}\r\n" \
++      buf = "#{status}\r\n" \
+             "Date: #{httpdate}\r\n" \
+             "Status: #{status}\r\n" \
+             "Connection: close\r\n"
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
