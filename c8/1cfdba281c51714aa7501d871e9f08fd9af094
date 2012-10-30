@@ -1,0 +1,101 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=-0.2 required=5.0 tests=AWL shortcircuit=no
+ autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id C21491F452 for
+ <archivist@yhbt.net>; Tue, 30 Oct 2012 21:37:28 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 3E5862E072; Tue, 30 Oct 2012 21:37:28 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id CE5072E06F for <mongrel-unicorn@rubyforge.org>; Tue,
+ 30 Oct 2012 21:37:20 +0000 (UTC)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 14D6F1F451; Tue, 30 Oct 2012 21:37:20 +0000 (UTC)
+Date: Tue, 30 Oct 2012 14:37:19 -0700
+From: Eric Wong <normalperson@yhbt.net>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Subject: Re: Combating nginx 499 HTTP responses during flash traffic scenario
+Message-ID: <20121030213719.GA6701@dcvr.yhbt.net>
+References:
+ <CAK4qKG32dGgNbzTzCb6NoH5hu_DrHMOFaFhk-6Xvy-T86++ukA@mail.gmail.com>
+ <20121029184549.GA9690@dcvr.yhbt.net> <20121029215312.GA29353@dcvr.yhbt.net>
+ <CAK4qKG0UPqkbM8HYccx0moNJ7WsCf-e4uu6Eh6DGNvcn58BLYg@mail.gmail.com>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To:
+ <CAK4qKG0UPqkbM8HYccx0moNJ7WsCf-e4uu6Eh6DGNvcn58BLYg@mail.gmail.com>
+User-Agent: Mutt/1.5.21 (2010-09-15)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Tom Burns <tom.burns@jadedpixel.com> wrote:
+> On Mon, Oct 29, 2012 at 5:53 PM, Eric Wong <normalperson@yhbt.net> wrote:
+> > Maybe this gross hack can work for you guys.  It writes the first
+> > chunk of the HTTP response header out immediately after reading
+> > the request headers, and sends the rest once it gets the status...
+> 
+> I tested the patch today and it does what we want, dropping
+> connections before passing them to the rails app when the client has
+> already disconnected.
+> 
+> I also benchmarked the patch to see if it had a negligible performance
+> hit and it did not.  The cost was absorbed by the variation in speed
+> of the other components in the stack (nginx & rails).
+
+Good to know.  Thanks for reporting back.
+
+> I noticed on my computer applying the patch breaks
+> test_rack_lint_big_put in the unicorn test suite.  This may be just my
+> issue as the test suite does not run cleanly anyways if I checkout
+> origin/master.
+
+The test suite in master should be passing cleanly, at least on a
+GNU/Linux machine...
+
+Yes, this hacky patch breaks some tests/internals and screws up
+exception error/reporting badly.
+
+> We'd prefer to not have to fork unicorn for this change.  How do you
+> feel about merging this or a derivative thereof?  I can develop this
+> further if you can send me what you'd want.
+
+Sure thing!
+
+I strongly prefer this to be optional behavior and off-by-default.
+
+Also, I'm nearly certain two write()s is all that's needed and the
+each_char is unnecessary syscall/packet overhead.
+
+This will trigger bugs in badly-written HTTP clients/parsers (probably
+some test suites :x) which assume a header comes in a single read().
+
+For TCP users, I believe this requires both tcp_nodelay:false and
+tcp_nopush:false to be completely reliable, so we need to enforce that
+those if this option is in effect.  The current each_char usage is
+probably masking the tcp_nodelay:false requirement.
+
+Thanks again.
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
