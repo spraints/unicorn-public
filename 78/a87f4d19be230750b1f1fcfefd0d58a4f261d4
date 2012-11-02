@@ -1,0 +1,104 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=-0.2 required=5.0 tests=AWL shortcircuit=no
+ autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id AEFB01F4DE for
+ <archivist@yhbt.net>; Fri,  2 Nov 2012 19:38:12 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id EF42E26304E; Fri,  2 Nov 2012 19:38:12 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 602A326304B for <mongrel-unicorn@rubyforge.org>; Fri,
+ 2 Nov 2012 19:38:05 +0000 (UTC)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 9B7841F452; Fri,  2 Nov 2012 19:38:03 +0000 (UTC)
+Date: Fri, 2 Nov 2012 12:38:03 -0700
+From: Eric Wong <normalperson@yhbt.net>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Subject: Re: Combating nginx 499 HTTP responses during flash traffic scenario
+Message-ID: <20121102193803.GA17916@dcvr.yhbt.net>
+References:
+ <CAK4qKG32dGgNbzTzCb6NoH5hu_DrHMOFaFhk-6Xvy-T86++ukA@mail.gmail.com>
+ <20121029184549.GA9690@dcvr.yhbt.net> <20121029215312.GA29353@dcvr.yhbt.net>
+ <CAK4qKG0UPqkbM8HYccx0moNJ7WsCf-e4uu6Eh6DGNvcn58BLYg@mail.gmail.com>
+ <20121030213719.GA6701@dcvr.yhbt.net>
+ <CAK4qKG3vqGa0GaYRjjJkmWxxE1cbwpDAo==MSdhmA+5dMxXUnw@mail.gmail.com>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To:
+ <CAK4qKG3vqGa0GaYRjjJkmWxxE1cbwpDAo==MSdhmA+5dMxXUnw@mail.gmail.com>
+User-Agent: Mutt/1.5.21 (2010-09-15)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Tom Burns <tom.burns@jadedpixel.com> wrote:
+> On Tue, Oct 30, 2012 at 5:37 PM, Eric Wong <normalperson@yhbt.net> wrote:
+> > Tom Burns <tom.burns@jadedpixel.com> wrote:
+> > > We'd prefer to not have to fork unicorn for this change.  How do you
+> > > feel about merging this or a derivative thereof?  I can develop this
+> > > further if you can send me what you'd want.
+> >
+> > Sure thing!
+> 
+> Below is a patch for this functionality.
+> 
+> We're going to be testing this further next week before rolling it out
+> in production.
+
+Thank you for the patch and I'm looking forward to hearing about how it
+works for you guys.  I'd love to hear feedback from anybody else who is
+trying this, too.
+
+> It's still pre-writing the entire HTTP/1.1 header start, but as just
+> two strings.  It could be shortened to just pre-writing HT but I
+> thought writing that full word looked cleaner.
+> 
+> Please let me know what you think.
+
+Everything looks good for stock configurations.  The ERROR_XXX_RESPONSE
+constants should have "HTTP/1.1 " removed if used with this option, too.
+That requires keeping track of whether or not we've written out
+"HTTP/1.1 ", yet.
+
+(I don't think there's much benefit in using constants for rarely-used
+ error responses, either.  Most of those were inherited from Mongrel
+ which had many client-triggered errors to deal with)
+
+> The only thing it's missing from your TODO is enforcing
+> tcp_nodelay/tcp_nopush as I wasn't sure where was the best place to do
+> the enforcement.
+
+It should probably be done inside Unicorn::Configurator#commit!
+
+> Never done this inline with GMail, sorry in advance if formatting gets
+> destroyed :)
+
+"git apply" runs cleanly on this message :)
+
+You'll probably find it more reliable and easier to use "git send-email".
+The git-send-email manpage has an example for using it with
+"git format-patch" + GMail SMTP.  Using "git format-patch" also lets
+you preserve your original commit message/authorship information.
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
