@@ -1,0 +1,378 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=0.0 required=5.0 tests=none shortcircuit=no
+ autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id 509DD1F4E1 for
+ <archivist@yhbt.net>; Sat,  3 Nov 2012 22:45:20 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 0DCFE263049; Sat,  3 Nov 2012 22:45:20 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from mail-ob0-f178.google.com (mail-ob0-f178.google.com
+ [209.85.214.178]) by rubyforge.org (Postfix) with ESMTP id 34E8A263042 for
+ <mongrel-unicorn@rubyforge.org>; Sat,  3 Nov 2012 22:45:15 +0000 (UTC)
+Received: by mail-ob0-f178.google.com with SMTP id tb18so5709529obb.23 for
+ <mongrel-unicorn@rubyforge.org>; Sat, 03 Nov 2012 15:45:13 -0700 (PDT)
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com;
+ s=20120113;
+ h=mime-version:in-reply-to:references:date:message-id:subject:from:to
+ :content-type:x-gm-message-state;
+ bh=VmU5UeMpbApjbtjr/mYt0TUkbEj0LWwqgMtNblptxuo=;
+ b=JEANPQlnW+W0O8iTVIKEqb1lxV/QNJr6cvdaxPQUjCLEdSvMEIxESX+j9eG9ihdOyx
+ fEe82G6g98eKxhFHndVsaORzwOMpceCUC1DfBVTtFyP2WPy357mo/vOdjj/0uJlen1V9
+ mFQLeEoji7nKFnxlvIaBNBQIfn37zJ97nf90rHL7CBKMhqMdkKJz4e7iSindmTvf4EIY
+ vQq406gha9GP1G8PJBUilQtm1hmadhPGDulYkXiErMTDk8UIX+b2ZZ5vDtOUf+dEoT5a
+ IwupaP0JS2McGVSPrcZW+zmDYDrYe6KASnwWg0sl/Ik/teUKQ5+ixwQK/ZQiXFnJfv49 +OzA==
+MIME-Version: 1.0
+Received: by 10.182.228.69 with SMTP id sg5mr4675617obc.2.1351982713490; Sat,
+ 03 Nov 2012 15:45:13 -0700 (PDT)
+Received: by 10.60.4.65 with HTTP; Sat, 3 Nov 2012 15:45:13 -0700 (PDT)
+In-Reply-To: <20121102193803.GA17916@dcvr.yhbt.net>
+References:
+ <CAK4qKG32dGgNbzTzCb6NoH5hu_DrHMOFaFhk-6Xvy-T86++ukA@mail.gmail.com>
+ <20121029184549.GA9690@dcvr.yhbt.net> <20121029215312.GA29353@dcvr.yhbt.net>
+ <CAK4qKG0UPqkbM8HYccx0moNJ7WsCf-e4uu6Eh6DGNvcn58BLYg@mail.gmail.com>
+ <20121030213719.GA6701@dcvr.yhbt.net>
+ <CAK4qKG3vqGa0GaYRjjJkmWxxE1cbwpDAo==MSdhmA+5dMxXUnw@mail.gmail.com>
+ <20121102193803.GA17916@dcvr.yhbt.net>
+Date: Sat, 3 Nov 2012 18:45:13 -0400
+Message-ID:
+ <CAK4qKG1AJdsXvTuUT+Q85qTZzfCTLUMDd=d1LzFgfM6THc5G=g@mail.gmail.com>
+Subject: Re: Combating nginx 499 HTTP responses during flash traffic scenario
+From: Tom Burns <tom.burns@jadedpixel.com>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+X-Gm-Message-State:
+ ALoCoQlU0HtyjjsKmCNMbZL+FIskRe4ILYh09DIGmDawQ9AAS6/ifGzHKF0XbXlcXmXePTBfp31u
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+On Fri, Nov 2, 2012 at 3:38 PM, Eric Wong <normalperson@yhbt.net> wrote:
+> Everything looks good for stock configurations.  The ERROR_XXX_RESPONSE
+> constants should have "HTTP/1.1 " removed if used with this option, too.
+> That requires keeping track of whether or not we've written out
+> "HTTP/1.1 ", yet.
+
+The patch below tracks if we've sent the start of the response.  It
+also passes that to http_response_write as a parameter with default
+value false.  By doing this, the test suite passes if you change the
+default value for check_client_connection to true, which makes me feel
+a lot better about the patch.
+
+> > The only thing it's missing from your TODO is enforcing
+> > tcp_nodelay/tcp_nopush as I wasn't sure where was the best place to do
+> > the enforcement.
+>
+> It should probably be done inside Unicorn::Configurator#commit!
+
+So, I still didn't so this, because in commit! we don't know if it's a
+TCP or UNIX socket, and I don't think it'd be nice to force tcp
+configs if the user's using a UNIX socket.  If you disagree I can add
+the check there, it just seemed weird when I looked at it.
+
+>
+> You'll probably find it more reliable and easier to use "git send-email".
+
+Sadly with 2-factor authentication I think this is a no go.
+
+Let me know what you think!
+
+Cheers,
+Tom
+
+>From d7e249202b0fd5c24f2b98c700e02bf992c6576b Mon Sep 17 00:00:00 2001
+From: Tom Burns <tom.burns@jadedpixel.com>
+Date: Tue, 30 Oct 2012 16:22:21 -0400
+Subject: [PATCH] Begin writing HTTP request headers early to detect
+ disconnected clients
+
+---
+ examples/unicorn.conf.rb       |    6 ++++++
+ lib/unicorn/configurator.rb    |    7 +++++++
+ lib/unicorn/const.rb           |   12 ++++++++----
+ lib/unicorn/http_request.rb    |   21 +++++++++++++++++++++
+ lib/unicorn/http_response.rb   |    5 +++--
+ lib/unicorn/http_server.rb     |   23 +++++++++++++++++++++--
+ test/exec/test_exec.rb         |    7 ++++++-
+ test/unit/test_configurator.rb |   12 ++++++++++++
+ 8 files changed, 84 insertions(+), 9 deletions(-)
+
+diff --git a/examples/unicorn.conf.rb b/examples/unicorn.conf.rb
+index 0238043..1f4c9c0 100644
+--- a/examples/unicorn.conf.rb
++++ b/examples/unicorn.conf.rb
+@@ -46,6 +46,12 @@ preload_app true
+ GC.respond_to?(:copy_on_write_friendly=) and
+   GC.copy_on_write_friendly = true
+
++# Enable this flag to have unicorn test client connections by writing the
++# beginning of the HTTP headers before calling the application.  This
++# prevents calling the application for connections that have disconnected
++# while queued.
++check_client_connection false
++
+ before_fork do |server, worker|
+   # the following is highly recomended for Rails + "preload_app true"
+   # as there's no need for the master process to hold a connection
+diff --git a/lib/unicorn/configurator.rb b/lib/unicorn/configurator.rb
+index 89cbf5c..ca84a88 100644
+--- a/lib/unicorn/configurator.rb
++++ b/lib/unicorn/configurator.rb
+@@ -45,6 +45,7 @@ class Unicorn::Configurator
+       },
+     :pid => nil,
+     :preload_app => false,
++    :check_client_connection => false,
+     :rewindable_input => true, # for Rack 2.x: (Rack::VERSION[0] <= 1),
+     :client_body_buffer_size => Unicorn::Const::MAX_BODY,
+     :trust_x_forwarded => true,
+@@ -454,6 +455,12 @@ class Unicorn::Configurator
+     set_int(:client_body_buffer_size, bytes, 0)
+   end
+
++  # When enabled, unicorn will check the client connection by writing
++  # the beginning of the HTTP headers before calling the application.
++  def check_client_connection(bool)
++    set_bool(:check_client_connection, bool)
++  end
++
+   # Allow redirecting $stderr to a given path.  Unlike doing this from
+   # the shell, this allows the unicorn process to know the path its
+   # writing to and rotate the file if it is used for logging.  The
+diff --git a/lib/unicorn/const.rb b/lib/unicorn/const.rb
+index b3d8d71..f0c4c12 100644
+--- a/lib/unicorn/const.rb
++++ b/lib/unicorn/const.rb
+@@ -29,12 +29,16 @@ module Unicorn::Const
+
+   # :stopdoc:
+   # common errors we'll send back
+-  ERROR_400_RESPONSE = "HTTP/1.1 400 Bad Request\r\n\r\n"
+-  ERROR_414_RESPONSE = "HTTP/1.1 414 Request-URI Too Long\r\n\r\n"
+-  ERROR_413_RESPONSE = "HTTP/1.1 413 Request Entity Too Large\r\n\r\n"
+-  ERROR_500_RESPONSE = "HTTP/1.1 500 Internal Server Error\r\n\r\n"
++  ERROR_400_RESPONSE = "400 Bad Request\r\n\r\n"
++  ERROR_414_RESPONSE = "414 Request-URI Too Long\r\n\r\n"
++  ERROR_413_RESPONSE = "413 Request Entity Too Large\r\n\r\n"
++  ERROR_500_RESPONSE = "500 Internal Server Error\r\n\r\n"
++
+   EXPECT_100_RESPONSE = "HTTP/1.1 100 Continue\r\n\r\n"
++  EXPECT_100_RESPONSE_SUFFIXED = "100 Continue\r\n\r\nHTTP/1.1 "
+
++  HTTP_RESPONSE_START = ['HTTP', '/1.1 ']
+   HTTP_EXPECT = "HTTP_EXPECT"
++
+   # :startdoc:
+ end
+diff --git a/lib/unicorn/http_request.rb b/lib/unicorn/http_request.rb
+index a0435d6..9aceb0e 100644
+--- a/lib/unicorn/http_request.rb
++++ b/lib/unicorn/http_request.rb
+@@ -22,11 +22,14 @@ class Unicorn::HttpParser
+
+   NULL_IO = StringIO.new("")
+
++  attr_accessor :response_start_sent
++
+   # :stopdoc:
+   # A frozen format for this is about 15% faster
+   REMOTE_ADDR = 'REMOTE_ADDR'.freeze
+   RACK_INPUT = 'rack.input'.freeze
+   @@input_class = Unicorn::TeeInput
++  @@check_client_connection = false
+
+   def self.input_class
+     @@input_class
+@@ -35,6 +38,15 @@ class Unicorn::HttpParser
+   def self.input_class=(klass)
+     @@input_class = klass
+   end
++
++  def self.check_client_connection
++    @@check_client_connection
++  end
++
++  def self.check_client_connection=(bool)
++    @@check_client_connection = bool
++  end
++
+   # :startdoc:
+
+   # Does the majority of the IO processing.  It has been written in
+@@ -70,6 +82,15 @@ class Unicorn::HttpParser
+       # an Exception thrown from the parser will throw us out of the loop
+       false until add_parse(socket.kgio_read!(16384))
+     end
++
++    # detect if the socket is valid by writing a partial response:
++    if @@check_client_connection && headers?
++      @response_start_sent = true
++      Unicorn::Const::HTTP_RESPONSE_START.each { |c| socket.write(c) }
++    else
++      @response_start_sent = false
++    end
++
+     e[RACK_INPUT] = 0 == content_length ?
+                     NULL_IO : @@input_class.new(socket, self)
+     e.merge!(DEFAULTS)
+diff --git a/lib/unicorn/http_response.rb b/lib/unicorn/http_response.rb
+index b781e20..9c2bacc 100644
+--- a/lib/unicorn/http_response.rb
++++ b/lib/unicorn/http_response.rb
+@@ -18,11 +18,12 @@ module Unicorn::HttpResponse
+   CRLF = "\r\n"
+
+   # writes the rack_response to socket as an HTTP response
+-  def http_response_write(socket, status, headers, body)
++  def http_response_write(socket, status, headers, body,
+response_start_sent=false)
+     status = CODES[status.to_i] || status
+
++    http_response_start = response_start_sent ? '' : 'HTTP/1.1 '
+     if headers
+-      buf = "HTTP/1.1 #{status}\r\n" \
++      buf = "#{http_response_start}#{status}\r\n" \
+             "Date: #{httpdate}\r\n" \
+             "Status: #{status}\r\n" \
+             "Connection: close\r\n"
+diff --git a/lib/unicorn/http_server.rb b/lib/unicorn/http_server.rb
+index 13df55a..abe27db 100644
+--- a/lib/unicorn/http_server.rb
++++ b/lib/unicorn/http_server.rb
+@@ -17,6 +17,7 @@ class Unicorn::HttpServer
+                 :listener_opts, :preload_app,
+                 :reexec_pid, :orig_app, :init_listeners,
+                 :master_pid, :config, :ready_pipe, :user
++
+   attr_reader :pid, :logger
+   include Unicorn::SocketHelper
+   include Unicorn::HttpResponse
+@@ -355,6 +356,14 @@ class Unicorn::HttpServer
+     Unicorn::HttpParser.trust_x_forwarded = bool
+   end
+
++  def check_client_connection
++    Unicorn::HttpRequest.check_client_connection
++  end
++
++  def check_client_connection=(bool)
++    Unicorn::HttpRequest.check_client_connection = bool
++  end
++
+   private
+
+   # wait for a signal hander to wake us up and then consume the pipe
+@@ -524,23 +533,33 @@ class Unicorn::HttpServer
+       Unicorn.log_error(@logger, "app error", e)
+       Unicorn::Const::ERROR_500_RESPONSE
+     end
++    msg = 'HTTP/1.1 ' + msg unless @request.response_start_sent
+     client.kgio_trywrite(msg)
+     client.close
+     rescue
+   end
+
++  def expect_100_response
++    if @request.response_start_sent
++      Unicorn::Const::EXPECT_100_RESPONSE_SUFFIXED
++    else
++      Unicorn::Const::EXPECT_100_RESPONSE
++    end
++  end
++
+   # once a client is accepted, it is processed in its entirety here
+   # in 3 easy steps: read request, call app, write app response
+   def process_client(client)
++    @request.response_start_sent = false
+     status, headers, body = @app.call(env = @request.read(client))
+
+     if 100 == status.to_i
+-      client.write(Unicorn::Const::EXPECT_100_RESPONSE)
++      client.write(expect_100_response)
+       env.delete(Unicorn::Const::HTTP_EXPECT)
+       status, headers, body = @app.call(env)
+     end
+     @request.headers? or headers = nil
+-    http_response_write(client, status, headers, body)
++    http_response_write(client, status, headers, body,
+@request.response_start_sent)
+     client.shutdown # in case of fork() in Rack app
+     client.close # flush and uncork socket immediately, no keepalive
+   rescue => e
+diff --git a/test/exec/test_exec.rb b/test/exec/test_exec.rb
+index b30a3d6..1cee2b7 100644
+--- a/test/exec/test_exec.rb
++++ b/test/exec/test_exec.rb
+@@ -871,13 +871,14 @@ EOF
+     wait_for_death(pid)
+   end
+
+-  def hup_test_common(preload)
++  def hup_test_common(preload, check_client=false)
+     File.open("config.ru", "wb") { |fp| fp.syswrite(HI.gsub("HI", '#$$')) }
+     pid_file = Tempfile.new('pid')
+     ucfg = Tempfile.new('unicorn_test_config')
+     ucfg.syswrite("listen '#@addr:#@port'\n")
+     ucfg.syswrite("pid '#{pid_file.path}'\n")
+     ucfg.syswrite("preload_app true\n") if preload
++    ucfg.syswrite("check_client_connection true\n") if check_client
+     ucfg.syswrite("stderr_path 'test_stderr.#$$.log'\n")
+     ucfg.syswrite("stdout_path 'test_stdout.#$$.log'\n")
+     pid = xfork {
+@@ -942,6 +943,10 @@ EOF
+     hup_test_common(false)
+   end
+
++  def test_check_client_hup
++    hup_test_common(false, true)
++  end
++
+   def test_default_listen_hup_holds_listener
+     default_listen_lock do
+       res, pid_path = default_listen_setup
+diff --git a/test/unit/test_configurator.rb b/test/unit/test_configurator.rb
+index c19c427..fc4170e 100644
+--- a/test/unit/test_configurator.rb
++++ b/test/unit/test_configurator.rb
+@@ -139,6 +139,18 @@ class TestConfigurator < Test::Unit::TestCase
+     end
+   end
+
++  def test_check_client_connection
++    tmp = Tempfile.new('unicorn_config')
++    test_struct = TestStruct.new
++    tmp.syswrite("check_client_connection true\n")
++
++    assert_nothing_raised do
++      Unicorn::Configurator.new(:config_file => tmp.path).commit!(test_struct)
++    end
++
++    assert test_struct.check_client_connection
++  end
++
+   def test_after_fork_proc
+     test_struct = TestStruct.new
+     [ proc { |a,b| }, Proc.new { |a,b| }, lambda { |a,b| } ].each do |my_proc|
+-- 
+1.7.7.5 (Apple Git-26)
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
