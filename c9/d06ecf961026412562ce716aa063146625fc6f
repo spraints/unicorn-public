@@ -1,0 +1,153 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=-0.2 required=5.0 tests=AWL shortcircuit=no
+ autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id ABE9833FB3 for
+ <archivist@yhbt.net>; Mon,  5 Nov 2012 11:54:32 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 4AA7A263060; Mon,  5 Nov 2012 11:54:31 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 15448263059 for <mongrel-unicorn@rubyforge.org>; Mon,
+ 5 Nov 2012 11:48:51 +0000 (UTC)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 456223F0E2; Mon,  5 Nov 2012 11:48:50 +0000 (UTC)
+Date: Mon, 5 Nov 2012 11:48:50 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Subject: Re: Combating nginx 499 HTTP responses during flash traffic scenario
+Message-ID: <20121105114850.GA15932@dcvr.yhbt.net>
+References:
+ <CAK4qKG32dGgNbzTzCb6NoH5hu_DrHMOFaFhk-6Xvy-T86++ukA@mail.gmail.com>
+ <20121029184549.GA9690@dcvr.yhbt.net> <20121029215312.GA29353@dcvr.yhbt.net>
+ <CAK4qKG0UPqkbM8HYccx0moNJ7WsCf-e4uu6Eh6DGNvcn58BLYg@mail.gmail.com>
+ <20121030213719.GA6701@dcvr.yhbt.net>
+ <CAK4qKG3vqGa0GaYRjjJkmWxxE1cbwpDAo==MSdhmA+5dMxXUnw@mail.gmail.com>
+ <20121102193803.GA17916@dcvr.yhbt.net>
+ <CAK4qKG1AJdsXvTuUT+Q85qTZzfCTLUMDd=d1LzFgfM6THc5G=g@mail.gmail.com>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To:
+ <CAK4qKG1AJdsXvTuUT+Q85qTZzfCTLUMDd=d1LzFgfM6THc5G=g@mail.gmail.com>
+User-Agent: Mutt/1.5.21 (2010-09-15)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Tom Burns <tom.burns@jadedpixel.com> wrote:
+> On Fri, Nov 2, 2012 at 3:38 PM, Eric Wong <normalperson@yhbt.net> wrote:
+> > Everything looks good for stock configurations.  The ERROR_XXX_RESPONSE
+> > constants should have "HTTP/1.1 " removed if used with this option, too.
+> > That requires keeping track of whether or not we've written out
+> > "HTTP/1.1 ", yet.
+> 
+> The patch below tracks if we've sent the start of the response.  It
+> also passes that to http_response_write as a parameter with default
+> value false.  By doing this, the test suite passes if you change the
+> default value for check_client_connection to true, which makes me feel
+> a lot better about the patch.
+
+Cool.
+
+> > > The only thing it's missing from your TODO is enforcing
+> > > tcp_nodelay/tcp_nopush as I wasn't sure where was the best place to do
+> > > the enforcement.
+> >
+> > It should probably be done inside Unicorn::Configurator#commit!
+> 
+> So, I still didn't so this, because in commit! we don't know if it's a
+> TCP or UNIX socket, and I don't think it'd be nice to force tcp
+> configs if the user's using a UNIX socket.  If you disagree I can add
+> the check there, it just seemed weird when I looked at it.
+
+Erm, just check if :tcp_* is set in the :listener_opts hash and raise if
+there's incompatible settings.  We shouldn't be changing settings behind
+users' backs.
+
+> >From d7e249202b0fd5c24f2b98c700e02bf992c6576b Mon Sep 17 00:00:00 2001
+> From: Tom Burns <tom.burns@jadedpixel.com>
+> Date: Tue, 30 Oct 2012 16:22:21 -0400
+> Subject: [PATCH] Begin writing HTTP request headers early to detect
+>  disconnected clients
+
+This definitely needs a thorough commit message which explains why this
+is a necessary addition, how it works, when it works, and what benefits
+it brings.
+
+We can wait until you can report on how this change improves your
+situation before fleshing this out.  Real-world results are always
+good to have :>
+
+> --- a/lib/unicorn/http_request.rb
+> +++ b/lib/unicorn/http_request.rb
+> @@ -70,6 +82,15 @@ class Unicorn::HttpParser
+>        # an Exception thrown from the parser will throw us out of the loop
+>        false until add_parse(socket.kgio_read!(16384))
+>      end
+> +
+> +    # detect if the socket is valid by writing a partial response:
+> +    if @@check_client_connection && headers?
+> +      @response_start_sent = true
+> +      Unicorn::Const::HTTP_RESPONSE_START.each { |c| socket.write(c) }
+> +    else
+> +      @response_start_sent = false
+
+This else portion is redundant given it's set to false when you reset
+the parser (see my final comment below)
+
+> --- a/lib/unicorn/http_server.rb
+> +++ b/lib/unicorn/http_server.rb
+> @@ -524,23 +533,33 @@ class Unicorn::HttpServer
+>        Unicorn.log_error(@logger, "app error", e)
+>        Unicorn::Const::ERROR_500_RESPONSE
+>      end
+> +    msg = 'HTTP/1.1 ' + msg unless @request.response_start_sent
+
+String interpolation would be easier to read, here (and slightly
+smaller bytecode if it matters :>).
+
+>      client.kgio_trywrite(msg)
+>      client.close
+>      rescue
+>    end
+> 
+> +  def expect_100_response
+> +    if @request.response_start_sent
+> +      Unicorn::Const::EXPECT_100_RESPONSE_SUFFIXED
+> +    else
+> +      Unicorn::Const::EXPECT_100_RESPONSE
+> +    end
+> +  end
+> +
+>    # once a client is accepted, it is processed in its entirety here
+>    # in 3 easy steps: read request, call app, write app response
+>    def process_client(client)
+> +    @request.response_start_sent = false
+
+Better to reset this ivar in the HttpParser#reset method
+(it's in the C extension, I can change it later).
+
+Random thought:  HttpResponse generation gains even more coupling
+with the current Http{Request,Parser} state.  Organizing code is hard :x
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
