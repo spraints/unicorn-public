@@ -1,0 +1,177 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=-0.2 required=5.0 tests=AWL shortcircuit=no
+ autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id 4986F1F5CB for
+ <archivist@yhbt.net>; Tue,  6 Nov 2012 21:23:50 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id D902B263065; Tue,  6 Nov 2012 21:23:49 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 7ED48263062 for <mongrel-unicorn@rubyforge.org>; Tue,
+ 6 Nov 2012 21:23:41 +0000 (UTC)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 28C3C1F5B8; Tue,  6 Nov 2012 21:23:39 +0000 (UTC)
+Date: Tue, 6 Nov 2012 21:23:38 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Subject: Re: Combating nginx 499 HTTP responses during flash traffic scenario
+Message-ID: <20121106212338.GA4018@dcvr.yhbt.net>
+References:
+ <CAK4qKG32dGgNbzTzCb6NoH5hu_DrHMOFaFhk-6Xvy-T86++ukA@mail.gmail.com>
+ <20121029184549.GA9690@dcvr.yhbt.net> <20121029215312.GA29353@dcvr.yhbt.net>
+ <CAK4qKG0UPqkbM8HYccx0moNJ7WsCf-e4uu6Eh6DGNvcn58BLYg@mail.gmail.com>
+ <20121030213719.GA6701@dcvr.yhbt.net>
+ <CAK4qKG3vqGa0GaYRjjJkmWxxE1cbwpDAo==MSdhmA+5dMxXUnw@mail.gmail.com>
+ <20121102193803.GA17916@dcvr.yhbt.net>
+ <CAK4qKG1AJdsXvTuUT+Q85qTZzfCTLUMDd=d1LzFgfM6THc5G=g@mail.gmail.com>
+ <20121105114850.GA15932@dcvr.yhbt.net>
+ <CAK4qKG302+i7+WLnOqc=1FHi4dSEUd_j7J=JJjcLOsFWObncKQ@mail.gmail.com>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To:
+ <CAK4qKG302+i7+WLnOqc=1FHi4dSEUd_j7J=JJjcLOsFWObncKQ@mail.gmail.com>
+User-Agent: Mutt/1.5.20 (2009-06-14)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Tom Burns <tom.burns@jadedpixel.com> wrote:
+> On Mon, Nov 5, 2012 at 6:48 AM, Eric Wong <normalperson@yhbt.net> wrote:
+> > We can wait until you can report on how this change improves your
+> > situation before fleshing this out.  Real-world results are always
+> > good to have :>
+> 
+> Agreed.
+> 
+> We're going to be testing this this week so I should have some results
+> to share by the weekend.  We only experience the problem during major
+> sales so it may or may not manifest without our traffic generation
+> tool.
+
+Holidays are coming up, should be lots of traffic :)
+
+> I'd like to be testing a patch close to the finished product so I've
+> addressed all of your comments from the previous email (including the
+> modification to the C extension) in the patch below.
+
+Thanks for the updated patch.  A few comments below, apologies for the
+nitpicks :)
+
+> > Random thought:  HttpResponse generation gains even more coupling
+> > with the current Http{Request,Parser} state.  Organizing code is hard :x
+> Agreed.  Without a class wrapping the raw socket to hold state I
+> didn't see a better way to accomplish this, but I've only been looking
+> at this code for the past week or so.
+
+I'm leaning towards just having one HttpState class which encompasses
+the entire client state (request/response).  I did that earlier this
+year for a single-purpose (non-Ruby) HTTP daemon and that design makes
+the most sense to me.
+
+Maybe we'll modify unicorn around that sooner or later...
+
+> diff --git a/ext/unicorn_http/unicorn_http.rl b/ext/unicorn_http/unicorn_http.rl
+> index 96dcf83..52f7f3c 100644
+> --- a/ext/unicorn_http/unicorn_http.rl
+> +++ b/ext/unicorn_http/unicorn_http.rl
+> @@ -115,7 +115,7 @@ struct http_parser {
+>    } len;
+>  };
+> 
+> -static ID id_clear, id_set_backtrace;
+> +static ID id_clear, id_set_backtrace, id_response_start_sent;
+> 
+>  static void finalize_header(struct http_parser *hp);
+> 
+> @@ -626,6 +626,7 @@ static VALUE HttpParser_clear(VALUE self)
+> 
+>    http_parser_init(hp);
+>    rb_funcall(hp->env, id_clear, 0);
+> +  rb_funcall(self, id_response_start_sent, 1, Qfalse);
+
+Nitpick:  Since HttpParser is already an alias of the HttpRequest class,
+rb_ivar_set() should be a hair faster as it won't have to go through
+normal method lookup.
+
+>    return self;
+>  }
+> @@ -1031,6 +1032,7 @@ void Init_unicorn_http(void)
+>    SET_GLOBAL(g_http_connection, "CONNECTION");
+>    id_clear = rb_intern("clear");
+>    id_set_backtrace = rb_intern("set_backtrace");
+> +  id_response_start_sent = rb_intern("response_start_sent=");
+>    init_unicorn_httpdate();
+>  }
+>  #undef SET_GLOBAL
+> diff --git a/lib/unicorn/configurator.rb b/lib/unicorn/configurator.rb
+> index 89cbf5c..5f329af 100644
+> --- a/lib/unicorn/configurator.rb
+> +++ b/lib/unicorn/configurator.rb
+> @@ -45,6 +45,7 @@ class Unicorn::Configurator
+>        },
+>      :pid => nil,
+>      :preload_app => false,
+> +    :check_client_connection => false,
+>      :rewindable_input => true, # for Rack 2.x: (Rack::VERSION[0] <= 1),
+>      :client_body_buffer_size => Unicorn::Const::MAX_BODY,
+>      :trust_x_forwarded => true,
+> @@ -96,6 +97,13 @@ class Unicorn::Configurator
+>      if ready_pipe = RACKUP.delete(:ready_pipe)
+>        server.ready_pipe = ready_pipe
+>      end
+> +    if set[:check_client_connection]
+> +      set[:listeners].each do |address|
+> +        if set[:listener_opts][address][:tcp_nopush] == true ||
+> set[:listener_opts][address][:tcp_nodelay] == true
+
+Oops, I missed long lines the first time.  It looks like your MUA did
+mangle the long line.  Wrap everything at <80 columns should help avoid
+the issue (regardless of MUA, my brain cannot process >80 columns well)
+
+> +          raise ArgumentError, "With check_client_connection set to
+> true both :tcp_nopush and :tcp_nodelay listener options must be set to
+> false."
+
+Likewise, error messages should be more concise and easier to read
+in smaller terminals.
+
+Probably:
+
+check_client_connection is incompatible with (tcp_nopush|tcp_nodelay):true
+
+> @@ -454,6 +462,12 @@ class Unicorn::Configurator
+>      set_int(:client_body_buffer_size, bytes, 0)
+>    end
+> 
+> +  # When enabled, unicorn will check the client connection by writing
+> +  # the beginning of the HTTP headers before calling the application.
+
+Good to document the :tcp_* listener option incompatibilities here, too.
+
+> +  def check_client_connection(bool)
+> +    set_bool(:check_client_connection, bool)
+> +  end
+> +
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
