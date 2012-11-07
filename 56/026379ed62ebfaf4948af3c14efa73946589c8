@@ -1,0 +1,102 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=-0.2 required=5.0 tests=AWL shortcircuit=no
+ autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id B02EC3F238 for
+ <archivist@yhbt.net>; Wed,  7 Nov 2012 21:11:43 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 9F085263055; Wed,  7 Nov 2012 21:11:44 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 5DF7026302F for <mongrel-unicorn@rubyforge.org>; Wed,
+ 7 Nov 2012 21:11:38 +0000 (UTC)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 23E5A3F235; Wed,  7 Nov 2012 21:11:36 +0000 (UTC)
+Date: Wed, 7 Nov 2012 13:11:35 -0800
+From: Eric Wong <normalperson@yhbt.net>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Subject: Re: select(): Interrupted system call from curb when stopping
+ unicorn
+Message-ID: <20121107211135.GA10964@dcvr.yhbt.net>
+References:
+ <CAJ4ZL52kKChaBcWFNnAbfiQ9BtHQ-0nZZ4jARJma2mcvcfv_iQ@mail.gmail.com>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To:
+ <CAJ4ZL52kKChaBcWFNnAbfiQ9BtHQ-0nZZ4jARJma2mcvcfv_iQ@mail.gmail.com>
+User-Agent: Mutt/1.5.21 (2010-09-15)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Graham Bleach <graham@darkskills.org.uk> wrote:
+> Hi,
+> 
+> We've just migrated one of our rails applications from nginx/passenger
+> running on REE 1.8.7 Ubuntu 8.04 to unicorn running on MRI 1.9.3 on
+> Ubuntu 10.04. The app makes a number of calls to internal services
+> using curb.
+> 
+> Our deployment script stops unicorn by sending SIGQUIT to the unicorn
+> master, sleeps for a few seconds to ensure that HAProxy has taken the
+> node out of service and then starts unicorn again.
+> 
+> However, since the migration, we've started seeing a few errors on
+> each deploy, when the workers receive the QUIT from the master:
+> 
+>  ERROR (  XXX) {"exception":{"class":"RuntimeError","message":"select():
+> Interrupted system
+> call","backtrace":["/path/bundle/ruby/1.9.1/gems/curb-0.7.18/lib/curl/easy.rb:39:in
+> `perform'","/path/bundle/ruby/1.9.1/gems/curb-0.7.18/lib/curl/easy.rb:39:in
+> `perform'","/path/bundle/ruby/1.9.1/gems/songkick-transport-0.1.4/lib/songkick/transport/curb.rb:50:in
+> ...
+> 
+> If we're reading this correctly, curb is inside a select() call, gets
+> interrupted by the QUIT signal and doesn't retry the select() and the
+> process terminates, causing an error for the unfortunate end user.
+> 
+> Our options for stopping our users seeing error pages seem to be:
+> 
+> 1) Patch curb to retry the select() if errno = EINTR as per
+> https://github.com/taf2/curb/issues/117
+
+Taking a quick look at the curb source, I see no reason it implements
+curb_select() itself instead of just using rb_thread_select() (or
+rb_thread_fd_select(), the latter is recommended for new Rubies as
+it handles high-numbered FDs better).
+
+Any rb_thread*select() function implemented by Ruby is already aware of
+multithreading and (for 1.9) calls rb_thread_blocking_region()
+internally.
+
+For now, you can probably just: #undef HAVE_RB_THREAD_BLOCKING_REGION
+
+(Feel free to forward my comments to the curb folks, I don't like
+ logging into websites)
+
+> We're not confident enough in our ability to do this properly, but
+> it's probably the most correct way to solve this.
+
+Practice :)
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
