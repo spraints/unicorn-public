@@ -1,0 +1,108 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=0.0 required=5.0 tests=T_DKIM_INVALID
+ shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id 12C763F14F for
+ <archivist@yhbt.net>; Wed,  7 Nov 2012 16:42:47 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id C5991263053; Wed,  7 Nov 2012 16:42:46 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from mail-lb0-f178.google.com (mail-lb0-f178.google.com
+ [209.85.217.178]) by rubyforge.org (Postfix) with ESMTP id 1E3E626302F for
+ <mongrel-unicorn@rubyforge.org>; Wed,  7 Nov 2012 16:42:38 +0000 (UTC)
+Received: by mail-lb0-f178.google.com with SMTP id o2so1748094lba.23 for
+ <mongrel-unicorn@rubyforge.org>; Wed, 07 Nov 2012 08:42:37 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com;
+ s=20120113;
+ h=mime-version:sender:date:x-google-sender-auth:message-id:subject
+ :from:to:content-type; bh=ZlEA3cPcD90vhzplSroIYkf0/FHiLDBZxmLfCeROx7g=;
+ b=GT8TvTQc6KWMc7m6LQKiXZlHGamIsombI0z8LvFHkOvDx4X8orxNzwXQN2DE4agI4d
+ eGAUMn/Shttg49FNKn2Y6gQZYXzhEWSu/zyFwu/tIQUSqsYZW3Gkwyd+g9SqAjtFqYYX
+ Kd54r002bKSuTz3vqwlSWo6C7cRAnQXOSv4exj36vkzti4wwLG6S5LvRi85RLTYaBp42
+ i9s8Qx6zBAIlIuGJ8KbGYGYx1aT/27UDz2SJG5tQdC+GmoV8P3a7AiGWk4q1Eg6MxHCp
+ 3TUnh0iUzcHnNwpku16mr2bstsrt0sxoxTRfQ9WI+BYKy09WdMc8wqTQ3SB+nOQMlmIz xpnA==
+MIME-Version: 1.0
+Received: by 10.112.27.99 with SMTP id s3mr2104989lbg.81.1352306557098; Wed,
+ 07 Nov 2012 08:42:37 -0800 (PST)
+Received: by 10.112.110.5 with HTTP; Wed, 7 Nov 2012 08:42:37 -0800 (PST)
+Date: Wed, 7 Nov 2012 16:42:37 +0000
+X-Google-Sender-Auth: Ge-QmzXHQQhmumrHckvYTvtBFYw
+Message-ID:
+ <CAJ4ZL52kKChaBcWFNnAbfiQ9BtHQ-0nZZ4jARJma2mcvcfv_iQ@mail.gmail.com>
+Subject: select(): Interrupted system call from curb when stopping unicorn
+From: Graham Bleach <graham@darkskills.org.uk>
+To: mongrel-unicorn@rubyforge.org
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Hi,
+
+We've just migrated one of our rails applications from nginx/passenger
+running on REE 1.8.7 Ubuntu 8.04 to unicorn running on MRI 1.9.3 on
+Ubuntu 10.04. The app makes a number of calls to internal services
+using curb.
+
+Our deployment script stops unicorn by sending SIGQUIT to the unicorn
+master, sleeps for a few seconds to ensure that HAProxy has taken the
+node out of service and then starts unicorn again.
+
+However, since the migration, we've started seeing a few errors on
+each deploy, when the workers receive the QUIT from the master:
+
+ ERROR (  XXX) {"exception":{"class":"RuntimeError","message":"select():
+Interrupted system
+call","backtrace":["/path/bundle/ruby/1.9.1/gems/curb-0.7.18/lib/curl/easy.rb:39:in
+`perform'","/path/bundle/ruby/1.9.1/gems/curb-0.7.18/lib/curl/easy.rb:39:in
+`perform'","/path/bundle/ruby/1.9.1/gems/songkick-transport-0.1.4/lib/songkick/transport/curb.rb:50:in
+...
+
+If we're reading this correctly, curb is inside a select() call, gets
+interrupted by the QUIT signal and doesn't retry the select() and the
+process terminates, causing an error for the unfortunate end user.
+
+Our options for stopping our users seeing error pages seem to be:
+
+1) Patch curb to retry the select() if errno = EINTR as per
+https://github.com/taf2/curb/issues/117
+
+We're not confident enough in our ability to do this properly, but
+it's probably the most correct way to solve this.
+
+2) Do something to make sure that requests have all completed before
+sending the QUIT.
+
+For example, we could change our deployment to make the health check
+url that HAProxy polls start returning a non-200 return code, wait
+until all connections have completed and then send the QUIT.
+
+The main issue with this is that short of polling the HAProxy status
+page, we're not entirely sure how to verify that all connections have
+completed.
+
+Does anyone have any suggested solutions or comments?
+
+Regards,
+Graham
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
