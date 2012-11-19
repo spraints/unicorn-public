@@ -1,0 +1,79 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=-0.2 required=5.0 tests=AWL shortcircuit=no
+ autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id 9B8C21F432 for
+ <archivist@yhbt.net>; Mon, 19 Nov 2012 11:23:59 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id C4FE6263050; Mon, 19 Nov 2012 11:23:59 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 5868826304A for <mongrel-unicorn@rubyforge.org>; Mon,
+ 19 Nov 2012 11:23:51 +0000 (UTC)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 7CAF71F42E; Mon, 19 Nov 2012 11:23:50 +0000 (UTC)
+Date: Mon, 19 Nov 2012 11:23:50 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Subject: Re: Number of worker processes on hyperthreaded processor
+Message-ID: <20121119112350.GA31468@dcvr.yhbt.net>
+References: <39816208-25A9-4F8E-A0E0-51621F9C4D5A@airbladesoftware.com>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To: <39816208-25A9-4F8E-A0E0-51621F9C4D5A@airbladesoftware.com>
+User-Agent: Mutt/1.5.20 (2009-06-14)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Andrew Stewart <boss@airbladesoftware.com> wrote:
+> Good morning,
+> 
+> The tuning page says worker_processes should be at least the number of
+> CPU cores on a dedicated server.  In the case of hyper-threading,
+> should this be the number of cores or the number of threads?
+> 
+> For example the Intel Core i7-2600 Quadcore[1] has 4 cores and 8
+> threads.  Would I start my worker_processes at 4 or 8?
+
+I'd start with the number of threads, since (AFAIK) your CPU implements
+HT well (unlike the P4 family).  Modern OSes multitask well, so more
+worker processes will always work until it bumps into another limit
+(e.g. memory usage, DB connections, disk contention, ...)
+
+You may also want more workers to amortize GC/malloc/free costs anyways.
+
+As always, testing for your particular app is required.
+
+> Finally, would the same apply to Nginx worker processes?
+
+I usually run fewer nginx workers since I don't configure much
+CPU/memory-intensive logic in nginx.
+
+However, if you're dealing with large uploads or large responses/static
+files which cannot fit into memory, then I suggest having having enough
+nginx workers to match (or exceed) your storage device count.
+
+> [1] http://ark.intel.com/products/52213/Intel-Core-i7-2600-Processor-8M-Cache-up-to-3_80-GHz
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
