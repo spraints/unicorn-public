@@ -1,0 +1,82 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=0.1 required=5.0 tests=AWL,T_DKIM_INVALID
+ shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id 1D5F21F732 for
+ <archivist@yhbt.net>; Mon, 19 Nov 2012 10:25:53 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id ACE2026304F; Mon, 19 Nov 2012 10:25:52 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+X-Greylist: delayed 480 seconds by postgrey-1.31 at rubyforge; Mon, 19 Nov
+ 2012 10:25:48 UTC
+Received: from out4-smtp.messagingengine.com (out4-smtp.messagingengine.com
+ [66.111.4.28]) by rubyforge.org (Postfix) with ESMTP id 2E327263046 for
+ <mongrel-unicorn@rubyforge.org>; Mon, 19 Nov 2012 10:25:48 +0000 (UTC)
+Received: from compute1.internal (compute1.nyi.mail.srv.osa [10.202.2.41]) by
+ gateway1.nyi.mail.srv.osa (Postfix) with ESMTP id B298320F92 for
+ <mongrel-unicorn@rubyforge.org>; Mon, 19 Nov 2012 05:17:43 -0500 (EST)
+Received: from frontend1.nyi.mail.srv.osa ([10.202.2.160]) by
+ compute1.internal (MEProxy); Mon, 19 Nov 2012 05:17:43 -0500
+DKIM-Signature: v=1; a=rsa-sha1; c=relaxed/relaxed; d= airbladesoftware.com;
+ h=from:content-type :content-transfer-encoding:date:subject:to:message-id
+ :mime-version; s=mesmtp; bh=azRIHfPvpvrnrfr63F8jXoRGSlk=; b=FdWJ
+ 2RWAhbVsX+XEqYxFuPO8MDIfcFtgTy9yrRAyKnaZ5Wb0eoDdXMRM6eChpnoisr4I
+ j64huPWZ/Xq20t2WEqPtU1wJay1UTUH/zRTObrWrL/4UIEiucvlAbLbBJ0LwDx7h
+ oE5HkwFiE2ywZwJ1muf6FWtCgXwazDJBS3QHdRU=
+DKIM-Signature: v=1; a=rsa-sha1; c=relaxed/relaxed; d= messagingengine.com;
+ h=from:content-type :content-transfer-encoding:date:subject:to:message-id
+ :mime-version; s=smtpout; bh=azRIHfPvpvrnrfr63F8jXoRGSlk=; b=uXZ
+ FORXNApnR+6OMHu/FWjSwLlzAs4dA7Ea1KiITnTEyuOaSHAIjbSZo5UHXpavh1Px
+ 9t4wKpCsBnrc33IF/9IoEPShbKW5RDGxeZ5VYkxeaaeZtXQOGpO6EyHzXGvgNow2
+ I545E8wIAOdZEBqN1A0nj+SKMBlZZ5mVG3KRfo8E=
+X-Sasl-enc: wNPdN8lVg2QKBS0Wm6SxcX+G7snJa8doa7UC8HqMjEoa 1353320263
+Received: from [192.168.88.252] (unknown [80.146.246.2]) by
+ mail.messagingengine.com (Postfix) with ESMTPA id 2605D8E0551; Mon, 19 Nov
+ 2012 05:17:43 -0500 (EST)
+From: Andrew Stewart <boss@airbladesoftware.com>
+Date: Mon, 19 Nov 2012 11:17:41 +0100
+Subject: Number of worker processes on hyperthreaded processor
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Message-Id: <39816208-25A9-4F8E-A0E0-51621F9C4D5A@airbladesoftware.com>
+Mime-Version: 1.0 (Apple Message framework v1085)
+X-Mailer: Apple Mail (2.1085)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Good morning,
+
+The tuning page says worker_processes should be at least the number of CPU cores on a dedicated server.  In the case of hyper-threading, should this be the number of cores or the number of threads?
+
+For example the Intel Core i7-2600 Quadcore[1] has 4 cores and 8 threads.  Would I start my worker_processes at 4 or 8?
+
+Finally, would the same apply to Nginx worker processes?
+
+Many thanks,
+
+Andrew Stewart
+
+[1] http://ark.intel.com/products/52213/Intel-Core-i7-2600-Processor-8M-Cache-up-to-3_80-GHz
+
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
