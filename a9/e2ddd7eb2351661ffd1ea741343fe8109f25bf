@@ -1,0 +1,111 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=-0.2 required=5.0 tests=AWL shortcircuit=no
+ autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id 331B51F6D8 for
+ <archivist@yhbt.net>; Wed, 28 Nov 2012 21:10:53 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 0A45F2E077; Wed, 28 Nov 2012 21:10:53 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id B26252E077 for <mongrel-unicorn@rubyforge.org>; Wed,
+ 28 Nov 2012 21:10:42 +0000 (UTC)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id ABAAE1F6D5; Wed, 28 Nov 2012 21:10:40 +0000 (UTC)
+Date: Wed, 28 Nov 2012 21:10:40 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Subject: Re: When a client terminates a connection
+Message-ID: <20121128211040.GA19327@dcvr.yhbt.net>
+References: <B41C47D7-BD67-46A4-A5B7-1A1664866CDE@airbladesoftware.com>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To: <B41C47D7-BD67-46A4-A5B7-1A1664866CDE@airbladesoftware.com>
+User-Agent: Mutt/1.5.21 (2010-09-15)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Andrew Stewart <boss@airbladesoftware.com> wrote:
+> Hello,
+> 
+> I have run into the following situation several times in the past few months:
+> 
+> (My stack is Nginx -- Unicorn -- Rails 3.0.12)
+> 
+> 1. Client clicks a delete link in my webapp.
+> 2. Rails starts processing the appropriate destroy action.  This updates various things in the database (but not in a single db transaction).
+> 3. Client terminates the connection.
+> 4. Rails stops executing the destroy action wherever it has got to, leaving the latter part of the action unexecuted and my db inconsistent.
+> 5. Rails and Unicorn don't write anything to their logs; Nginx writes a 499.
+> 
+> This question has been asked before[1] but regrettably I don't
+> entirely understand all the solutions proposed :)
+> 
+> I plan to wrap all the changes made by my destroy action in a single
+> db transaction.  I'm assuming this will ensure db consistency, even
+> when subject to awkward clients.  Is that correct?
+
+Yes (assuming all your DB actions in the transaction may be
+rolled-back).  I'm no expert in DBs, but I recommend you always
+use transactions when data consistency is required.
+
+> (I'll probably also move the action's work onto a background process,
+> e.g. with delayed job.)
+
+This also works, too, and is likely better if your DB actions take
+a long time.
+
+> Now apologies if I'm barking up the wrong tree here...in general is it
+> possible to configure Unicorn to buffer the request and:
+> 
+> - if the client terminates before the request is fully received, don't
+> pass it to Rails at all;
+> - else pass the complete request to Rails and let Rails execute it
+> fully, even if client terminates in the meantime?
+
+Yes.  Using the Unicorn::PrereadInput middleware (before Rails or any
+other middleware/framework touches env["rack.input"]) should do
+everything you want.
+
+> The thread[1] also mentioned Nginx's proxy_ignore_client_abort.  If
+> that's relevant, has anyone tried it?
+
+I haven't, perhaps Jesse can respond?
+
+> [1]
+> http://rubyforge.org/pipermail/mongrel-unicorn/2011-August/001096.html
+
+On a related note, Tom Burns has/had the same problem[2].  Unlike you,
+he wanted to avoid processing the request in as many cases as possible.
+The solution he came up with isn't 100% foolproof, either, but his
+primary goal was to reduce load on an overloaded system.
+
+I haven't heard back on results of our nasty/crazy solution, though.
+
+If you do combine Tom's solution with yours, you still need to ensure
+DB consistency in the app.
+
+[2] http://mid.gmane.org/CAK4qKG32dGgNbzTzCb6NoH5hu_DrHMOFaFhk-6Xvy-T86++ukA@mail.gmail.com
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
