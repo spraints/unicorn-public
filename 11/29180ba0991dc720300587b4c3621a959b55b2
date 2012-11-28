@@ -1,0 +1,97 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=0.1 required=5.0 tests=AWL,T_DKIM_INVALID
+ shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id A25B31F6D8 for
+ <archivist@yhbt.net>; Wed, 28 Nov 2012 13:32:55 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id E147A2E07D; Wed, 28 Nov 2012 13:32:55 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from out4-smtp.messagingengine.com (out4-smtp.messagingengine.com
+ [66.111.4.28]) by rubyforge.org (Postfix) with ESMTP id BEF0D2E07B for
+ <mongrel-unicorn@rubyforge.org>; Wed, 28 Nov 2012 13:32:48 +0000 (UTC)
+Received: from compute2.internal (compute2.nyi.mail.srv.osa [10.202.2.42]) by
+ gateway1.nyi.mail.srv.osa (Postfix) with ESMTP id 9A8B7209F6 for
+ <mongrel-unicorn@rubyforge.org>; Wed, 28 Nov 2012 08:32:47 -0500 (EST)
+Received: from frontend1.nyi.mail.srv.osa ([10.202.2.160]) by
+ compute2.internal (MEProxy); Wed, 28 Nov 2012 08:32:47 -0500
+DKIM-Signature: v=1; a=rsa-sha1; c=relaxed/relaxed; d= airbladesoftware.com;
+ h=from:content-type :content-transfer-encoding:date:subject:to:message-id
+ :mime-version; s=mesmtp; bh=mHcRPwiJd1ZD6JovLV/VnukHUDc=; b=eOee
+ ZOsgcwK6u1MWVcTEfzPoAXiuwA/ExQJIihUqzRhqgBMaRIK5viH0A3z3kUlfV4Wh
+ EaWDZ1XcgOLeuBMrFfr3tBdWDElqUS4T2jckMMYVw5xoVmZOpj7HyIrv6tKngpee
+ thvcGmkVdFsJvVcalJ9sQ8Q7Bv4F/Sf3A2h6fNw=
+DKIM-Signature: v=1; a=rsa-sha1; c=relaxed/relaxed; d= messagingengine.com;
+ h=from:content-type :content-transfer-encoding:date:subject:to:message-id
+ :mime-version; s=smtpout; bh=mHcRPwiJd1ZD6JovLV/VnukHUDc=; b=jI5
+ xKJOMvNqod0rqOYEpaxh2y0nPZsF1IqoUaqtcIo/ODZkBxBb2lbAfxu1Wk48MmpI
+ 5+zlgldctBNXY5RqM9ePZDvPP8AUkIYLQVx7z2l939Jtrz1gmN1GXvmZ4Y2GfhuI
+ ixHo39r7FfX7C5QFRcxfphRhwodyMGV2/IAJu8CM=
+X-Sasl-enc: CXe3kBj9R+Np76C2nl4iSGrXnSdPaE+yNQz9dLLhY0Ck 1354109567
+Received: from [192.168.88.252] (unknown [80.146.246.2]) by
+ mail.messagingengine.com (Postfix) with ESMTPA id 0B2098E058E; Wed, 28 Nov
+ 2012 08:32:46 -0500 (EST)
+From: Andrew Stewart <boss@airbladesoftware.com>
+Date: Wed, 28 Nov 2012 14:32:45 +0100
+Subject: When a client terminates a connection
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Message-Id: <B41C47D7-BD67-46A4-A5B7-1A1664866CDE@airbladesoftware.com>
+Mime-Version: 1.0 (Apple Message framework v1085)
+X-Mailer: Apple Mail (2.1085)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Hello,
+
+I have run into the following situation several times in the past few months:
+
+(My stack is Nginx -- Unicorn -- Rails 3.0.12)
+
+1. Client clicks a delete link in my webapp.
+2. Rails starts processing the appropriate destroy action.  This updates various things in the database (but not in a single db transaction).
+3. Client terminates the connection.
+4. Rails stops executing the destroy action wherever it has got to, leaving the latter part of the action unexecuted and my db inconsistent.
+5. Rails and Unicorn don't write anything to their logs; Nginx writes a 499.
+
+This question has been asked before[1] but regrettably I don't entirely understand all the solutions proposed :)
+
+I plan to wrap all the changes made by my destroy action in a single db transaction.  I'm assuming this will ensure db consistency, even when subject to awkward clients.  Is that correct?
+
+(I'll probably also move the action's work onto a background process, e.g. with delayed job.)
+
+Now apologies if I'm barking up the wrong tree here...in general is it possible to configure Unicorn to buffer the request and:
+
+- if the client terminates before the request is fully received, don't pass it to Rails at all;
+- else pass the complete request to Rails and let Rails execute it fully, even if client terminates in the meantime?
+
+The thread[1] also mentioned Nginx's proxy_ignore_client_abort.  If that's relevant, has anyone tried it?
+
+[1] http://rubyforge.org/pipermail/mongrel-unicorn/2011-August/001096.html
+
+Many thanks,
+
+Andrew Stewart
+
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
