@@ -1,0 +1,133 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=-0.2 required=5.0 tests=AWL shortcircuit=no
+ autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id 4D03632A93 for
+ <archivist@yhbt.net>; Thu, 29 Nov 2012 21:55:52 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 3801A2E082; Thu, 29 Nov 2012 21:55:53 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id CDAAC2E07D for <mongrel-unicorn@rubyforge.org>; Thu,
+ 29 Nov 2012 21:55:44 +0000 (UTC)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 8161532A20; Thu, 29 Nov 2012 21:55:42 +0000 (UTC)
+Date: Thu, 29 Nov 2012 21:55:42 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Subject: [RFC/PATCH] check_client_connection: document local-only requirement
+Message-ID: <20121129215542.GA6392@dcvr.yhbt.net>
+References:
+ <CAK4qKG0UPqkbM8HYccx0moNJ7WsCf-e4uu6Eh6DGNvcn58BLYg@mail.gmail.com>
+ <20121030213719.GA6701@dcvr.yhbt.net>
+ <CAK4qKG3vqGa0GaYRjjJkmWxxE1cbwpDAo==MSdhmA+5dMxXUnw@mail.gmail.com>
+ <20121102193803.GA17916@dcvr.yhbt.net>
+ <CAK4qKG1AJdsXvTuUT+Q85qTZzfCTLUMDd=d1LzFgfM6THc5G=g@mail.gmail.com>
+ <20121105114850.GA15932@dcvr.yhbt.net>
+ <CAK4qKG302+i7+WLnOqc=1FHi4dSEUd_j7J=JJjcLOsFWObncKQ@mail.gmail.com>
+ <20121106212338.GA4018@dcvr.yhbt.net>
+ <CAK4qKG3rkfVYLyeqEqQyuNEh_nZ8yw0X_cwTxJfJ+TOU+y8F+w@mail.gmail.com>
+ <20121129211957.GA31873@dcvr.yhbt.net>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To: <20121129211957.GA31873@dcvr.yhbt.net>
+User-Agent: Mutt/1.5.20 (2009-06-14)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+In my testing, only dropped clients over Unix domain sockets or
+loopback TCP were detected with this option.  Since many
+nginx+unicorn combinations run on the same host, this is not a
+problem.
+
+Furthermore, tcp_nodelay:true appears to work over loopback,
+so remove the requirement for tcp_nodelay:false.
+---
+  Eric Wong <normalperson@yhbt.net> wrote:
+  > Tom Burns <tom.burns@jadedpixel.com> wrote:
+  > > +    if set[:check_client_connection]
+  > > +      set[:listeners].each do |address|
+  > > +        if set[:listener_opts][address][:tcp_nopush] == true
+  > > +          raise ArgumentError,
+  > > +            "check_client_connection is incompatible with tcp_nopush:true"
+  > > +        end
+  > 
+  > Btw, were you using:
+  > 
+  > 1) TCP over loopback (bound to 0.0.0.0, client comes from 127.0.0.1)
+  > 2) TCP over a LAN (separate client/server hosts)
+  > 3) Unix domain socket
+  > 
+  > I wonder if we can drop the below hunk for checking :tcp_nodelay,
+  > and document that check_client_connection requires the client to
+  > either be from a Unix domain socket or TCP loopback to work.
+  > 
+  > > +        if set[:listener_opts][address][:tcp_nodelay] == true
+  > > +          raise ArgumentError,
+  > > +            "check_client_connection is incompatible with tcp_nodelay:true"
+  > > +        end
+  > 
+  > I couldn't get 2) to work with either value of tcp_nodelay.  My small
+  > LAN at home only has ~0.100ms latency.
+  > 
+  > Happily, with TCP over loopback (on Linux 3.6), either value of
+  > tcp_nodelay works, so the tcp_nodelay check seems unnecessary after
+  > all.
+
+ lib/unicorn/configurator.rb | 11 +++++------
+ 1 file changed, 5 insertions(+), 6 deletions(-)
+
+diff --git a/lib/unicorn/configurator.rb b/lib/unicorn/configurator.rb
+index 9752cdd..7651093 100644
+--- a/lib/unicorn/configurator.rb
++++ b/lib/unicorn/configurator.rb
+@@ -103,10 +103,6 @@ class Unicorn::Configurator
+           raise ArgumentError,
+             "check_client_connection is incompatible with tcp_nopush:true"
+         end
+-        if set[:listener_opts][address][:tcp_nodelay] == true
+-          raise ArgumentError,
+-            "check_client_connection is incompatible with tcp_nodelay:true"
+-        end
+       end
+     end
+     set.each do |key, value|
+@@ -473,8 +469,11 @@ class Unicorn::Configurator
+   # This will prevent calling the application for clients who have
+   # disconnected while their connection was queued.
+   #
+-  # This option cannot be used in conjunction with tcp_nodelay or
+-  # tcp_nopush.
++  # This only affects clients connecting over Unix domain sockets
++  # and TCP via loopback (127.*.*.*).  It is unlikely to detect
++  # disconnects if the client is on a remote host (even on a fast LAN).
++  #
++  # This option cannot be used in conjunction with :tcp_nopush.
+   def check_client_connection(bool)
+     set_bool(:check_client_connection, bool)
+   end
+-- 
+1.8.0.3.gdd57fab.dirty
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
