@@ -1,0 +1,85 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=0.0 required=5.0 tests=AWL,FREEMAIL_FROM,
+ T_DKIM_INVALID shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id 4962332B5D for
+ <archivist@yhbt.net>; Thu, 29 Nov 2012 23:55:47 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 0CE382E07F; Thu, 29 Nov 2012 23:55:47 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from mail-la0-f50.google.com (mail-la0-f50.google.com
+ [209.85.215.50]) by rubyforge.org (Postfix) with ESMTP id DAF892E079 for
+ <mongrel-unicorn@rubyforge.org>; Thu, 29 Nov 2012 23:53:01 +0000 (UTC)
+Received: by mail-la0-f50.google.com with SMTP id c1so14451792lah.23 for
+ <mongrel-unicorn@rubyforge.org>; Thu, 29 Nov 2012 15:52:59 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com;
+ s=20120113; h=mime-version:sender:in-reply-to:references:from:date
+ :x-google-sender-auth:message-id:subject:to:content-type;
+ bh=tdduxWvlY7HZJb+1S9V3MiziJVnRn5okkXaG8K63Zw8=;
+ b=CoiM/VbtwdBuKuLrK+8NALz9awqXzIZcuexZ7GNZBc04krJbqET1DBWnrq+DEZ46DM
+ 9eW+1snGIqDHaPcx74leNMungEW1OX0R7mv4mpOhhzN1PJnUbBNZBmHmCQgaEsnKKk4x
+ 6sC7MhYOOHpwnHsdyMqccbOhL21Xj6rTZ7okBnuIo8ZPpUN3h1crTQzIPqEyjznh2Vm4
+ CRdeYdwCMXudd0v0hp+GZsu4k5MiIscJP5PUzuaUkHUwvZu9y5hykw6DZtnPCPWnfRGo
+ trD8pPWlKE9Un2xCa362zxbhDUTaMB81F1mXfJxxJOoLNlGC6fLLLyw6bsuQMZM94MBb 3Jtw==
+Received: by 10.112.37.138 with SMTP id y10mr42142lbj.121.1354233179421; Thu,
+ 29 Nov 2012 15:52:59 -0800 (PST)
+MIME-Version: 1.0
+Received: by 10.114.57.7 with HTTP; Thu, 29 Nov 2012 15:52:39 -0800 (PST)
+In-Reply-To: <20121129233208.GB2618@dcvr.yhbt.net>
+References:
+ <CAHOTMV++otgxdru_oZLXuVuqHF7F4uMwd04O0QZBjxeqFR-=XQ@mail.gmail.com>
+ <CAHOTMVLYDbcdU4Q_jssiXF0AeEnui07U=4gUS9=T=wvLU9db7w@mail.gmail.com>
+ <20121129233208.GB2618@dcvr.yhbt.net>
+From: Tony Arcieri <tony.arcieri@gmail.com>
+Date: Thu, 29 Nov 2012 15:52:39 -0800
+X-Google-Sender-Auth: v29psjRPHH6b9_V5S1dneMijHRM
+Message-ID:
+ <CAHOTMV+QNv2kc+XbxD=4aDc1AeUwNN01vfgHiX0eDdvt6vO56A@mail.gmail.com>
+Subject: Re: Fwd: Maintaining capacity during deploys
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+On Thu, Nov 29, 2012 at 3:32 PM, Eric Wong <normalperson@yhbt.net> wrote:
+> So it's one haproxy -> multiple nginx/unicorn servers?
+
+Confirm
+
+> Do you mark the server down or lower the weight in haproxy when
+> deploying the Ruby app?  (Perhaps using monitor-uri in haproxy)
+
+I assume you're talking about when we did rolling restarts at the
+server level? We don't do this presently as we deploy to all servers
+at the same time.
+
+Doing single-server-at-a-time deploys still resulted in a backlog in
+our queue, which speaks to our capacity problems. It's being worked
+on, but we're looking for an interim solution. It'd also be nice not
+to have to do this as it further extends the length of our (already
+gruelingly long) deploy process.
+
+--
+Tony Arcieri
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
