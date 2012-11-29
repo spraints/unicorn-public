@@ -1,0 +1,114 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=0.0 required=5.0 tests=FREEMAIL_FROM,T_DKIM_INVALID
+ shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id 47A801F6E0 for
+ <archivist@yhbt.net>; Thu, 29 Nov 2012 23:06:16 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 3D02D2E081; Thu, 29 Nov 2012 23:06:17 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from mail-lb0-f178.google.com (mail-lb0-f178.google.com
+ [209.85.217.178]) by rubyforge.org (Postfix) with ESMTP id 21F8D2E07D for
+ <mongrel-unicorn@rubyforge.org>; Thu, 29 Nov 2012 23:06:06 +0000 (UTC)
+Received: by mail-lb0-f178.google.com with SMTP id l5so6226lbo.23 for
+ <mongrel-unicorn@rubyforge.org>; Thu, 29 Nov 2012 15:06:04 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com;
+ s=20120113; h=mime-version:sender:in-reply-to:references:from:date
+ :x-google-sender-auth:message-id:subject:to:content-type;
+ bh=4fS+1GM9aEJa1SUEAdgQ+eh0I8mZ0uru+CXwRQEMvJk=;
+ b=ZebbxWVh7qDiRFd4bd7/3vzv0lm1OPLbt8jQ8bvi0JNhgamFvnkWR+IF60xbC6an3I
+ xrmbJb227AFwxXzothccXUOlemmE9aVnZXNluy/GmD4HUm/jy+ppj1Lxm/waxSnitzC7
+ ru2f0uEJLft7qKiaVjaPu0h91pWLhpQW2B330oWdaV53H5wtR3aqCciqXM3bynG6FxMv
+ JyU93kXglIP5SASLNDmNMcfcPbeGwvFAMjsGZwHGv4xspoYEEDHcv7JGrhdlhxkCKrX0
+ OGrs3mpJW8WFLz5WOGpN0G8A0n5aOK1BCemwyHenBlSYUcJJox0NNm9++SLE1RPyguTI sSyw==
+Received: by 10.112.48.40 with SMTP id i8mr13389lbn.97.1354230364678; Thu, 29
+ Nov 2012 15:06:04 -0800 (PST)
+MIME-Version: 1.0
+Received: by 10.114.57.7 with HTTP; Thu, 29 Nov 2012 15:05:44 -0800 (PST)
+In-Reply-To:
+ <CAHOTMV++otgxdru_oZLXuVuqHF7F4uMwd04O0QZBjxeqFR-=XQ@mail.gmail.com>
+References:
+ <CAHOTMV++otgxdru_oZLXuVuqHF7F4uMwd04O0QZBjxeqFR-=XQ@mail.gmail.com>
+From: Tony Arcieri <tony.arcieri@gmail.com>
+Date: Thu, 29 Nov 2012 15:05:44 -0800
+X-Google-Sender-Auth: 381fO6c7eIEt8LgaxF6jeNFlDUo
+Message-ID:
+ <CAHOTMVLYDbcdU4Q_jssiXF0AeEnui07U=4gUS9=T=wvLU9db7w@mail.gmail.com>
+Subject: Fwd: Maintaining capacity during deploys
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+We're using unicornctl restart with the default before/after hook
+behavior, which is to reap old Unicorn workers via SIGQUIT after the
+new one has finished booting.
+
+Unfortunately, while the new workers are forking and begin processing
+requests, we're still seeing significant spikes in our haproxy request
+queue. It seems as if after we restart, the unwarmed workers get
+swamped by the incoming requests. As far as I can tell, the momentary
+loss of capacity we experience translates fairly quickly into a
+thundering herd.
+
+We've experimented with rolling restarts at the server level but these
+do not resolve the problem.
+
+I'm curious if we could do a more granular application-level rolling
+restart, perhaps using TTOU instead of QUIT to progressively dial down
+the old workers one-at-a-time, and forking new ones to replace them
+incrementally. Anyone tried anything like that before?
+
+Or are there any other suggestions? (short of "add more capacity")
+
+--
+Tony Arcieri<div class="gmail_extra"><br><br><div
+class="gmail_quote">On Thu, Nov 29, 2012 at 2:50 PM, Tony Arcieri
+<span dir="ltr">&lt;<a href="mailto:tony.arcieri@gmail.com"
+target="_blank">tony.arcieri@gmail.com</a>&gt;</span>
+wrote:<br><blockquote class="gmail_quote" style="margin:0 0 0
+.8ex;border-left:1px #ccc solid;padding-left:1ex;">We're using
+unicornctl restart with the default before/after hook behavior, which
+is to reap old Unicorn workers via SIGQUIT after the new one has
+finished booting.<div><br></div><div>Unfortunately, while the new
+workers are forking and begin processing requests, we're still seeing
+significant spikes in our haproxy request queue. It seems as if after
+we restart, the unwarmed workers get swamped by the incoming
+requests.&nbsp;As far as I can tell, the momentary loss of capacity we
+experience translates fairly quickly into a thundering herd.</div>
+<div><div><br></div><div>We've experimented with rolling restarts at
+the server level but these do not resolve the
+problem.</div><div><br></div><div>I'm curious if we could do a more
+granular application-level rolling restart, perhaps using TTOU instead
+of QUIT to progressively dial down the old workers one-at-a-time, and
+forking new ones to replace them incrementally. Anyone tried anything
+like that before?</div>
+<div><br></div><div>Or are there any other suggestions? (short of "add
+more capacity")</div><span class="HOEnZb"><font
+color="#888888"><div><br></div>-- <br>Tony Arcieri<br><br>
+</font></span></div>
+</blockquote></div><br><br clear="all"><div><br></div>-- <br>Tony
+Arcieri<br><br>
+</div>
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
