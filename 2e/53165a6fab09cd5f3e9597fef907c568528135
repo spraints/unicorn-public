@@ -1,0 +1,111 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=-0.2 required=5.0 tests=AWL shortcircuit=no
+ autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id 4010332A5B for
+ <archivist@yhbt.net>; Thu, 29 Nov 2012 21:34:37 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id F1ABA2E081; Thu, 29 Nov 2012 21:34:37 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 299652E07D for <mongrel-unicorn@rubyforge.org>; Thu,
+ 29 Nov 2012 21:30:19 +0000 (UTC)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id B9BD832A20; Thu, 29 Nov 2012 21:30:17 +0000 (UTC)
+Date: Thu, 29 Nov 2012 21:30:17 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Subject: Re: Combating nginx 499 HTTP responses during flash traffic scenario
+Message-ID: <20121129213017.GA925@dcvr.yhbt.net>
+References:
+ <CAK4qKG0UPqkbM8HYccx0moNJ7WsCf-e4uu6Eh6DGNvcn58BLYg@mail.gmail.com>
+ <20121030213719.GA6701@dcvr.yhbt.net>
+ <CAK4qKG3vqGa0GaYRjjJkmWxxE1cbwpDAo==MSdhmA+5dMxXUnw@mail.gmail.com>
+ <20121102193803.GA17916@dcvr.yhbt.net>
+ <CAK4qKG1AJdsXvTuUT+Q85qTZzfCTLUMDd=d1LzFgfM6THc5G=g@mail.gmail.com>
+ <20121105114850.GA15932@dcvr.yhbt.net>
+ <CAK4qKG302+i7+WLnOqc=1FHi4dSEUd_j7J=JJjcLOsFWObncKQ@mail.gmail.com>
+ <20121106212338.GA4018@dcvr.yhbt.net>
+ <CAK4qKG3rkfVYLyeqEqQyuNEh_nZ8yw0X_cwTxJfJ+TOU+y8F+w@mail.gmail.com>
+ <E7534814-055D-4216-A2FA-DD05009BBC25@gmail.com>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To: <E7534814-055D-4216-A2FA-DD05009BBC25@gmail.com>
+User-Agent: Mutt/1.5.20 (2009-06-14)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Lawrence Pit <lawrence.pit@gmail.com> wrote:
+> >[2] http://mid.gmane.org/CAK4qKG32dGgNbzTzCb6NoH5hu_DrHMOFaFhk-6Xvy-T86++ukA@mail.gmail.com
+> >I haven't heard back on results of our nasty/crazy solution, though.
+> 
+> fyi: I've been running that patch for a while in our staging
+> environment. As far as I can tell it works. Though we haven't tested
+> it with older browsers such as IE6 (we do not have that requirement)
+> nor with all of the API clients we see (java, python, etc., we do
+> have that requirement).
+> 
+> Hopefully we're bringing that patch into our production environment
+> within the next couple of weeks, and then we should see results
+> later that week.
+> 
+> Tom Burns wrote:
+> >Unexpectedly the patch also helped us ward off a DoS attack where the
+> >attackers were disconnecting immediately after making a request.
+> 
+> Awesome!
+> 
+> The only thing that worries me is that Eric calls this a
+> "nasty/crazy solution". :p Not sure why. Seems to me it's a rather
+> smart solution that perhaps in the future would deserve to be the
+> default.
+
+Until now, it was unproven.  AFAIK, no other app server does
+anything similar.
+
+Maybe other servers/protocols have similar things, I'd love to know.
+
+> A related question: is it possible to get insight in what's in the
+> unicorn queue and for how long requests have been queued there?
+
+On Linux, tcpi_last_data_recv in the structure returned by TCP_INFO
+tells you when the last packet was received on the socket, so it's an
+accurate indication of queue time.  Raindrops provides an interface for
+accessing it:
+
+  http://raindrops.bogomips.org/Raindrops/LastDataRecv.html
+
+I haven't heard much feedback about it, though.
+
+Using SystemTap (or similar solutions), I think the same information may
+be retrieved without modifying the Ruby process.  I'm just starting my
+exploration of SystemTap, though...
+
+Raindrops::Watcher is less accurate/informative, but can run without
+modifying the process.  I've used this heavily, but haven't
+found anything interesting since I don't get enough traffic.
+
+  http://raindrops.bogomips.org/Raindrops/Watcher.html
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
