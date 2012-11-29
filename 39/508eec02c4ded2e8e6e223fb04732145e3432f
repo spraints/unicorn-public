@@ -1,0 +1,91 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=-0.2 required=5.0 tests=AWL shortcircuit=no
+ autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id C40AB1F6D2 for
+ <archivist@yhbt.net>; Thu, 29 Nov 2012 09:19:36 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 0680F2E081; Thu, 29 Nov 2012 09:19:37 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id E47D52E07D for <mongrel-unicorn@rubyforge.org>; Thu,
+ 29 Nov 2012 09:17:23 +0000 (UTC)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 2F1481F435; Thu, 29 Nov 2012 09:17:22 +0000 (UTC)
+Date: Thu, 29 Nov 2012 09:17:22 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Subject: Re: When a client terminates a connection
+Message-ID: <20121129091722.GA9765@dcvr.yhbt.net>
+References: <B41C47D7-BD67-46A4-A5B7-1A1664866CDE@airbladesoftware.com>
+ <20121128211040.GA19327@dcvr.yhbt.net>
+ <AE330722-704B-4880-A3B8-3B2117159FB1@airbladesoftware.com>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To: <AE330722-704B-4880-A3B8-3B2117159FB1@airbladesoftware.com>
+User-Agent: Mutt/1.5.20 (2009-06-14)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Andrew Stewart <boss@airbladesoftware.com> wrote:
+> On 28 Nov 2012, at 22:10, Eric Wong wrote:
+> > Yes.  Using the Unicorn::PrereadInput middleware (before Rails or
+> > any other middleware/framework touches env["rack.input"]) should do
+> > everything you want.
+> 
+> Excellent.
+> 
+> This isn't enabled by default so I wonder whether there any
+> disadvantages or side-effects one should be aware of?
+
+It'll be slower for fast clients doing large uploads (as it leads to
+flushing of the page cache to stable storage).  For small uploads/POST
+requests (normal web browser stuff), it likely won't matter.
+
+Keep in mind nginx basically does what PrereadInput does on its end,
+too.
+
+Now, for Rack apps that deal with raw PUT requests (from "curl -T" on a
+LAN) several gigabytes large:
+
+Buffering a large request up front means the data could be out of the
+kernel page cache by the time an application sees it.  As a result, the
+application is will trigger additional disk seeks to reread the data it
+buffered.
+
+With the default streaming/lazy-buffering (TeeInput), unicorn reads data
+off the socket as your application needs it.  This means the data your
+app sees is still "hot" in memory, and won't have to wait for disk (or
+even slower memory accesses).  All the writes to the (rewindable)
+temporary file are still buffered by the OS to $TMPDIR, but those disk
+writes are usually asynchronous and minimally affects application
+processing time.
+
+unicorn also supports "rewindable_input false" in its config.  This
+violates the Rack 1.x spec, but it allows applications which process a
+data stream to avoid generating any disk I/O at all.  No filesystem/disk
+limitations to worry about at all here, one could stream petabytes of
+data through unicorn this way.
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
