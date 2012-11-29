@@ -1,0 +1,75 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=-0.2 required=5.0 tests=AWL shortcircuit=no
+ autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id 32C0B32B5D for
+ <archivist@yhbt.net>; Thu, 29 Nov 2012 23:32:18 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 369952E07F; Thu, 29 Nov 2012 23:32:19 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 907572E079 for <mongrel-unicorn@rubyforge.org>; Thu,
+ 29 Nov 2012 23:32:11 +0000 (UTC)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id C972C32B28; Thu, 29 Nov 2012 23:32:08 +0000 (UTC)
+Date: Thu, 29 Nov 2012 23:32:08 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Subject: Re: Fwd: Maintaining capacity during deploys
+Message-ID: <20121129233208.GB2618@dcvr.yhbt.net>
+References:
+ <CAHOTMV++otgxdru_oZLXuVuqHF7F4uMwd04O0QZBjxeqFR-=XQ@mail.gmail.com>
+ <CAHOTMVLYDbcdU4Q_jssiXF0AeEnui07U=4gUS9=T=wvLU9db7w@mail.gmail.com>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To:
+ <CAHOTMVLYDbcdU4Q_jssiXF0AeEnui07U=4gUS9=T=wvLU9db7w@mail.gmail.com>
+User-Agent: Mutt/1.5.21 (2010-09-15)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Tony Arcieri <tony.arcieri@gmail.com> wrote:
+> We're using unicornctl restart with the default before/after hook
+> behavior, which is to reap old Unicorn workers via SIGQUIT after the
+> new one has finished booting.
+> 
+> Unfortunately, while the new workers are forking and begin processing
+> requests, we're still seeing significant spikes in our haproxy request
+> queue. It seems as if after we restart, the unwarmed workers get
+> swamped by the incoming requests. As far as I can tell, the momentary
+> loss of capacity we experience translates fairly quickly into a
+> thundering herd.
+> 
+> We've experimented with rolling restarts at the server level but these
+> do not resolve the problem.
+
+So it's one haproxy -> multiple nginx/unicorn servers?
+
+Do you mark the server down or lower the weight in haproxy when
+deploying the Ruby app?  (Perhaps using monitor-uri in haproxy)
+
+If the server is down to haproxy, but still up, you can send some warmup
+requests to the server before enabling the monitor-uri for haproxy.
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
