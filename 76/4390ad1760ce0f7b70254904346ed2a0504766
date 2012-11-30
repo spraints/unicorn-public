@@ -1,0 +1,71 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=-0.2 required=5.0 tests=AWL shortcircuit=no
+ autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id AE6F71F6E4 for
+ <archivist@yhbt.net>; Fri, 30 Nov 2012 22:27:44 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id ADD312E079; Fri, 30 Nov 2012 22:27:45 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id F3AA32E076 for <mongrel-unicorn@rubyforge.org>; Fri,
+ 30 Nov 2012 22:27:41 +0000 (UTC)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 93A771F6E1; Fri, 30 Nov 2012 22:27:39 +0000 (UTC)
+Date: Fri, 30 Nov 2012 22:27:39 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Subject: Re: Fwd: Maintaining capacity during deploys
+Message-ID: <20121130222739.GA13802@dcvr.yhbt.net>
+References:
+ <CAHOTMV++otgxdru_oZLXuVuqHF7F4uMwd04O0QZBjxeqFR-=XQ@mail.gmail.com>
+ <CAHOTMVLYDbcdU4Q_jssiXF0AeEnui07U=4gUS9=T=wvLU9db7w@mail.gmail.com>
+ <20121129233208.GB2618@dcvr.yhbt.net>
+ <CAHOTMVKzZgOBPqm9eRuf4_L8QdDJtE_FTB3DFJ+HxbvEeq1Hpw@mail.gmail.com>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To:
+ <CAHOTMVKzZgOBPqm9eRuf4_L8QdDJtE_FTB3DFJ+HxbvEeq1Hpw@mail.gmail.com>
+User-Agent: Mutt/1.5.21 (2010-09-15)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Tony Arcieri <tony.arcieri@gmail.com> wrote:
+> On Thu, Nov 29, 2012 at 3:32 PM, Eric Wong <normalperson@yhbt.net> wrote:
+> > If the server is down to haproxy, but still up, you can send some warmup
+> > requests to the server before enabling the monitor-uri for haproxy.
+> 
+> I've heard various solutions for exactly how to do warmup in this
+> thread. Anyone have specific recommendations? Should I spin off a
+> background thread that hits the local instance with a request/requests
+> then does the SIGQUIT-style switchover?
+
+I usually put that logic in the deployment script (probably just
+with "curl -sf"), but a background thread would probably work.
+
+I think it's a good idea anyways to ensure your newly-deployed
+app is configured and running properly before throwing real
+traffic for it.
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
