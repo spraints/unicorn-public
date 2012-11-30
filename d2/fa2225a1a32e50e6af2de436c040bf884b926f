@@ -1,0 +1,86 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=0.0 required=5.0 tests=none shortcircuit=no
+ autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id 9076D1F6E0 for
+ <archivist@yhbt.net>; Fri, 30 Nov 2012 17:47:18 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 878292E07A; Fri, 30 Nov 2012 17:47:18 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+X-Greylist: delayed 1574 seconds by postgrey-1.31 at rubyforge; Fri, 30 Nov
+ 2012 17:47:11 UTC
+Received: from smtp.webfaction.com (mail6.webfaction.com [74.55.86.74]) by
+ rubyforge.org (Postfix) with ESMTP id 099022E078 for
+ <mongrel-unicorn@rubyforge.org>; Fri, 30 Nov 2012 17:47:10 +0000 (UTC)
+Received: from mail-vc0-f180.google.com (mail-vc0-f180.google.com
+ [209.85.220.180]) by smtp.webfaction.com (Postfix) with ESMTP id C195066E97ED
+ for <mongrel-unicorn@rubyforge.org>; Fri, 30 Nov 2012 11:20:52 -0600 (CST)
+Received: by mail-vc0-f180.google.com with SMTP id p16so931869vcq.25 for
+ <mongrel-unicorn@rubyforge.org>; Fri, 30 Nov 2012 09:20:51 -0800 (PST)
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com;
+ s=20120113; h=mime-version:date:message-id:subject:from:to:content-type
+ :x-gm-message-state; bh=9Vm6Ji9un7jHITGUMd+531wLxsSW515+HXCp7TJrtGQ=;
+ b=aV56o76Vk6V0DvMBzdoTpw8O8ONGofkYz51Zwm/3CT1FUdLDwmLSHeObJfsjfsWX1N
+ P/+J0qjkbMymGV1pgqKxowGnogIrmlaiNM9CTX0ihil55EiNnglkEqb8siWkXr2WO/rp
+ sbSH7ep2osnnBrqcdAv6S9puVXn51lF5nnORuGC87sG7sQWd43+ro5qOh5BZDmQxxPCO
+ Umxn/knE9YC4OiAYG7Ff7J9PBXHuOU2oAm/cce2987f6N3WnkCYAot+cQWRFq0VAi5GD
+ bQ9uBu9yItz0FUaXdHMprN3ECeG3ZY2fpcVhZxLN+3WHw1SlGxDr0nPtAt9UlDbndr3r PnAg==
+MIME-Version: 1.0
+Received: by 10.52.68.242 with SMTP id z18mr1425868vdt.0.1354296051921; Fri,
+ 30 Nov 2012 09:20:51 -0800 (PST)
+Received: by 10.58.246.198 with HTTP; Fri, 30 Nov 2012 09:20:51 -0800 (PST)
+Date: Fri, 30 Nov 2012 18:20:51 +0100
+Message-ID:
+ <CA+mA6PhVKCWudvEDsAdJ5oTT7C3xFtGnoWoExuDFGg4oJ2Koug@mail.gmail.com>
+Subject: using unicorn with logging-rails gem
+From: Yoav Aner <yoav@kenhub.com>
+To: mongrel-unicorn@rubyforge.org
+X-Gm-Message-State:
+ ALoCoQnnkpryL3qgOAyrnTBhUHAJ0iP7D4Wp8oygacUN/qF52ptF5qZXyUyj8rsaS5QqwT9qHpkR
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Hope this is the right place to ask questions about unicorn. I'm not
+on the mailing list though, so please CC my email address.
+
+Since moving from phusion passenger to Unicorn, it seems like one
+functionality of the logging-rails gem
+(https://github.com/TwP/logging-rails) is (half) broken.
+
+Logging-rails supports an email appender, which aggregates log
+messages (typically ERROR and above) and then emails them. However,
+since moving to Unicorn we stopped getting those emails.
+
+The interesting thing however, is that when we USR2 signal our unicorn
+and it restarts itself, then those emails somehow get flushed out and
+get sent all at once... I tried sending USR1 signal to see if it has
+something to do with log flushing, but this does not seem to make any
+difference.
+
+Any ideas how to investigate this / make it work again??
+
+Cheers
+Yoav
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
