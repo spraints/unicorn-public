@@ -1,0 +1,78 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=-0.2 required=5.0 tests=AWL shortcircuit=no
+ autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id 62CFE1F6E0 for
+ <archivist@yhbt.net>; Fri, 30 Nov 2012 01:38:52 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 2A7BD2E07F; Fri, 30 Nov 2012 01:38:52 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+X-Greylist: delayed 308 seconds by postgrey-1.31 at rubyforge; Fri, 30 Nov
+ 2012 01:33:44 UTC
+Received: from autodiscover.whitepages.com (mail0.w3data.com [64.124.61.209])
+ by rubyforge.org (Postfix) with ESMTP id 19F322E079 for
+ <mongrel-unicorn@rubyforge.org>; Fri, 30 Nov 2012 01:33:44 +0000 (UTC)
+Received: from wpm120.corp.w3data.com (172.25.0.46) by ex5.corp.w3data.com
+ (172.25.0.126) with Microsoft SMTP Server (TLS) id 14.2.318.4; Thu, 29 Nov
+ 2012 17:28:32 -0800
+Message-ID: <50B80BC0.8010903@whitepages.com>
+Date: Thu, 29 Nov 2012 17:28:32 -0800
+From: Devin Ben-Hur <dbenhur@whitepages.com>
+User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10.7; rv:16.0)
+ Gecko/20121010 Thunderbird/16.0.1
+MIME-Version: 1.0
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Subject: Re: Maintaining capacity during deploys
+References:
+ <CAHOTMV++otgxdru_oZLXuVuqHF7F4uMwd04O0QZBjxeqFR-=XQ@mail.gmail.com>
+ <CAHOTMVLYDbcdU4Q_jssiXF0AeEnui07U=4gUS9=T=wvLU9db7w@mail.gmail.com>
+ <20F86D3D-F702-4111-8EFF-F14E1BA1B1AD@gmail.com>
+In-Reply-To: <20F86D3D-F702-4111-8EFF-F14E1BA1B1AD@gmail.com>
+X-Originating-IP: [172.25.0.46]
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset="us-ascii"; Format="flowed"
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+On 11/29/12 3:34 PM, Lawrence Pit wrote:
+>> Unfortunately, while the new workers are forking and begin processing
+>> requests, we're still seeing significant spikes in our haproxy request
+>> queue. It seems as if after we restart, the unwarmed workers get
+>> swamped by the incoming requests.
+>
+> Perhaps it's possible to warm up the workers in the unicorn after_fork block?
+
+I've successfully applied this methodology to a nasty rails app that had 
+a lot of latent initialization upon first request. Each worker gets a 
+unique private secondary listen port and each worker sends a warm-up 
+request to a prior worker in the after_fork hook. In our environment our 
+load balancer drains each host as it's being deployed, and this does 
+effect the length of deployment across many hosts in a cluster, but the 
+warmup bucket brigade is effective at making sure workers on that host 
+are responsive when they get added back to the available pool.
+
+A better solution is to use a profiler to identify what extra work is 
+being done when an unwarm worker gets its first request and move that 
+work into an initialization step which occurs before fork when run with 
+app preload enabled.
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
