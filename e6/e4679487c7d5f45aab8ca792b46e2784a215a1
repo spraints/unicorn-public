@@ -1,0 +1,124 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=0.0 required=5.0 tests=none shortcircuit=no
+ autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id B41FD1F6E0 for
+ <archivist@yhbt.net>; Fri, 30 Nov 2012 20:18:33 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 151232E07A; Fri, 30 Nov 2012 20:18:33 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from smtp.webfaction.com (mail6.webfaction.com [74.55.86.74]) by
+ rubyforge.org (Postfix) with ESMTP id B59312E078 for
+ <mongrel-unicorn@rubyforge.org>; Fri, 30 Nov 2012 20:18:30 +0000 (UTC)
+Received: from mail-vc0-f178.google.com (mail-vc0-f178.google.com
+ [209.85.220.178]) by smtp.webfaction.com (Postfix) with ESMTP id 344E466E977B
+ for <mongrel-unicorn@rubyforge.org>; Fri, 30 Nov 2012 14:17:50 -0600 (CST)
+Received: by mail-vc0-f178.google.com with SMTP id x16so67246vcq.23 for
+ <mongrel-unicorn@rubyforge.org>; Fri, 30 Nov 2012 12:17:49 -0800 (PST)
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com;
+ s=20120113;
+ h=mime-version:in-reply-to:references:date:message-id:subject:from:to
+ :cc:content-type:x-gm-message-state;
+ bh=RtRISy0LaB19aGbP+BAbX7Y3DGcJtBRbXplztsCVvpw=;
+ b=BSrwCXVhDRyGo2lhujbfMJAFsRyQduCG2gj46FbZS2lNe1PxA2qwzpONIQgl3cjtvg
+ bqSp5XZ0V0hTFPmSfT9Yqqwyv49X7cr1dMUeu7xkC+xowsZbKLu0XDkGSKpElKxzMc8e
+ GjrsXb//ewuNAxdpYdt/41VBlRqVGFs0j83LXCtn3CbkMDUOlvPx4mdkjRRgWzl1//8W
+ M53V2ZZGUlMyM7VJSyUAVu40KWEM8Aq0Ny4szPhAgzpHs2WrVn8ZZ0vnP/vT5Zrv+i9S
+ 8DvXfpwtxpaHkX1kRkQQYRyONkMTqKwXZ1rxF+01Q40fV4TatkDcPA08uV/aKY5M6tOI dWJQ==
+MIME-Version: 1.0
+Received: by 10.52.73.10 with SMTP id h10mr1725454vdv.97.1354306669494; Fri,
+ 30 Nov 2012 12:17:49 -0800 (PST)
+Received: by 10.58.246.198 with HTTP; Fri, 30 Nov 2012 12:17:49 -0800 (PST)
+In-Reply-To: <20121130200535.GA743@dcvr.yhbt.net>
+References:
+ <CA+mA6PhVKCWudvEDsAdJ5oTT7C3xFtGnoWoExuDFGg4oJ2Koug@mail.gmail.com>
+ <20121130191555.GA29344@dcvr.yhbt.net>
+ <CA+mA6PgTGcyLy2Dua9a6gDWhRwsQLtHEyk17fhBE8DW1TkO5EA@mail.gmail.com>
+ <20121130200535.GA743@dcvr.yhbt.net>
+Date: Fri, 30 Nov 2012 21:17:49 +0100
+Message-ID:
+ <CA+mA6PhKeQMCKK0Uq4hmqH-0-k9HEYtNnVikXE6tbuVCEUmGJQ@mail.gmail.com>
+Subject: Re: using unicorn with logging-rails gem
+From: Yoav Aner <yoav@kenhub.com>
+To: Eric Wong <normalperson@yhbt.net>
+X-Gm-Message-State:
+ ALoCoQm3atidxRJ+K042tY4u82X1K31erGyuFmjneAaKKj7/ET1wT43kNV5azFlH+GqfvkpuHbfH
+Cc: unicorn list <mongrel-unicorn@rubyforge.org>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Thanks Eric,
+
+I think I might have found a solution :)
+
+There was a hint in the config file I had for the logging-rails gem:
+
+  if defined?(PhusionPassenger)
+    PhusionPassenger.on_event(:starting_worker_process) do |forked|
+      Logging.reopen if forked
+    end
+  end
+
+I simply added `Logging.reopen` to the after_fork block and now it
+looks like it's working again!
+
+Not sure I still fully (or even partially) understand what's going on
+there, but at least it's working.
+
+Thanks again for your help.
+
+Cheers
+Yoav
+
+On 30 November 2012 21:05, Eric Wong <normalperson@yhbt.net> wrote:
+> Yoav Aner <yoav@kenhub.com> wrote:
+>> Hi Eric,
+>>
+>> Thanks a bunch for getting back so quickly on this.
+>>
+>> I followed your suggestion and tried with `preload_app = false` and looks
+>> like this seems to fix this problem! Any idea what can go wrong when it's
+>> set to true or how I can try go about fixing this??
+>
+> preload_app is false by default because it's the most likely to work
+> for all gems.
+>
+> I suspect there's a shared resource (file/socket) or some cached value
+> that's initialized before fork and loses state after forking.
+>
+> It's a fairly common issue with database libraries
+>
+>> I haven't yet contacted the logging / logging-rails project. Perhaps that's
+>> a good idea. Considering the gem did/does work fine on my dev environment
+>> and with phusion passenger (and now it seems also with Unicorn, albeit with
+>> preload_app = false), I wasn't sure whether the problem is with this gem or
+>> elsewhere.
+>>
+>> Any tips on how to investigate this further or resolve this, or what
+>> information I can give the gem maintainer(s) would be much appreciated.
+>
+> I would definitely contact the maintainer of logging/logging-rails
+> on how to reinitialize any state after forking.
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
