@@ -1,0 +1,87 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=-0.2 required=5.0 tests=AWL shortcircuit=no
+ autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id 2B1461F6E2 for
+ <archivist@yhbt.net>; Fri, 30 Nov 2012 19:16:01 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id A99AB2E07A; Fri, 30 Nov 2012 19:16:01 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 762342E078 for <mongrel-unicorn@rubyforge.org>; Fri,
+ 30 Nov 2012 19:15:57 +0000 (UTC)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 560A41F6D0; Fri, 30 Nov 2012 19:15:55 +0000 (UTC)
+Date: Fri, 30 Nov 2012 19:15:55 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Subject: Re: using unicorn with logging-rails gem
+Message-ID: <20121130191555.GA29344@dcvr.yhbt.net>
+References:
+ <CA+mA6PhVKCWudvEDsAdJ5oTT7C3xFtGnoWoExuDFGg4oJ2Koug@mail.gmail.com>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To:
+ <CA+mA6PhVKCWudvEDsAdJ5oTT7C3xFtGnoWoExuDFGg4oJ2Koug@mail.gmail.com>
+User-Agent: Mutt/1.5.21 (2010-09-15)
+Cc: Yoav Aner <yoav@kenhub.com>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Yoav Aner <yoav@kenhub.com> wrote:
+> Hope this is the right place to ask questions about unicorn. I'm not
+> on the mailing list though, so please CC my email address.
+
+No problem!
+
+> Since moving from phusion passenger to Unicorn, it seems like one
+> functionality of the logging-rails gem
+> (https://github.com/TwP/logging-rails) is (half) broken.
+> 
+> Logging-rails supports an email appender, which aggregates log
+> messages (typically ERROR and above) and then emails them. However,
+> since moving to Unicorn we stopped getting those emails.
+> 
+> The interesting thing however, is that when we USR2 signal our unicorn
+> and it restarts itself, then those emails somehow get flushed out and
+> get sent all at once... I tried sending USR1 signal to see if it has
+> something to do with log flushing, but this does not seem to make any
+> difference.
+
+USR1 only affects logging to regular files, so is unlikely to help
+in your case.
+
+Are you using preload_app true or false?  If true, perhaps some shared
+resource (socket or temporary file) isn't being handled correctly?
+
+> Any ideas how to investigate this / make it work again??
+
+I'm not familiar with the "logging" or "logging-rails" gems.
+I took a brief look at them but couldn't figure anything out,
+can you ask the author of those gems?
+
+If you do figure something out, please let the list know so it can
+possibly help others in the future.
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
