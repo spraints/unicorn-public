@@ -1,0 +1,97 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=0.0 required=5.0 tests=FREEMAIL_FROM,T_DKIM_INVALID
+ shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id 9DA6F1F6E0 for
+ <archivist@yhbt.net>; Fri, 30 Nov 2012 04:50:30 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 851682E075; Fri, 30 Nov 2012 04:50:30 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from mail-da0-f50.google.com (mail-da0-f50.google.com
+ [209.85.210.50]) by rubyforge.org (Postfix) with ESMTP id 285692E075 for
+ <mongrel-unicorn@rubyforge.org>; Fri, 30 Nov 2012 04:48:19 +0000 (UTC)
+Received: by mail-da0-f50.google.com with SMTP id h15so49732dan.23 for
+ <mongrel-unicorn@rubyforge.org>; Thu, 29 Nov 2012 20:48:18 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com;
+ s=20120113; h=subject:references:from:content-type:x-mailer:in-reply-to
+ :message-id:date:to:content-transfer-encoding:mime-version;
+ bh=sK92DyzPHRnJWUp8FnI3sPSIRpVRSHp9m6FLYzasebo=;
+ b=L2mM1qZLeVzlP75foL7u4Xu9z61RrCfV4JApyYsSRq/4h3ibUUmS7KLFN6a2M5BYuc
+ PnAAj//VDfDIqutJmrOODdKOtY2xgrlhi/PX8ESoh+6Qd5vckyzwWb2f53pXBjxoGJwZ
+ E2T93PxK6qCjh546RouQN0Jr2bC9UFmesoize7RQOYvK4WJxMdmDBoN1nB1Q2tWH5AIz
+ 6PxybUDBgZFIqiws7uPXSVLzwIF/ja24uWZJv9SRhCag8qgvIpghCgmtQp4yErs8WhfE
+ xWSU+ctgZBcZLAYMz7KKD1soNDnuKJBju0spDrN35RY7VMUaqSbdjPjyCAqlDBWnZbq1 +j6A==
+Received: by 10.66.87.202 with SMTP id ba10mr67574978pab.72.1354250898349;
+ Thu, 29 Nov 2012 20:48:18 -0800 (PST)
+Received: from [192.168.2.24] (c-76-103-157-222.hsd1.ca.comcast.net.
+ [76.103.157.222]) by mx.google.com with ESMTPS id
+ is3sm2377750pbc.6.2012.11.29.20.48.16 (version=SSLv3 cipher=OTHER); Thu, 29
+ Nov 2012 20:48:17 -0800 (PST)
+Subject: Re: Maintaining capacity during deploys
+References:
+ <CAHOTMV++otgxdru_oZLXuVuqHF7F4uMwd04O0QZBjxeqFR-=XQ@mail.gmail.com>
+ <CAHOTMVLYDbcdU4Q_jssiXF0AeEnui07U=4gUS9=T=wvLU9db7w@mail.gmail.com>
+ <20F86D3D-F702-4111-8EFF-F14E1BA1B1AD@gmail.com>
+ <CAHOTMV+LNF3XhtMo8P9dmwfE4zsPiUNBCizHrtSVhL+Zeh6dJw@mail.gmail.com>
+ <20121130012447.GA10092@dcvr.yhbt.net>
+From: seth.cousins@gmail.com
+X-Mailer: iPad Mail (10A523)
+In-Reply-To: <20121130012447.GA10092@dcvr.yhbt.net>
+Message-Id: <C638072D-9CB4-4C57-BB72-FD71859AD387@gmail.com>
+Date: Thu, 29 Nov 2012 20:48:16 -0800
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Mime-Version: 1.0 (1.0)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+In my experience high loads and contention are a common issue when restarting the unicorn master process. In a previous project we dealt with this by 1) performing some warmup requests in the master before starting to fork workers; 2) replacing old workers slowly by having each new worker send a TTOU to the old master in after_fork and having the new master sleep for a couple of seconds between spawning workers.
+
+It was a couple of years ago so the details are not fresh but iirc before tuning a restart took 5-10 seconds followed by load climbing to 10-20 (on a 4 proc machine) with a 2-5 minute slow recovery of long request times. In particularly pathological cases requests can start timing out which results in workers being killed and new workers needing to warm up on and already overloaded system. After tuning the rolling restart took 30-40 seconds but the load barely budged and the request processing times stayed constant.
+
+.seth
+
+On Nov 29, 2012, at 5:24 PM, Eric Wong <normalperson@yhbt.net> wrote:
+
+> Tony Arcieri <tony.arcieri@gmail.com> wrote:
+>> On Thu, Nov 29, 2012 at 3:34 PM, Lawrence Pit <lawrence.pit@gmail.com> wrote:
+>>> 
+>>> Perhaps it's possible to warm up the workers in the unicorn after_fork block?
+>> 
+>> Are people doing this in production (i.e. moving the termination of
+>> the old master from before_fork to after_fork)? My worry is that
+>> during this warming process you will have 2X the normal number of
+>> Unicorn workers active at the same time, which could potentially lead
+>> to exhausting of system resources (i.e. RAM)
+> 
+> I haven't done any terminations in the *_fork hooks for a long time.
+> I just let 2x the normal workers run for a bit before sending SIGQUIT.
+> 
+> That said, I usually have plenty of RAM (and DB connections) to spare.
+> Excessive CPU-bound loads are handled very well nowadays.
+> _______________________________________________
+> Unicorn mailing list - mongrel-unicorn@rubyforge.org
+> http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+> Do not quote signatures (like this one) or top post when replying
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
