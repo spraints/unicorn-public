@@ -1,0 +1,77 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=0.0 required=5.0 tests=FREEMAIL_FROM,T_DKIM_INVALID
+ shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id EFA921F6E0 for
+ <archivist@yhbt.net>; Fri, 30 Nov 2012 01:10:50 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 718EC2E07F; Fri, 30 Nov 2012 01:10:50 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from mail-ee0-f50.google.com (mail-ee0-f50.google.com
+ [74.125.83.50]) by rubyforge.org (Postfix) with ESMTP id 67DC52E079 for
+ <mongrel-unicorn@rubyforge.org>; Fri, 30 Nov 2012 01:10:40 +0000 (UTC)
+Received: by mail-ee0-f50.google.com with SMTP id b45so9973392eek.23 for
+ <mongrel-unicorn@rubyforge.org>; Thu, 29 Nov 2012 17:10:39 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com;
+ s=20120113; h=mime-version:sender:in-reply-to:references:from:date
+ :x-google-sender-auth:message-id:subject:to:content-type;
+ bh=93FILJ/QOgfJHwOtsJ1YI3xjkxeTbsubK/WD6746gIs=;
+ b=HlXySmbJDwzeYkMpo6xb3f0MTjAFvtO4va+nK7Ax2Qbwg2CakZ4egsOQm7HATScPeC
+ dvYAtLHRPk8vyAiDyASv7veFNVhkpjGQr8Ur6rdv9NwFpS33TSDavimsvU/G1XhwE1sk
+ ZXdugWwEQO1f3mLZF6QR6OxPUMj7P9ewmJcir1ZfAd1lBYDnVazxMbELkAxrUF36O/ef
+ VCUPZJfMjkhprwMGU/hLf/+RPT+C8LWKWcY00IHmn23ju5NaDjyQp86OppTOrfyDOKms
+ 4FKrNkYOvgq5bM9kvjd/idmsgUWSBo+z/LF/RRQjXL7mqdkltNkHoIGDe93/WOVSDaDi E15g==
+Received: by 10.14.208.137 with SMTP id q9mr78121344eeo.28.1354237839716;
+ Thu, 29 Nov 2012 17:10:39 -0800 (PST)
+MIME-Version: 1.0
+Received: by 10.223.101.131 with HTTP; Thu, 29 Nov 2012 17:10:19 -0800 (PST)
+In-Reply-To: <20F86D3D-F702-4111-8EFF-F14E1BA1B1AD@gmail.com>
+References:
+ <CAHOTMV++otgxdru_oZLXuVuqHF7F4uMwd04O0QZBjxeqFR-=XQ@mail.gmail.com>
+ <CAHOTMVLYDbcdU4Q_jssiXF0AeEnui07U=4gUS9=T=wvLU9db7w@mail.gmail.com>
+ <20F86D3D-F702-4111-8EFF-F14E1BA1B1AD@gmail.com>
+From: Tony Arcieri <tony.arcieri@gmail.com>
+Date: Thu, 29 Nov 2012 17:10:19 -0800
+X-Google-Sender-Auth: Vs5_Jq0eNl9SWeMm0umEDg3awwA
+Message-ID:
+ <CAHOTMV+LNF3XhtMo8P9dmwfE4zsPiUNBCizHrtSVhL+Zeh6dJw@mail.gmail.com>
+Subject: Re: Maintaining capacity during deploys
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+On Thu, Nov 29, 2012 at 3:34 PM, Lawrence Pit <lawrence.pit@gmail.com> wrote:
+>
+> Perhaps it's possible to warm up the workers in the unicorn after_fork block?
+
+Are people doing this in production (i.e. moving the termination of
+the old master from before_fork to after_fork)? My worry is that
+during this warming process you will have 2X the normal number of
+Unicorn workers active at the same time, which could potentially lead
+to exhausting of system resources (i.e. RAM)
+
+--
+Tony Arcieri
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
