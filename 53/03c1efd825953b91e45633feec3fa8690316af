@@ -1,0 +1,78 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=0.0 required=5.0 tests=AWL,FREEMAIL_FROM,
+ T_DKIM_INVALID shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id 7F9C41F6E0 for
+ <archivist@yhbt.net>; Fri, 30 Nov 2012 21:36:31 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 49BDD2E07A; Fri, 30 Nov 2012 21:36:32 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+X-Greylist: delayed 409 seconds by postgrey-1.31 at rubyforge; Fri, 30 Nov
+ 2012 21:35:26 UTC
+Received: from mail-vb0-f46.google.com (mail-vb0-f46.google.com
+ [209.85.212.46]) by rubyforge.org (Postfix) with ESMTP id F27432E078 for
+ <mongrel-unicorn@rubyforge.org>; Fri, 30 Nov 2012 21:35:26 +0000 (UTC)
+Received: by mail-vb0-f46.google.com with SMTP id b13so1380139vby.19 for
+ <mongrel-unicorn@rubyforge.org>; Fri, 30 Nov 2012 13:35:25 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com;
+ s=20120113; h=mime-version:sender:in-reply-to:references:from:date
+ :x-google-sender-auth:message-id:subject:to:content-type;
+ bh=5cBYRYZC3Mq7zeCscGakmZT0VtvIGnntWBmPE7jDI60=;
+ b=CUTdwUzclmqaY4a8Pjp8mewwZFx0eyCCupehy/cJMmBKCugMUhKhotXCM/qJxQ1+uK
+ y24qH2rznD4xpCJ0aEbJWRmbHyUn4bL/q7U7lYYzFRXXJ+YEyQ/FLAzsDzLZKI6K+ixY
+ 7LtcsxLafOkBq36bTDf20/7TxI0PU0CVg6qv5/7DB+TbFOThiDHStGAYsTPFy3rI7A2/
+ ieq/+KGYYDJQfFYy2xIUgXmKM/zXb718MppKvVyAkj+uqxqt8gc2YiLmKdVKD4vcJB/k
+ esJ0n28L2uJhD1JPPe9iBjM1qznAAPlZtwVmX1RMbxaP3LbG44Z4juPgeVhOVlUcwR0P i/VA==
+Received: by 10.52.75.72 with SMTP id a8mr1891630vdw.66.1354310915684; Fri,
+ 30 Nov 2012 13:28:35 -0800 (PST)
+MIME-Version: 1.0
+Received: by 10.58.219.102 with HTTP; Fri, 30 Nov 2012 13:28:15 -0800 (PST)
+In-Reply-To: <20121129233208.GB2618@dcvr.yhbt.net>
+References:
+ <CAHOTMV++otgxdru_oZLXuVuqHF7F4uMwd04O0QZBjxeqFR-=XQ@mail.gmail.com>
+ <CAHOTMVLYDbcdU4Q_jssiXF0AeEnui07U=4gUS9=T=wvLU9db7w@mail.gmail.com>
+ <20121129233208.GB2618@dcvr.yhbt.net>
+From: Tony Arcieri <tony.arcieri@gmail.com>
+Date: Fri, 30 Nov 2012 13:28:15 -0800
+X-Google-Sender-Auth: pFbew0q_5NUSDpsMdwQ73q4dhXU
+Message-ID:
+ <CAHOTMVKzZgOBPqm9eRuf4_L8QdDJtE_FTB3DFJ+HxbvEeq1Hpw@mail.gmail.com>
+Subject: Re: Fwd: Maintaining capacity during deploys
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+On Thu, Nov 29, 2012 at 3:32 PM, Eric Wong <normalperson@yhbt.net> wrote:
+> If the server is down to haproxy, but still up, you can send some warmup
+> requests to the server before enabling the monitor-uri for haproxy.
+
+I've heard various solutions for exactly how to do warmup in this
+thread. Anyone have specific recommendations? Should I spin off a
+background thread that hits the local instance with a request/requests
+then does the SIGQUIT-style switchover?
+
+--
+Tony Arcieri
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
