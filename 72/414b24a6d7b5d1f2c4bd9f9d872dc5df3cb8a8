@@ -1,0 +1,111 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=0.0 required=5.0 tests=FREEMAIL_FROM,T_DKIM_INVALID
+ shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id CD1651F6D9 for
+ <archivist@yhbt.net>; Mon,  3 Dec 2012 23:53:51 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id A5A372E079; Mon,  3 Dec 2012 23:53:52 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from mail-ob0-f178.google.com (mail-ob0-f178.google.com
+ [209.85.214.178]) by rubyforge.org (Postfix) with ESMTP id 994CE2E076 for
+ <mongrel-unicorn@rubyforge.org>; Mon,  3 Dec 2012 23:53:47 +0000 (UTC)
+Received: by mail-ob0-f178.google.com with SMTP id eh20so3951985obb.23 for
+ <mongrel-unicorn@rubyforge.org>; Mon, 03 Dec 2012 15:53:46 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com;
+ s=20120113; h=mime-version:sender:in-reply-to:references:from:date
+ :x-google-sender-auth:message-id:subject:to:content-type;
+ bh=vV4VaVrKtsokVro49/t6biBKTvag295d2KaRVZ4yW8Y=;
+ b=m4We25US+v4R0D0lc40ZRs+IFfju/e98Ffve5k9YDfH9BFn8l7eHDoWvDiUPMRWrfg
+ 8aajPtkVU+WqBz1AJnofS0CTCokFjI6SqXs0AgzsrS0z1yN0ZsIApGkfVIjiJzTFi5Ze
+ Xb8w1cn5taZbYX8VgKSD0YirgXGDEkPfMgjPNInujtUPhpYqovK4rL4Q4Wvgo/gHsJJI
+ YMUXXKnJAaJU1mbsmOvP05eKg4dtoP2qs5DufTUKZc8ySk2+q/fe30BIoCnU9Xa/5lcj
+ 3ktZ4QOB7V/F+cuh/JniwavHWd1bg/qfhR7oeBz0STt24hZhw56f+uZDx/eWbGKVk5Nm smKA==
+Received: by 10.60.32.67 with SMTP id g3mr9656077oei.77.1354578825960; Mon,
+ 03 Dec 2012 15:53:45 -0800 (PST)
+MIME-Version: 1.0
+Received: by 10.60.146.208 with HTTP; Mon, 3 Dec 2012 15:53:25 -0800 (PST)
+In-Reply-To: <20121130222739.GA13802@dcvr.yhbt.net>
+References:
+ <CAHOTMV++otgxdru_oZLXuVuqHF7F4uMwd04O0QZBjxeqFR-=XQ@mail.gmail.com>
+ <CAHOTMVLYDbcdU4Q_jssiXF0AeEnui07U=4gUS9=T=wvLU9db7w@mail.gmail.com>
+ <20121129233208.GB2618@dcvr.yhbt.net>
+ <CAHOTMVKzZgOBPqm9eRuf4_L8QdDJtE_FTB3DFJ+HxbvEeq1Hpw@mail.gmail.com>
+ <20121130222739.GA13802@dcvr.yhbt.net>
+From: Tony Arcieri <tony.arcieri@gmail.com>
+Date: Mon, 3 Dec 2012 15:53:25 -0800
+X-Google-Sender-Auth: dxkO37EgR_KzbjajTKXQm7OWrAM
+Message-ID:
+ <CAHOTMV+S0nBiXY52KyUJKrbWbeTP96vHYY=MZirUMM9iLSpPQQ@mail.gmail.com>
+Subject: Re: Fwd: Maintaining capacity during deploys
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+On Fri, Nov 30, 2012 at 2:27 PM, Eric Wong <normalperson@yhbt.net> wrote:
+> I usually put that logic in the deployment script (probably just
+> with "curl -sf"), but a background thread would probably work.
+
+Are you doing something different than unicornctl restart? It seems
+like with unicornctl restart
+
+1) our deployment automation doesn't know when the restart has
+finished, since unicornctl is just sending signals
+2) we don't have any way to send requests specifically to the new
+worker instead of the old one
+
+Perhaps I'm misreading the unicorn source code, but here's what I see happening:
+
+1) old unicorn master forks a new master. They share the same TCP
+listen socket, but only the old master continues accepting requests
+2) new master loads the Rails app and runs the before_fork hook. It
+seems like normally this hook would send SIGQUIT to the new master,
+causing it to close its TCP listen socket
+3) new master forks and begins accepting on the TCP listen socket
+4) new workers run the after_fork hook and begin accepting requests
+
+It seems like if we remove the logic which reaps the old master in the
+before_fork hook and attempt to warm the workers in the after_fork
+hook, then we're stuck in a state where both the old master and new
+master are accepting requests but the new workers have not yet been
+warmed up.
+
+Is this the case, and if so, is there a way we can prevent the new
+master from accepting requests until warmup is complete?
+
+Or how would we change the way we restart unicorn to support our
+deployment automation (Capistrano, in this case) handling starting and
+healthchecking a new set of workers? Would we have to start the new
+master on a separate port and use e.g. nginx to handle the switchover?
+
+Something which doesn't involve massive changes to the way we
+presently restart Unicorm (i.e. unicornctl restart) would probably be
+the most practical solution for us. We have a "real solution" for all
+of these problems in the works. What I'm looking for in the interim is
+a band-aid.
+
+--
+Tony Arcieri
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
