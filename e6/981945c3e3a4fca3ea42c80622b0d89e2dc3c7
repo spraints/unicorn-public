@@ -1,0 +1,167 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=-0.2 required=5.0 tests=AWL shortcircuit=no
+ autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id 066A158E3B for
+ <archivist@yhbt.net>; Tue,  4 Dec 2012 03:01:10 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 951D72E079; Tue,  4 Dec 2012 03:01:09 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 466602E076 for <mongrel-unicorn@rubyforge.org>; Tue, 
+ 4 Dec 2012 03:00:16 +0000 (UTC)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 299821F6D9; Tue,  4 Dec 2012 03:00:15 +0000 (UTC)
+Date: Tue, 4 Dec 2012 03:00:15 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Subject: Re: Combating nginx 499 HTTP responses during flash traffic scenario
+Message-ID: <20121204030014.GA1047@dcvr.yhbt.net>
+References:
+ <CAK4qKG0UPqkbM8HYccx0moNJ7WsCf-e4uu6Eh6DGNvcn58BLYg@mail.gmail.com>
+ <20121030213719.GA6701@dcvr.yhbt.net>
+ <CAK4qKG3vqGa0GaYRjjJkmWxxE1cbwpDAo==MSdhmA+5dMxXUnw@mail.gmail.com>
+ <20121102193803.GA17916@dcvr.yhbt.net>
+ <CAK4qKG1AJdsXvTuUT+Q85qTZzfCTLUMDd=d1LzFgfM6THc5G=g@mail.gmail.com>
+ <20121105114850.GA15932@dcvr.yhbt.net>
+ <CAK4qKG302+i7+WLnOqc=1FHi4dSEUd_j7J=JJjcLOsFWObncKQ@mail.gmail.com>
+ <20121106212338.GA4018@dcvr.yhbt.net>
+ <CAK4qKG3rkfVYLyeqEqQyuNEh_nZ8yw0X_cwTxJfJ+TOU+y8F+w@mail.gmail.com>
+ <20121129204100.GA28683@dcvr.yhbt.net>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To: <20121129204100.GA28683@dcvr.yhbt.net>
+User-Agent: Mutt/1.5.20 (2009-06-14)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Eric Wong <normalperson@yhbt.net> wrote:
+> I fixed up some minor line-wrapping, signed-off, and added your
+> quote above to the commit message.  Pushed as
+> commit 5c700fc2cf398848ddcf71a2aa3f0f2a6563e87b
+> to git://bogomips.org/unicorn.git
+
+One more fix/cleanup to maintain compatibility with Rainbows!
+
+>From 69e6a793d34ff71da7c8ca59962d627e2fb508d8 Mon Sep 17 00:00:00 2001
+From: Eric Wong <normalperson@yhbt.net>
+Date: Tue, 4 Dec 2012 02:35:26 +0000
+Subject: [PATCH] fix const error responses for Rainbows!
+
+Rainbows! relies on the ERROR_XXX_RESPONSE constants of unicorn
+4.x.  Changing the constants in unicorn 4.x will break existing
+versions of Rainbows!, so remove the dependency on the constants
+and generate the error response dynamically.
+
+Unlike Mongrel, unicorn is unlikely to see malicious traffic and
+thus unlikely to benefit from making error messages constant.
+
+For unicorn 5.x, we will drop these constants entirely.
+
+(Rainbows! most likely cannot support check_client_connection
+ consistently across all concurrency models since some of them
+ pessimistically buffer all writes in userspace.  However, the
+ extra concurrency of Rainbows! makes it less likely to be
+ overloaded than unicorn, so this feature is likely less useful
+ for Rainbows!)
+---
+ lib/unicorn/const.rb         | 10 ++++++----
+ lib/unicorn/http_response.rb |  4 ++++
+ lib/unicorn/http_server.rb   | 15 +++++++--------
+ 3 files changed, 17 insertions(+), 12 deletions(-)
+
+diff --git a/lib/unicorn/const.rb b/lib/unicorn/const.rb
+index 60a63b1..02e29c7 100644
+--- a/lib/unicorn/const.rb
++++ b/lib/unicorn/const.rb
+@@ -29,10 +29,12 @@ module Unicorn::Const
+ 
+   # :stopdoc:
+   # common errors we'll send back
+-  ERROR_400_RESPONSE = "400 Bad Request\r\n\r\n"
+-  ERROR_414_RESPONSE = "414 Request-URI Too Long\r\n\r\n"
+-  ERROR_413_RESPONSE = "413 Request Entity Too Large\r\n\r\n"
+-  ERROR_500_RESPONSE = "500 Internal Server Error\r\n\r\n"
++  # (N.B. these are not used by unicorn, but we won't drop them until
++  #  unicorn 5.x to avoid breaking Rainbows!).
++  ERROR_400_RESPONSE = "HTTP/1.1 400 Bad Request\r\n\r\n"
++  ERROR_414_RESPONSE = "HTTP/1.1 414 Request-URI Too Long\r\n\r\n"
++  ERROR_413_RESPONSE = "HTTP/1.1 413 Request Entity Too Large\r\n\r\n"
++  ERROR_500_RESPONSE = "HTTP/1.1 500 Internal Server Error\r\n\r\n"
+ 
+   EXPECT_100_RESPONSE = "HTTP/1.1 100 Continue\r\n\r\n"
+   EXPECT_100_RESPONSE_SUFFIXED = "100 Continue\r\n\r\nHTTP/1.1 "
+diff --git a/lib/unicorn/http_response.rb b/lib/unicorn/http_response.rb
+index 61563cd..579d957 100644
+--- a/lib/unicorn/http_response.rb
++++ b/lib/unicorn/http_response.rb
+@@ -17,6 +17,10 @@ module Unicorn::HttpResponse
+   }
+   CRLF = "\r\n"
+ 
++  def err_response(code, response_start_sent)
++    "#{response_start_sent ? '' : 'HTTP/1.1 '}#{CODES[code]}\r\n\r\n"
++  end
++
+   # writes the rack_response to socket as an HTTP response
+   def http_response_write(socket, status, headers, body,
+                           response_start_sent=false)
+diff --git a/lib/unicorn/http_server.rb b/lib/unicorn/http_server.rb
+index ef1ea58..aa98aeb 100644
+--- a/lib/unicorn/http_server.rb
++++ b/lib/unicorn/http_server.rb
+@@ -519,22 +519,21 @@ class Unicorn::HttpServer
+   # if the socket is already closed or broken.  We'll always ensure
+   # the socket is closed at the end of this function
+   def handle_error(client, e)
+-    msg = case e
++    code = case e
+     when EOFError,Errno::ECONNRESET,Errno::EPIPE,Errno::EINVAL,Errno::EBADF,
+          Errno::ENOTCONN
+-      Unicorn::Const::ERROR_500_RESPONSE
++      500
+     when Unicorn::RequestURITooLongError
+-      Unicorn::Const::ERROR_414_RESPONSE
++      414
+     when Unicorn::RequestEntityTooLargeError
+-      Unicorn::Const::ERROR_413_RESPONSE
++      413
+     when Unicorn::HttpParserError # try to tell the client they're bad
+-      Unicorn::Const::ERROR_400_RESPONSE
++      400
+     else
+       Unicorn.log_error(@logger, "app error", e)
+-      Unicorn::Const::ERROR_500_RESPONSE
++      500
+     end
+-    msg = "HTTP/1.1 #{msg}" unless @request.response_start_sent
+-    client.kgio_trywrite(msg)
++    client.kgio_trywrite(err_response(code, @request.response_start_sent))
+     client.close
+     rescue
+   end
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
