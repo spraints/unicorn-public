@@ -1,0 +1,111 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=0.0 required=5.0 tests=T_DKIM_INVALID
+ shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id 9C8AE1F706 for
+ <archivist@yhbt.net>; Wed,  5 Dec 2012 00:05:41 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id C38D52E07C; Wed,  5 Dec 2012 00:05:42 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from mail.whidbey.net (mailout.whidbey.net [209.166.65.36]) by
+ rubyforge.org (Postfix) with ESMTP id 6E3682E077 for
+ <mongrel-unicorn@rubyforge.org>; Wed,  5 Dec 2012 00:05:31 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
+ d=whidbey.com; s=mail; 
+ h=Content-Transfer-Encoding:Content-Type:Subject:To:MIME-Version:From:Date:Message-ID; bh=Fl11jxTGszsat0hglCbiFBIwQlz/+ZhV1ddn++EJWEo=;  b=Z+ckhR8xLgpkpnjU2ZB6FvpY2CyxFBt4LkLWTOaFfgEUsik2bNeThzcNOlYUrY+UwafPMunBAyF/OWswWE2m1MqJQiXjJM5endcKFITTq4izy+Qdx75zslqEMq1gn+KggsSFSLdrVoLOLwIEWUbrDk/OuaanQVwSgxIfc6zhL5c=;
+Received: from [67.158.203.183] (helo=[192.168.2.4]) by mail.whidbey.net with
+ esmtpsa (TLSv1:AES256-SHA:256) (Exim 4.76) (envelope-from <jet@whidbey.com>)
+ id 1Tg0Uz-00016v-Aj for mongrel-unicorn@rubyforge.org; Tue, 04 Dec 2012
+ 13:57:53 -0800
+Message-ID: <50BE71E2.6040504@whidbey.com>
+Date: Tue, 04 Dec 2012 13:57:54 -0800
+From: Jerrold Thompson <jet@whidbey.com>
+User-Agent: Mozilla/5.0 (X11; U; Linux x86_64; en-US; rv:1.9.1.16)
+ Gecko/20120724 Icedove/3.0.11
+MIME-Version: 1.0
+To: mongrel-unicorn@rubyforge.org
+Subject: 403 Forbidden from nginx when unicorn started in debug mode
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset="us-ascii"; Format="flowed"
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+I am using nginx with unicorn as a reverse proxy.
+
+Has been fantastic, but needed to look through some code
+for first time.
+
+Using ruby 1.9.3p194 with rails 3.2.9, development mode with ssl enabled,
+
+I start unicorn with -d
+
+...and it does not get served up by nginx.
+
+Any ideas, or more information needed?
+
+Thanks!
+
+    Jet
+
+Below is my unicorn.rb for developent:
+
+# config/unicorn.rb
+
+env =  "development"
+
+preload_app true
+
+timeout 30
+
+listen "/tmp/unicorn.sock", :backlog => 64
+
+if env == 'development'
+   pid 
+"/home/jet/RailsApps/spree/aceleathergoods/tmp/pids/unicorn.aceleathergoods.pid"
+   stderr_path "/var/www/aceleathergoods/shared/log/unicorn.stderr.log"
+   stdout_path "/var/www/aceleathergoods/shared/log/unicorn.stdout.log"
+end
+
+
+before_fork do |server, worker|
+   if defined?(ActiveRecord::Base)
+     ActiveRecord::Base.connection.disconnect!
+   end
+
+   old_pid = "#{shared_path}/pids/unicorn.aceleathergoods.pid.oldbin"
+   if File.exists?(old_pid) && server.pid != old_pid
+     begin
+       Process.kill("QUIT", File.read(old_pid).to_i)
+     rescue Errno::ENOENT, Errno::ESRCH
+       # someone else did our job for us
+     end
+   end
+end
+
+after_fork do |server, worker|
+   if defined?(ActiveRecord::Base)
+     ActiveRecord::Base.establish_connection
+   end
+end
+
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
