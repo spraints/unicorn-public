@@ -1,0 +1,137 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=-0.2 required=5.0 tests=AWL shortcircuit=no
+ autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id A82541F6D9 for
+ <archivist@yhbt.net>; Tue,  4 Dec 2012 00:36:32 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 1309C2E079; Tue,  4 Dec 2012 00:36:32 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 67EC22E076 for <mongrel-unicorn@rubyforge.org>; Tue, 
+ 4 Dec 2012 00:34:18 +0000 (UTC)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 123151F6D9; Tue,  4 Dec 2012 00:34:17 +0000 (UTC)
+Date: Tue, 4 Dec 2012 00:34:16 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Subject: Re: Fwd: Maintaining capacity during deploys
+Message-ID: <20121204003416.GA20815@dcvr.yhbt.net>
+References:
+ <CAHOTMV++otgxdru_oZLXuVuqHF7F4uMwd04O0QZBjxeqFR-=XQ@mail.gmail.com>
+ <CAHOTMVLYDbcdU4Q_jssiXF0AeEnui07U=4gUS9=T=wvLU9db7w@mail.gmail.com>
+ <20121129233208.GB2618@dcvr.yhbt.net>
+ <CAHOTMVKzZgOBPqm9eRuf4_L8QdDJtE_FTB3DFJ+HxbvEeq1Hpw@mail.gmail.com>
+ <20121130222739.GA13802@dcvr.yhbt.net>
+ <CAHOTMV+S0nBiXY52KyUJKrbWbeTP96vHYY=MZirUMM9iLSpPQQ@mail.gmail.com>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To:
+ <CAHOTMV+S0nBiXY52KyUJKrbWbeTP96vHYY=MZirUMM9iLSpPQQ@mail.gmail.com>
+User-Agent: Mutt/1.5.21 (2010-09-15)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Tony Arcieri <tony.arcieri@gmail.com> wrote:
+> On Fri, Nov 30, 2012 at 2:27 PM, Eric Wong <normalperson@yhbt.net> wrote:
+> > I usually put that logic in the deployment script (probably just
+> > with "curl -sf"), but a background thread would probably work.
+> 
+> Are you doing something different than unicornctl restart? It seems
+> like with unicornctl restart
+
+I'm actually not sure what "unicornctl" is...
+Is it this?  https://gist.github.com/1207003
+
+I normally use a shell script (similar to examples/init.sh) in the
+unicorn source tree.
+
+> 1) our deployment automation doesn't know when the restart has
+> finished, since unicornctl is just sending signals
+> 2) we don't have any way to send requests specifically to the new
+> worker instead of the old one
+> 
+> Perhaps I'm misreading the unicorn source code, but here's what I see happening:
+> 
+> 1) old unicorn master forks a new master. They share the same TCP
+> listen socket, but only the old master continues accepting requests
+
+Correct.
+
+> 2) new master loads the Rails app and runs the before_fork hook. It
+> seems like normally this hook would send SIGQUIT to the new master,
+> causing it to close its TCP listen socket
+
+Correct, if you're using preload_app true.
+
+Keep in mind you're never required to use the before_fork hook to send
+SIGQUIT.
+
+> 3) new master forks and begins accepting on the TCP listen socket
+
+accept() never runs on the master, only workers.
+
+> 4) new workers run the after_fork hook and begin accepting requests
+
+Instead of sending HTTP requests to warmup, can you put internal
+warmup logic in your after_fork hook?  The worker won't accept
+a request until after_fork is done running.
+
+Hell, maybe you can even use Rack::Mock in your after_fork to fake
+requests w/o going through sockets. (random idea, I've never tried it)
+
+> It seems like if we remove the logic which reaps the old master in the
+> before_fork hook and attempt to warm the workers in the after_fork
+> hook, then we're stuck in a state where both the old master and new
+> master are accepting requests but the new workers have not yet been
+> warmed up.
+
+Yes, but if you have enough resources, the split should be even
+
+> Is this the case, and if so, is there a way we can prevent the new
+> master from accepting requests until warmup is complete?
+
+If the new processes never accept requests, can they ever complete warm
+up? :)
+
+> Or how would we change the way we restart unicorn to support our
+> deployment automation (Capistrano, in this case) handling starting and
+> healthchecking a new set of workers?
+
+> Would we have to start the new
+> master on a separate port and use e.g. nginx to handle the switchover?
+
+Maybe using a separate port for the new master will work.
+
+> Something which doesn't involve massive changes to the way we
+> presently restart Unicorm (i.e. unicornctl restart) would probably be
+> the most practical solution for us. We have a "real solution" for all
+> of these problems in the works. What I'm looking for in the interim is
+> a band-aid.
+
+It sounds like you're really in a bad spot :<
+
+Honestly I've never had these combinations of problems to deal with.
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
