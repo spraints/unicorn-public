@@ -1,0 +1,112 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=0.0 required=5.0 tests=none shortcircuit=no
+ autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id 82CEF1F704 for
+ <archivist@yhbt.net>; Wed,  5 Dec 2012 05:19:53 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 12D3B2E07B; Wed,  5 Dec 2012 05:19:53 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from mail-qc0-f178.google.com (mail-qc0-f178.google.com
+ [209.85.216.178]) by rubyforge.org (Postfix) with ESMTP id 22F2C2E077 for
+ <mongrel-unicorn@rubyforge.org>; Wed,  5 Dec 2012 05:19:49 +0000 (UTC)
+Received: by mail-qc0-f178.google.com with SMTP id j34so3083446qco.23 for
+ <mongrel-unicorn@rubyforge.org>; Tue, 04 Dec 2012 21:19:48 -0800 (PST)
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com;
+ s=20120113;
+ h=mime-version:in-reply-to:references:date:message-id:subject:from:to
+ :content-type:x-gm-message-state;
+ bh=bDzYOH+YBejr74JavQ0fw0leo3KOtb2hFUdBBI5pVcE=;
+ b=Is0mrN2KtoKUQVj4ae2BYi5Dtws/CJUzkq+ehTkqNt9SUkZoFeEHtHoMY9GBItqgVQ
+ BTsufcAk8I66KhbwcRdJJSzOREPZXWu272Hf5z7g3r/0Dkj8Y38Z16Xr4AeujgArMryg
+ buDZuxDeQJp3h4iq67mc58F+I8gMa5OZiGauBKOgZDJsfIrJDR/9lNUlCDDW4WP5cPJw
+ UoEEEu9ZaQOjHmXieES2/aA5VXo34I7osyafBZhZKbAl5ihiLEH1JI6NA+8D2awJ4XUp
+ bgXZDbeQ3NFHkRzZhef7d44n1xWqO1FH/mhrHzp0q1a1sk83x2Nr4NXbUkji0eC57KjY +0qA==
+MIME-Version: 1.0
+Received: by 10.224.19.80 with SMTP id z16mr1103923qaa.0.1354684788498; Tue,
+ 04 Dec 2012 21:19:48 -0800 (PST)
+Received: by 10.49.2.66 with HTTP; Tue, 4 Dec 2012 21:19:48 -0800 (PST)
+In-Reply-To:
+ <CA+c-+BYTxv+5mQ2MKeKVYEoxgPbi2QjwY6Oak-R_g65GhixEzg@mail.gmail.com>
+References:
+ <CA+c-+BYTxv+5mQ2MKeKVYEoxgPbi2QjwY6Oak-R_g65GhixEzg@mail.gmail.com>
+Date: Wed, 5 Dec 2012 13:19:48 +0800
+Message-ID:
+ <CA+c-+BaDCBCCeKC-WV6h4COc4qg7=LvNXE+sMv33TqdA9mMd8Q@mail.gmail.com>
+Subject: Fwd: Issue starting unicorn with non-ActiveRecord Rails app
+From: Peter Hall <peter.hall@localstars.com>
+To: mongrel-unicorn@rubyforge.org
+X-Gm-Message-State:
+ ALoCoQlZVpyBsA7DBSRGyXkCcOUNaSqYBiU3o0HuUTRQNX2KpnVY3LAzBnTd3kIw612ZZSM5a6Xc
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Hi,
+
+I'm trying to use unicorn in a test deployment of a Rails app that
+uses Mongoid, so Activerecord isn't included in the app. When I start
+unicorn through Capistrano though, the stderr log fills up endlessly
+with identical ActiveRecord-related errors:
+
+I, [2012-12-05T04:19:25.375952 #5096]  INFO -- : Refreshing Gem list
+I, [2012-12-05T04:19:32.941249 #5096]  INFO -- : listening on
+addr=/var/www/webapps/fugu-cp/shared/pids/unicorn.sock fd=11
+I, [2012-12-05T04:19:32.990825 #5096]  INFO -- : master process ready
+E, [2012-12-05T04:19:33.108183 #5110] ERROR -- : uninitialized
+constant ActiveRecord (NameError)
+/var/www/webapps/fugu-cp/current/config/unicorn.rb:68:in `block in reload'
+/var/www/webapps/fugu-cp/shared/bundle/ruby/1.9.1/gems/unicorn-4.4.0/lib/unicorn/http_server.rb:569:in
+`call'
+/var/www/webapps/fugu-cp/shared/bundle/ruby/1.9.1/gems/unicorn-4.4.0/lib/unicorn/http_server.rb:569:in
+`init_worker_process'
+/var/www/webapps/fugu-cp/shared/bundle/ruby/1.9.1/gems/unicorn-4.4.0/lib/unicorn/http_server.rb:593:in
+`worker_loop'
+/var/www/webapps/fugu-cp/shared/bundle/ruby/1.9.1/gems/unicorn-4.4.0/lib/unicorn/http_server.rb:491:in
+`spawn_missing_workers'
+/var/www/webapps/fugu-cp/shared/bundle/ruby/1.9.1/gems/unicorn-4.4.0/lib/unicorn/http_server.rb:141:in
+`start'
+/var/www/webapps/fugu-cp/shared/bundle/ruby/1.9.1/gems/unicorn-4.4.0/bin/unicorn_rails:209:in
+`<top (required)>'
+/var/www/webapps/fugu-cp/shared/bundle/ruby/1.9.1/bin/unicorn_rails:23:in `load'
+/var/www/webapps/fugu-cp/shared/bundle/ruby/1.9.1/bin/unicorn_rails:23:in
+`<main>'
+
+This repeats until I kill Unicorn.
+
+If you're curious, the way I'm starting Unicorn in the deploy file is
+as follows:
+
+set :unicorn_rails, "#{deploy_to}/shared/bundle/ruby/1.9.1/bin/unicorn_rails"
+run "cd #{latest_release} && bundle exec \"#{unicorn_rails} -c
+#{deploy_to}/current/config/unicorn.rb -D -E #{rails_env}\""
+
+Incidentally, if there's a standard Unicorn include file for
+Capistrano so I don't have to specify my own tasks to start and stop
+it, I'd be grateful to know, because I couldn't find one and had to
+use a very heavily-modified version of something I copied+pasted from
+this gist: https://gist.github.com/1003099
+
+Thanks,
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
