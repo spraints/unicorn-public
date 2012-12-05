@@ -1,0 +1,96 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=-0.2 required=5.0 tests=AWL shortcircuit=no
+ autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id 519BE1F442 for
+ <archivist@yhbt.net>; Wed,  5 Dec 2012 07:45:43 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 319BE2E07A; Wed,  5 Dec 2012 07:45:43 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id DDCA22E077 for <mongrel-unicorn@rubyforge.org>; Wed, 
+ 5 Dec 2012 07:45:36 +0000 (UTC)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 5144B1F42C; Wed,  5 Dec 2012 07:45:35 +0000 (UTC)
+Date: Wed, 5 Dec 2012 07:45:35 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Subject: Re: Fwd: Issue starting unicorn with non-ActiveRecord Rails app
+Message-ID: <20121205074535.GA1261@dcvr.yhbt.net>
+References:
+ <CA+c-+BYTxv+5mQ2MKeKVYEoxgPbi2QjwY6Oak-R_g65GhixEzg@mail.gmail.com>
+ <CA+c-+BaDCBCCeKC-WV6h4COc4qg7=LvNXE+sMv33TqdA9mMd8Q@mail.gmail.com>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To:
+ <CA+c-+BaDCBCCeKC-WV6h4COc4qg7=LvNXE+sMv33TqdA9mMd8Q@mail.gmail.com>
+User-Agent: Mutt/1.5.21 (2010-09-15)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Peter Hall <peter.hall@localstars.com> wrote:
+> Hi,
+> 
+> I'm trying to use unicorn in a test deployment of a Rails app that
+> uses Mongoid, so Activerecord isn't included in the app. When I start
+> unicorn through Capistrano though, the stderr log fills up endlessly
+> with identical ActiveRecord-related errors:
+> 
+> I, [2012-12-05T04:19:25.375952 #5096]  INFO -- : Refreshing Gem list
+> I, [2012-12-05T04:19:32.941249 #5096]  INFO -- : listening on
+> addr=/var/www/webapps/fugu-cp/shared/pids/unicorn.sock fd=11
+> I, [2012-12-05T04:19:32.990825 #5096]  INFO -- : master process ready
+> E, [2012-12-05T04:19:33.108183 #5110] ERROR -- : uninitialized
+> constant ActiveRecord (NameError)
+
+Hi Peter, this doesn't seem like an issue specific to unicorn...
+
+Can you reproduce this issue using another server, perhaps:
+
+  rackup -s webrick -E #{rails_env}
+
+?
+
+<snip>
+
+> This repeats until I kill Unicorn.
+> 
+> If you're curious, the way I'm starting Unicorn in the deploy file is
+> as follows:
+
+Which version of Rails is this?   Folks more familiar with modern Rails
+than myself should be able to help given more information.  (Maybe
+asking on a Rails-oriented list can help, too).
+
+I do remember it was possible to disable parts of Rails back in the day.
+Most of my Rails knowledge is stuck in the Rails 1.x-era, though...
+
+> set :unicorn_rails, "#{deploy_to}/shared/bundle/ruby/1.9.1/bin/unicorn_rails"
+> run "cd #{latest_release} && bundle exec \"#{unicorn_rails} -c
+> #{deploy_to}/current/config/unicorn.rb -D -E #{rails_env}\""
+
+Probably unrelated to the issue at hand, but "unicorn" is
+preferred if you're on Rails >=3.
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
