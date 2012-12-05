@@ -1,0 +1,81 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=0.0 required=5.0 tests=none shortcircuit=no
+ autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id 0ECC71F442 for
+ <archivist@yhbt.net>; Wed,  5 Dec 2012 09:57:04 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 3BD432E07B; Wed,  5 Dec 2012 09:57:04 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from mail-qc0-f178.google.com (mail-qc0-f178.google.com
+ [209.85.216.178]) by rubyforge.org (Postfix) with ESMTP id 6B98F2E077 for
+ <mongrel-unicorn@rubyforge.org>; Wed,  5 Dec 2012 09:56:58 +0000 (UTC)
+Received: by mail-qc0-f178.google.com with SMTP id j34so3206168qco.23 for
+ <mongrel-unicorn@rubyforge.org>; Wed, 05 Dec 2012 01:56:57 -0800 (PST)
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com;
+ s=20120113;
+ h=mime-version:in-reply-to:references:date:message-id:subject:from:to
+ :content-type:x-gm-message-state;
+ bh=turXsKEpwHNYn3cjfVBfHfN8t9jBHpB2YTsgLY0eVz4=;
+ b=R7BkQJK0K26no19SCV9YP8LxmRKQNnwTLKptZ/4MgfobceXwCbHYPZPRQN+AyXm8Zk
+ Z4ha7XC2LhWGtkvL0usWtKT1nHQqwig6fH2vRX7Pw0Shw6dCK1bm62CFbpowUu2eGqdx
+ gL8iI8vj8PUCgjvA0jYvEP1LsbQ6EP4+8BhzshqvwmNi1YJfgltbRFj0PGZVODJLaY3N
+ qG7yrXMxOxM8pvmABI74Ijg6lpegXhgADpUpg+d1Y45kUwBR2y4tX0xwYjmgPJGq9j0l
+ uFxiCV0MU7/5coskoWU5x48nNjpuKFt7oeI59wOwUqPw+zzD8/fraXc3RB2/kpob3f+1 bmrg==
+MIME-Version: 1.0
+Received: by 10.49.24.132 with SMTP id u4mr30071118qef.55.1354701417492; Wed,
+ 05 Dec 2012 01:56:57 -0800 (PST)
+Received: by 10.49.2.66 with HTTP; Wed, 5 Dec 2012 01:56:57 -0800 (PST)
+In-Reply-To: <5B98719E611543C3A54EB428C7869BF7@condomitti.com>
+References:
+ <CA+c-+BYTxv+5mQ2MKeKVYEoxgPbi2QjwY6Oak-R_g65GhixEzg@mail.gmail.com>
+ <CA+c-+BaDCBCCeKC-WV6h4COc4qg7=LvNXE+sMv33TqdA9mMd8Q@mail.gmail.com>
+ <5B98719E611543C3A54EB428C7869BF7@condomitti.com>
+Date: Wed, 5 Dec 2012 17:56:57 +0800
+Message-ID:
+ <CA+c-+BYBua-9Dv=7HVnB9nhn7bjU=EONVN5sdNMb_oKjcAYr3g@mail.gmail.com>
+Subject: Re: Issue starting unicorn with non-ActiveRecord Rails app
+From: Peter Hall <peter.hall@localstars.com>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+X-Gm-Message-State:
+ ALoCoQnNt0nyKE2q0EL/I3a1KxfmZX31uIHmy9lRYi9BjkiUmr3FxxtFcUkVPycKvvH998dNsEzi
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+> What's L68 of your config/unicorn.rb file look like? Check to see if you have copied/pasted a line that references ActiveRecord in the before_fork or after_fork blocks.
+>
+> A lot of unicorn examples have an ActiveRecord::Base.connection.disconnect! (with a defined?(ActiveRecord::Base) but that might not be present in your config) statement to ensure that AR connections aren't shared between the master and worker processes.
+
+
+Aha! Thanks Daniel. =) I'm such an idiot =oP I totally missed that it
+was in my own code - including the path on the top line of the trace
+=|. The reason I presumed it wasn't is because I copied+pasted most of
+the unicorn config, so I didn't remember *writing* any AR-specific
+code. I guess it should work if I take that out!
+
+The line actually turned out to be ActiveRecord::Base.establish_connection
+
+Thanks again! *slaps forehead*
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
