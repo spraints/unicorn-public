@@ -1,0 +1,104 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=-0.2 required=5.0 tests=AWL shortcircuit=no
+ autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id 87B0C1F408 for
+ <archivist@yhbt.net>; Thu,  6 Dec 2012 20:23:36 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 260B92E07E; Thu,  6 Dec 2012 20:23:37 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id DB3642E079 for <mongrel-unicorn@rubyforge.org>; Thu, 
+ 6 Dec 2012 20:23:30 +0000 (UTC)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id DE88A1F408; Thu,  6 Dec 2012 20:23:28 +0000 (UTC)
+Date: Thu, 6 Dec 2012 20:23:28 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Subject: Re: Unicorn fails to install even though it's already installed and
+ running
+Message-ID: <20121206202328.GA26032@dcvr.yhbt.net>
+References: <0BD39056-4965-488A-B482-EA161849BC6B@gmail.com>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To: <0BD39056-4965-488A-B482-EA161849BC6B@gmail.com>
+User-Agent: Mutt/1.5.21 (2010-09-15)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Mac Martine <99miles@gmail.com> wrote:
+> I'm deploying a Rails 3.2.8 app to Ubuntu. The server already runs the app with Unicorn and Nginx. 
+> unicorn -v returns unicorn v4.4.0
+> 
+> Adn rvm gem list shows:
+> unicorn (4.4.0)
+> 
+> Yet when I manually run 'gem install unicorn '4.4.0' it fails with the following. Any ideas why?
+
+Not sure, yet, (see below)
+
+Then there's also errors which may not be logged correctly: permissions
+and out-of-disk-space errors
+
+>     Installing unicorn (4.4.0)
+>      ** [out :: mydomain.net] with native extensions
+>      ** [out :: mydomain.net] 
+>      ** [out :: mydomain.net] Gem::Installer::ExtensionBuildError: ERROR: Failed to build gem native extension.
+>      ** [out :: mydomain.net] 
+>      ** [out :: mydomain.net] /home/eg/.rvm/rubies/ruby-1.9.3-p194/bin/ruby extconf.rb
+>      ** [out :: mydomain.net] checking for SIZEOF_OFF_T in ruby.h... *** extconf.rb failed ***
+>      ** [out :: mydomain.net] Could not create Makefile due to some reason, probably lack of
+>      ** [out :: mydomain.net] necessary libraries and/or headers.  Check the mkmf.log file for more
+>      ** [out :: mydomain.net] details.  You may need configuration options.
+
+>      ** [out :: mydomain.net] Gem files will remain installed in /rails_apps/eg/production/shared/bundle/ruby/1.9.1/gems/unicorn-4.4.0 for inspection.
+>      ** [out :: mydomain.net] Results logged to /rails_apps/eg/production/shared/bundle/ruby/1.9.1/gems/unicorn-4.4.0/ext/unicorn_http/gem_make.out
+
+Maybe gem_make.out will have more info than mkmf.log
+
+> Here's the content from what I _think_ is the relevant mkmf.log
+> 
+>     have_macro: checking for SIZEOF_SIZE_T in ruby.h... -------------------- yes
+>     
+>     "gcc -I/home/evergreen/.rvm/rubies/ruby-1.9.3-p194/include/ruby-1.9.1/x86_64-linux -I/home/eg/.rvm/rubies/ruby-1.9.3-p194/include/ruby-1.9.1/ruby/backward -I/home/eg/.rvm/rubies/ruby-1.9.3-p194/include/ruby-1.9.1 -I. -I/home/eg/.rvm/usr/include     -O3 -ggdb -Wextra -Wno-unused-parameter -Wno-parentheses -Wno-long-long -Wno-missing-field-initializers -Wpointer-arith -Wwrite-strings -Wdeclaration-after-statement -Wimplicit-function-declaration  -fPIC   -c conftest.c"
+>     checked program was:
+>     /* begin */
+>     1: #include "ruby.h"
+>     2:
+>     3: #include <ruby.h>
+>     4: /*top*/
+>     5: #ifndef SIZEOF_SIZE_T
+>     6: # error
+>     7: >>>>>> SIZEOF_SIZE_T undefined <<<<<<
+>     8: #endif
+>     /* end */
+>     
+>     --------------------
+>     
+>     have_macro: checking for SIZEOF_LONG in ruby.h... -------------------- yes
+
+That looks fine, actually.  I think any error will be near the end of
+mkmf.log.
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
