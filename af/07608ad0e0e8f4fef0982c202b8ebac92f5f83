@@ -1,0 +1,88 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=-0.2 required=5.0 tests=AWL shortcircuit=no
+ autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id 579701F442 for
+ <archivist@yhbt.net>; Thu,  6 Dec 2012 21:54:37 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 3DDC02E07D; Thu,  6 Dec 2012 21:54:38 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 9763C2E079 for <mongrel-unicorn@rubyforge.org>; Thu, 
+ 6 Dec 2012 21:54:29 +0000 (UTC)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 702F71F408; Thu,  6 Dec 2012 21:54:27 +0000 (UTC)
+Date: Thu, 6 Dec 2012 21:54:27 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Subject: Re: Unicorn fails to install even though it's already installed and
+ running
+Message-ID: <20121206215427.GA14698@dcvr.yhbt.net>
+References: <0BD39056-4965-488A-B482-EA161849BC6B@gmail.com>
+ <20121206202328.GA26032@dcvr.yhbt.net>
+ <9A4BDE03-B10B-4754-8CAF-F1E97B3C86CA@gmail.com>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To: <9A4BDE03-B10B-4754-8CAF-F1E97B3C86CA@gmail.com>
+User-Agent: Mutt/1.5.21 (2010-09-15)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Mac Martine <99miles@gmail.com> wrote:
+> Thanks,
+> 
+> I can install other gems just fine in the same way, so it doesn't seem
+> like permissions then, right?
+> 
+> And disk space looks ok:
+
+That's good to know.
+
+> Here's the end of mkmf.log
+> 
+> have_macro: checking for SIZEOF_SIZE_T in ruby.h... -------------------- no
+> 
+> "gcc -I. -I/usr/lib/ruby/1.8/x86_64-linux -I.    -fno-strict-aliasing -g -g -O2  -fPIC     -c conftest.c"
+
+Wait, are you now using a different version of Ruby?  Your original
+message had 1.9 (via RVM)
+
+> >>     ** [out :: mydomain.net] Results logged to /rails_apps/eg/production/shared/bundle/ruby/1.9.1/gems/unicorn-4.4.0/ext/unicorn_http/gem_make.out
+> > 
+> > Maybe gem_make.out will have more info than mkmf.log
+
+Again ^^
+
+However, scrutinizing your original email more:
+
+> >>    "gcc -I/home/evergreen/.rvm/rubies/ruby-1.9.3-p194/include/ruby-1.9.1/x86_64-linux -I/home/eg/.rvm/rubies/ruby-1.9.3-p194/include/ruby-1.9.1/ruby/backward -I/home/eg/.rvm/rubies/ruby-1.9.3-p194/include/ruby-1.9.1 -I. -I/home/eg/.rvm/usr/include     -O3 -ggdb -Wextra -Wno-unused-parameter -Wno-parentheses -Wno-long-long -Wno-missing-field-initializers -Wpointer-arith -Wwrite-strings -Wdeclaration-after-statement -Wimplicit-function-declaration  -fPIC   -c conftest.c"
+
+I see both /home/evergreen/ and /home/eg/ in there; that looks
+suspicious.
+
+Did you perhaps copy anything in .rvm/ between home
+directories or rename the home directory at some point after
+RVM was installed?
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
