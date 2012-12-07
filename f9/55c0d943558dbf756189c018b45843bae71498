@@ -1,0 +1,82 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=0.0 required=5.0 tests=FREEMAIL_FROM,T_DKIM_INVALID
+ shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id BA7741F6BD for
+ <archivist@yhbt.net>; Fri,  7 Dec 2012 23:42:48 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 9D7F62E083; Fri,  7 Dec 2012 23:42:48 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from mail-vc0-f178.google.com (mail-vc0-f178.google.com
+ [209.85.220.178]) by rubyforge.org (Postfix) with ESMTP id E99402E07F for
+ <mongrel-unicorn@rubyforge.org>; Fri,  7 Dec 2012 23:42:42 +0000 (UTC)
+Received: by mail-vc0-f178.google.com with SMTP id x16so1136711vcq.23 for
+ <mongrel-unicorn@rubyforge.org>; Fri, 07 Dec 2012 15:42:41 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com;
+ s=20120113; h=mime-version:sender:in-reply-to:references:from:date
+ :x-google-sender-auth:message-id:subject:to:content-type;
+ bh=eFlvW6oJFfgiUwCB11/yhLptyKVY/im1lvUn6ngsLnc=;
+ b=TgZdQykReXHQlOW/zgdAxWMWG3De42EXiHNoIzs47zUKPbTaHaOTz99XK1k4sYz5EG
+ QgmlSg4/46wd9H6CZY89fZkhAMJOxJBQCjnKc/yY6/N4X5mqi3QtG6Kq1h1Ei+5UeRjP
+ 2rPEQ3RHy3ipy3bzsrmHUDPNUyNwXM5RErOu/btdcrWU+3cq7BFrlgM239QkQormkbUY
+ swQ18QexnEXAWIkErumi2175iYNjQKt66k8zltnyd/HhEUFHkcW/MKTaswev74ou3FrV
+ pb5+u1IOqreKuvQm6Hbt2XmD7Fo96dJgk9cPVVALAOFse53dxyKABLKkm84nvcyEkgBN 7oMA==
+Received: by 10.52.26.229 with SMTP id o5mr4207140vdg.66.1354923761172; Fri,
+ 07 Dec 2012 15:42:41 -0800 (PST)
+MIME-Version: 1.0
+Received: by 10.58.219.102 with HTTP; Fri, 7 Dec 2012 15:42:21 -0800 (PST)
+In-Reply-To:
+ <CAHOTMV++otgxdru_oZLXuVuqHF7F4uMwd04O0QZBjxeqFR-=XQ@mail.gmail.com>
+References:
+ <CAHOTMV++otgxdru_oZLXuVuqHF7F4uMwd04O0QZBjxeqFR-=XQ@mail.gmail.com>
+From: Tony Arcieri <tony.arcieri@gmail.com>
+Date: Fri, 7 Dec 2012 15:42:21 -0800
+X-Google-Sender-Auth: I3j4VoTGkqUHa2gKjL79CZXZQR0
+Message-ID:
+ <CAHOTMVLMj1jO+dFfQPNEMwkWw5ECknBW4Kby3+vmPdpCpPyuiQ@mail.gmail.com>
+Subject: Re: Maintaining capacity during deploys
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Here's a quick followup with what we're going to try:
+
+We changed the before_fork/after_fork hooks, getting rid of the
+original before_fork hook which sent SIGQUIT to the old master.
+Instead, we send SIGTTOU to the old master at the very end of the
+after_fork block, so that as each new worker completes booting it
+tells the old master to kill off one old worker.
+
+We're also using Rack::MockRequest in the after_fork block (but before
+we send SIGTTOU) to send a request to our most heavily trafficked
+action. Subsequent requests to the same action are ~20X faster, so
+it's clear we're pulling in a lot of code on that first request and
+warming up the new workers is definitely needed.
+
+Does this sound sane?
+
+--
+Tony Arcieri
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
