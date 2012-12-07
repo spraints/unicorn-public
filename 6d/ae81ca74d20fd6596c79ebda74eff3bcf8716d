@@ -1,0 +1,79 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=-0.2 required=5.0 tests=AWL shortcircuit=no
+ autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id 20BD01F5B8 for
+ <archivist@yhbt.net>; Fri,  7 Dec 2012 23:54:18 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 739BF2E083; Fri,  7 Dec 2012 23:54:19 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 86EF12E07F for <mongrel-unicorn@rubyforge.org>; Fri, 
+ 7 Dec 2012 23:54:14 +0000 (UTC)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 88BA71F5B8; Fri,  7 Dec 2012 23:54:12 +0000 (UTC)
+Date: Fri, 7 Dec 2012 23:54:12 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Subject: Re: Maintaining capacity during deploys
+Message-ID: <20121207235412.GA21493@dcvr.yhbt.net>
+References:
+ <CAHOTMV++otgxdru_oZLXuVuqHF7F4uMwd04O0QZBjxeqFR-=XQ@mail.gmail.com>
+ <CAHOTMVLMj1jO+dFfQPNEMwkWw5ECknBW4Kby3+vmPdpCpPyuiQ@mail.gmail.com>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To:
+ <CAHOTMVLMj1jO+dFfQPNEMwkWw5ECknBW4Kby3+vmPdpCpPyuiQ@mail.gmail.com>
+User-Agent: Mutt/1.5.21 (2010-09-15)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Tony Arcieri <tony.arcieri@gmail.com> wrote:
+> Here's a quick followup with what we're going to try:
+> 
+> We changed the before_fork/after_fork hooks, getting rid of the
+> original before_fork hook which sent SIGQUIT to the old master.
+> Instead, we send SIGTTOU to the old master at the very end of the
+> after_fork block, so that as each new worker completes booting it
+> tells the old master to kill off one old worker.
+
+AFAIK, this is pretty common in existing deployments due to the default
+example, so it probably works well for many users already.
+
+> We're also using Rack::MockRequest in the after_fork block (but before
+> we send SIGTTOU) to send a request to our most heavily trafficked
+> action. Subsequent requests to the same action are ~20X faster, so
+> it's clear we're pulling in a lot of code on that first request and
+> warming up the new workers is definitely needed.
+
+I haven't heard of anybody using this, but I expect it to work.  A
+followup report would be much appreciated.  Thanks in advance.
+
+> Does this sound sane?
+
+Sure!
+
+(of course, my definition of "sane" may not match the rest of the world :)
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
