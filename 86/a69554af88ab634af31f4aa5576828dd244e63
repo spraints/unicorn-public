@@ -1,0 +1,95 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=0.0 required=5.0 tests=none shortcircuit=no
+ autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id 205B11F6BD for
+ <archivist@yhbt.net>; Fri,  7 Dec 2012 23:52:40 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 4E6952E083; Fri,  7 Dec 2012 23:52:41 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from mail-oa0-f50.google.com (mail-oa0-f50.google.com
+ [209.85.219.50]) by rubyforge.org (Postfix) with ESMTP id F15562E07F for
+ <mongrel-unicorn@rubyforge.org>; Fri,  7 Dec 2012 23:52:32 +0000 (UTC)
+Received: by mail-oa0-f50.google.com with SMTP id n16so1273299oag.23 for
+ <mongrel-unicorn@rubyforge.org>; Fri, 07 Dec 2012 15:52:31 -0800 (PST)
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com;
+ s=20120113; h=mime-version:x-originating-ip:date:message-id:subject:from:to
+ :content-type:x-gm-message-state;
+ bh=SO85AeSiF+PLF9+PjxQbrSWZpfJIIQZQI1Wongkqgyo=;
+ b=fYUh0mvS1faia8wf+SFidXGgX5Nzw0C0UdbAMNCLVAgjLr4Bt1QcUWmJQS9MhZoAxz
+ 4h86KLTj2FwVUUmulapoJFc8PtBCwmF1AemRar0Ke43wdY2Cx/yRHwgeYbPpRr6FOR89
+ XQ1yl8obnxzsUhTApYXz2gtTOnq7Xxi0KPaYvL9gpnux5MHE0YyIDmChypFyv7nlCWGu
+ UJSvAGP032LpY84FJpfgZgcdcA2iM/j1UpM3HkUiY5Or6Qp7zquiDwV6SffCp9ErJTEg
+ ACRH9KMLnlLaV5b/uhL+1+k6T5fTjivyQ57RlxXvPSCPeB5Hareg92miNJBjNP9/Lnoq OIQg==
+Received: by 10.182.2.169 with SMTP id 9mr4164516obv.66.1354924351210; Fri,
+ 07 Dec 2012 15:52:31 -0800 (PST)
+Received: from mail-ob0-f178.google.com (mail-ob0-f178.google.com
+ [209.85.214.178]) by mx.google.com with ESMTPS id
+ zz6sm5187489oeb.1.2012.12.07.15.52.30 (version=TLSv1/SSLv3 cipher=OTHER);
+ Fri, 07 Dec 2012 15:52:31 -0800 (PST)
+Received: by mail-ob0-f178.google.com with SMTP id eh20so1198977obb.23 for
+ <mongrel-unicorn@rubyforge.org>; Fri, 07 Dec 2012 15:52:30 -0800 (PST)
+MIME-Version: 1.0
+Received: by 10.182.113.5 with SMTP id iu5mr4130678obb.36.1354924350668; Fri,
+ 07 Dec 2012 15:52:30 -0800 (PST)
+Received: by 10.76.172.232 with HTTP; Fri, 7 Dec 2012 15:52:30 -0800 (PST)
+X-Originating-IP: [2.28.141.98]
+Date: Fri, 7 Dec 2012 23:52:30 +0000
+Message-ID:
+ <CAEE==8c+MN=oEkfEoTEAK1SCHS4FZ2O9xPJTzzmAeYEjdokuyA@mail.gmail.com>
+Subject: Ubuntu upstart
+From: Owen Davies <unicorn@obduk.com>
+To: mongrel-unicorn@rubyforge.org
+X-Gm-Message-State:
+ ALoCoQn0yUozE41kcdqAUIXE43bYSIV+r8bsPd+l9L32z7m2bdQf5kMpzEw3jG6vrwWzQ2FiBj7m
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+I cannot find any good example of a unicorn upstart task that works
+properly for the following:
+
+* Upstart will restart if unicorn dies
+* Can send USR2 signal to unicorn to do a no downtime deploys
+* Able to stop upstart job, even after a deploy
+
+I have tried the following:
+
+  expect fork
+  respawn
+  setuid www-data
+  chdir /var/www/app/current
+  exec bundle exec unicorn_rails -E production -c
+/var/www/app/current/config/unicorn.rb
+
+I also tried using the following in various combinations:
+  normal exit 0 QUIT USR2
+  post-stop exec kill `cat /var/www/app/current/tmp/pids/unicorn.pid`
+
+Can anyone help?
+
+Thanks
+
+Owen
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
