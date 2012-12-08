@@ -1,0 +1,91 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=0.0 required=5.0 tests=AWL,T_DKIM_INVALID
+ shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id A55631F438 for
+ <archivist@yhbt.net>; Sat,  8 Dec 2012 13:00:01 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id C01302E07C; Sat,  8 Dec 2012 13:00:01 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from out4-smtp.messagingengine.com (out4-smtp.messagingengine.com
+ [66.111.4.28]) by rubyforge.org (Postfix) with ESMTP id 91C662E07A for
+ <mongrel-unicorn@rubyforge.org>; Sat,  8 Dec 2012 12:59:54 +0000 (UTC)
+Received: from compute3.internal (compute3.nyi.mail.srv.osa [10.202.2.43]) by
+ gateway1.nyi.mail.srv.osa (Postfix) with ESMTP id 0E74B209A3 for
+ <mongrel-unicorn@rubyforge.org>; Sat,  8 Dec 2012 07:59:53 -0500 (EST)
+Received: from frontend1.nyi.mail.srv.osa ([10.202.2.160]) by
+ compute3.internal (MEProxy); Sat, 08 Dec 2012 07:59:53 -0500
+DKIM-Signature: v=1; a=rsa-sha1; c=relaxed/relaxed; d= airbladesoftware.com;
+ h=content-type:mime-version:subject:from
+ :in-reply-to:date:content-transfer-encoding:message-id :references:to;
+ s=mesmtp; bh=FBTWiER+yLQtGItf73pwPZp3+Kc=; b=mi6
+ pppFa8WN+0nv/SsJWugch7pVy+0gzkMTR2Tx2A3hU/0GFIuCrEn8G9TaE8fZ92AC
+ 0mh/OKklPeYtME7nXKVMs6QRNXxao9UTLrKHoV7EpOBF7qTdJvaLdgcC0879h8Q5
+ r55sihWzqZvha8nn/ZcVy/SgtDsFwO6QC75CXkWo=
+DKIM-Signature: v=1; a=rsa-sha1; c=relaxed/relaxed; d= messagingengine.com;
+ h=content-type:mime-version:subject:from
+ :in-reply-to:date:content-transfer-encoding:message-id :references:to;
+ s=smtpout; bh=FBTWiER+yLQtGItf73pwPZp3+Kc=; b=j3
+ /FT1XnAMCjtIshLDhcUeWZdq4nZztK9FKzhZZ9W98xofqxddWmd2rQGktr6Lm95T
+ iZtRFZLhLjG4MfaNbjlPUM7SWKM/wzbancpEeCe16RIcQL580EPNuvZH/I2y3r3E
+ I3XPH92af414946ZDNL3DaMYRFhM28THs8K7s1Sao=
+X-Sasl-enc: NQjSmBvxFkEoneGsliIEp/ghJz7rdvCCe3eyupIhYBhD 1354971592
+Received: from [192.168.88.252] (unknown [80.146.246.2]) by
+ mail.messagingengine.com (Postfix) with ESMTPA id 97DF98E0611 for
+ <mongrel-unicorn@rubyforge.org>; Sat,  8 Dec 2012 07:59:52 -0500 (EST)
+Mime-Version: 1.0 (Apple Message framework v1085)
+Subject: Re: Ubuntu upstart
+From: Andrew Stewart <boss@airbladesoftware.com>
+In-Reply-To:
+ <CAEE==8c+MN=oEkfEoTEAK1SCHS4FZ2O9xPJTzzmAeYEjdokuyA@mail.gmail.com>
+Date: Sat, 8 Dec 2012 13:59:51 +0100
+Message-Id: <D09CC8DB-2135-49CF-A772-1D7163FCD666@airbladesoftware.com>
+References:
+ <CAEE==8c+MN=oEkfEoTEAK1SCHS4FZ2O9xPJTzzmAeYEjdokuyA@mail.gmail.com>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+X-Mailer: Apple Mail (2.1085)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+
+On 8 Dec 2012, at 00:52, Owen Davies wrote:
+> I cannot find any good example of a unicorn upstart task that works
+> properly for the following:
+> 
+> * Upstart will restart if unicorn dies
+> * Can send USR2 signal to unicorn to do a no downtime deploys
+> * Able to stop upstart job, even after a deploy
+
+I take the view that the Unicorn master process is as reliable as a process manager and therefore there's no need to manage Unicorn with a process manager.
+
+Some may regard that as cheating but it neatly sidesteps your problem :)
+
+I use a control script like the one in the examples/ directory of the Unicorn source to start/stop/restart Unicorn.
+
+Yours,
+Andrew Stewart
+
+
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
