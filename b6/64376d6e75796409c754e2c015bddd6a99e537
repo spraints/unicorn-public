@@ -1,0 +1,82 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=-0.2 required=5.0 tests=AWL shortcircuit=no
+ autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id 271503F107 for
+ <archivist@yhbt.net>; Sat,  8 Dec 2012 00:17:35 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 567752E083; Sat,  8 Dec 2012 00:17:36 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 4CABF2E07F for <mongrel-unicorn@rubyforge.org>; Sat, 
+ 8 Dec 2012 00:17:28 +0000 (UTC)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id C0B053F100; Sat,  8 Dec 2012 00:17:25 +0000 (UTC)
+Date: Sat, 8 Dec 2012 00:17:25 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: mongrel-unicorn@rubyforge.org
+Subject: [ANN] unicorn 4.5.0 (final) - check_client_connection option
+Message-ID: <20121208001725.GA31472@dcvr.yhbt.net>
+MIME-Version: 1.0
+Content-Disposition: inline
+User-Agent: Mutt/1.5.20 (2009-06-14)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Changes:
+
+The new check_client_connection option allows unicorn to detect
+most disconnected local clients before potentially expensive
+application processing begins.
+
+This feature is useful for applications experiencing spikes of
+traffic leading to undesirable queue times, as clients will
+disconnect (and perhaps even retry, compounding the problem)
+before unicorn can even start processing the request.
+
+To enable this feature, add the following line to a unicorn
+config file:
+
+      check_client_connection true
+
+This feature only works when nginx (or any other HTTP/1.0+
+client) is on the same machine as unicorn.
+
+A huge thanks to Tom Burns for implementing and testing this
+change in production with real traffic (including mitigating
+an unexpected DoS attack).
+
+ref: http://mid.gmane.org/CAK4qKG3rkfVYLyeqEqQyuNEh_nZ8yw0X_cwTxJfJ+TOU+y8F+w@mail.gmail.com
+
+This release fixes broken Rainbows! compatibility in 4.5.0pre1.
+
+* http://unicorn.bogomips.org/
+* mongrel-unicorn@rubyforge.org
+* git://bogomips.org/unicorn.git
+* http://unicorn.bogomips.org/NEWS.atom.xml
+
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
