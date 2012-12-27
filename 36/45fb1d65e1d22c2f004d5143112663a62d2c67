@@ -1,0 +1,78 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=-0.2 required=5.0 tests=AWL shortcircuit=no
+ autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id 3CE5B1F5B8 for
+ <archivist@yhbt.net>; Thu, 27 Dec 2012 06:59:44 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 235B62E0A0; Thu, 27 Dec 2012 06:59:43 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 8D68C2E09F for <mongrel-unicorn@rubyforge.org>; Thu,
+ 27 Dec 2012 06:59:39 +0000 (UTC)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 57D4C1F5B8; Thu, 27 Dec 2012 06:59:38 +0000 (UTC)
+Date: Thu, 27 Dec 2012 06:59:38 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Subject: Re: superclass mismatch for class TeeInput?
+Message-ID: <20121227065938.GA13410@dcvr.yhbt.net>
+References:
+ <CAKnvRSZFiAbk1ciVWeqkzH06-voFwe5kr2iN8qu2OZ8Vp8Un-g@mail.gmail.com>
+ <-3968653883392025602@unknownmsgid>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To: <-3968653883392025602@unknownmsgid>
+User-Agent: Mutt/1.5.21 (2010-09-15)
+Cc: Julian Dunn <jdunn@aquezada.com>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Julian Dunn <jdunn@aquezada.com> wrote:
+> > I was trying to run Unicorn 4.5.0's tests and I'm getting this. Am I doing something wrong?
+> >
+> > [vagrant@localhost unicorn-4.5.0]$ testrb -Ilib -Iext/unicorn_http -I. test
+
+I'm not sure what testrb is doing, I never use it.  I can reproduce
+your error and it's not obvious what's causing it...
+
+Anyways, the following works for me:
+
+  ruby -Ilib -Iext/unicorn_http -I. test/unit/test_tee_input.rb
+
+However, I normally just run:
+
+	make -j$(nproc) test-all
+
+from a git checkout...
+
+
+Despite the filenames, most of the tests for unicorn aren't unit tests.
+They interact with the entire process (trapping signals, forking,
+exiting, etc...).
+
+Thus, test runners relying on exit/at_exit hooks (especially if nested
+like testrb seems to do) probably triggers some strange behavior...
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
