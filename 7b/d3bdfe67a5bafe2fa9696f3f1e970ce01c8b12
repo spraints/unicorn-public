@@ -1,0 +1,77 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=0.0 required=5.0 tests=AWL,FREEMAIL_FROM,
+ T_DKIM_INVALID shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id B3CF11F6C9 for
+ <archivist@yhbt.net>; Fri, 28 Dec 2012 22:08:06 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id B6FAD2E09A; Fri, 28 Dec 2012 22:08:07 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from mail-vb0-f53.google.com (mail-vb0-f53.google.com
+ [209.85.212.53]) by rubyforge.org (Postfix) with ESMTP id A42EC2E097 for
+ <mongrel-unicorn@rubyforge.org>; Fri, 28 Dec 2012 22:08:03 +0000 (UTC)
+Received: by mail-vb0-f53.google.com with SMTP id b23so11034007vbz.40 for
+ <mongrel-unicorn@rubyforge.org>; Fri, 28 Dec 2012 14:08:01 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com;
+ s=20120113; h=mime-version:sender:in-reply-to:references:from:date
+ :x-google-sender-auth:message-id:subject:to:content-type;
+ bh=CSOBHsPgnDE+gFBZxi1vJeDNUEWHMkyaLaZ6q8C1fO8=;
+ b=IVxAAtwHTXlrhM0BZHec/CRvm9IfGkNUPcPePNKz8oJq45kwtLrx+jhPqGKIfFTzpq
+ ZdX3dJkRImoswTBIORvtNSjIYD7YrmQpaqmf39KdzSzFY+TJ+D3z772TBkF1kTvNF4L9
+ SOpaihH/HIQOxFB1VlykwP9tFuAiVMG9clBAc/AJ4yp34rRo+0oZvoAeJsM759e6JhiD
+ IkNbx4Eo6kSKrq/Bc1i9Bu6ineCrqnUinYTXYYLcbvPoVj80glO0kmMfIMb99tp+WQvL
+ /HDEqTIwmwHhtf+Ut2lcp7nQYTZ+G1LtR4TeVk9j90ZroeDB9eHzxqJ1+SxhQQC30LYE x/9A==
+Received: by 10.220.106.147 with SMTP id x19mr53523521vco.37.1356732481720;
+ Fri, 28 Dec 2012 14:08:01 -0800 (PST)
+MIME-Version: 1.0
+Received: by 10.58.24.200 with HTTP; Fri, 28 Dec 2012 14:07:41 -0800 (PST)
+In-Reply-To: <loom.20121228T223727-696@post.gmane.org>
+References:
+ <CAHOTMV++otgxdru_oZLXuVuqHF7F4uMwd04O0QZBjxeqFR-=XQ@mail.gmail.com>
+ <CAHOTMVLMj1jO+dFfQPNEMwkWw5ECknBW4Kby3+vmPdpCpPyuiQ@mail.gmail.com>
+ <loom.20121228T223727-696@post.gmane.org>
+From: Tony Arcieri <tony.arcieri@gmail.com>
+Date: Fri, 28 Dec 2012 14:07:41 -0800
+X-Google-Sender-Auth: 49PebaxNSFaK5UJDLp63dIxb6VU
+Message-ID:
+ <CAHOTMVJOXRRWqv6ntu679SnirdGwNM8G9SRg+QzmBk2ZvaUWQg@mail.gmail.com>
+Subject: Re: Maintaining capacity during deploys
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+On Fri, Dec 28, 2012 at 1:38 PM, Dan Melnick <danmelnick@gmail.com> wrote:
+>> Is this code you're able to share in a gist or elsewhere? I'm curious to
+> see how you're using  Rack::MockRequest on a per-worker basis.
+
+It looks like this, more or less:
+
+app = ActionController::Dispatcher.new
+map = Rack::URLMap.new('/' => app)
+Rack::MockRequest.new(map).get(url)
+
+--
+Tony Arcieri
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
