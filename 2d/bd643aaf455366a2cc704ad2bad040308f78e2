@@ -1,0 +1,84 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=-0.2 required=5.0 tests=AWL shortcircuit=no
+ autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id 49FA71F433 for
+ <archivist@yhbt.net>; Sun, 20 Jan 2013 08:04:49 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 24E6D2E09F; Sun, 20 Jan 2013 08:04:48 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 7F99F2E083 for <mongrel-unicorn@rubyforge.org>; Sun,
+ 20 Jan 2013 08:04:32 +0000 (UTC)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 93BFB1F433; Sun, 20 Jan 2013 08:04:31 +0000 (UTC)
+Date: Sun, 20 Jan 2013 08:04:31 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Subject: Re: preload_app = true causing - ActiveModel::MissingAttributeError:
+ missing attribute: some_attr
+Message-ID: <20130120080431.GA1283@dcvr.yhbt.net>
+References:
+ <CAAZOLpVR62mUFZOAvdrd6EsqtWN_AXV8i4UfqkNAtf7oZVBDBw@mail.gmail.com>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To:
+ <CAAZOLpVR62mUFZOAvdrd6EsqtWN_AXV8i4UfqkNAtf7oZVBDBw@mail.gmail.com>
+User-Agent: Mutt/1.5.21 (2010-09-15)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Avner Cohen <avner.cohen@fiverr.com> wrote:
+> Greetings,
+> 
+> I'm getting this  - ActiveModel::MissingAttributeError: missing
+> attribute: some_attr  - on a random basis under a unicorn server,
+> running rails 3.2 and ruby 1.9.3
+> As the case of the last poster in the following thread -
+> https://github.com/rails/rails/issues/1906 -  I too am able to resolve
+> this issue by settingpreload_app to false.
+> 
+> However, this is not the behaviour I want to have.
+> 
+> Any inputs on that, or data I can provide around this issue?
+
+Did you try disconnecting in your before_fork hook and reconnecting
+after_fork?
+
+before_fork do |server, worker|
+  # the following is highly recomended for Rails + "preload_app true"
+  # as there's no need for the master process to hold a connection
+  defined?(ActiveRecord::Base) and
+    ActiveRecord::Base.connection.disconnect!
+end
+
+after_fork do |server, worker|
+  # the following is *required* for Rails + "preload_app true",
+  defined?(ActiveRecord::Base) and
+    ActiveRecord::Base.establish_connection
+end
+
+Open database handles must not be carried across fork.
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
