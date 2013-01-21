@@ -1,0 +1,126 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=0.0 required=5.0 tests=none shortcircuit=no
+ autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id D7B4D1F6D8 for
+ <archivist@yhbt.net>; Mon, 21 Jan 2013 08:02:26 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 67E222E099; Mon, 21 Jan 2013 08:02:24 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from mail-qc0-f178.google.com (mail-qc0-f178.google.com
+ [209.85.216.178]) by rubyforge.org (Postfix) with ESMTP id C77F92E084 for
+ <mongrel-unicorn@rubyforge.org>; Mon, 21 Jan 2013 08:02:14 +0000 (UTC)
+Received: by mail-qc0-f178.google.com with SMTP id j34so3573638qco.23 for
+ <mongrel-unicorn@rubyforge.org>; Mon, 21 Jan 2013 00:02:13 -0800 (PST)
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com;
+ s=20120113; h=mime-version:x-received:in-reply-to:references:date:message-id
+ :subject:from:to:cc:content-type:x-gm-message-state;
+ bh=Ykozwv/MDOM3xAU3m5cakmr7y5QnD/23lbmmS+SnhTQ=;
+ b=m03bobaRkzYl4bx9C28VlVgT6KhmW3IXEUZGBoFBLl7LoTD4iOCND+zJsFZDkmcdiQ
+ 6glFXmkPgQKtoo9kmhFLi7kdhnf+9PKfS+8zG6IfWM7qLz/Z15fC0OQIb6rLLQjp6sfV
+ uAVyUYfWF1OH3uXKf2pacMcoyCCJEEvL4j55QM7sVu8T1fyqCEpZrwTyS3u4YqBIHVU5
+ jwR3xQ13TaF6XJGPaWMRoTyt5tNzKbPmxuzSgDZavz/WBrc/r7WzhxQo+oH2Bb3V8QSp
+ WhDmAdPZBw7dvd+bvfkN0/CLmTJw2nYEwgRDeqjVMlxDMHGphnTpM2t98zvZPatOg5EA yLwg==
+MIME-Version: 1.0
+X-Received: by 10.224.27.205 with SMTP id j13mr18600165qac.56.1358754930209;
+ Sun, 20 Jan 2013 23:55:30 -0800 (PST)
+Received: by 10.49.106.2 with HTTP; Sun, 20 Jan 2013 23:55:30 -0800 (PST)
+In-Reply-To: <20130120091750.GA3761@dcvr.yhbt.net>
+References:
+ <CAAZOLpVR62mUFZOAvdrd6EsqtWN_AXV8i4UfqkNAtf7oZVBDBw@mail.gmail.com>
+ <20130120080431.GA1283@dcvr.yhbt.net>
+ <CAAZOLpVqKHZ_jDewirTPCmV_ictqaJSjGJi208HFZyfMS2jR1Q@mail.gmail.com>
+ <20130120091750.GA3761@dcvr.yhbt.net>
+Date: Mon, 21 Jan 2013 09:55:30 +0200
+Message-ID:
+ <CAAZOLpUQEQ757S28470H-uForzFJbO4h-Q_jGgcVGTXrq=vQjQ@mail.gmail.com>
+Subject: Re: preload_app = true causing - ActiveModel::MissingAttributeError:
+ missing attribute: some_attr
+From: Avner Cohen <avner.cohen@fiverr.com>
+To: Eric Wong <normalperson@yhbt.net>
+X-Gm-Message-State:
+ ALoCoQlxv9BHoafI4B+ppFkiQMCHpzbFaumPA6loqu+qIgLANILlVPFizhh7qaraS9reml4dhKm2
+Cc: unicorn list <mongrel-unicorn@rubyforge.org>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Thanks Eric, I'll use this to explore the issue.
+
+I suspect the issue is indeed around sockets, I found a reply from you
+from a while back that seems to point on memcache as another thing I
+need to manage at the worker level:
+http://rubyforge.org/pipermail/mongrel-unicorn/2010-January/000309.html
+
+That being said, I'm extremely surprised there is no published unicorn
+startup scripts that consider the common use case of a deployment
+stack that includes:
+Rails + Active Record
+Redis
+Memcache
+
+I'll post my final script once I conclude the investigation.
+
+Best Regards,
+Avner Cohen
+
+On Sun, Jan 20, 2013 at 11:17 AM, Eric Wong <normalperson@yhbt.net> wrote:
+> Avner Cohen <avner.cohen@fiverr.com> wrote:
+>> Eric,
+>> Thanks for the quick reply, and aplogies for not providing full info.
+>> I do have these set up, here is my full configuration:
+>>
+>> # -*- encoding : utf-8 -*-
+>> worker_processes 4
+>> working_directory "."
+>> listen 3000
+>> timeout 120
+>>
+>> preload_app true
+>>
+>> before_fork do |server, worker|
+>>   defined?(ActiveRecord::Base) and ActiveRecord::Base.connection.disconnect!
+>> end
+>>
+>>
+>> after_fork do |server, worker|
+>>   defined?(ActiveRecord::Base) and ActiveRecord::Base.establish_connection
+>> end
+>
+> Interesting.  I haven't kept up with changes in Rails over the
+> past few years.  Hopefully somebody else on the list, has...
+>
+> Which database and adapter are you using?
+>
+> Do you have anything else that opens a socket at application startup?
+> (e.g. memcache, redis, ..., especially anything that would interact
+> with ActiveRecord/Model)
+>
+> Can you try just using one worker_process + preload_app=true and
+> doing "lsof -p" on both the PID of the master and single worker
+> to show open sockets (and any other FDs which may be inadvertantly
+> shared)?
+>
+> The only stream socket which should be shared are the listeners.
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
