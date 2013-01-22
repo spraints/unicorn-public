@@ -1,0 +1,279 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=-0.2 required=5.0 tests=AWL shortcircuit=no
+ autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id 0FAE31F43F for
+ <archivist@yhbt.net>; Tue, 22 Jan 2013 11:49:53 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 9BCF22E09B; Tue, 22 Jan 2013 11:49:52 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id E77392E076 for <mongrel-unicorn@rubyforge.org>; Tue,
+ 22 Jan 2013 11:49:45 +0000 (UTC)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 117A71F408; Tue, 22 Jan 2013 11:49:44 +0000 (UTC)
+Date: Tue, 22 Jan 2013 11:49:43 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: mongrel-unicorn@rubyforge.org
+Subject: [PATCH] support for Rack hijack in request and response
+Message-ID: <20130122114943.GA8455@dcvr.yhbt.net>
+MIME-Version: 1.0
+Content-Disposition: inline
+User-Agent: Mutt/1.5.20 (2009-06-14)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Rack 1.5.0 (protocol version [1,2]) adds support for
+hijacking the client socket (removing it from the control
+of unicorn (or any other Rack webserver)).
+
+Tested with rack 1.5.0.
+---
+ I've pushed this to the "hijack" branch of git://bogomips.org/unicorn
+
+ As this is a development branch, I intend to rebase and cleanup history
+ as needed before it hits master.
+
+ I also believe the Rack::Lint change mentioned in my t0005 comment
+ below is a bug (patch/pull posted to rack-devel ML:
+ 20130122113749.GA31589@dcvr.yhbt.net )
+
+ lib/unicorn/http_request.rb         | 21 +++++++++++++++++++
+ lib/unicorn/http_response.rb        | 40 +++++++++++++++++++++++++++++--------
+ lib/unicorn/http_server.rb          |  6 ++++--
+ t/hijack.ru                         | 37 ++++++++++++++++++++++++++++++++++
+ t/t0005-working_directory_app.rb.sh |  5 ++++-
+ t/t0200-rack-hijack.sh              | 27 +++++++++++++++++++++++++
+ 6 files changed, 125 insertions(+), 11 deletions(-)
+ create mode 100644 t/hijack.ru
+ create mode 100755 t/t0200-rack-hijack.sh
+
+diff --git a/lib/unicorn/http_request.rb b/lib/unicorn/http_request.rb
+index 79ead2e..3bc64ed 100644
+--- a/lib/unicorn/http_request.rb
++++ b/lib/unicorn/http_request.rb
+@@ -91,6 +91,27 @@ class Unicorn::HttpParser
+ 
+     e[RACK_INPUT] = 0 == content_length ?
+                     NULL_IO : @@input_class.new(socket, self)
++    hijack_setup(e, socket)
+     e.merge!(DEFAULTS)
+   end
++
++  # Rack 1.5.0 (protocol version 1.2) adds hijack request support
++  if ((Rack::VERSION[0] << 8) | Rack::VERSION[1]) >= 0x0102
++    DEFAULTS["rack.hijack?"] = true
++
++    # FIXME: asking for clarification about this in
++    # http://mid.gmane.org/20130122100802.GA28585@dcvr.yhbt.net
++    DEFAULTS["rack.version"] = [1, 2]
++
++    RACK_HIJACK = "rack.hijack".freeze
++    RACK_HIJACK_IO = "rack.hijack_io".freeze
++
++    def hijack_setup(e, socket)
++      e[RACK_HIJACK] = proc { e[RACK_HIJACK_IO] ||= socket }
++    end
++  else
++    # old Rack, do nothing.
++    def hijack_setup(e, _)
++    end
++  end
+ end
+diff --git a/lib/unicorn/http_response.rb b/lib/unicorn/http_response.rb
+index 579d957..083951c 100644
+--- a/lib/unicorn/http_response.rb
++++ b/lib/unicorn/http_response.rb
+@@ -25,6 +25,7 @@ module Unicorn::HttpResponse
+   def http_response_write(socket, status, headers, body,
+                           response_start_sent=false)
+     status = CODES[status.to_i] || status
++    hijack = nil
+ 
+     http_response_start = response_start_sent ? '' : 'HTTP/1.1 '
+     if headers
+@@ -33,19 +34,42 @@ module Unicorn::HttpResponse
+             "Status: #{status}\r\n" \
+             "Connection: close\r\n"
+       headers.each do |key, value|
+-        next if %r{\A(?:Date\z|Connection\z)}i =~ key
+-        if value =~ /\n/
+-          # avoiding blank, key-only cookies with /\n+/
+-          buf << value.split(/\n+/).map! { |v| "#{key}: #{v}\r\n" }.join
++        case key
++        when %r{\A(?:Date\z|Connection\z)}i
++          next
++        when "rack.hijack"
++          # this was an illegal key in Rack < 1.5, so it should be
++          # OK to silently discard it for those older versions
++          hijack = hijack_prepare(value)
+         else
+-          buf << "#{key}: #{value}\r\n"
++          if value =~ /\n/
++            # avoiding blank, key-only cookies with /\n+/
++            buf << value.split(/\n+/).map! { |v| "#{key}: #{v}\r\n" }.join
++          else
++            buf << "#{key}: #{value}\r\n"
++          end
+         end
+       end
+       socket.write(buf << CRLF)
+     end
+ 
+-    body.each { |chunk| socket.write(chunk) }
+-    ensure
+-      body.respond_to?(:close) and body.close
++    if hijack
++      body = nil # ensure we do not close body
++      hijack.call(socket)
++    else
++      body.each { |chunk| socket.write(chunk) }
++    end
++  ensure
++    body.respond_to?(:close) and body.close
++  end
++
++  # Rack 1.5.0 (protocol version 1.2) adds response hijacking support
++  if ((Rack::VERSION[0] << 8) | Rack::VERSION[1]) >= 0x0102
++    def hijack_prepare(value)
++      value
++    end
++  else
++    def hijack_prepare(_)
++    end
+   end
+ end
+diff --git a/lib/unicorn/http_server.rb b/lib/unicorn/http_server.rb
+index aa98aeb..2d8e4e1 100644
+--- a/lib/unicorn/http_server.rb
++++ b/lib/unicorn/http_server.rb
+@@ -559,8 +559,10 @@ class Unicorn::HttpServer
+     @request.headers? or headers = nil
+     http_response_write(client, status, headers, body,
+                         @request.response_start_sent)
+-    client.shutdown # in case of fork() in Rack app
+-    client.close # flush and uncork socket immediately, no keepalive
++    unless client.closed? # rack.hijack may've close this for us
++      client.shutdown # in case of fork() in Rack app
++      client.close # flush and uncork socket immediately, no keepalive
++    end
+   rescue => e
+     handle_error(client, e)
+   end
+diff --git a/t/hijack.ru b/t/hijack.ru
+new file mode 100644
+index 0000000..105e0d7
+--- /dev/null
++++ b/t/hijack.ru
+@@ -0,0 +1,37 @@
++use Rack::Lint
++use Rack::ContentLength
++use Rack::ContentType, "text/plain"
++class DieIfUsed
++  def each
++    abort "body.each called after response hijack\n"
++  end
++
++  def close
++    abort "body.close called after response hijack\n"
++  end
++end
++run lambda { |env|
++  case env["PATH_INFO"]
++  when "/hijack_req"
++    if env["rack.hijack?"]
++      io = env["rack.hijack"].call
++      if io.respond_to?(:read_nonblock) &&
++         env["rack.hijack_io"].respond_to?(:read_nonblock)
++        return [ 200, {}, [ "hijack.OK\n" ] ]
++      end
++    end
++    [ 500, {}, [ "hijack BAD\n" ] ]
++  when "/hijack_res"
++    r = "response.hijacked"
++    [ 200,
++      {
++        "Content-Length" => r.bytesize.to_s,
++        "rack.hijack" => proc do |io|
++          io.write(r)
++          io.close
++        end
++      },
++      DieIfUsed.new
++    ]
++  end
++}
+diff --git a/t/t0005-working_directory_app.rb.sh b/t/t0005-working_directory_app.rb.sh
+index 37c6fa7..0fbab4f 100755
+--- a/t/t0005-working_directory_app.rb.sh
++++ b/t/t0005-working_directory_app.rb.sh
+@@ -11,7 +11,10 @@ t_begin "setup and start" && {
+ 	cat > $t_pfx.app/fooapp.rb <<\EOF
+ class Fooapp
+   def self.call(env)
+-    [ 200, [%w(Content-Type text/plain), %w(Content-Length 2)], %w(HI) ]
++    # Rack::Lint in 1.5.0 requires headers to be a hash
++    h = [%w(Content-Type text/plain), %w(Content-Length 2)]
++    h = Rack::Utils::HeaderHash.new(h)
++    [ 200, h, %w(HI) ]
+   end
+ end
+ EOF
+diff --git a/t/t0200-rack-hijack.sh b/t/t0200-rack-hijack.sh
+new file mode 100755
+index 0000000..23a9ee4
+--- /dev/null
++++ b/t/t0200-rack-hijack.sh
+@@ -0,0 +1,27 @@
++#!/bin/sh
++. ./test-lib.sh
++t_plan 5 "rack.hijack tests (Rack 1.5+ (Rack::VERSION >= [ 1,2]))"
++
++t_begin "setup and start" && {
++	unicorn_setup
++	unicorn -D -c $unicorn_config hijack.ru
++	unicorn_wait_start
++}
++
++t_begin "check request hijack" && {
++	test "xhijack.OK" = x"$(curl -sSfv http://$listen/hijack_req)"
++}
++
++t_begin "check response hijack" && {
++	test "xresponse.hijacked" = x"$(curl -sSfv http://$listen/hijack_res)"
++}
++
++t_begin "killing succeeds" && {
++	kill $unicorn_pid
++}
++
++t_begin "check stderr" && {
++	check_stderr
++}
++
++t_done
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
