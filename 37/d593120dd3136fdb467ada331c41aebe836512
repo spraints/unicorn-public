@@ -1,0 +1,138 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=-0.2 required=5.0 tests=AWL shortcircuit=no
+ autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id 567771F6E1 for
+ <archivist@yhbt.net>; Tue, 22 Jan 2013 23:57:37 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 7A87B2E09B; Tue, 22 Jan 2013 23:57:38 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 85E472E069 for <mongrel-unicorn@rubyforge.org>; Tue,
+ 22 Jan 2013 23:57:30 +0000 (UTC)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 586DB1F6BC; Tue, 22 Jan 2013 23:57:28 +0000 (UTC)
+Date: Tue, 22 Jan 2013 23:57:28 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: mongrel-unicorn@rubyforge.org
+Subject: [PATCH 2/1] ignore normal Rack response at request-time hijack
+Message-ID: <20130122235728.GA8717@dcvr.yhbt.net>
+References: <20130122114943.GA8455@dcvr.yhbt.net>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To: <20130122114943.GA8455@dcvr.yhbt.net>
+User-Agent: Mutt/1.5.20 (2009-06-14)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Once a connection is hijacked, we ignore it completely and leave
+the connection at the mercy of the application.
+---
+  Pushed to "hijack" of git://bogomips.org/unicorn
+
+ lib/unicorn/http_request.rb | 8 ++++++++
+ lib/unicorn/http_server.rb  | 2 ++
+ t/hijack.ru                 | 7 ++++++-
+ t/t0200-rack-hijack.sh      | 2 +-
+ 4 files changed, 17 insertions(+), 2 deletions(-)
+
+diff --git a/lib/unicorn/http_request.rb b/lib/unicorn/http_request.rb
+index 3bc64ed..3795b3b 100644
+--- a/lib/unicorn/http_request.rb
++++ b/lib/unicorn/http_request.rb
+@@ -106,6 +106,10 @@ class Unicorn::HttpParser
+     RACK_HIJACK = "rack.hijack".freeze
+     RACK_HIJACK_IO = "rack.hijack_io".freeze
+ 
++    def hijacked?
++      env.include?(RACK_HIJACK_IO)
++    end
++
+     def hijack_setup(e, socket)
+       e[RACK_HIJACK] = proc { e[RACK_HIJACK_IO] ||= socket }
+     end
+@@ -113,5 +117,9 @@ class Unicorn::HttpParser
+     # old Rack, do nothing.
+     def hijack_setup(e, _)
+     end
++
++    def hijacked?
++      false
++    end
+   end
+ end
+diff --git a/lib/unicorn/http_server.rb b/lib/unicorn/http_server.rb
+index 2d8e4e1..cc0a705 100644
+--- a/lib/unicorn/http_server.rb
++++ b/lib/unicorn/http_server.rb
+@@ -550,11 +550,13 @@ class Unicorn::HttpServer
+   # in 3 easy steps: read request, call app, write app response
+   def process_client(client)
+     status, headers, body = @app.call(env = @request.read(client))
++    return if @request.hijacked?
+ 
+     if 100 == status.to_i
+       client.write(expect_100_response)
+       env.delete(Unicorn::Const::HTTP_EXPECT)
+       status, headers, body = @app.call(env)
++      return if @request.hijacked?
+     end
+     @request.headers? or headers = nil
+     http_response_write(client, status, headers, body,
+diff --git a/t/hijack.ru b/t/hijack.ru
+index 105e0d7..fcb0b6d 100644
+--- a/t/hijack.ru
++++ b/t/hijack.ru
+@@ -17,7 +17,12 @@ run lambda { |env|
+       io = env["rack.hijack"].call
+       if io.respond_to?(:read_nonblock) &&
+          env["rack.hijack_io"].respond_to?(:read_nonblock)
+-        return [ 200, {}, [ "hijack.OK\n" ] ]
++
++        # exercise both, since we Rack::Lint may use different objects
++        env["rack.hijack_io"].write("HTTP/1.0 200 OK\r\n\r\n")
++        io.write("request.hijacked")
++        io.close
++        return [ 500, {}, DieIfUsed.new ]
+       end
+     end
+     [ 500, {}, [ "hijack BAD\n" ] ]
+diff --git a/t/t0200-rack-hijack.sh b/t/t0200-rack-hijack.sh
+index 23a9ee4..f772071 100755
+--- a/t/t0200-rack-hijack.sh
++++ b/t/t0200-rack-hijack.sh
+@@ -9,7 +9,7 @@ t_begin "setup and start" && {
+ }
+ 
+ t_begin "check request hijack" && {
+-	test "xhijack.OK" = x"$(curl -sSfv http://$listen/hijack_req)"
++	test "xrequest.hijacked" = x"$(curl -sSfv http://$listen/hijack_req)"
+ }
+ 
+ t_begin "check response hijack" && {
+-- 
+Eric Wong
+
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
