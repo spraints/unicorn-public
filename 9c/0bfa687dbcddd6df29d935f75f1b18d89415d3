@@ -1,0 +1,88 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=-0.2 required=5.0 tests=AWL shortcircuit=no
+ autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id 9332F1F71F for
+ <archivist@yhbt.net>; Tue, 22 Jan 2013 23:22:19 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 8C1D62E09B; Tue, 22 Jan 2013 23:22:19 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id DD54F2E069 for <mongrel-unicorn@rubyforge.org>; Tue,
+ 22 Jan 2013 23:22:17 +0000 (UTC)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 2710A1F6BC; Tue, 22 Jan 2013 23:22:15 +0000 (UTC)
+Date: Tue, 22 Jan 2013 23:22:15 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: mongrel-unicorn@rubyforge.org
+Subject: Re: Pull Request For Timeout Handling
+Message-ID: <20130122232215.GA29969@dcvr.yhbt.net>
+References:
+ <CAGONMvQGiJemwtnKkRskprwy8iw77CTxNLhjVv8-OzZbRN3xzQ@mail.gmail.com>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To:
+ <CAGONMvQGiJemwtnKkRskprwy8iw77CTxNLhjVv8-OzZbRN3xzQ@mail.gmail.com>
+User-Agent: Mutt/1.5.21 (2010-09-15)
+Cc: Daisuke Taniwaki <daisuketaniwaki@gmail.com>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+(moving to public list, since this pull request (and your email address)
+ was already public)
+
+Daisuke Taniwaki <daisuketaniwaki@gmail.com> wrote:
+> Hi,
+> 
+> I mistakenly send pull request to the mirror on github.
+
+For public patches/pull-requests, please use the public mailing list in
+the future.   See the HACKING doc, submission guidelines for unicorn are
+based on those of git itself, NOT an interface some corporation gives
+you.
+
+> Could you consider to merge this change?
+> I think we can have a chance to handle SIGINT to debug worker process timeout.
+> 
+> https://github.com/defunkt/unicorn/pull/4
+
+Thanks for your interest, but I cannot accept for several reasons:
+
+Logger is unsafe inside signal handlers.  Signal handlers must be
+reentrant, and logger only guarantees thread-safety (via Mutex or
+Monitor).
+
+I wrote about this on the usp.ruby list a while back:
+http://mid.gmane.org/20120326222500.GA20806@dcvr.yhbt.net
+
+
+Additionally, using a blocking (even for 1s) timeout is bad for the
+master process, since it cannot handle other signals in that period.
+
+The timeout in unicorn is a last resort, applications should normally
+manage their own timeouts.  If a worker can respond to SIGINT, it is
+capable of responding to Ruby-level timeouts.  See Application_Timeouts
+doc for details.
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
