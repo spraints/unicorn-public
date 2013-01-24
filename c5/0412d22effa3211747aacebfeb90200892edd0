@@ -1,0 +1,166 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=0.0 required=5.0 tests=AWL,FREEMAIL_FROM,
+ T_DKIM_INVALID shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id 6E5931F701 for
+ <archivist@yhbt.net>; Thu, 24 Jan 2013 08:42:18 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 6CF602E09D; Thu, 24 Jan 2013 08:42:17 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from mail-la0-f41.google.com (mail-la0-f41.google.com
+ [209.85.215.41]) by rubyforge.org (Postfix) with ESMTP id 7530E2E083 for
+ <mongrel-unicorn@rubyforge.org>; Thu, 24 Jan 2013 08:42:11 +0000 (UTC)
+Received: by mail-la0-f41.google.com with SMTP id fo12so4333442lab.14 for
+ <mongrel-unicorn@rubyforge.org>; Thu, 24 Jan 2013 00:42:10 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com;
+ s=20120113; h=mime-version:x-received:date:message-id:subject:from:to
+ :content-type:content-transfer-encoding;
+ bh=YgAsQ5jMqlSNhN7AN3y2biuD/pbRRLGT2rCqPiKm6JI=;
+ b=UVsfpt2zW7DSyIB8NA2o52FpkBxEQywQXx6+jQfV00kpqeP/FZkXPcAfBkBxx37ZkY
+ pqmfMPhTmpfrR1ezRRtqtBRXcPivzU8UwWotskIU78u0OTqWQwmlw55tbc8uMElmuikq
+ quJBCnmS+C5CEdfgEfKwRQ2RkyTPY/NduJLWrGDRH5kDcFeXGTb/xb3p7AOkQG3lU5+g
+ I4fEzTMa4Ffr01naHNrFFtB/+Acc4oMrmTGQeJ12wrIuxgLS9B7z4L5VNU9DvDqi54DP
+ 93dDHubBo6RRwuDv301uwpbXpCpewt7g3BBtdMGWJigI3E7z1oJU2K5zm2oGf0n4WZ88 yMgw==
+MIME-Version: 1.0
+X-Received: by 10.152.122.133 with SMTP id ls5mr1101895lab.9.1359016929969;
+ Thu, 24 Jan 2013 00:42:09 -0800 (PST)
+Received: by 10.112.112.100 with HTTP; Thu, 24 Jan 2013 00:42:09 -0800 (PST)
+Date: Thu, 24 Jan 2013 09:42:09 +0100
+Message-ID:
+ <CAKjxZvqf=og2NE2ehV6SFHAFN6SO=ky2+7YXTt+yoJ7+Jm_qUw@mail.gmail.com>
+Subject: SIGSEGV at shutdown (was: Re: your mail)
+From: Charles Hornberger <charles.hornberger@gmail.com>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="windows-1252"
+Content-Transfer-Encoding: quoted-printable
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+On Mon, Jan 21, 2013 at 11:28 AM, Eric Wong <normalperson@yhbt.net> wrote:
+> Charles Hornberger <charles.hornberger@gmail.com> wrote:
+>> Hi!
+>>
+>> I recently noticed this error message when restarting unicorn after a
+>> code deployment (and I don't think I recall having seen it before):
+>>
+>> I, [2013-01-18T17:54:21.502554 #59285]  INFO -- : reaped
+>> #<Process::Status: pid 59293 exit 0> worker=3D6
+>> I, [2013-01-18T17:54:21.502692 #59285]  INFO -- : reaped
+>> #<Process::Status: pid 59294 exit 0> worker=3D7
+>> I, [2013-01-18T17:54:21.502754 #59285]  INFO -- : reaped
+>> #<Process::Status: pid 59292 exit 0> worker=3D5
+>> I, [2013-01-18T17:54:21.502819 #59285]  INFO -- : reaped
+>> #<Process::Status: pid 59291 exit 0> worker=3D4
+>> E, [2013-01-18T17:54:21.502915 #59285] ERROR -- : reaped
+>> #<Process::Status: pid 59288 SIGSEGV (signal 11)> worker=3D1
+>> I, [2013-01-18T17:54:21.502967 #59285]  INFO -- : reaped
+>> #<Process::Status: pid 59287 exit 0> worker=3D0
+>> I, [2013-01-18T17:54:21.604829 #59285]  INFO -- : reaped
+>> #<Process::Status: pid 59290 exit 0> worker=3D3
+>> I, [2013-01-18T17:54:21.604935 #59285]  INFO -- : reaped
+>> #<Process::Status: pid 59289 exit 0> worker=3D2
+>> I, [2013-01-18T17:54:21.605077 #59285]  INFO -- : master complete
+>>
+>> Just wondering if it's something I should be concerned about? I saw no
+>> obvious symptoms of problems before or after=85
+>>
+>> We currently restart unicorn (which is on a freebsd jail) like so:
+>
+> A SEGV at shutdown is likely an ordering problem at VM shutdown
+> (probably GC/finalization handling).  It could be specific to the
+> malloc/pthread implementation on FreeBSD, even.
+>
+> Which version of Ruby are you using?
+
+1.9.3p-125
+
+> Which C extensions do you have loaded?
+
+There's probably a better way to answer this question, but ...
+
+% find vendor/bundle/ruby/1.9.1/gems -name '*.so'
+vendor/bundle/ruby/1.9.1/gems/clogger-1.1.0/ext/clogger_ext/clogger_ext.so
+vendor/bundle/ruby/1.9.1/gems/clogger-1.1.0/lib/clogger_ext.so
+vendor/bundle/ruby/1.9.1/gems/eventmachine-1.0.0.rc.4/ext/fastfilereader/fa=
+stfilereaderext.so
+vendor/bundle/ruby/1.9.1/gems/eventmachine-1.0.0.rc.4/ext/rubyeventmachine.=
+so
+vendor/bundle/ruby/1.9.1/gems/eventmachine-1.0.0.rc.4/lib/rubyeventmachine.=
+so
+vendor/bundle/ruby/1.9.1/gems/eventmachine-1.0.0.rc.4/lib/fastfilereaderext=
+.so
+vendor/bundle/ruby/1.9.1/gems/escape_utils-0.2.4/ext/escape_utils/escape_ut=
+ils.so
+vendor/bundle/ruby/1.9.1/gems/escape_utils-0.2.4/lib/escape_utils.so
+vendor/bundle/ruby/1.9.1/gems/http_parser.rb-0.5.3/ext/ruby_http_parser/rub=
+y_http_parser.so
+vendor/bundle/ruby/1.9.1/gems/http_parser.rb-0.5.3/lib/ruby_http_parser.so
+vendor/bundle/ruby/1.9.1/gems/json-1.7.4/ext/json/ext/generator/generator.so
+vendor/bundle/ruby/1.9.1/gems/json-1.7.4/ext/json/ext/parser/parser.so
+vendor/bundle/ruby/1.9.1/gems/json-1.7.4/lib/json/ext/generator.so
+vendor/bundle/ruby/1.9.1/gems/json-1.7.4/lib/json/ext/parser.so
+vendor/bundle/ruby/1.9.1/gems/kgio-2.7.4/ext/kgio/kgio_ext.so
+vendor/bundle/ruby/1.9.1/gems/kgio-2.7.4/lib/kgio_ext.so
+vendor/bundle/ruby/1.9.1/gems/raindrops-0.10.0/ext/raindrops/raindrops_ext.=
+so
+vendor/bundle/ruby/1.9.1/gems/raindrops-0.10.0/lib/raindrops_ext.so
+vendor/bundle/ruby/1.9.1/gems/unicorn-4.3.1/ext/unicorn_http/unicorn_http.so
+vendor/bundle/ruby/1.9.1/gems/unicorn-4.3.1/lib/unicorn_http.so
+vendor/bundle/ruby/1.9.1/gems/json-1.7.3/ext/json/ext/generator/generator.so
+vendor/bundle/ruby/1.9.1/gems/json-1.7.3/ext/json/ext/parser/parser.so
+vendor/bundle/ruby/1.9.1/gems/json-1.7.3/lib/json/ext/parser.so
+vendor/bundle/ruby/1.9.1/gems/json-1.7.3/lib/json/ext/generator.so
+vendor/bundle/ruby/1.9.1/gems/therubyracer-freebsd-0.10.1/ext/v8/v8.so
+vendor/bundle/ruby/1.9.1/gems/therubyracer-freebsd-0.10.1/lib/v8.so
+vendor/bundle/ruby/1.9.1/gems/lwes-0.8.3/ext/lwes_ext/lwes_ext.so
+vendor/bundle/ruby/1.9.1/gems/lwes-0.8.3/lib/lwes_ext.so
+vendor/bundle/ruby/1.9.1/gems/clogger-1.2.0/ext/clogger_ext/clogger_ext.so
+vendor/bundle/ruby/1.9.1/gems/clogger-1.2.0/lib/clogger_ext.so
+vendor/bundle/ruby/1.9.1/gems/eventmachine-1.0.0/ext/fastfilereader/fastfil=
+ereaderext.so
+vendor/bundle/ruby/1.9.1/gems/eventmachine-1.0.0/ext/rubyeventmachine.so
+vendor/bundle/ruby/1.9.1/gems/eventmachine-1.0.0/lib/rubyeventmachine.so
+vendor/bundle/ruby/1.9.1/gems/eventmachine-1.0.0/lib/fastfilereaderext.so
+vendor/bundle/ruby/1.9.1/gems/json-1.7.5/ext/json/ext/generator/generator.so
+vendor/bundle/ruby/1.9.1/gems/json-1.7.5/ext/json/ext/parser/parser.so
+vendor/bundle/ruby/1.9.1/gems/json-1.7.5/lib/json/ext/generator.so
+vendor/bundle/ruby/1.9.1/gems/json-1.7.5/lib/json/ext/parser.so
+vendor/bundle/ruby/1.9.1/gems/psych-1.3.4/ext/psych/psych.so
+vendor/bundle/ruby/1.9.1/gems/psych-1.3.4/lib/psych.so
+vendor/bundle/ruby/1.9.1/gems/unicorn-4.5.0/ext/unicorn_http/unicorn_http.so
+vendor/bundle/ruby/1.9.1/gems/unicorn-4.5.0/lib/unicorn_http.so
+
+We use rvm, and afaik Ruby is installed w/ the "usual" rvm packages
+(readline, iconv, openssl, zlib, autoconf).
+
+> What at_exit/END handlers does your app have?
+
+None
+
+> What finalizers does your have?
+
+None.
+
+Thanks,
+-c
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
