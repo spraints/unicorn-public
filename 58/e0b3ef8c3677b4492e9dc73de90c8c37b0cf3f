@@ -1,0 +1,107 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=0.0 required=5.0 tests=FREEMAIL_FROM,T_DKIM_INVALID
+ shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id BF4AD1F701 for
+ <archivist@yhbt.net>; Thu, 24 Jan 2013 10:27:09 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id C986F2E09D; Thu, 24 Jan 2013 10:27:09 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from mail-la0-f52.google.com (mail-la0-f52.google.com
+ [209.85.215.52]) by rubyforge.org (Postfix) with ESMTP id 8B3032E083 for
+ <mongrel-unicorn@rubyforge.org>; Thu, 24 Jan 2013 10:27:03 +0000 (UTC)
+Received: by mail-la0-f52.google.com with SMTP id fs12so2837387lab.25 for
+ <mongrel-unicorn@rubyforge.org>; Thu, 24 Jan 2013 02:27:02 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com;
+ s=20120113; h=mime-version:x-received:in-reply-to:references:date:message-id
+ :subject:from:to:content-type:content-transfer-encoding;
+ bh=zLCNIOBPlLSk10NzYwQq10C5zyQFfNUrK/aw4ert9ho=;
+ b=cPhJKtKoWZb8HA4bVMFj/FGTU0fhYcfHxqwYPO35W/3Cf8NoqMDKF3oCgA+4N9sQTo
+ tGLC7BR+FiDo5z6y+mKmi1L2Z6QNA3MfCUKXtqTlpSZGO2YplGVFFjoWL7dNWeAKxBRs
+ AEdWQZoGFDB4Pu6mDwya30BC6PL1126PzMFqtANthq1FmdFrEqwZ06X8UyFw00HFklLa
+ ztJgvUFId+c1M2jd5LyunMiRqianTLbVHGSccrRXlMY8+L2RPghyyqfFIWzlCesHoPqd
+ PA3gKtDhwhLVHLlb3ZkQe/r7EPssSuhhfID042dhsDKUTJ2BOx/cheQBuZ+gsmCBm3KF r3Zg==
+MIME-Version: 1.0
+X-Received: by 10.112.46.37 with SMTP id s5mr569784lbm.67.1359023222021; Thu,
+ 24 Jan 2013 02:27:02 -0800 (PST)
+Received: by 10.112.112.100 with HTTP; Thu, 24 Jan 2013 02:27:01 -0800 (PST)
+In-Reply-To: <20130124095220.GA17510@dcvr.yhbt.net>
+References:
+ <CAKjxZvqf=og2NE2ehV6SFHAFN6SO=ky2+7YXTt+yoJ7+Jm_qUw@mail.gmail.com>
+ <20130124095220.GA17510@dcvr.yhbt.net>
+Date: Thu, 24 Jan 2013 11:27:01 +0100
+Message-ID:
+ <CAKjxZvo_-oO9F6hrAsNbmWxLUyECEpq5P8aaBOvigGnLXYqfQQ@mail.gmail.com>
+Subject: Re: SIGSEGV at shutdown (was: Re: your mail)
+From: Charles Hornberger <charles.hornberger@gmail.com>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="windows-1252"
+Content-Transfer-Encoding: quoted-printable
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+On Thu, Jan 24, 2013 at 10:52 AM, Eric Wong <normalperson@yhbt.net> wrote:
+> Charles Hornberger <charles.hornberger@gmail.com> wrote:
+>> On Mon, Jan 21, 2013 at 11:28 AM, Eric Wong <normalperson@yhbt.net> wrot=
+e:
+>> > Charles Hornberger <charles.hornberger@gmail.com> wrote:
+>> >> E, [2013-01-18T17:54:21.502915 #59285] ERROR -- : reaped
+>> >> #<Process::Status: pid 59288 SIGSEGV (signal 11)> worker=3D1
+>
+> <snip>
+>
+>> >> I, [2013-01-18T17:54:21.605077 #59285]  INFO -- : master complete
+>> >>
+>> >> Just wondering if it's something I should be concerned about? I saw no
+>> >> obvious symptoms of problems before or after=85
+>> >>
+>> >> We currently restart unicorn (which is on a freebsd jail) like so:
+>> >
+>> > A SEGV at shutdown is likely an ordering problem at VM shutdown
+>> > (probably GC/finalization handling).  It could be specific to the
+>> > malloc/pthread implementation on FreeBSD, even.
+>> >
+>> > Which version of Ruby are you using?
+>>
+>> 1.9.3p-125
+>
+> Can you give 1.9.3-p374 a try?  There were several GC-related segfault
+> fixes along the way (fairly large and drastic changes, even).
+
+We'll be moving to that soon. Since the problem has only occurred
+*once* afaik, and there was nothing special that I can think of to do
+to reproduce it, we may never know if the change fixed anything. :)
+But if I happen to see it again, I will attempt to provide more info.
+
+>
+> <snip>
+>
+> Also, did you manage to get any backtrace from Ruby at all?  The Ruby VM
+> should show a partial stack trace on SEGV (or at least attempt to, but
+> it may not during shutdown).  Otherwise, you'd have to get gdb-able core
+> dumps the old-fashioned way (ulimit -c unlimited) and show us (or
+> ruby-core) the backtrace.
+
+Nothing was emitted at the time -- what I sent before was all that
+appeared in stderr.log.
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
