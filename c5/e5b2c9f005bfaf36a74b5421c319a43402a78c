@@ -1,0 +1,155 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=-0.2 required=5.0 tests=AWL shortcircuit=no
+ autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id 63D3E1F5B8 for
+ <archivist@yhbt.net>; Fri, 25 Jan 2013 18:40:10 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 4402D2E09D; Fri, 25 Jan 2013 18:40:10 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 82CC42E083 for <mongrel-unicorn@rubyforge.org>; Fri,
+ 25 Jan 2013 18:40:01 +0000 (UTC)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id F171F1F4DD; Fri, 25 Jan 2013 18:39:59 +0000 (UTC)
+Date: Fri, 25 Jan 2013 18:39:59 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Subject: Re: No middleware without touching RACK_ENV
+Message-ID: <20130125183959.GA22558@dcvr.yhbt.net>
+References:
+ <CAA2_N1ubebBWGcK1+a4VnQObGwEMcEnPoOcZizujJcFugtWJeg@mail.gmail.com>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To:
+ <CAA2_N1ubebBWGcK1+a4VnQObGwEMcEnPoOcZizujJcFugtWJeg@mail.gmail.com>
+User-Agent: Mutt/1.5.20 (2009-06-14)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+"Lin Jen-Shin (godfat)" <godfat@godfat.org> wrote:
+> Hi,
+> 
+> This might be a bit silly, but finally I decided to bring this up.
+> 
+> We're running a Rails app along with another Rack app in
+> the same config.ru, and what I want to do is telling Unicorn
+> that we don't want any middleware which Unicorn might
+> insert with RACK_ENV=development and RACK_ENV=
+> deployment, because we're adding Rack::CommonLogger
+> and other middleware by ourselves, while we're using
+> RACK_ENV=development for Rails when developing.
+
+Doesn't Rails favor RAILS_ENV over RACK_ENV?  unicorn ignores RAILS_ENV
+(unicorn_rails respects RAILS_ENV, but unicorn_rails isn't recommended
+for modern (Rack-enabled) Rails)
+
+> That is, we want to use RACK_ENV=development for Rails
+> because that's how it used to be, but we also don't want
+> those additional middleware got inserted automatically.
+> This has no problem with RACK_ENV=production.
+
+Is there a benefit which RACK_ENV=development gives you for Rails
+that RAILS_ENV=development does not give you?
+
+Fwiw, the times I worked on Rails, I used customized dev environments
+anyways, so I would use RAILS_ENV=dev_local or RAILS_ENV=dev_$NETWORK
+for switching between a localhost-only vs networked setup.
+
+> I know this is somehow a spec from Rack, but I guess I
+> don't like this behaviour. One workaround would be
+> providing a `after_app_load' hook, and we add this to
+> the bottom of config.ru:
+> 
+>   ENV['RACK_ENV_ORIGINAL'] = ENV['RACK_ENV']
+>   ENV['RACK_ENV'] = 'none'
+> 
+> and add this to the unicorn configuration file:
+> 
+>   after_app_load do |_|
+>     ENV['RACK_ENV'] = ENV['RACK_ENV_ORIGINAL']
+>   end
+> 
+> This is probably a stupid hack, but I wonder if after_app_load
+> hook would be useful for other cases?
+
+I don't see how this hook has benefits over putting this in config.ru
+(or somewhere else in your app, since your app is already loaded...)
+
+I'd imagine users wanting the same app-wide settings going between
+different application servers, too.
+
+> Or if we could have an option to turn off this Rack behaviour
+> simulation, like:
+> 
+>     default_middleware false
+> 
+> That might be more straightforward for what we want. Oh but
+> it seems it's not that easy to add this. What about an option
+> for unicorn?
+> 
+>     unicorn -E development -N
+> 
+> or
+> 
+>     unicorn -E development --no-default-middleware
+
+I'm against adding more command-line or config options, especially
+around loading middleware.  RACK_ENV is already a source of confusion,
+and Rails also has/(or had?) it's own middleware loading scheme
+independent of config.ru.
+
+> This would need to be applied to `rainbows' and `zbatery', too,
+> though. Patches below for consideration:
+> (Sorry if Gmail messed the format up, but from last time
+> I tried, it doesn't accept attachments :( What's the best way?
+> Links to raw patches?)
+
+git format-patch + git send-email is the recommended way if your
+mail client cannot be taught to leave formatting alone.  Also this
+is easy for sending multiple patches in the same thread.
+
+git format-patch --stdout with a good mail client which will not wrap
+messages is also great (especially for single patches).
+
+Attachments (generated using git format-patch) for text/x-diff should be
+accepted by Mailman.  Attached patches are a last resort, I prefer
+inline patches since I can quote/reply to them inline.
+
+(same patch submission guidelines as git or Linux kernel)
+
+> https://github.com/godfat/unicorn/pull/2
+> 
+> commit 95de5abf38a81a76af15476d4705713d2d644664
+> Author: Lin Jen-Shin <godfat@godfat.org>
+> Date:   Fri Jan 25 18:18:21 2013 +0800
+> 
+>     Add `after_app_load' hook.
+> 
+>     The hook would be called right after application is loaded.
+
+Commit messages should explain why a change is made/needed, not just
+what it does.
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
