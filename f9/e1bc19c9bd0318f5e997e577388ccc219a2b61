@@ -1,0 +1,230 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=-0.2 required=5.0 tests=AWL,T_DKIM_INVALID
+ shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id 519231F5B8 for
+ <archivist@yhbt.net>; Fri, 25 Jan 2013 10:59:28 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id AA7A12E097; Fri, 25 Jan 2013 10:59:27 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+X-Greylist: delayed 379 seconds by postgrey-1.31 at rubyforge; Fri, 25 Jan
+ 2013 10:59:21 UTC
+Received: from mail-ee0-f42.google.com (mail-ee0-f42.google.com
+ [74.125.83.42]) by rubyforge.org (Postfix) with ESMTP id D33552E076 for
+ <mongrel-unicorn@rubyforge.org>; Fri, 25 Jan 2013 10:59:21 +0000 (UTC)
+Received: by mail-ee0-f42.google.com with SMTP id b47so125221eek.29 for
+ <mongrel-unicorn@rubyforge.org>; Fri, 25 Jan 2013 02:59:20 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=godfat.org; s=google;
+ h=x-received:mime-version:from:date:message-id:subject:to :content-type;
+ bh=2wJ24ueVpdwq3dPpY6TP5+NGb9yUPpK5nniQ325o+6A=;
+ b=XRXxvJwZnozSzbUztvxH5BxB/U3y2Ba2OhLJGsNQ749MrKkRLVI4lE4YVYi8X0GDoK
+ Zfli/cTvwsTAs29CJcP/z0/2TVtKXhAg+iwr6oRe7nhXRvY6K1Isz6nPWXK0bjURjSX0
+ 7cyDiICGFO2c11WwWUqZFhORqQUBXHooKzAfE=
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com;
+ s=20120113; h=x-received:mime-version:from:date:message-id:subject:to
+ :content-type:x-gm-message-state;
+ bh=2wJ24ueVpdwq3dPpY6TP5+NGb9yUPpK5nniQ325o+6A=;
+ b=ElPsknAEf77e14dByUiZpjg25nPyqlq4Zog62Rot6Y9xXWSL4Q0J5kWAMa9V03GmED
+ xatMbO1YDFp+HxwtGDX4E3ShlI2JK/fWrRcIHxKlfVL4u6KJG+cgCde5hSFlp/p9pdNy
+ wkx2/ZCcDY9c9dU7PEuiK+0PmqxPy/OPNWS46XKWxb+C3+4o4DEW6lDfnbtwhXKPJNc4
+ IsYva6TOSnTlh4ZEKplKivnmJ0nOPYkGtX3vCyRppaTTMSKTxRsUUUYUyfu7NRTkUvbB
+ XG+si1EORMoAjcjiuaJiU5Ti1pWg+0kFlHDI4dfTYgRxKWRrOjQb3FgfZOXJEDbyqVd4 O1Lw==
+X-Received: by 10.14.207.6 with SMTP id m6mr16865816eeo.10.1359111180090;
+ Fri, 25 Jan 2013 02:53:00 -0800 (PST)
+MIME-Version: 1.0
+Received: by 10.223.152.135 with HTTP; Fri, 25 Jan 2013 02:52:29 -0800 (PST)
+From: "Lin Jen-Shin (godfat)" <godfat@godfat.org>
+Date: Fri, 25 Jan 2013 18:52:29 +0800
+Message-ID:
+ <CAA2_N1ubebBWGcK1+a4VnQObGwEMcEnPoOcZizujJcFugtWJeg@mail.gmail.com>
+Subject: No middleware without touching RACK_ENV
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+X-Gm-Message-State:
+ ALoCoQkm8+DkQdXpieqJVZuHCnr6TmdT5Od0BK7Jbwsa4KwRNnhWvbuj1rOEayGvPVpCC0HvdHfE
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Hi,
+
+This might be a bit silly, but finally I decided to bring this up.
+
+We're running a Rails app along with another Rack app in
+the same config.ru, and what I want to do is telling Unicorn
+that we don't want any middleware which Unicorn might
+insert with RACK_ENV=development and RACK_ENV=
+deployment, because we're adding Rack::CommonLogger
+and other middleware by ourselves, while we're using
+RACK_ENV=development for Rails when developing.
+
+That is, we want to use RACK_ENV=development for Rails
+because that's how it used to be, but we also don't want
+those additional middleware got inserted automatically.
+This has no problem with RACK_ENV=production.
+
+I know this is somehow a spec from Rack, but I guess I
+don't like this behaviour. One workaround would be
+providing a `after_app_load' hook, and we add this to
+the bottom of config.ru:
+
+  ENV['RACK_ENV_ORIGINAL'] = ENV['RACK_ENV']
+  ENV['RACK_ENV'] = 'none'
+
+and add this to the unicorn configuration file:
+
+  after_app_load do |_|
+    ENV['RACK_ENV'] = ENV['RACK_ENV_ORIGINAL']
+  end
+
+This is probably a stupid hack, but I wonder if after_app_load
+hook would be useful for other cases?
+
+Or if we could have an option to turn off this Rack behaviour
+simulation, like:
+
+    default_middleware false
+
+That might be more straightforward for what we want. Oh but
+it seems it's not that easy to add this. What about an option
+for unicorn?
+
+    unicorn -E development -N
+
+or
+
+    unicorn -E development --no-default-middleware
+
+This would need to be applied to `rainbows' and `zbatery', too,
+though. Patches below for consideration:
+(Sorry if Gmail messed the format up, but from last time
+I tried, it doesn't accept attachments :( What's the best way?
+Links to raw patches?)
+
+https://github.com/godfat/unicorn/pull/2
+
+commit 95de5abf38a81a76af15476d4705713d2d644664
+Author: Lin Jen-Shin <godfat@godfat.org>
+Date:   Fri Jan 25 18:18:21 2013 +0800
+
+    Add `after_app_load' hook.
+
+    The hook would be called right after application is loaded.
+
+diff --git a/lib/unicorn/configurator.rb b/lib/unicorn/configurator.rb
+index 7651093..332bdbc 100644
+--- a/lib/unicorn/configurator.rb
++++ b/lib/unicorn/configurator.rb
+@@ -43,6 +43,9 @@ class Unicorn::Configurator
+     :before_exec => lambda { |server|
+         server.logger.info("forked child re-executing...")
+       },
++    :after_app_load => lambda { |server|
++        server.logger.info("application loaded")
++      },
+     :pid => nil,
+     :preload_app => false,
+     :check_client_connection => false,
+@@ -171,6 +174,13 @@ class Unicorn::Configurator
+     set_hook(:before_exec, block_given? ? block : args[0], 1)
+   end
+
++  # sets the after_app_load hook to a given Proc object.  This
++  # Proc object will be called by the master process right
++  # after application loaded.
++  def after_app_load(*args, &block)
++    set_hook(:after_app_load, block_given? ? block : args[0], 1)
++  end
++
+   # sets the timeout of worker processes to +seconds+.  Workers
+   # handling the request/app.call/response cycle taking longer than
+   # this time period will be forcibly killed (via SIGKILL).  This
+diff --git a/lib/unicorn/http_server.rb b/lib/unicorn/http_server.rb
+index aa98aeb..a3b30ee 100644
+--- a/lib/unicorn/http_server.rb
++++ b/lib/unicorn/http_server.rb
+@@ -14,6 +14,7 @@ class Unicorn::HttpServer
+   # :stopdoc:
+   attr_accessor :app, :request, :timeout, :worker_processes,
+                 :before_fork, :after_fork, :before_exec,
++                :after_app_load,
+                 :listener_opts, :preload_app,
+                 :reexec_pid, :orig_app, :init_listeners,
+                 :master_pid, :config, :ready_pipe, :user
+@@ -716,6 +717,7 @@ class Unicorn::HttpServer
+         Gem.refresh
+       end
+       self.app = app.call
++      config.after_app_load.call(self)
+     end
+   end
+
+
+
+
+
+
+And --no-default-middleware
+https://github.com/godfat/unicorn/pull/3
+
+commit e3575db2a36e3ca2acda18bfee97bf95609a9860
+Author: Lin Jen-Shin <godfat@godfat.org>
+Date:   Fri Jan 25 18:38:52 2013 +0800
+
+    Add -N or --no-default-middleware option.
+
+    This would prevent Unicorn from adding default middleware,
+    as if RACK_ENV is always none. (not development nor deployment)
+
+    This should also apply to `rainbows' and `zbatery'.
+
+diff --git a/bin/unicorn b/bin/unicorn
+index 9962b58..415d164 100755
+--- a/bin/unicorn
++++ b/bin/unicorn
+@@ -58,6 +58,11 @@ op = OptionParser.new("", 24, '  ') do |opts|
+     ENV["RACK_ENV"] = e
+   end
+
++  opts.on("-N", "--no-default-middleware",
++          "no default middleware even if RACK_ENV is development") do |e|
++    rackup_opts[:no_default_middleware] = true
++  end
++
+   opts.on("-D", "--daemonize", "run daemonized in the background") do |d|
+     rackup_opts[:daemonize] = !!d
+   end
+diff --git a/lib/unicorn.rb b/lib/unicorn.rb
+index d96ff91..f0ceffe 100644
+--- a/lib/unicorn.rb
++++ b/lib/unicorn.rb
+@@ -49,6 +49,8 @@ module Unicorn
+
+       pp({ :inner_app => inner_app }) if $DEBUG
+
++      return inner_app if op[:no_default_middleware]
++
+       # return value, matches rackup defaults based on env
+       # Unicorn does not support persistent connections, but Rainbows!
+       # and Zbatery both do.  Users accustomed to the Rack::Server default
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
