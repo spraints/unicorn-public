@@ -1,0 +1,117 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=-0.2 required=5.0 tests=AWL shortcircuit=no
+ autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id C43F01F724 for
+ <archivist@yhbt.net>; Mon, 28 Jan 2013 23:21:57 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 3AF462E09A; Mon, 28 Jan 2013 23:21:57 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 82E342E096 for <mongrel-unicorn@rubyforge.org>; Mon,
+ 28 Jan 2013 23:21:45 +0000 (UTC)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 30F1E1F723; Mon, 28 Jan 2013 23:21:43 +0000 (UTC)
+Date: Mon, 28 Jan 2013 23:21:43 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Subject: Re: No middleware without touching RACK_ENV
+Message-ID: <20130128232143.GA2911@dcvr.yhbt.net>
+References:
+ <CAA2_N1ubebBWGcK1+a4VnQObGwEMcEnPoOcZizujJcFugtWJeg@mail.gmail.com>
+ <20130125183959.GA22558@dcvr.yhbt.net>
+ <CAA2_N1vKV-6Rtb6dX8+mKbjmSJ04j4XMQk+oeR_JqR5PLA=1fA@mail.gmail.com>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To:
+ <CAA2_N1vKV-6Rtb6dX8+mKbjmSJ04j4XMQk+oeR_JqR5PLA=1fA@mail.gmail.com>
+User-Agent: Mutt/1.5.21 (2010-09-15)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+"Lin Jen-Shin (godfat)" <godfat@godfat.org> wrote:
+> On Sat, Jan 26, 2013 at 2:39 AM, Eric Wong <normalperson@yhbt.net> wrote:
+> > Doesn't Rails favor RAILS_ENV over RACK_ENV?  unicorn ignores RAILS_ENV
+> > (unicorn_rails respects RAILS_ENV, but unicorn_rails isn't recommended
+> > for modern (Rack-enabled) Rails)
+> 
+> Yes, it is. But it would still look into RACK_ENV if RAILS_ENV is not available.
+> One solution would be setting RAILS_ENV=development while setting
+> RACK_ENV=none. I don't really want to do this for several reasons:
+> 
+> * It would be better to keep RAILS_ENV == RACK_ENV to avoid confusion.
+> * It might be tricky to make RAILS_ENV default to development while setting
+>   RACK_ENV since Rails would be looking into it. So we need to make sure
+>   that Rails is loaded and default to development and then we can setup
+>   RACK_ENV to avoid messing up the original Rails default.
+
+OK, I agree making RAILS_ENV==RACK_ENV in deployments is less confusing.
+(unicorn should continue NOT enforcing this internally, though)
+
+> > I'd imagine users wanting the same app-wide settings going between
+> > different application servers, too.
+> 
+> Speaking to this, I might want to complain about the other severs :P
+> As far as I know, only if you use `rackup' would you get those middleware.
+> 
+> That is, `unicorn' is compatible with `rackup'. That's a good thing.
+> But it seems to me that both `thin' and `puma' (and maybe including
+> others, I didn't check) would not do this if you use their command line
+> tools. They even have different options to enable Rack::CommonLogger.
+> 
+> Actually this is also the reason why sometimes `thin' and `unicorn'
+> worked differently when people switching from Thin to Unicorn.
+> And you know a lot of people are using Thin in the first place,
+> thus sometimes blaming Unicorn works differently.
+> 
+> I am not sure how many people are using `rackup', but according to
+> my observation, not too much. If people are using Sinatra directly,
+> eventually they would launch the server via Rack::Handler.get.run,
+> which does not try to wrap additional middleware as what `rackup'
+> would do if I read correctly.
+> 
+> So I am not sure if a lot of people would be expecting this actually.
+> I used to use `rackup' a lot to get consistent behaviour, but it looks to
+> me not many people even know the existence of rackup :(
+
+*sigh*  :<
+
+I kinda wish there was no default middleware, either.  But it's
+too late to change unicorn defaults.
+
+I think your -N/--no-default-middleware patch can be accepted,
+then.  after_app_load is more prone to user error/confusion, I think
+(I believe RAILS_ENV/RACK_ENV should be frozen for the lifetime of
+ the process)
+
+> Last time I tried to setup SMTP for git send-email failed.
+> I'll try again next time. Thanks!
+
+Can you try send-email again with the --no-default-middleware patch? :)
+
+The git-send-email(1) manpage has several good examples for your email
+provider.  There's also git-imap-send which you can use to stick email
+in your Drafts folder, but I've never needed/used it, though.
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
