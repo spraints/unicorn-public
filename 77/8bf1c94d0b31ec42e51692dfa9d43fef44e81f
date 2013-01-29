@@ -1,0 +1,94 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=-0.2 required=5.0 tests=AWL shortcircuit=no
+ autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id 7AB191F728 for
+ <archivist@yhbt.net>; Tue, 29 Jan 2013 04:04:49 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 1A5F32E099; Tue, 29 Jan 2013 04:04:48 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 71DBB2E084 for <mongrel-unicorn@rubyforge.org>; Tue,
+ 29 Jan 2013 04:02:21 +0000 (UTC)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id A073D1F727; Tue, 29 Jan 2013 04:02:20 +0000 (UTC)
+Date: Tue, 29 Jan 2013 04:02:20 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Subject: Re: [PATCH] Add -N or --no-default-middleware option.
+Message-ID: <20130129040220.GA30278@dcvr.yhbt.net>
+References: <1359429679-21255-1-git-send-email-godfat@godfat.org>
+ <20130129035231.GA27702@dcvr.yhbt.net>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To: <20130129035231.GA27702@dcvr.yhbt.net>
+User-Agent: Mutt/1.5.20 (2009-06-14)
+Cc: Lin Jen-Shin <godfat@godfat.org>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Eric Wong <normalperson@yhbt.net> wrote:
+> Lin Jen-Shin <godfat@godfat.org> wrote:
+> > +  opts.on("-N", "--no-default-middleware",
+> > +          "no default middleware even if RACK_ENV is development") do |e|
+> 
+> RACK_ENV=deployment also loads middleware, so I think it's more accurate
+> with:
+> 
+> 	do not load middleware implied by RACK_ENV
+> 
+> This also puts us back within the 80-column limit imposed by "test_help"
+> in test/exec/test_exec.rb
+
+Heh, turns out there's a bug in test_exec.rb (but I still don't think
+mentioning "development" for this help is correct)
+
+>From ee3ada3c697311ab0a799fcdc492ae062e7d5128 Mon Sep 17 00:00:00 2001
+From: Eric Wong <normalperson@yhbt.net>
+Date: Tue, 29 Jan 2013 03:56:16 +0000
+Subject: [PATCH] test_exec: do not count '\n' as column width
+
+This off-by-one error was incorrectly rejecting a line which
+would've been readable without wrapping on an 80-column terminal.
+---
+ test/exec/test_exec.rb | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/test/exec/test_exec.rb b/test/exec/test_exec.rb
+index 1cee2b7..10a1bae 100644
+--- a/test/exec/test_exec.rb
++++ b/test/exec/test_exec.rb
+@@ -323,6 +323,7 @@ EOF
+     # mobile phone or netbook on a slow connection :)
+     assert lines.size <= 24, "help height fits in an ANSI terminal window"
+     lines.each do |line|
++      line.chomp!
+       assert line.size <= 80, "help width fits in an ANSI terminal window"
+     end
+   end
+-- 
+1.8.1.1.253.g2934a48
+
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
