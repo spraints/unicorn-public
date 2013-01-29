@@ -1,0 +1,128 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=-0.1 required=5.0 tests=AWL,T_DKIM_INVALID
+ shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id 5E8791F727 for
+ <archivist@yhbt.net>; Tue, 29 Jan 2013 02:39:16 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id DACD12E099; Tue, 29 Jan 2013 02:39:15 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+X-Greylist: delayed 455 seconds by postgrey-1.31 at rubyforge; Tue, 29 Jan
+ 2013 02:39:10 UTC
+Received: from mail-ea0-f179.google.com (mail-ea0-f179.google.com
+ [209.85.215.179]) by rubyforge.org (Postfix) with ESMTP id 93D062E084 for
+ <mongrel-unicorn@rubyforge.org>; Tue, 29 Jan 2013 02:39:10 +0000 (UTC)
+Received: by mail-ea0-f179.google.com with SMTP id d12so1408566eaa.38 for
+ <mongrel-unicorn@rubyforge.org>; Mon, 28 Jan 2013 18:39:09 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=godfat.org; s=google;
+ h=x-received:mime-version:in-reply-to:references:from:date:message-id
+ :subject:to:content-type; bh=y/QDPGJyfWnjy2oI0ChLpbcsZaJVpEScw7JLUI6W4Co=;
+ b=xHK7McWaG5gDd+Ug8u3gupgx4bEO0E/6DCGTeGHaAQFfanb+ESWDKfcbA0S0nyoD46
+ 4lUYT0KUhIlUCWXRurbGo0VyWsw1qSqi+b/V/M2l4IHHOLBvXPIRrATeDSJaZWXtGljB
+ MK4Lvg2mPnKePf4c2qiB6Pi+GhxubLKql8q/g=
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com;
+ s=20120113;
+ h=x-received:mime-version:in-reply-to:references:from:date:message-id
+ :subject:to:content-type:x-gm-message-state;
+ bh=y/QDPGJyfWnjy2oI0ChLpbcsZaJVpEScw7JLUI6W4Co=;
+ b=BNzZZNeuUldh5gohRpdp+PfDs/7GHndInHOxDfPLpdz43Hw66M7rfdLspVKX4MH3QE
+ XPOD2zWWw/GcwDrqZPO6Fb6bHDWWGf2UJKEqYH3l2dT18wj6mWjX840GMNS57gz1m8De
+ +Ba11ELGB74OWGSShTR9JUELdV6ocHDmnlUQJAc/bqegZ15SlV8GGXbaB82T0IyuOfJj
+ wsNTVj/96Pjw6OjzbLKMAeWPIrm4WroLsSDwcnn+/nsvI6evjfrpvszBseT7f6KhpUfF
+ rxGapceogE97dqzUG+YKzGGfG/B9lK63qDOAvDg7xkJWVU4psX5NdXbKeQsXAGwyjVQX U+Ug==
+X-Received: by 10.14.214.67 with SMTP id b43mr1473526eep.33.1359426693726;
+ Mon, 28 Jan 2013 18:31:33 -0800 (PST)
+MIME-Version: 1.0
+Received: by 10.223.74.208 with HTTP; Mon, 28 Jan 2013 18:31:03 -0800 (PST)
+In-Reply-To: <20130128232143.GA2911@dcvr.yhbt.net>
+References:
+ <CAA2_N1ubebBWGcK1+a4VnQObGwEMcEnPoOcZizujJcFugtWJeg@mail.gmail.com>
+ <20130125183959.GA22558@dcvr.yhbt.net>
+ <CAA2_N1vKV-6Rtb6dX8+mKbjmSJ04j4XMQk+oeR_JqR5PLA=1fA@mail.gmail.com>
+ <20130128232143.GA2911@dcvr.yhbt.net>
+From: "Lin Jen-Shin (godfat)" <godfat@godfat.org>
+Date: Tue, 29 Jan 2013 10:31:03 +0800
+Message-ID:
+ <CAA2_N1sBJnR135Qor3bi7HY6sjupSP_b8Zh6YFK6ge7J_wVXkQ@mail.gmail.com>
+Subject: Re: No middleware without touching RACK_ENV
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+X-Gm-Message-State:
+ ALoCoQlifAyemC/zzzZg6xJMCDO99HBA3jX4fnkl7U9HpRrYrx6NlhWOPUzoifuRAqEEs/aJUijn
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+On Tue, Jan 29, 2013 at 7:21 AM, Eric Wong <normalperson@yhbt.net> wrote:
+> "Lin Jen-Shin (godfat)" <godfat@godfat.org> wrote:
+>> Speaking to this, I might want to complain about the other severs :P
+>> As far as I know, only if you use `rackup' would you get those middleware.
+>>
+>> That is, `unicorn' is compatible with `rackup'. That's a good thing.
+>> But it seems to me that both `thin' and `puma' (and maybe including
+>> others, I didn't check) would not do this if you use their command line
+>> tools. They even have different options to enable Rack::CommonLogger.
+>>
+>> Actually this is also the reason why sometimes `thin' and `unicorn'
+>> worked differently when people switching from Thin to Unicorn.
+>> And you know a lot of people are using Thin in the first place,
+>> thus sometimes blaming Unicorn works differently.
+>>
+>> I am not sure how many people are using `rackup', but according to
+>> my observation, not too much. If people are using Sinatra directly,
+>> eventually they would launch the server via Rack::Handler.get.run,
+>> which does not try to wrap additional middleware as what `rackup'
+>> would do if I read correctly.
+>>
+>> So I am not sure if a lot of people would be expecting this actually.
+>> I used to use `rackup' a lot to get consistent behaviour, but it looks to
+>> me not many people even know the existence of rackup :(
+>
+> *sigh*  :<
+>
+> I kinda wish there was no default middleware, either.  But it's
+> too late to change unicorn defaults.
+>
+> I think your -N/--no-default-middleware patch can be accepted,
+> then.  after_app_load is more prone to user error/confusion, I think
+> (I believe RAILS_ENV/RACK_ENV should be frozen for the lifetime of
+>  the process)
+
+Awesome. Thanks! Hope this would also be helpful for others.
+
+> Can you try send-email again with the --no-default-middleware patch? :)
+>
+> The git-send-email(1) manpage has several good examples for your email
+> provider.  There's also git-imap-send which you can use to stick email
+> in your Drafts folder, but I've never needed/used it, though.
+
+Just got managed to send a test mail to myself. I realized that my git is
+using /usr/bin/perl instead of /usr/local/bin/perl, so that instead of running
+`cpan Net::SMTP::SSL` I have to run `sudo -H /usr/bin/cpan Net::SMTP::SSL`
+following instructions from this site:
+http://kbase.wincent.com/old/knowledge-base/Installing_Net::SMTP::SSL_for_sending_patches_with_Git_over_secure_SMTP.html
+
+I'll send the patch shortly after updating the commit message.
+Feel free to edit it as usual :)
+And should I send patches for rainbows and zbatery as well?
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
