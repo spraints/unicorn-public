@@ -1,0 +1,117 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=-0.2 required=5.0 tests=AWL shortcircuit=no
+ autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id 928641F737 for
+ <archivist@yhbt.net>; Mon,  4 Feb 2013 13:40:48 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id D9E372E09D; Mon,  4 Feb 2013 13:40:48 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id E09372E09B for <mongrel-unicorn@rubyforge.org>; Mon, 
+ 4 Feb 2013 13:40:42 +0000 (UTC)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id EA6C41F725; Mon,  4 Feb 2013 13:40:40 +0000 (UTC)
+Date: Mon, 4 Feb 2013 13:40:40 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: mongrel-unicorn@rubyforge.org
+Subject: Re: [ANN] unicorn 4.6.0pre1 - hijacking support!
+Message-ID: <20130204134040.GA25767@dcvr.yhbt.net>
+References: <20130129211015.GA8686@dcvr.yhbt.net>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To: <20130129211015.GA8686@dcvr.yhbt.net>
+User-Agent: Mutt/1.5.20 (2009-06-14)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Anybody running 4.6.0pre1, yet?  I'm tempted to release 4.6.0 soon.
+
+I just pushed out a couple of *BSD-related test fixes ported
+over from rainbows.git (@ git://bogomips.org/rainbows.git )
+
+  commit 9cd8554749a9f120b010c93933d09d2dd27b1280
+  Author: Eric Wong <normalperson@yhbt.net>
+  Date:   Mon Feb 4 12:39:09 2013 +0000
+
+      tests: "wc -l" portability for *BSDs
+      
+      On FreeBSD 9.0, "wc -l" emits leading whitespace, so
+      filter it through tr -d '[:space:]' to eliminate it.
+
+  commit 2a2163594ea2b515e98fbe9f909bcf90e4c35fe8
+  Author: Eric Wong <normalperson@yhbt.net>
+  Date:   Mon Feb 4 12:29:00 2013 +0000
+
+      tests: "wc -c" portability for *BSDs
+      
+      On FreeBSD 9.0, "wc -c" emits leading whitespace, so
+      filter it through tr -d '[:space:]' to eliminate it.
+      
+      This is commit 8a6117a22a7d01eeb5adc63d3152acf435cd3176
+      in rainbows.git
+
+  commit 85223902e8229bd460ce0b4ad126f42b1db42a46
+  Author: Eric Wong <normalperson@yhbt.net>
+  Date:   Mon Feb 4 10:36:18 2013 +0000
+
+      tests: replace non-portable "date +%s" with ruby equivalent
+      
+      "date +%s" is not in POSIX (it is in GNU, and at least FreeBSD
+      9.0, possibly earlier).  The Ruby equivalent should be
+      sufficiently portable between different Ruby versions.
+      
+      This change was automated via:
+          perl -i -p -e 's/date \+%s/unix_time/' t/*.sh
+      
+      This is commit 0ba6fc3c30b9cf530faf7fcf5ce7be519ec13fe7
+      in rainbows.git
+
+  commit a09a622b4988b5eee819487c96a4563e71f753f7
+  Author: Eric Wong <normalperson@yhbt.net>
+  Date:   Mon Feb 4 10:30:25 2013 +0000
+
+      tests: remove utee
+      
+      POSIX already stipulates tee(1) must be unbuffered.  I think my
+      decision to use utee was due to my being misled by a bug in
+      older curl where -N did not work as advertised (but --no-buffer
+      did).
+      
+      N.B. we don't use tee in unicorn tests, this just matches
+      commit cbff7b0892148b037581541184364e0e91d2a138 in rainbows
+
+  commit 64765b95df06256d39daefdeebde97c874770131
+  Author: Eric Wong <normalperson@yhbt.net>
+  Date:   Tue Jan 29 21:19:22 2013 +0000
+
+      manpage: update middleware-related documentation
+      
+      -N/--no-default-middleware needs a corresponding manpage entry.
+      
+      Additionally, the Rack::Chunked/ContentLength middleware comment
+      is out-of-date as of unicorn v4.1.0
+
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
