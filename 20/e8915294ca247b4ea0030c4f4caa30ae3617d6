@@ -1,0 +1,199 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=-0.2 required=5.0 tests=AWL shortcircuit=no
+ autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id 82BB91F75F for
+ <archivist@yhbt.net>; Fri,  8 Feb 2013 18:55:26 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id BC58D2E09D; Fri,  8 Feb 2013 18:55:26 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 357972E084 for <mongrel-unicorn@rubyforge.org>; Fri, 
+ 8 Feb 2013 18:55:19 +0000 (UTC)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 036351F723; Fri,  8 Feb 2013 18:55:18 +0000 (UTC)
+Date: Fri, 8 Feb 2013 18:55:17 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Subject: [PATCH] auto-generate Unicorn::Const::UNICORN_VERSION
+Message-ID: <20130208185517.GA13654@dcvr.yhbt.net>
+References: <51150394.6070206@morganspa.com>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To: <51150394.6070206@morganspa.com>
+User-Agent: Mutt/1.5.20 (2009-06-14)
+Cc: Maurizio De Santis <m.desantis@morganspa.com>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Maurizio De Santis <m.desantis@morganspa.com> wrote:
+> Hello,
+> 
+> I want to report that unicorn-4.6.0/lib/unicorn/const.rb declares
+> UNICORN_VERSION = "4.5.0", which I think should be "4.6.0".
+
+Oops, I've been meaning to move that constant over to an auto-generated file
+using GIT-VERSION-GEN.  This should work:
+
+--------------------------------- 8< ------------------------------
+>From cb0623f25db7f06660e563e8e746bfe0ae5ba9c5 Mon Sep 17 00:00:00 2001
+From: Eric Wong <normalperson@yhbt.net>
+Date: Fri, 8 Feb 2013 18:50:07 +0000
+Subject: [PATCH] auto-generate Unicorn::Const::UNICORN_VERSION
+
+This DRYs out our code and prevents snafus like the 4.6.0
+release where UNICORN_VERSION stayed at 4.5.0
+
+Reported-by: Maurizio De Santis <m.desantis@morganspa.com>
+---
+ .gitignore           |  1 +
+ GIT-VERSION-GEN      | 69 ++++++++++++++++++++++++++--------------------------
+ GNUmakefile          |  2 +-
+ lib/unicorn/const.rb |  4 +--
+ 4 files changed, 37 insertions(+), 39 deletions(-)
+
+diff --git a/.gitignore b/.gitignore
+index 50c2736..19a82d6 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -22,3 +22,4 @@ pkg/
+ /man
+ /tmp
+ /LATEST
++/lib/unicorn/version.rb
+diff --git a/GIT-VERSION-GEN b/GIT-VERSION-GEN
+index 56aef5f..e5d414a 100755
+--- a/GIT-VERSION-GEN
++++ b/GIT-VERSION-GEN
+@@ -1,40 +1,39 @@
+-#!/bin/sh
+-
+-GVF=GIT-VERSION-FILE
+-DEF_VER=v4.6.0
+-
+-LF='
+-'
++#!/usr/bin/env ruby
++DEF_VER = "v4.6.0"
++CONSTANT = "Unicorn::Const::UNICORN_VERSION"
++RVF = "lib/unicorn/version.rb"
++GVF = "GIT-VERSION-FILE"
++vn = DEF_VER
+ 
+ # First see if there is a version file (included in release tarballs),
+ # then try git-describe, then default.
+-if test -f version
+-then
+-	VN=$(cat version) || VN="$DEF_VER"
+-elif test -d .git -o -f .git &&
+-	VN=$(git describe --abbrev=4 HEAD 2>/dev/null) &&
+-	case "$VN" in
+-	*$LF*) (exit 1) ;;
+-	v[0-9]*)
+-		git update-index -q --refresh
+-		test -z "$(git diff-index --name-only HEAD --)" ||
+-		VN="$VN-dirty" ;;
+-	esac
+-then
+-	VN=$(echo "$VN" | sed -e 's/-/./g');
+-else
+-	VN="$DEF_VER"
+-fi
++if File.exist?(".git")
++  describe = `git describe --abbrev=4 HEAD 2>/dev/null`.strip
++  case describe
++  when /\Av[0-9]*/
++    vn = describe
++    system(*%w(git update-index -q --refresh))
++    unless `git diff-index --name-only HEAD --`.chomp.empty?
++      vn << "-dirty"
++    end
++    vn.tr!('-', '.')
++  end
++end
++
++vn = vn.sub!(/\Av/, "")
++
++# generate the Ruby constant
++new_ruby_version = "#{CONSTANT} = '#{vn}'\n"
++cur_ruby_version = File.read(RVF) rescue nil
++if new_ruby_version != cur_ruby_version
++  File.open(RVF, "w") { |fp| fp.write(new_ruby_version) }
++end
+ 
+-VN=$(expr "$VN" : v*'\(.*\)')
++# generate the makefile snippet
++new_make_version = "GIT_VERSION = #{vn}\n"
++cur_make_version = File.read(GVF) rescue nil
++if new_make_version != cur_make_version
++  File.open(GVF, "w") { |fp| fp.write(new_make_version) }
++end
+ 
+-if test -r $GVF
+-then
+-	VC=$(sed -e 's/^GIT_VERSION = //' <$GVF)
+-else
+-	VC=unset
+-fi
+-test "$VN" = "$VC" || {
+-	echo >&2 "GIT_VERSION = $VN"
+-	echo "GIT_VERSION = $VN" >$GVF
+-}
++puts vn if $0 == __FILE__
+diff --git a/GNUmakefile b/GNUmakefile
+index ea13486..34a2d95 100644
+--- a/GNUmakefile
++++ b/GNUmakefile
+@@ -155,7 +155,7 @@ clean:
+ man html:
+ 	$(MAKE) -C Documentation install-$@
+ 
+-pkg_extra := GIT-VERSION-FILE ChangeLog LATEST NEWS \
++pkg_extra := GIT-VERSION-FILE lib/unicorn/version.rb ChangeLog LATEST NEWS \
+              $(ext)/unicorn_http.c $(man1_paths)
+ 
+ ChangeLog: GIT-VERSION-FILE .wrongdoc.yml
+diff --git a/lib/unicorn/const.rb b/lib/unicorn/const.rb
+index fcc30c0..51d7394 100644
+--- a/lib/unicorn/const.rb
++++ b/lib/unicorn/const.rb
+@@ -7,9 +7,6 @@
+ # improvement over using the strings directly.  Symbols did not really
+ # improve things much compared to constants.
+ module Unicorn::Const
+-
+-  UNICORN_VERSION = "4.5.0"
+-
+   # default TCP listen host address (0.0.0.0, all interfaces)
+   DEFAULT_HOST = "0.0.0.0"
+ 
+@@ -44,3 +41,4 @@ module Unicorn::Const
+ 
+   # :startdoc:
+ end
++require 'unicorn/version'
+-- 
+1.8.1.2.526.gf51a757
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
