@@ -1,0 +1,71 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=-0.2 required=5.0 tests=AWL shortcircuit=no
+ autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id D1D5E1F760 for
+ <archivist@yhbt.net>; Sat,  9 Feb 2013 01:23:07 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 8F6802E096; Sat,  9 Feb 2013 01:23:07 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id D10672E083 for <mongrel-unicorn@rubyforge.org>; Sat, 
+ 9 Feb 2013 01:16:23 +0000 (UTC)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id C68501F763 for <mongrel-unicorn@rubyforge.org>; Sat, 
+ 9 Feb 2013 01:16:22 +0000 (UTC)
+From: Eric Wong <normalperson@yhbt.net>
+To: mongrel-unicorn@rubyforge.org
+Subject: [PATCH 2/2] http_request: drop conditional assignment for hijack
+Date: Sat,  9 Feb 2013 01:16:18 +0000
+Message-Id: <1360372578-29291-3-git-send-email-normalperson@yhbt.net>
+X-Mailer: git-send-email 1.8.1.2.526.gf51a757
+In-Reply-To: <1360372578-29291-1-git-send-email-normalperson@yhbt.net>
+References: <1360372578-29291-1-git-send-email-normalperson@yhbt.net>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+MIME-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+As far as I can tell, this was never necessary.
+---
+ lib/unicorn/http_request.rb | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/lib/unicorn/http_request.rb b/lib/unicorn/http_request.rb
+index 681c0ca..6b20431 100644
+--- a/lib/unicorn/http_request.rb
++++ b/lib/unicorn/http_request.rb
+@@ -108,7 +108,7 @@ class Unicorn::HttpParser
+     end
+ 
+     def hijack_setup(e, socket)
+-      e[RACK_HIJACK] = proc { e[RACK_HIJACK_IO] ||= socket }
++      e[RACK_HIJACK] = proc { e[RACK_HIJACK_IO] = socket }
+     end
+   else
+     # old Rack, do nothing.
+-- 
+1.8.1.2.526.gf51a757
+
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
