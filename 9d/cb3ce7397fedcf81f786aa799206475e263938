@@ -1,0 +1,97 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=-0.2 required=5.0 tests=AWL shortcircuit=no
+ autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id 650A21F708 for
+ <archivist@yhbt.net>; Tue, 26 Feb 2013 02:57:10 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id A0E212E09B; Tue, 26 Feb 2013 02:57:07 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id AB16D2E097 for <mongrel-unicorn@rubyforge.org>; Tue,
+ 26 Feb 2013 02:57:00 +0000 (UTC)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id DB51B1F705; Tue, 26 Feb 2013 02:56:59 +0000 (UTC)
+Date: Tue, 26 Feb 2013 02:56:59 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: mongrel-unicorn@rubyforge.org
+Subject: [PATCH] http: avoid frozen string bug in filter_body
+Message-ID: <20130226025659.GA17618@dcvr.yhbt.net>
+References: <20130225125753.GA5076@dcvr.yhbt.net>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To: <20130225125753.GA5076@dcvr.yhbt.net>
+User-Agent: Mutt/1.5.20 (2009-06-14)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Eric Wong <normalperson@yhbt.net> wrote:
+> I'm stumped that rb_str_modify() doesn't seem to help with
+> rb_str_set_len() raising in the chunked parser.  More info here:
+> 
+> https://bugs.ruby-lang.org/issues/7957
+> 
+> Any help would be appreciated... It's way past my bed time.
+
+Oops, my fault from 2010 and 2009.  v4.6.2 coming
+
+>From f7ee06592d7709e96f64efb5e7a9485b54415c9d Mon Sep 17 00:00:00 2001
+From: Eric Wong <normalperson@yhbt.net>
+Date: Tue, 26 Feb 2013 02:52:37 +0000
+Subject: [PATCH] http: avoid frozen string bug in filter_body
+
+Our rb_str_modify() became no-ops due to incomplete reverts
+of workarounds for old Rubinius, causing rb_str_set_len to
+fail with: can't set length of shared string (RuntimeError)
+
+This bug was introduced due to improper workarounds for old
+versions of Rubinius in 2009 and 2010:
+
+commit 5e8979ad38efdc4de3a69cc53aea33710d478406
+("http: cleanups for latest Rubinius")
+commit f37c23704cb73d57e9e478295d1641df1d9104c7
+("http: no-op rb_str_modify() for Rubies without it")
+---
+ ext/unicorn_http/ext_help.h | 4 ----
+ 1 file changed, 4 deletions(-)
+
+diff --git a/ext/unicorn_http/ext_help.h b/ext/unicorn_http/ext_help.h
+index 0968080..c87c272 100644
+--- a/ext/unicorn_http/ext_help.h
++++ b/ext/unicorn_http/ext_help.h
+@@ -52,10 +52,6 @@ static void rb_18_str_set_len(VALUE str, long len)
+ #  endif
+ #endif /* ! defined(NUM2SIZET) */
+ 
+-#ifndef HAVE_RB_STR_MODIFY
+-#  define rb_str_modify(x) do {} while (0)
+-#endif /* ! defined(HAVE_RB_STR_MODIFY) */
+-
+ static inline int str_cstr_eq(VALUE val, const char *ptr, long len)
+ {
+   return (RSTRING_LEN(val) == len && !memcmp(ptr, RSTRING_PTR(val), len));
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
