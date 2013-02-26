@@ -1,0 +1,84 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=-0.1 required=5.0 tests=AWL,FREEMAIL_FROM,
+ T_DKIM_INVALID shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id 709CB44C005 for
+ <archivist@yhbt.net>; Tue, 26 Feb 2013 17:02:50 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 7F9D82E09C; Tue, 26 Feb 2013 17:02:49 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+X-Greylist: delayed 393 seconds by postgrey-1.31 at rubyforge; Tue, 26 Feb
+ 2013 17:02:44 UTC
+Received: from mail-lb0-f173.google.com (mail-lb0-f173.google.com
+ [209.85.217.173]) by rubyforge.org (Postfix) with ESMTP id 5F1C62E069 for
+ <mongrel-unicorn@rubyforge.org>; Tue, 26 Feb 2013 17:02:44 +0000 (UTC)
+Received: by mail-lb0-f173.google.com with SMTP id gf7so3314821lbb.32 for
+ <mongrel-unicorn@rubyforge.org>; Tue, 26 Feb 2013 09:02:42 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com;
+ s=20120113;
+ h=x-received:mime-version:in-reply-to:references:from:date:message-id
+ :subject:to:content-type; bh=/hWBGfFIvoL38J/zS2Rzm2BF6UmRJoPN0HxKouuMR+o=;
+ b=eJ/Lb5O5sGaUrcdlIKt5nxuZ9R71QY3abLNXCs7tkuOHw1NosKdI2qFmyKUEfic2mF
+ 9J9OzTUZ0PxUJ/nNbHLzsmFRUoHOtafK0zGni64qDdxfn01ED134Bkraz6bGjfw9Dzoc
+ rhwLkHKXkLcsBFYdfEfrgJwjekxa+dhr+54xTK8avVvW4VkeQclf+q+TuH4C4SXG96Mw
+ /UMIi+55kAwzk4YEldewCuTcN4w/ZqFUOHsb+ZZJoGwmTens2+NJM/lBHZ1Cpif9HVqb
+ PtcNEO+JlpsiOvfq3vMnU50BZ27h3SnKUmCH00dNYk2v7YYN2hGI0r5ONTW1cUwgNAIC KZLw==
+X-Received: by 10.152.145.134 with SMTP id su6mr14252045lab.35.1361897766481;
+ Tue, 26 Feb 2013 08:56:06 -0800 (PST)
+MIME-Version: 1.0
+Received: by 10.114.80.234 with HTTP; Tue, 26 Feb 2013 08:55:26 -0800 (PST)
+In-Reply-To: <1361894894.97230.YahooMailNeo@web120105.mail.ne1.yahoo.com>
+References: <1361891291.86483.YahooMailNeo@web120106.mail.ne1.yahoo.com>
+ <CAM3ce8G1nFJehhYA36=LPu+V901KiaU8hm=es5YOVYY_2+9jkg@mail.gmail.com>
+ <1361894894.97230.YahooMailNeo@web120105.mail.ne1.yahoo.com>
+From: Ben Somers <somers.ben@gmail.com>
+Date: Tue, 26 Feb 2013 08:55:26 -0800
+Message-ID:
+ <CAO1NZArEgdfAdQRXyt9f2YuU8XCazBBZeHQsAY9NpsrtjfrQEg@mail.gmail.com>
+Subject: Re: Unicorn on shared apps platform
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+> Can one signal unicorn to increase workers or just spin new set of workers. Any one tried alicorn? https://github.com/bensomers/alicorn.
+
+I'm the author of alicorn; I've tried it :). I only know of one team
+that's currently running it in production, but they've been using it
+with no difficulties for about six months now. It's meant to solve
+exactly the problem you have, dynamically scaling unicorn workers,
+though it can't idle an app at zero workers (I think it technically
+could; but the results would be bad). Happy to help you with it if
+needed.
+
+> Provisioning double memory on deploy can be solved differently by spinning new server that has upgrade and moving load balancer to divert trafic, the netflix way.
+
+I don't like doing that just because of the time it takes to spin up
+new servers (even on EC2, it's not instant). If you're running
+multiple apps on one box, then you can cheat a little bit, because you
+won't need enough memory for running all the apps twice, just enough
+to run everything once + one app twice.
+
+-ben
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
