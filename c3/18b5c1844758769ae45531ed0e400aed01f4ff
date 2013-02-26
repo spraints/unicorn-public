@@ -1,0 +1,97 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=-0.0 required=5.0 tests=AWL,T_DKIM_INVALID
+ shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id 7C3811F706 for
+ <archivist@yhbt.net>; Tue, 26 Feb 2013 15:43:34 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 45A2C2E09C; Tue, 26 Feb 2013 15:43:34 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from mail-ia0-f171.google.com (mail-ia0-f171.google.com
+ [209.85.210.171]) by rubyforge.org (Postfix) with ESMTP id 769902E069 for
+ <mongrel-unicorn@rubyforge.org>; Tue, 26 Feb 2013 15:43:24 +0000 (UTC)
+Received: by mail-ia0-f171.google.com with SMTP id z13so3590262iaz.30 for
+ <mongrel-unicorn@rubyforge.org>; Tue, 26 Feb 2013 07:43:23 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com;
+ s=20120113; h=x-received:mime-version:sender:in-reply-to:references:from:date
+ :x-google-sender-auth:message-id:subject:to:content-type;
+ bh=/t/SQ+4BWPsX+T27H0C4lsAdF3FJF6UsoiAz4jAqNAo=;
+ b=bEMDRuUFZA7j8ZEGvLKD1VYaDVlwndi5XORP7V9qeqIQxJ6s2ru66PaQG8HKj+HlHZ
+ 5zazQkBUWipaSQazU3xnAvdhj5m4VfwVV5pTlPPFq0KdVlPAhYqAwuA5VCdOfCNWZdW4
+ hXgUp0Jmmzb6b1p/k7uSk/NkLk6M0XX9DrMscrofPgBhUzDw+g4oeY4yh+WguRF7jPE8
+ kA1zLNkbSSCf8nzFUyM1LWxErTeqz0rQ8YfdjHWmwbQX0N3STnQTC8yikBOEIFoHl9pp
+ 6o41N5MSqGOaejcVivryhHPB821LriI2C5fGvlFHtH6A8opbSc1tQzI+j0cVjPNWXgVT Y4Qw==
+X-Received: by 10.50.202.6 with SMTP id ke6mr5652976igc.30.1361893023486;
+ Tue, 26 Feb 2013 07:37:03 -0800 (PST)
+MIME-Version: 1.0
+Received: by 10.64.73.33 with HTTP; Tue, 26 Feb 2013 07:36:23 -0800 (PST)
+In-Reply-To: <1361891291.86483.YahooMailNeo@web120106.mail.ne1.yahoo.com>
+References: <1361891291.86483.YahooMailNeo@web120106.mail.ne1.yahoo.com>
+From: Hongli Lai <hongli@phusion.nl>
+Date: Tue, 26 Feb 2013 16:36:23 +0100
+X-Google-Sender-Auth: eKSXiaXm2FxPMPoP_KrPt401lDs
+Message-ID:
+ <CAM3ce8G1nFJehhYA36=LPu+V901KiaU8hm=es5YOVYY_2+9jkg@mail.gmail.com>
+Subject: Re: Unicorn on shared apps platform
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+On Tue, Feb 26, 2013 at 4:08 PM, Amol Dev <devamol@yahoo.com> wrote:
+> We are hosting multiple Rails applications on same server and using Passenger + Apache. I can see Unicorn be useful for seamless deploys, few questions running it on Rails platform with 50+ rails apps:
+>
+> a) How does unicorn scale if app is known to be slow with long running quieres to database? Is there a way to a have master worker spin up new workers aka dynamic workers?
+
+Unicorn is designed for short-running requests. Long-running requests
+are best taken care of with app servers designed for that purpose, for
+example Rainbows! or Phusion Passenger Enterprise 4. Both app servers
+can be used in combination with Apache or Nginx. Rainbows! is designed
+for a reverse proxy setup while Phusion Passenger Enterprise 4 can
+also integrate with the web server.
+
+As far as I know only Phusion Passenger supports dynamic workers.
+Unicorn and Rainbows! are both designed for a static number of
+workers. Unicorn and Rainbows! allow modifying the number of workers
+during runtime through signals, but not automatically according to
+traffic as is done by Phusion Passenger.
+
+
+> b) Can Unicorn be configured to start with zero worker and master spawning first worker as first request comes in? Very useful to stack multiple apps that are not used all the time.
+
+No, because it does not support spawning processes based on traffic.
+As far as I know only Phusion Passenger does this.
+
+> c) Unicorn for zero lost connection (no downtime during deploy and changes) needs new workers spinned up before old workers are sent USR2 signal, does this not mean that one has to provision double memory for servers?
+
+Yes it does. Although it's possible to change this behavior through a
+script that sends signals in a certain order.
+
+-- 
+Phusion | Ruby & Rails deployment, scaling and tuning solutions
+
+Web: http://www.phusion.nl/
+E-mail: info@phusion.nl
+Chamber of commerce no: 08173483 (The Netherlands)
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
