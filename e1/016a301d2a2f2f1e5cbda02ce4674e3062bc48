@@ -1,0 +1,80 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=0.0 required=5.0 tests=FREEMAIL_FROM,T_DKIM_INVALID
+ shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id 6F3D044C008 for
+ <archivist@yhbt.net>; Fri,  1 Mar 2013 19:08:53 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 513522E0B0; Fri,  1 Mar 2013 19:08:54 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from mail-ie0-f172.google.com (mail-ie0-f172.google.com
+ [209.85.223.172]) by rubyforge.org (Postfix) with ESMTP id 229862E0A1 for
+ <mongrel-unicorn@rubyforge.org>; Fri,  1 Mar 2013 19:06:45 +0000 (UTC)
+Received: by mail-ie0-f172.google.com with SMTP id c10so3991042ieb.3 for
+ <mongrel-unicorn@rubyforge.org>; Fri, 01 Mar 2013 11:06:43 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com;
+ s=20120113; h=mime-version:x-received:sender:in-reply-to:references:date
+ :x-google-sender-auth:message-id:subject:from:to:cc:content-type;
+ bh=OOLWdNSJ1k7pm9wbrRQSfxwWBWGhUgHn0AHIKdvwZvA=;
+ b=qO5MSgsvU9wREix2q2uH/lgFRGj197NX2nv57/z3rxpaNTn1fMc0NRMdODFh4qACEZ
+ XuJxck9ctGguY0Zsdi3QvpkwGTi5wb4B1N82qUyLEPE5RMSO+RseGLrYwQES/OcerM29
+ +Ox9uW8fgf27TlXHETVwxeGSOBVWRKSXaykXujq1mevLWzR4lQaBHs53rW2yF78C9tQy
+ p7d+y6tuNnrLdxay9Zv/zy3p/xyOKBRl8oWZ/+CC+TtjJRoJHu3YOhHoSjMFZX/q1hA2
+ hhyVjHA/x5V+ifR5Ir5Nh/kFKkMDkYKY6P3iXIX/SWBiRpL+1hvwirpmriW98W4onyDS sVdQ==
+MIME-Version: 1.0
+X-Received: by 10.42.140.72 with SMTP id j8mr6763285icu.37.1362164803587;
+ Fri, 01 Mar 2013 11:06:43 -0800 (PST)
+Received: by 10.64.139.230 with HTTP; Fri, 1 Mar 2013 11:06:43 -0800 (PST)
+In-Reply-To: <20130301174122.GA9349@dcvr.yhbt.net>
+References:
+ <CAG5KUeT4cO9pZfgryfhaPw_nGcBGXRs1k8BBwkxiBU6Y_MTCPQ@mail.gmail.com>
+ <20130301174122.GA9349@dcvr.yhbt.net>
+Date: Sat, 2 Mar 2013 01:06:43 +0600
+X-Google-Sender-Auth: 4thBelmIDyxVzMazVH8BCj0L0O8
+Message-ID:
+ <CAG5KUeSKjgPcEmQ9FVZvOQu43wpQjpCE9fhqpzXCyNSLCZ=AKw@mail.gmail.com>
+Subject: Re: Why so many worker threads?
+From: Alexey Chernenkov <laise@pisem.net>
+To: Eric Wong <normalperson@yhbt.net>
+Cc: unicorn list <mongrel-unicorn@rubyforge.org>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+2013/3/1 Eric Wong <normalperson@yhbt.net>:
+> Alexey Chernenkov <laise@pisem.net> wrote:
+>>
+>> Can anyone explain why my Unicorn installation (for RoR site) have so
+>> many worker threads?
+>>   * screenshot: http://i.stack.imgur.com/U9TFR.png
+>>   * unicorn.rb: https://gist.github.com/907th/4995323
+>>
+>
+> It's probably some gem/library you're using which spawns threads behind
+> your back.  Ruby 1.9/2.0 only has one extra thread per-process for
+> accepting signals.
+>
+
+Could you advise me how I can determine which gem causes the problem?
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
