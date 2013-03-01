@@ -1,0 +1,82 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=-0.2 required=5.0 tests=AWL shortcircuit=no
+ autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id D83AA44C007 for
+ <archivist@yhbt.net>; Fri,  1 Mar 2013 23:13:16 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id E04782E09B; Fri,  1 Mar 2013 23:13:17 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id AAE9F2E076 for <mongrel-unicorn@rubyforge.org>; Fri, 
+ 1 Mar 2013 23:05:05 +0000 (UTC)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 708EA1F433; Fri,  1 Mar 2013 23:05:02 +0000 (UTC)
+Date: Fri, 1 Mar 2013 23:05:02 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Subject: Re: Why so many worker threads?
+Message-ID: <20130301230502.GA30697@dcvr.yhbt.net>
+References:
+ <CAG5KUeT4cO9pZfgryfhaPw_nGcBGXRs1k8BBwkxiBU6Y_MTCPQ@mail.gmail.com>
+ <20130301174122.GA9349@dcvr.yhbt.net>
+ <CAG5KUeSKjgPcEmQ9FVZvOQu43wpQjpCE9fhqpzXCyNSLCZ=AKw@mail.gmail.com>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To:
+ <CAG5KUeSKjgPcEmQ9FVZvOQu43wpQjpCE9fhqpzXCyNSLCZ=AKw@mail.gmail.com>
+User-Agent: Mutt/1.5.21 (2010-09-15)
+Cc: Alexey Chernenkov <laise@pisem.net>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Alexey Chernenkov <laise@pisem.net> wrote:
+> 2013/3/1 Eric Wong <normalperson@yhbt.net>:
+> > Alexey Chernenkov <laise@pisem.net> wrote:
+> >>
+> >> Can anyone explain why my Unicorn installation (for RoR site) have so
+> >> many worker threads?
+> >>   * screenshot: http://i.stack.imgur.com/U9TFR.png
+> >>   * unicorn.rb: https://gist.github.com/907th/4995323
+> >>
+> >
+> > It's probably some gem/library you're using which spawns threads behind
+> > your back.  Ruby 1.9/2.0 only has one extra thread per-process for
+> > accepting signals.
+> >
+> Could you advise me how I can determine which gem causes the problem?
+
+What Tatsuya said.
+
+Really, you should never hesitate to grep/scan/read the source of
+_everything_ you're running.
+
+For C extensions, check for the pthread_create() function, too.  Also,
+any existing libraries your C/FFI extensions might link to...
+
+If you're on Linux, you can probably track it down a little faster via
+"strace -f -e clone"  (clone() is the underlying syscall used for both
+fork() and pthread_create()).
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
