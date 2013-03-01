@@ -1,0 +1,106 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=-0.3 required=5.0 tests=AWL,FREEMAIL_FROM,
+ T_DKIM_INVALID shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id D23451F6BC for
+ <archivist@yhbt.net>; Fri,  1 Mar 2013 20:58:06 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id A3BEA2E076; Fri,  1 Mar 2013 20:58:07 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from mail-wi0-f178.google.com (mail-wi0-f178.google.com
+ [209.85.212.178]) by rubyforge.org (Postfix) with ESMTP id CDC502E076 for
+ <mongrel-unicorn@rubyforge.org>; Fri,  1 Mar 2013 20:54:28 +0000 (UTC)
+Received: by mail-wi0-f178.google.com with SMTP id hq4so3976782wib.17 for
+ <mongrel-unicorn@rubyforge.org>; Fri, 01 Mar 2013 12:54:26 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com;
+ s=20120113; h=mime-version:x-received:in-reply-to:references:date:message-id
+ :subject:from:to:content-type;
+ bh=6hCf/XSiVweKouNyxmJvIXOCpyJ0U1eXavuRsYfTgCg=;
+ b=YfAWgXuCdthxYf6Tui+f626Lkjl0kSBLpc3MyS/qkgRyrNXc/KFG4SAQ1ERaMei6yH
+ +dfq11kuFh4BVj2mNswQeKm2csL8iJfVc9l43GVx/a7G3dQpRcWIaBdoDwcHs4TcGJOK
+ S+nDAkWc3WD5TD8oOJbhSPYpIwewBKVvEOIV1VdUIwMVOn5UpeJy8jNznPDzGbJjPzLH
+ XDPsW4xqSp+ZfAtCoKqqbHV/pKLxwmL3yoZErkHu9rk6hidYe9Fi1zsPirheewJRq3/s
+ Io+PTC/nqTIUrQQrQ2fu4rBwW6rrzlOA2X7zFlMWwsQ9Y0Tjp/elHsWLBfV1aQIEU7ev eHew==
+MIME-Version: 1.0
+X-Received: by 10.180.95.66 with SMTP id di2mr153047wib.18.1362171266843;
+ Fri, 01 Mar 2013 12:54:26 -0800 (PST)
+Received: by 10.194.157.161 with HTTP; Fri, 1 Mar 2013 12:54:26 -0800 (PST)
+In-Reply-To:
+ <CAHF=L-xGZXMNs4CtnDBuA15xMYZMQSa0r9etCc4Ewf0UY9_+Dw@mail.gmail.com>
+References:
+ <CAG5KUeT4cO9pZfgryfhaPw_nGcBGXRs1k8BBwkxiBU6Y_MTCPQ@mail.gmail.com>
+ <20130301174122.GA9349@dcvr.yhbt.net>
+ <CAHF=L-xHOguSLkyytYS6G-b=5nHYid-Mgz1MOqo8=zm0sRk=kQ@mail.gmail.com>
+ <CAG5KUeSXFinV5xd_+scBBHdrWqWq1P5WLpO_S7Qcn=NetWQUow@mail.gmail.com>
+ <CAHF=L-xGZXMNs4CtnDBuA15xMYZMQSa0r9etCc4Ewf0UY9_+Dw@mail.gmail.com>
+Date: Fri, 1 Mar 2013 20:54:26 +0000
+Message-ID:
+ <CAHBuKRgP9r1whPuyGUP2zLmOSFv6ixdM3Bx3PLxY1tWmApAULA@mail.gmail.com>
+Subject: Re: Why so many worker threads?
+From: Tatsuya Ono <ononoma@gmail.com>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+NewRelic and Airbrake are popular gems which spawns threads.
+
+Unfortunately I don't think there is a silver bullet to detect which
+gems are doing that. You have to investigate it step by step. For
+example, you can create a new Rails app with the Gemfile(assuming you
+use bundler), config and initializers. If you succeeded to reproduce
+the problem with the small app, the rest of research would not be
+difficult. You remove a gem one by one and restart app and you may
+want to make some requests, then check the number of threads. If the
+number of threads is reduced, that's would be it.
+
+Or maybe you can grep your gem library directory with some keywords
+like "Thread" or "Proc"? If you install gem library to specific path
+(--path option on Bundler) for the application, you can avoid look at
+other gems installed by other ruby application.
+http://gembundler.com/v1.2/bundle_install.html
+
+
+I don't think that the problem is related to Unicorn though.
+
+Good luck :-)
+
+On 1 March 2013 19:14, Alejandro Riera <ariera@gmail.com> wrote:
+>
+> >>> >   * screenshot: http://i.stack.imgur.com/U9TFR.png
+> >>> >   * unicorn.rb: https://gist.github.com/907th/4995323
+> >> which command do you run to show that list?
+> >
+> > Screenshot? Its `htop` command with tree (F5) view.
+>
+>
+> I have just one worker. If I run top I just see one master and one
+> worker. But with htop there are 3 masters and 3 workers, each of them
+> with a different pid. This is a surprise to me too. I'm runnnig ruby
+> 1.9.2.
+> _______________________________________________
+> Unicorn mailing list - mongrel-unicorn@rubyforge.org
+> http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+> Do not quote signatures (like this one) or top post when replying
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
