@@ -1,0 +1,156 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=0.0 required=5.0 tests=none shortcircuit=no
+ autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id 755A544C002 for
+ <archivist@yhbt.net>; Mon, 11 Mar 2013 22:21:14 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 549A02E0A6; Mon, 11 Mar 2013 22:21:15 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from hk88.tnux.net (hk88.tnux.net [83.161.142.184]) by
+ rubyforge.org (Postfix) with ESMTP id 34E9D2E084 for
+ <mongrel-unicorn@rubyforge.org>; Mon, 11 Mar 2013 22:21:05 +0000 (UTC)
+Received: from localhost (localhost [127.0.0.1]) by hk88.tnux.net (Postfix)
+ with ESMTP id F182422628 for <mongrel-unicorn@rubyforge.org>; Mon, 11 Mar
+ 2013 23:21:02 +0100 (CET)
+X-Virus-Scanned: amavisd-new at node04.voorstraat46.demon.nl
+Received: from hk88.tnux.net ([127.0.0.1]) by localhost (hk88.tnux.net
+ [127.0.0.1]) (amavisd-new, port 10024) with ESMTP id eWeefJvVbl1F for
+ <mongrel-unicorn@rubyforge.org>; Mon, 11 Mar 2013 23:20:54 +0100 (CET)
+Received: from voorstraat46.tnux.net (hk88.tnux.net [83.161.142.184])
+ (Authenticated sender: tom) by hk88.tnux.net (Postfix) with ESMTPA id
+ 8E3512171F for <mongrel-unicorn@rubyforge.org>; Mon, 11 Mar 2013 23:20:53
+ +0100 (CET)
+Received: from 83.161.142.184 (SquirrelMail authenticated user tom) by
+ voorstraat46.tnux.net with HTTP; Mon, 11 Mar 2013 23:20:53 +0100
+Message-ID: <0f19dafe5f9dde9423a2da669537838e.squirrel@voorstraat46.tnux.net>
+In-Reply-To: <20130311194912.GA11462@dcvr.yhbt.net>
+References: <513B5CFC.9080706@tnux.net>
+ <20130309210227.GA29317@dcvr.yhbt.net>
+ <ee3b6afe9db5d89951a2c79d4e66c9e1.squirrel@voorstraat46.tnux.net>
+ <20130311194912.GA11462@dcvr.yhbt.net>
+Date: Mon, 11 Mar 2013 23:20:53 +0100
+Subject: Re: Unicorn hangs on POST request
+From: "Tom Pesman" <tom@tnux.net>
+To: "unicorn list" <mongrel-unicorn@rubyforge.org>
+User-Agent: SquirrelMail/1.4.20
+MIME-Version: 1.0
+X-Priority: 3 (Normal)
+Importance: Normal
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+> Tom Pesman <tom@tnux.net> wrote:
+>> Eric Wong wrote:
+>> > Tom Pesman <tom@tnux.net> wrote:
+>> >> I'm trying to fix a problem I'm experiencing with my Rails
+>> >> application hosted at Heroku. I've one POST request which hangs and
+>> >> with the help of a customized rack-timeout gem
+>> >> (https://github.com/tompesman/rack-timeout) I managed to get a
+>> >> stacktrace: https://gist.github.com/tompesman/7b13e02d349aacc720e0
+>> >>
+>> >> How can I debug this further to get to the bottom of this and is
+>> >> this a rack or a unicorn problem?
+>> >
+>> > It's a client or proxy problem.
+>> >
+>> > The request was too large to be transferred within your configured
+>> > timeout, or the client or proxy layer was too slow at transferring the
+>> > POST to unicorn, or the host running unicorn was too overloaded/slow
+>> > to buffer the request.
+>> >
+>> > Factors:
+>> > 1) Disk/filesystem/memory speed on the (client|proxy) talking to
+>> unicorn
+>> > 2) Disk/filesystem/memory speed on the host running unicorn.
+>> > 3) The network link between the (client|proxy) <-> unicorn.
+>> >
+>> > I don't know about Heroku, but nginx will fully buffer the request
+>> body
+>> > before sending to unicorn, so all 3 factors are within your control.
+>> >
+>> > Does Heroku limit (or allow limiting of) the size of request bodies?
+>> >
+>> > Maybe a bad client sent a gigantic request.  nginx limits request
+>> bodies
+>> > to 1M by default (client_max_body_size config directive).
+>> >
+>> > [1] unicorn buffers request bodies to TMPDIR via TeeInput
+>> >
+>>
+>> I agree with you if the POST request has a file to upload, but the
+>> requests we're dealing with do not upload a file and are actually quite
+>> small.
+>
+> Do you have error logs from the proxy Heroku uses?
+
+The only output Heroku proxy (router called at Heroku) gives is something
+like this:
+2013-03-11 15:55:58+00:00 heroku router - - at=info method=POST
+path=/api/v1/games/2257907/move.json host=aaa.bbb.ccc
+fwd="xxx.xxx.xxx.xxx/NX" dyno=web.1 queue=0 wait=8ms connect=9ms
+service=5019ms status=500 bytes=0
+
+> Even with small requests, clients/networks can fail to send the entire
+> request.  nginx will log prematurely aborted client requests; check
+> if whatever proxy Heroku uses does the same.
+
+I think it's hard to debug with Heroku as the router doesn't give more
+output than this. I'm in contact with Heroku and I'll try to debug this
+with them. For me I have 2 problems with this issue, the waiting affects
+other requests and it's happening frequently (say multiple times per
+minute at 2k-4k rpm). How can I reduce the impact while not aborting valid
+requests?
+
+>> Can I modify the my customized rack-timeout gem to get more information
+>> to
+>> debug this problem?
+>> https://github.com/tompesman/rack-timeout/blob/master/lib/rack/timeout.rb
+>
+> Your env.inspect should show you @bytes_read in the Unicorn::TeeInput
+> object before the timeout was hit.
+
+This is the output of env.inspect:
+https://gist.github.com/tompesman/1217d4f02aa33efcd873
+
+It shows a CONTENT_LENGTH of 1351 and the "rack.input" =>
+Unicorn::TeeInput -> @bytes_read == 0.
+
+So what is happening here?
+
+1. Heroku router/proxy sends the header to unicorn.
+2. Unicorn receives the request and gives the request to Rack
+3. Rack receives the request and asks Unicorn for the contents of the request
+4. Unicorn should give the content to Rack. Now it gets interesting, how
+can I see the raw contents of the request? Or are we certain that it isn't
+there because @bytes_read == 0?
+
+Thanks!
+
+-- 
+Tom Pesman
+
+
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
