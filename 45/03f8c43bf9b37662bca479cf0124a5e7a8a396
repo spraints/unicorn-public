@@ -1,0 +1,125 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=0.0 required=5.0 tests=T_DKIM_INVALID
+ shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id A99061F432 for
+ <archivist@yhbt.net>; Tue,  2 Apr 2013 12:02:26 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id BDD2A2E0F4; Tue,  2 Apr 2013 12:02:26 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+X-Greylist: delayed 434 seconds by postgrey-1.31 at rubyforge; Tue, 02 Apr
+ 2013 12:02:19 UTC
+Received: from mail-qc0-f179.google.com (mail-qc0-f179.google.com
+ [209.85.216.179]) by rubyforge.org (Postfix) with ESMTP id 9CA8E2E0EE for
+ <mongrel-unicorn@rubyforge.org>; Tue,  2 Apr 2013 12:02:18 +0000 (UTC)
+Received: by mail-qc0-f179.google.com with SMTP id v28so111921qcm.38 for
+ <mongrel-unicorn@rubyforge.org>; Tue, 02 Apr 2013 05:02:17 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=tnux.net; s=google;
+ h=mime-version:x-received:x-originating-ip:in-reply-to:references
+ :date:message-id:subject:from:to:content-type;
+ bh=pHFeQfe/CdvUVninViXqDudVzi2SaDlqZwGMH5oY5hc=;
+ b=2a6WviEAuT0+e5vHIHTsskEYjwLTEvWOG9PJC7Dre5y67VJjGzUDu9IJRZ86Nqo0R2
+ Pl6vckPOG4XmpLTD/gH0sFdmWSL3a4jSpuRwK9mgxfwzTmkj8Vn42ulJN4yPQXVAokRn
+ wP3RAo7wjYVaDsSo63D0HBaqc14Y9j1CMz7NM=
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com;
+ s=20120113; h=mime-version:x-received:x-originating-ip:in-reply-to:references
+ :date:message-id:subject:from:to:content-type:x-gm-message-state;
+ bh=pHFeQfe/CdvUVninViXqDudVzi2SaDlqZwGMH5oY5hc=;
+ b=g9qCo98KpEVODAesu5aaka9qUrYeyacqt6jPsT/0LcTp+Z6YwlUY2JVY9sY50H7nSA
+ 0/eAWOxaOjLRTmZyrRQorKzeSCOlrcnxoOuzROR7RMaURzk499PmZpyBFBLlYibCNBHI
+ +ZRpfZI60vANttv7XnNAAba9xGxLYKLisGPHthB+ryTuOUSIMYPvq07tkmgbYVoNW8xn
+ KupFuhzGqevJHZMIsUDFL2dAYkGRmETraxg/q5NjNO7CdvfDJyhAyfcaRq6em5JK8pF5
+ VvAa6+1Xz3grLWfaD3gooEfkXcGuEsXnl+i6EBPwTSmWXFLRzcKznv7RgWUkFd4ANK0I gDDA==
+MIME-Version: 1.0
+X-Received: by 10.49.14.231 with SMTP id s7mr17218620qec.15.1364903703126;
+ Tue, 02 Apr 2013 04:55:03 -0700 (PDT)
+Received: by 10.49.73.230 with HTTP; Tue, 2 Apr 2013 04:55:02 -0700 (PDT)
+X-Originating-IP: [2001:980:6127:1:a4f8:aff:e3c9:dbaf]
+In-Reply-To: <20130311230157.GB26407@dcvr.yhbt.net>
+References: <513B5CFC.9080706@tnux.net>
+ <20130309210227.GA29317@dcvr.yhbt.net>
+ <ee3b6afe9db5d89951a2c79d4e66c9e1.squirrel@voorstraat46.tnux.net>
+ <20130311194912.GA11462@dcvr.yhbt.net>
+ <0f19dafe5f9dde9423a2da669537838e.squirrel@voorstraat46.tnux.net>
+ <20130311230157.GB26407@dcvr.yhbt.net>
+Date: Tue, 2 Apr 2013 13:55:02 +0200
+Message-ID:
+ <CAGJrHAZa35dGC5fcJGsLgqNQrQ52JdNQApBr+-A58L4=j83DzQ@mail.gmail.com>
+Subject: Re: Unicorn hangs on POST request
+From: Tom Pesman <tom@tnux.net>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+X-Gm-Message-State:
+ ALoCoQkMpp6Gaw5D0syEZsAwb8VqRT9AiyYTCr53IXcXyAQuhmJdlaY06Oy2XOlEwBiweJGcEXCL
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+> The request body doesn't seem to be there, presumably because Heroku
+> isn't sending it.
+>
+> Doe heroku fully buffer the request body before sending it to unicorn?
+> nginx fully buffers, and this is why I can only recommend nginx for slow
+> clients.
+>
+> The proxy -> unicorn transfer speed should _never_ be dependent by the
+> client -> proxy transfer speed.
+>
+> 1) client        ------------------ (slow) --------------> proxy
+> 2) proxy (nginx) --- (as fast as the connection goes) ---> unicorn
+>
+> With nginx, 1) and 2) are decoupled and serialized.  This adds latency,
+> but is the only way for multiprocess servers like unicorn to efficiently
+> handle slow clients.
+
+I've some new information. Heroku buffers the headers of a HTTP
+request but it doesn't buffer the body of POST requests. Because of
+that I switched to Rainbows! and the responsiveness of the application
+increased dramatically.
+
+Right now I'm using this configuration:
+
+worker_processes 4
+timeout 15
+preload_app true
+
+Rainbows! do
+  use :EventMachine
+  worker_connections 50
+  client_max_body_size 5*1024*1024 # 5 megabytes
+  client_header_buffer_size 2 * 1024 # 2 kilobytes
+  timeout 10
+end
+
+With high load the performance drops, is EventMachine the right choice
+for this situation (Rails application with slow POST requests and with
+up to 50% POST requests)? Will increasing the worker_connections help?
+
+I'm planning to make a blog post about this and tell Heroku not to
+advise Unicorn for Rails applications but to use Rainbows and suggest
+a correct/optimised configuration.
+
+Thanks!
+
+Tom
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
