@@ -1,0 +1,169 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=-0.2 required=5.0 tests=AWL shortcircuit=no
+ autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id 3D72F1F43F for
+ <archivist@yhbt.net>; Fri,  5 Apr 2013 21:56:20 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 24C442E0F3; Fri,  5 Apr 2013 21:56:17 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 1BFCA2E0AC for <mongrel-unicorn@rubyforge.org>; Fri, 
+ 5 Apr 2013 21:56:11 +0000 (UTC)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id BC3F61F43B; Fri,  5 Apr 2013 21:56:09 +0000 (UTC)
+Date: Fri, 5 Apr 2013 21:56:09 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Subject: Re: Fedora Unix socket file location problems
+Message-ID: <20130405215609.GA21944@dcvr.yhbt.net>
+References:
+ <CAKLVLx_t+9zWMhquMWDfStrxS7xrNoGmN0ZDsjSCUE=VxU+oyQ@mail.gmail.com>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To:
+ <CAKLVLx_t+9zWMhquMWDfStrxS7xrNoGmN0ZDsjSCUE=VxU+oyQ@mail.gmail.com>
+User-Agent: Mutt/1.5.21 (2010-09-15)
+Cc: David Wilkins <dwilkins@conecuh.com>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+David Wilkins <dwilkins@conecuh.com> wrote:
+> Folks,
+> 
+> It seems that it's pretty common to use /tmp for the directory where
+> you store the Unicorn unix: socket file.   I'm a Fedora user and our
+> lovable systemd (by default) gives nginx a private /tmp directory (see
+> "PrivateTmp=true" in system configuration file example below).
+> That's the kind of thing that *could* take a while to figure out.
+> 
+> Could you put a note somewhere near the listen docs warning Fedora /
+> systemd users to locate the socket file somewhere else?  I know it's
+> not your problem, but I'll bet that more than a few Fedora users are
+> using TCP sockets instead of unix sockets with Unicorn because of
+> this.
+
+Thanks, I'll queue up something like the following patch.
+Comments/corrections greatly appreciated:
+
+------------------------------8<-------------------------------
+From: Eric Wong <normalperson@yhbt.net>
+Subject: [PATCH] doc: update documentation for systemd + PrivateTmp users
+
+The PrivateTmp feature of systemd breaks the usage of /tmp for the
+shared Unix domain socket between nginx and unicorn, so discourage the
+use of /tmp in that case.
+
+While we're at it, use consistent paths for everything and use an
+obviously intended-for-user-customization "/path/to" prefix instead
+of "/tmp"
+
+ML-Ref: CAKLVLx_t+9zWMhquMWDfStrxS7xrNoGmN0ZDsjSCUE=VxU+oyQ@mail.gmail.com
+Reported-by: David Wilkins <dwilkins@conecuh.com>
+---
+ examples/nginx.conf         |  8 ++++----
+ examples/unicorn.conf.rb    |  2 +-
+ lib/unicorn/configurator.rb | 10 ++++++++--
+ 3 files changed, 13 insertions(+), 7 deletions(-)
+
+diff --git a/examples/nginx.conf b/examples/nginx.conf
+index 66ac0aa..a68fe6f 100644
+--- a/examples/nginx.conf
++++ b/examples/nginx.conf
+@@ -24,8 +24,8 @@ user nobody nogroup; # for systems with a "nogroup"
+ # user nobody nobody; # for systems with "nobody" as a group instead
+ 
+ # Feel free to change all paths to suite your needs here, of course
+-pid /tmp/nginx.pid;
+-error_log /tmp/nginx.error.log;
++pid /path/to/nginx.pid;
++error_log /path/to/nginx.error.log;
+ 
+ events {
+   worker_connections 1024; # increase if you have lots of clients
+@@ -42,7 +42,7 @@ http {
+   default_type application/octet-stream;
+ 
+   # click tracking!
+-  access_log /tmp/nginx.access.log combined;
++  access_log /path/to/nginx.access.log combined;
+ 
+   # you generally want to serve static files with nginx since neither
+   # Unicorn nor Rainbows! is optimized for it at the moment
+@@ -74,7 +74,7 @@ http {
+     # single worker for timing out).
+ 
+     # for UNIX domain socket setups:
+-    server unix:/tmp/.sock fail_timeout=0;
++    server unix:/path/to/.unicorn.sock fail_timeout=0;
+ 
+     # for TCP setups, point these to your backend servers
+     # server 192.168.0.7:8080 fail_timeout=0;
+diff --git a/examples/unicorn.conf.rb b/examples/unicorn.conf.rb
+index 4042d9c..9dce58a 100644
+--- a/examples/unicorn.conf.rb
++++ b/examples/unicorn.conf.rb
+@@ -25,7 +25,7 @@
+ 
+ # listen on both a Unix domain socket and a TCP port,
+ # we use a shorter backlog for quicker failover when busy
+-listen "/tmp/.sock", :backlog => 64
++listen "/path/to/.unicorn.sock", :backlog => 64
+ listen 8080, :tcp_nopush => true
+ 
+ # nuke workers after 30 seconds instead of 60 seconds (the default)
+diff --git a/lib/unicorn/configurator.rb b/lib/unicorn/configurator.rb
+index 7651093..0d0eac7 100644
+--- a/lib/unicorn/configurator.rb
++++ b/lib/unicorn/configurator.rb
+@@ -188,7 +188,7 @@ def before_exec(*args, &block)
+   #    # on nginx upstream configuration:
+   #    upstream unicorn_backend {
+   #      # for UNIX domain socket setups:
+-  #      server unix:/path/to/unicorn.sock fail_timeout=0;
++  #      server unix:/path/to/.unicorn.sock fail_timeout=0;
+   #
+   #      # for TCP setups
+   #      server 192.168.0.7:8080 fail_timeout=0;
+@@ -229,9 +229,15 @@ def listeners(addresses) # :nodoc:
+   #
+   #   listen 3000 # listen to port 3000 on all TCP interfaces
+   #   listen "127.0.0.1:3000"  # listen to port 3000 on the loopback interface
+-  #   listen "/tmp/.unicorn.sock" # listen on the given Unix domain socket
++  #   listen "/path/to/.unicorn.sock" # listen on the given Unix domain socket
+   #   listen "[::1]:3000" # listen to port 3000 on the IPv6 loopback interface
+   #
++  # When using Unix domain sockets, be sure:
++  # 1) the path matches the one used by nginx
++  # 2) uses the same filesystem namespace as the nginx process
++  # For systemd users using PrivateTmp=true (for either nginx or unicorn),
++  # this means Unix domain sockets must not be placed in /tmp
++  #
+   # The following options may be specified (but are generally not needed):
+   #
+   # [:backlog => number of clients]
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
