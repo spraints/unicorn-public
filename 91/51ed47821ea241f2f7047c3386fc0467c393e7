@@ -1,0 +1,88 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=0.0 required=5.0 tests=T_DKIM_INVALID
+ shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (50-56-192-79.static.cloud-ips.com
+ [50.56.192.79]) by dcvr.yhbt.net (Postfix) with ESMTP id CE23E1F43F for
+ <archivist@yhbt.net>; Fri,  5 Apr 2013 21:22:48 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id B89CB2E0F0; Fri,  5 Apr 2013 21:22:48 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+X-Greylist: delayed 344 seconds by postgrey-1.31 at rubyforge; Fri, 05 Apr
+ 2013 21:22:42 UTC
+Received: from mail-la0-f45.google.com (mail-la0-f45.google.com
+ [209.85.215.45]) by rubyforge.org (Postfix) with ESMTP id 0FA592E0AC for
+ <mongrel-unicorn@rubyforge.org>; Fri,  5 Apr 2013 21:22:42 +0000 (UTC)
+Received: by mail-la0-f45.google.com with SMTP id fn20so408755lab.32 for
+ <mongrel-unicorn@rubyforge.org>; Fri, 05 Apr 2013 14:22:40 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com;
+ s=20120113;
+ h=mime-version:x-received:sender:date:x-google-sender-auth:message-id
+ :subject:from:to:content-type;
+ bh=adQ+bgm1YgLpUnkQ29eFatXSoNey88oQOk0MmpXaFQw=;
+ b=BG1DfDLv31E3m/P8747QDhuKVTHmjLKCjBjBvkshztTcmhLCEg0y8quLFxljOUXSOU
+ lpgJwPUBoyefqW5Q14JTrlDxIkLOLa8p4Am31u6DQIPxdqvwrP4EbBp2Zl7rbwKhilX6
+ oAkQeER+haCGlijhU0GX/BnPNsYbqBdzUz9O4prI9VRwRBIM7GS5fQCwlMflfuKG0v9p
+ rStRoHjZ0SDBsilbOy6Fsx42Rspf0QFytAr009E6QwbINA+e3p/V+/BoxZCRfBEpnXuo
+ i0DgqdfuMZw/AkOwLcgxgMSlILt8zqeYbtEPlBtORrWUg4Kamj7hjqZ2cRfN1mzaR18e tMjg==
+MIME-Version: 1.0
+X-Received: by 10.112.125.2 with SMTP id mm2mr7079914lbb.19.1365196612886;
+ Fri, 05 Apr 2013 14:16:52 -0700 (PDT)
+Received: by 10.112.145.5 with HTTP; Fri, 5 Apr 2013 14:16:52 -0700 (PDT)
+Date: Fri, 5 Apr 2013 16:16:52 -0500
+X-Google-Sender-Auth: 1yioTeLfEaQ46Leccv0ChNW2w0g
+Message-ID:
+ <CAKLVLx_t+9zWMhquMWDfStrxS7xrNoGmN0ZDsjSCUE=VxU+oyQ@mail.gmail.com>
+Subject: Fedora Unix socket file location problems
+From: David Wilkins <dwilkins@conecuh.com>
+To: mongrel-unicorn@rubyforge.org
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Folks,
+
+It seems that it's pretty common to use /tmp for the directory where
+you store the Unicorn unix: socket file.   I'm a Fedora user and our
+lovable systemd (by default) gives nginx a private /tmp directory (see
+"PrivateTmp=true" in system configuration file example below).
+That's the kind of thing that *could* take a while to figure out.
+
+Could you put a note somewhere near the listen docs warning Fedora /
+systemd users to locate the socket file somewhere else?  I know it's
+not your problem, but I'll bet that more than a few Fedora users are
+using TCP sockets instead of unix sockets with Unicorn because of
+this.
+
+Unicorn is awesome, btw.
+Thanks!
+dhw
+
+
+listen docs I referenced:
+http://unicorn.bogomips.org/Unicorn/Configurator.html#method-i-listen
+
+systemd configuration file from Fedora 17:
+https://gist.github.com/dwilkins/5322665
+~
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
