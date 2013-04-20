@@ -1,0 +1,141 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=0.5 required=5.0 tests=AWL,RDNS_NONE shortcircuit=no
+ autolearn=no version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (unknown [50.56.192.79]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 46D081F65E for <archivist@yhbt.net>; Sat, 20 Apr 2013
+ 02:36:12 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id A852B2E0FA; Sat, 20 Apr 2013 02:36:11 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 96D052E0EF for <mongrel-unicorn@rubyforge.org>; Sat,
+ 20 Apr 2013 02:32:29 +0000 (UTC)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id C47EB1F5CB; Sat, 20 Apr 2013 02:32:28 +0000 (UTC)
+Date: Sat, 20 Apr 2013 02:32:28 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Subject: Re: Worker Timeout Debugging
+Message-ID: <20130420023228.GA20826@dcvr.yhbt.net>
+References:
+ <CANkt2U8Lujt9NDRDKiZHhL4MNgSdEXmPGY0ZVZ2+dTR-Of-PtA@mail.gmail.com>
+ <20130420012611.GA17411@dcvr.yhbt.net>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To: <20130420012611.GA17411@dcvr.yhbt.net>
+User-Agent: Mutt/1.5.21 (2010-09-15)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Eric Wong <normalperson@yhbt.net> wrote:
+> If you're using Ruby 1.9 or later, maybe sending SIGBUS/SIGSEGV can work
+> to trigger a Ruby core dump.
+> 
+> Do not attempt to install SIGSEGV/BUS handler(s) via Ruby, Ruby 1.9
+> already handles those internally.  Ruby 2.0.0 prevents trapping SEGV/BUS
+> with Ruby-level Signal#trap handlers, even.
+
+Totally untested, but this may work (use "timeout seconds, :SIGSEGV"
+in your config file).
+
+diff --git a/lib/unicorn/configurator.rb b/lib/unicorn/configurator.rb
+index 0d0eac7..7599d63 100644
+--- a/lib/unicorn/configurator.rb
++++ b/lib/unicorn/configurator.rb
+@@ -32,6 +32,7 @@ class Unicorn::Configurator
+   # Default settings for Unicorn
+   DEFAULTS = {
+     :timeout => 60,
++    :timeout_sig => :SIGKILL,
+     :logger => Logger.new($stderr),
+     :worker_processes => 1,
+     :after_fork => lambda { |server, worker|
+@@ -179,6 +180,10 @@ def before_exec(*args, &block)
+   # low-complexity, low-overhead implementation, timeouts of less
+   # than 3.0 seconds can be considered inaccurate and unsafe.
+   #
++  # This timeout is only intended as the last line of defense.
++  # See http://unicorn.bogomips.org/Application_Timeouts.html for
++  # an explanation.
++  #
+   # For running Unicorn behind nginx, it is recommended to set
+   # "fail_timeout=0" for in your nginx configuration like this
+   # to have nginx always retry backends that may have had workers
+@@ -195,11 +200,30 @@ def before_exec(*args, &block)
+   #      server 192.168.0.8:8080 fail_timeout=0;
+   #      server 192.168.0.9:8080 fail_timeout=0;
+   #    }
+-  def timeout(seconds)
++  #
++  # Optionally, unicorn may be configured to (ab)use Ruby VM internals
++  # by sending :SIGSEGV or :SIGBUS to generate a backtrace with debugging
++  # information.  Users must not attempt to install :SIGSEGV or :SIGBUS
++  # handlers via Ruby (Ruby 2.0.0 and later explicitly prevents this).
++  # This feature is experimental, potentially confusing, and may not be
++  # as reliable as using the default signal (:SIGKILL)
++  def timeout(seconds, signal = :SIGKILL)
+     set_int(:timeout, seconds, 3)
+     # POSIX says 31 days is the smallest allowed maximum timeout for select()
+     max = 30 * 60 * 60 * 24
+     set[:timeout] = seconds > max ? max : seconds
++
++    # Allow users to (ab)use Ruby VM internal sig handlers for timeout
++    # handling.  MatzRuby 1.9 installs handlers for SIGBUS and SIGSEGV
++    # which continue to work when the VM is wedged.  Rubinius appears to
++    # have similar handling of SIGBUS/SIGSEGV
++    case signal
++    when :SIGSEGV, :SIGBUS, :SIGKILL
++      set[:timeout_sig] = signal
++    else
++      raise ArgumentError,
++        "timeout signal must be one of: :SIGSEGV, :SIGBUS, or :SIGKILL"
++    end
+   end
+ 
+   # sets the current number of worker_processes to +nr+.  Each worker
+diff --git a/lib/unicorn/http_server.rb b/lib/unicorn/http_server.rb
+index cc0a705..b245ec8 100644
+--- a/lib/unicorn/http_server.rb
++++ b/lib/unicorn/http_server.rb
+@@ -16,7 +16,8 @@ class Unicorn::HttpServer
+                 :before_fork, :after_fork, :before_exec,
+                 :listener_opts, :preload_app,
+                 :reexec_pid, :orig_app, :init_listeners,
+-                :master_pid, :config, :ready_pipe, :user
++                :master_pid, :config, :ready_pipe, :user,
++                :timeout_sig
+ 
+   attr_reader :pid, :logger
+   include Unicorn::SocketHelper
+@@ -470,7 +471,7 @@ def murder_lazy_workers
+       next_sleep = 0
+       logger.error "worker=#{worker.nr} PID:#{wpid} timeout " \
+                    "(#{diff}s > #{@timeout}s), killing"
+-      kill_worker(:KILL, wpid) # take no prisoners for timeout violations
++      kill_worker(@timeout_sig, wpid)
+     end
+     next_sleep <= 0 ? 1 : next_sleep
+   end
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
