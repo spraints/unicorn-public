@@ -1,0 +1,96 @@
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: **
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=2.3 required=5.0 tests=FORGED_YAHOO_RCVD,
+ FREEMAIL_FROM,MSGID_FROM_MTA_HEADER,RDNS_NONE,T_DKIM_INVALID shortcircuit=no
+ autolearn=no version=3.3.2
+Path: news.gmane.org!not-for-mail
+From: Bill Vieux <billv@yahoo.com>
+Newsgroups: gmane.comp.lang.ruby.unicorn.general
+Subject: Worker Timeout Debugging
+Date: Fri, 19 Apr 2013 17:52:41 -0700
+Message-ID:
+ <CANkt2U8Lujt9NDRDKiZHhL4MNgSdEXmPGY0ZVZ2+dTR-Of-PtA@mail.gmail.com>
+NNTP-Posting-Host: plane.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Trace: ger.gmane.org 1366419423 21434 80.91.229.3 (20 Apr 2013 00:57:03
+ GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Sat, 20 Apr 2013 00:57:03 +0000 (UTC)
+To: mongrel-unicorn <mongrel-unicorn@rubyforge.org>
+Original-X-From: mongrel-unicorn-bounces@rubyforge.org Sat Apr 20 02:57:07
+ 2013
+Return-path: <mongrel-unicorn-bounces@rubyforge.org>
+Envelope-to: gclrug-mongrel-unicorn@m.gmane.org
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=chezvieux.com;
+ s=google; h=x-received:mime-version:sender:from:date:x-google-sender-auth
+ :message-id:subject:to:content-type;
+ bh=xKR4iWzYQAU68RkZIAcJaiZOB0b1eAXlp+JRrnsAtbY=;
+ b=UmJxivMcRodJ7xycZmvihCXCacbtimS4UW8YTubWjFjlWq64R3CID0Gd9aJFER4Yr9
+ 6/vQsUXwQHNsjG8+WQeMzEW2CffV6xi2gP46BZbRX0NNzRcDb8HAkYhOGmFKExSlAQHl
+ 6zY6o6TNHEBylrnZWzJ33vta+rRNF8nBp2cGA=
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com;
+ s=20120113; h=x-received:mime-version:sender:from:date:x-google-sender-auth
+ :message-id:subject:to:content-type:x-gm-message-state;
+ bh=xKR4iWzYQAU68RkZIAcJaiZOB0b1eAXlp+JRrnsAtbY=;
+ b=O6WXHpKCaes34SEF5M3OdxLrm8EK2RvsunjGT6btyqxLCz+HUE9At0uPqGaywjxWNc
+ jkND7u4pKQFJsF0z9YboGl9oXmr84+mgLJubtqrzir53Y9QEvcqopaI6hKjNE9jLhG/r
+ LcdgP0CzrKHKl57bQchwIb7Hut+lZL29FRDjc14eBFffgmBjuchVcNpiRMe/YHU03I8H
+ kbY7nANtASydvF+zY9Jg47XkTc5S+BE1Uwxh6VdhfpMIAlt01cHgLbbrzlj0ACecqIaL
+ KkRjUuogb8YPlKIVosxirWh8IC3zQwccMobtIXnX8o9hcDVTFr9U78qqoPiBIiwADxeY YwzA==
+X-Received: by 10.224.184.204 with SMTP id cl12mr15717904qab.0.1366419181432;
+ Fri, 19 Apr 2013 17:53:01 -0700 (PDT)
+X-Google-Sender-Auth: _CAe8DIVyWVUMtoIEa-IZXAf2HY
+X-Gm-Message-State:
+ ALoCoQnNVdTpwY0aU17uBQ+wZQ/9y+ErdYFelWgBV4Esj4srr2XNpCtFyNkY1aY5xm6UVjK7ZI1s
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Original-Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+X-Broken-Reverse-DNS: no host name found for IP address 50.56.192.79
+Xref: news.gmane.org gmane.comp.lang.ruby.unicorn.general:1747
+Archived-At:
+ <http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/1747>
+Received: from [50.56.192.79] (helo=rubyforge.org) by plane.gmane.org with
+ esmtp (Exim 4.69) (envelope-from <mongrel-unicorn-bounces@rubyforge.org>) id
+ 1UTM70-0001ay-5T for gclrug-mongrel-unicorn@m.gmane.org; Sat, 20 Apr 2013
+ 02:57:06 +0200
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 3024A2E0FB; Sat, 20 Apr 2013 00:57:05 +0000 (UTC)
+Received: from mail-qc0-f169.google.com (mail-qc0-f169.google.com
+ [209.85.216.169]) by rubyforge.org (Postfix) with ESMTP id C1C732E0EF for
+ <mongrel-unicorn@rubyforge.org>; Sat, 20 Apr 2013 00:53:01 +0000 (UTC)
+Received: by mail-qc0-f169.google.com with SMTP id t2so1304060qcq.14 for
+ <mongrel-unicorn@rubyforge.org>; Fri, 19 Apr 2013 17:53:01 -0700 (PDT)
+Received: by 10.49.0.78 with HTTP; Fri, 19 Apr 2013 17:52:41 -0700 (PDT)
+
+I am getting occasional worker timeouts for a Rails app hosted on
+Heroku. I have rack-timeout set at the top of the middleware with a
+shorter timeout than unicorn workers, but it is not firing for some
+reason.
+
+Are there any recommended techniques to determine the call stack when
+the worker is reaped?
+
+The solutions that come to mind for me seem to require running a
+customized build of unicorn. For example: start a script (e.g., gdb to
+attach and core dump the worker) before (or in place of) sending the
+SIGKILL.
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
+
