@@ -1,0 +1,85 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=0.5 required=5.0 tests=AWL,RDNS_NONE shortcircuit=no
+ autolearn=no version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (unknown [50.56.192.79]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id A53001F65E for <archivist@yhbt.net>; Sat, 20 Apr 2013
+ 01:27:17 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 16C4D2E0EF; Sat, 20 Apr 2013 01:27:17 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 3386D2E0EF for <mongrel-unicorn@rubyforge.org>; Sat,
+ 20 Apr 2013 01:26:11 +0000 (UTC)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 3C4D21F5CB; Sat, 20 Apr 2013 01:26:11 +0000 (UTC)
+Date: Sat, 20 Apr 2013 01:26:11 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Subject: Re: Worker Timeout Debugging
+Message-ID: <20130420012611.GA17411@dcvr.yhbt.net>
+References:
+ <CANkt2U8Lujt9NDRDKiZHhL4MNgSdEXmPGY0ZVZ2+dTR-Of-PtA@mail.gmail.com>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To:
+ <CANkt2U8Lujt9NDRDKiZHhL4MNgSdEXmPGY0ZVZ2+dTR-Of-PtA@mail.gmail.com>
+User-Agent: Mutt/1.5.21 (2010-09-15)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Bill Vieux <billv@yahoo.com> wrote:
+> I am getting occasional worker timeouts for a Rails app hosted on
+> Heroku. I have rack-timeout set at the top of the middleware with a
+> shorter timeout than unicorn workers, but it is not firing for some
+> reason.
+
+Which version of Ruby is this and what C extensions are you using?
+This is probably a buggy C extension which blocks the VM.
+
+> Are there any recommended techniques to determine the call stack when
+> the worker is reaped?
+
+Not the call stack, but you can get the Rails endpoint regardless of
+Ruby version:
+
+  Ensure your Rails logger is configured to log the PID at the start
+  of every request.  (I think Rails logs parameters by default for
+  every request).
+
+  Match up the killed workers logging from unicorn to the PIDs that
+  started a request (but never logged a completion) in the Rails log.
+
+> The solutions that come to mind for me seem to require running a
+> customized build of unicorn. For example: start a script (e.g., gdb to
+> attach and core dump the worker) before (or in place of) sending the
+> SIGKILL.
+
+If you're using Ruby 1.9 or later, maybe sending SIGBUS/SIGSEGV can work
+to trigger a Ruby core dump.
+
+Do not attempt to install SIGSEGV/BUS handler(s) via Ruby, Ruby 1.9
+already handles those internally.  Ruby 2.0.0 prevents trapping SEGV/BUS
+with Ruby-level Signal#trap handlers, even.
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
