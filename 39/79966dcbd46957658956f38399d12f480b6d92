@@ -1,0 +1,93 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=0.5 required=5.0 tests=AWL,RDNS_NONE shortcircuit=no
+ autolearn=no version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (unknown [50.56.192.79]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 026E51F5B8 for <archivist@yhbt.net>; Thu, 25 Apr 2013
+ 18:10:07 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 08AC12E0EE; Thu, 25 Apr 2013 18:10:06 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id C198C2E068 for <mongrel-unicorn@rubyforge.org>; Thu,
+ 25 Apr 2013 18:09:55 +0000 (UTC)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id C426B1F5B5; Thu, 25 Apr 2013 18:09:53 +0000 (UTC)
+Date: Thu, 25 Apr 2013 18:09:51 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Subject: Re: Why doesn't SIGTERM quit gracefully?
+Message-ID: <20130425180951.GA13284@dcvr.yhbt.net>
+References:
+ <CADw67XCgavMoiiQ=8zp6DGm5D4jOH=W2LKQjjU7dSMeUehUgbA@mail.gmail.com>
+ <20130425085112.GA18419@dcvr.yhbt.net>
+ <CADw67XD3mkchvntEpO9pZJV3W1YKQfNvDeaQ90XBOOQxC642cQ@mail.gmail.com>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To:
+ <CADw67XD3mkchvntEpO9pZJV3W1YKQfNvDeaQ90XBOOQxC642cQ@mail.gmail.com>
+User-Agent: Mutt/1.5.21 (2010-09-15)
+Cc: Andreas Falk <mail@andreasfalk.se>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Andreas Falk <mail@andreasfalk.se> wrote:
+> On Thu, Apr 25, 2013 at 10:51 AM, Eric Wong <normalperson@yhbt.net> wrote:
+> > Andreas Falk <mail@andreasfalk.se> wrote:
+> >> I'm wondering why SIGINT and SIGTERM both were chosen for the quick
+> >> shutdown? I agree with SIGINT but not with SIGTERM. A lot of unix
+> >> tools send SIGTERM as default (kill, runit among some) and it seems to
+> >> be the standard way of telling a process to quit gracefully but not
+> >> among Ruby people (there are a few other ruby processes behaving the
+> >> same way). I just think it's weird that the default command will exit
+> >> without taking care of their current request.
+> >>
+> >> Also i'm not on the mailinglist so it would be great if you could cc
+> >> mail@andreasfalk.se
+> >
+> > I think it's weird, too.  But that's what nginx does, and I based most
+> > of the UI decisions on nginx (so it's easy to reuse nginx scripts
+> > with unicorn).
+> 
+> Is it something you'd be willing to change?
+
+If nginx developers are willing to change this, definitely.
+
+Otherwise, at this point, I'm not certain what the ramifications of a
+change would be to existing users.  Maybe an option would work, but too
+many options overwhelms people.
+
+With unicorn, I suppose having the following after_fork hook works:
+
+   # Note: after_fork hook is run before the :QUIT handler is installed,
+   # so we can't use the result of trap(:QUIT) at this point:
+   after_fork do |server,worker|
+     trap(:TERM) { Process.kill(:QUIT, $$) }
+   end
+
+If I had to do this all over again[1], graceful shutdown would be the
+_only_ option.
+
+[1] - I haven't released a new web server for 2013... yet :)
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
