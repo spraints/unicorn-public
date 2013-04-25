@@ -1,0 +1,108 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: *
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=1.3 required=5.0 tests=RDNS_NONE,T_DKIM_INVALID
+ shortcircuit=no autolearn=no version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (unknown [50.56.192.79]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id CFA8A1F487 for <archivist@yhbt.net>; Thu, 25 Apr 2013
+ 11:06:52 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id E83C72E0FB; Thu, 25 Apr 2013 11:06:51 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+X-Greylist: delayed 13856 seconds by postgrey-1.31 at rubyforge; Thu, 25 Apr
+ 2013 11:02:53 UTC
+Received: from mail-qe0-f50.google.com (mail-qe0-f50.google.com
+ [209.85.128.50]) by rubyforge.org (Postfix) with ESMTP id 1BE142E0C0 for
+ <mongrel-unicorn@rubyforge.org>; Thu, 25 Apr 2013 11:02:53 +0000 (UTC)
+Received: by mail-qe0-f50.google.com with SMTP id k5so403120qej.37 for
+ <mongrel-unicorn@rubyforge.org>; Thu, 25 Apr 2013 04:02:52 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com;
+ s=20120113; h=mime-version:x-received:sender:in-reply-to:references:date
+ :x-google-sender-auth:message-id:subject:from:to:cc:content-type;
+ bh=JfglySfE9qHygQle3zD+BEfXGVnIL4bb2rJePqIDlys=;
+ b=AZOCMYWzFmovHJEuK2PLAfzkubsouwdEIc+bgkXGUg9VPRZk9jNrFi28yu9BbBx6BI
+ S7wDLfHb7elVybv9cs9CxuZ1qIfFz7+CvoFE/z3DiVbplSBZklmUmKYYzpOm0h8jNpsu
+ vcARQxFP6cunFuM+OJFvQWiGbCuvX8t5HiDn5jwpztfC9/n2rzzPO+yFVHIdwexkUVGq
+ s/bhw92joxCLKbIpKs/wz5Wr2Fo+jED3fdWFzlRktAWAQZjcA0sF5KVekP17qlAM7lFf
+ H7mvENejUwIQz4Ee9NWk9HlHOqF/kCfq7Zcn9EFb/0jN3BrIB76HSTastm4gvK9sjV46 Q6AA==
+MIME-Version: 1.0
+X-Received: by 10.49.19.3 with SMTP id a3mr28005321qee.22.1366887772165; Thu,
+ 25 Apr 2013 04:02:52 -0700 (PDT)
+Received: by 10.49.39.168 with HTTP; Thu, 25 Apr 2013 04:02:52 -0700 (PDT)
+In-Reply-To: <20130425085112.GA18419@dcvr.yhbt.net>
+References:
+ <CADw67XCgavMoiiQ=8zp6DGm5D4jOH=W2LKQjjU7dSMeUehUgbA@mail.gmail.com>
+ <20130425085112.GA18419@dcvr.yhbt.net>
+Date: Thu, 25 Apr 2013 13:02:52 +0200
+X-Google-Sender-Auth: 9OrK7_f_3zTMOHcEEZ-4M06m4bE
+Message-ID:
+ <CADw67XD3mkchvntEpO9pZJV3W1YKQfNvDeaQ90XBOOQxC642cQ@mail.gmail.com>
+Subject: Re: Why doesn't SIGTERM quit gracefully?
+From: Andreas Falk <mail@andreasfalk.se>
+To: Eric Wong <normalperson@yhbt.net>
+Cc: unicorn list <mongrel-unicorn@rubyforge.org>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+On Thu, Apr 25, 2013 at 10:51 AM, Eric Wong <normalperson@yhbt.net> wrote:
+> Andreas Falk <mail@andreasfalk.se> wrote:
+>> I'm wondering why SIGINT and SIGTERM both were chosen for the quick
+>> shutdown? I agree with SIGINT but not with SIGTERM. A lot of unix
+>> tools send SIGTERM as default (kill, runit among some) and it seems to
+>> be the standard way of telling a process to quit gracefully but not
+>> among Ruby people (there are a few other ruby processes behaving the
+>> same way). I just think it's weird that the default command will exit
+>> without taking care of their current request.
+>>
+>> Also i'm not on the mailinglist so it would be great if you could cc
+>> mail@andreasfalk.se
+>
+> I think it's weird, too.  But that's what nginx does, and I based most
+> of the UI decisions on nginx (so it's easy to reuse nginx scripts
+> with unicorn).
+
+Is it something you'd be willing to change? The developers behind
+resque reasoned in a similar way in regards to nginx but changed it
+after a while. You can read more about it here
+<https://github.com/resque/resque/issues/368> and in the referenced
+issues.
+
+The change i'd like to see is to preferably have SIGTERM and SIGQUIT
+swap places but at least move SIGTERM to do the same thing as SIGQUIT
+do now (graceful exit).
+
+I may be wrong but i feel that the change shouldn't completely break
+anything (since it would still exit, just take a bit longer) and
+switching some signals around in the nginx scripts shouldn't be that
+much work? Also some people are probably using SIGINT already and
+wouldn't be affected. I think the benefit in the long run of being in
+line with the "standard" outweighs the hassle of converting a few
+scripts.
+
+Also perhaps with some luck the nginx developers will pick on the
+changes in other software and switch theirs around too!
+
+Thanks for a really great tool anyway!
+
+Andreas
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
