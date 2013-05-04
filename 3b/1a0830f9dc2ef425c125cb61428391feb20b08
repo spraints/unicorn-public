@@ -1,0 +1,74 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=0.5 required=5.0 tests=AWL,RDNS_NONE shortcircuit=no
+ autolearn=no version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (unknown [50.56.192.79]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 1733A1F523 for <archivist@yhbt.net>; Sat,  4 May 2013
+ 03:12:26 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id D5E972E0F4; Sat,  4 May 2013 03:12:23 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 2AB792E0F2 for <mongrel-unicorn@rubyforge.org>; Sat, 
+ 4 May 2013 03:04:47 +0000 (UTC)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 1EF0A1F4DD; Sat,  4 May 2013 03:04:47 +0000 (UTC)
+Date: Sat, 4 May 2013 03:04:46 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: mongrel-unicorn@rubyforge.org
+Subject: [PATCH] test_signals: increase delay between Process.kill
+Message-ID: <20130504030446.GA2450@dcvr.yhbt.net>
+MIME-Version: 1.0
+Content-Disposition: inline
+User-Agent: Mutt/1.5.21 (2010-09-15)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Otherwise, the signalled process may take too long to react to
+and process all the signals on machines with few CPUs.
+---
+ I seem to need this on my dual-core laptop running CONFIG_HZ=100
+ for the test to run reliably
+
+ pushed to master of git://bogomips.org/unicorn
+
+ test/unit/test_signals.rb | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/test/unit/test_signals.rb b/test/unit/test_signals.rb
+index 84d6a4b..f1d8bb3 100644
+--- a/test/unit/test_signals.rb
++++ b/test/unit/test_signals.rb
+@@ -174,7 +174,7 @@ def test_request_read
+     sock.syswrite("Content-Length: #{@bs * @count}\r\n\r\n")
+     1000.times { Process.kill(:HUP, pid) }
+     size_before = @tmp.stat.size
+-    killer = fork { loop { Process.kill(:HUP, pid); sleep(0.0001) } }
++    killer = fork { loop { Process.kill(:HUP, pid); sleep(0.01) } }
+     buf = ' ' * @bs
+     @count.times { sock.syswrite(buf) }
+     Process.kill(:KILL, killer)
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
