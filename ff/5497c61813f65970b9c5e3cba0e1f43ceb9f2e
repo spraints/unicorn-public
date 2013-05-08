@@ -1,0 +1,104 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=0.5 required=5.0 tests=AWL,RDNS_NONE shortcircuit=no
+ autolearn=no version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (unknown [50.56.192.79]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 37E1B1F6C0 for <archivist@yhbt.net>; Wed,  8 May 2013
+ 23:01:28 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 06A942E0FB; Wed,  8 May 2013 23:01:29 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 8FA072E0F3 for <mongrel-unicorn@rubyforge.org>; Wed, 
+ 8 May 2013 23:01:21 +0000 (UTC)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 10BA41F5CB; Wed,  8 May 2013 23:01:19 +0000 (UTC)
+Date: Wed, 8 May 2013 23:01:18 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: mongrel-unicorn@rubyforge.org
+Subject: [PATCH] HttpParser#next? becomes response_start_sent-aware
+Message-ID: <20130508230118.GA24576@dcvr.yhbt.net>
+MIME-Version: 1.0
+Content-Disposition: inline
+User-Agent: Mutt/1.5.21 (2010-09-15)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+This could allow servers with persistent connection support[1]
+to support our check_client_connection in the future.
+
+[1] - Rainbows!/zbatery, possibly others
+---
+ ext/unicorn_http/unicorn_http.rl |  6 ++----
+ test/unit/test_http_parser_ng.rb | 17 +++++++++++++++++
+ 2 files changed, 19 insertions(+), 4 deletions(-)
+
+diff --git a/ext/unicorn_http/unicorn_http.rl b/ext/unicorn_http/unicorn_http.rl
+index 1a8003f..3529740 100644
+--- a/ext/unicorn_http/unicorn_http.rl
++++ b/ext/unicorn_http/unicorn_http.rl
+@@ -732,10 +732,8 @@ static VALUE HttpParser_parse(VALUE self)
+   struct http_parser *hp = data_get(self);
+   VALUE data = hp->buf;
+ 
+-  if (HP_FL_TEST(hp, TO_CLEAR)) {
+-    http_parser_init(hp);
+-    rb_funcall(hp->env, id_clear, 0);
+-  }
++  if (HP_FL_TEST(hp, TO_CLEAR))
++    HttpParser_clear(self);
+ 
+   http_parser_execute(hp, RSTRING_PTR(data), RSTRING_LEN(data));
+   if (hp->offset > MAX_HEADER_LEN)
+diff --git a/test/unit/test_http_parser_ng.rb b/test/unit/test_http_parser_ng.rb
+index 93c44bb..ab335ac 100644
+--- a/test/unit/test_http_parser_ng.rb
++++ b/test/unit/test_http_parser_ng.rb
+@@ -12,6 +12,23 @@ def setup
+     @parser = HttpParser.new
+   end
+ 
++  def test_next_clear
++    r = "GET / HTTP/1.1\r\nHost: example.com\r\n\r\n"
++    @parser.buf << r
++    @parser.parse
++    @parser.response_start_sent = true
++    assert @parser.keepalive?
++    assert @parser.next?
++    assert @parser.response_start_sent
++
++    # persistent client makes another request:
++    @parser.buf << r
++    @parser.parse
++    assert @parser.keepalive?
++    assert @parser.next?
++    assert_equal false, @parser.response_start_sent
++  end
++
+   def test_keepalive_requests_default_constant
+     assert_kind_of Integer, HttpParser::KEEPALIVE_REQUESTS_DEFAULT
+     assert HttpParser::KEEPALIVE_REQUESTS_DEFAULT >= 0
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
