@@ -1,0 +1,146 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: *
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=1.4 required=5.0 tests=AWL,FROM_EXCESS_BASE64,
+ RDNS_NONE,UNPARSEABLE_RELAY shortcircuit=no autolearn=no version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (unknown [50.56.192.79]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 6F1FD1F5CB for <archivist@yhbt.net>; Wed,  8 May 2013
+ 18:39:30 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id E0BB62E0F4; Wed,  8 May 2013 18:39:30 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+X-Greylist: delayed 901 seconds by postgrey-1.31 at rubyforge; Wed, 08 May
+ 2013 18:35:13 UTC
+Received: from plane.gmane.org (plane.gmane.org [80.91.229.3]) by
+ rubyforge.org (Postfix) with ESMTP id A1AEA2E0BC for
+ <mongrel-unicorn@rubyforge.org>; Wed,  8 May 2013 18:35:13 +0000 (UTC)
+Received: from list by plane.gmane.org with local (Exim 4.69) (envelope-from
+ <gclrug-mongrel-unicorn@m.gmane.org>) id 1Ua8yA-0004aw-RU for
+ mongrel-unicorn@rubyforge.org; Wed, 08 May 2013 20:20:03 +0200
+Received: from ip23.ama.ab.ca ([ip23.ama.ab.ca]) by main.gmane.org with esmtp
+ (Gmexim 0.1 (Debian)) id 1AlnuQ-0007hv-00 for
+ <mongrel-unicorn@rubyforge.org>; Wed, 08 May 2013 20:20:02 +0200
+Received: from ryan by ip23.ama.ab.ca with local (Gmexim 0.1 (Debian)) id
+ 1AlnuQ-0007hv-00 for <mongrel-unicorn@rubyforge.org>; Wed, 08 May 2013
+ 20:20:02 +0200
+X-Injected-Via-Gmane: http://gmane.org/
+To: mongrel-unicorn@rubyforge.org
+From: Ryan Jones =?utf-8?b?KFJ5YW5vblJhaWxzKQ==?= <ryan@system88.com>
+Subject: Re: =?utf-8?b?VW5pY29ybl9yYWlscw==?= ignores USR2 signal
+Date: Wed, 8 May 2013 18:15:48 +0000 (UTC)
+Message-ID: <loom.20130508T201444-612@post.gmane.org>
+References:
+ <E8D9E7CCC2621343A0A3BB45E8DEDFA91C6738D58E@CRPMBOXPRD04.polycom.com>
+ <20120309222412.GA21753@dcvr.yhbt.net>
+ <E8D9E7CCC2621343A0A3BB45E8DEDFA91C6738D5B7@CRPMBOXPRD04.polycom.com>
+ <20120310000239.GA27195@dcvr.yhbt.net>
+ <E8D9E7CCC2621343A0A3BB45E8DEDFA91C6738D5F8@CRPMBOXPRD04.polycom.com>
+ <20120310013051.GA32091@dcvr.yhbt.net> <20120312212119.GA26451@dcvr.yhbt.net>
+ <E8D9E7CCC2621343A0A3BB45E8DEDFA91C682DD23D@CRPMBOXPRD04.polycom.com>
+ <20120312224419.GA2942@dcvr.yhbt.net> <20120320195748.GA1187@dcvr.yhbt.net>
+ <E8D9E7CCC2621343A0A3BB45E8DEDFA91C688BD14D@CRPMBOXPRD04.polycom.com>
+ <1060864B953E4C13B9B2C6E89B6C9BA7@gmail.com>
+Mime-Version: 1.0
+X-Complaints-To: usenet@ger.gmane.org
+X-Gmane-NNTP-Posting-Host: sea.gmane.org
+User-Agent: Loom/3.14 (http://gmane.org/)
+X-Loom-IP: 199.185.10.23 (Mozilla/5.0 (Macintosh; Intel Mac OS X 10_7_5)
+ AppleWebKit/537.31 (KHTML, like Gecko) Chrome/26.0.1410.65 Safari/537.31)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+We've run into the exact same problem. We spent a few good solid hours trying to
+fix the problem with no avail (but we do have a 'solution').
+
+Server specs:
+Ubuntu 12.04.2 LTS (GNU/Linux 3.5.0-27-generic x86_64)
+
+Rails & Ruby:
+Rails 4.0.0.beta1
+Ruby 2.0.0p0 (2013-02-24 revision 39474) [x86_64-linux]
+Unicorn 4.6.2 - preload_app true
+Capistrano
+
+The first thing we tried was removing all of the gems (foreman, sidekiq, etc.)
+and that didn't work. We tried preload_app false, and that worked (but this is
+not the situation we want). We also tried searching for any gems that were
+capturing USR2 (or any signals in general).
+
+We tried monkey patching Kernel & Trap to see if we could pinpoint the problem,
+but that didn't seem to turn up much. We then jumped in unicorn's http_server.rb
+and threw in some logging. The only thing that seemed to show us was that USR2
+was unable to get through to unicorn. Signals HUP, QUIT, etc. all worked fine
+(and made their way through as per norm).
+
+We then fired up strace with unicorn to see if we could 'see' the USR2 signal.
+It looks almost identical to Jeffery's strace. It looks like the USR2 signal is
+received by the process, but then dropped (or ignored). If we pass it a QUIT
+signal it works just fine and we can see that in the strace.
+
+So here's the chain of events that we think is occuring:
+
+1. We start unicorn (a unicorn blessing)
+2. before_fork is triggered (Signal trapping works here)
+3. A unicorn is born (Signal trapping does not work here)
+4. The after fork is triggered
+
+In our situation. Once a unicorn is born, it can no longer received a USR2 (for
+whatever reason). We never actually checked to see if the after fork received a
+USR2.
+
+After we managed to figure out the path of execution, we figured out a quick
+fix. We actually call reexec method directly on the unicorn server in the
+before_fork block in unicorn.rb. Here's our unicorn.rb
+https://gist.github.com/RyanonRails/5541902
+
+----- snip -----
+
+before_fork do |server, worker|
+  Signal.trap 'USR2' do
+    puts 'Since a black hole is lurking and eating USR2s we will hit
+http_server#reexec ourselves'
+    server.send(:reexec)
+  end
+end
+----- snip -----
+
+This way we can actually force the USR2 directly on the server (since USR2 is
+available inside of the before_fork).
+
+This seems to be working well for us now. We're still frustrated that we weren't
+able to find the cause of the problem, but we least we can move forward (with
+minor disruption to the code/code base).
+
+Lastly, here are our current theories as to why this could be occuring:
+1. When unicorn is building it's native extensions something weird is happening
+in regards to the USR2 signal
+2. A gem is somehow gobbling up the signal (we were quite thorough, but we
+might've missed something)
+
+Hopefully this helps!
+
+Thanks,
+Ryan & Mike
+
+
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
