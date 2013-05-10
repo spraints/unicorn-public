@@ -1,0 +1,86 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: *
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=1.3 required=5.0 tests=RDNS_NONE shortcircuit=no
+ autolearn=no version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (unknown [50.56.192.79]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 057E21F6BD for <archivist@yhbt.net>; Fri, 10 May 2013
+ 14:56:48 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 5043A2E0F3; Fri, 10 May 2013 14:56:48 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+X-Greylist: delayed 1830 seconds by postgrey-1.31 at rubyforge; Fri, 10 May
+ 2013 14:50:27 UTC
+Received: from mail-oa0-f50.google.com (mail-oa0-f50.google.com
+ [209.85.219.50]) by rubyforge.org (Postfix) with ESMTP id 044662E0EF for
+ <mongrel-unicorn@rubyforge.org>; Fri, 10 May 2013 14:50:26 +0000 (UTC)
+Received: by mail-oa0-f50.google.com with SMTP id l20so1986639oag.23 for
+ <mongrel-unicorn@rubyforge.org>; Fri, 10 May 2013 07:50:26 -0700 (PDT)
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com;
+ s=20120113;
+ h=x-received:references:from:mime-version:in-reply-to:date:message-id
+ :subject:to:content-type:content-transfer-encoding :x-gm-message-state;
+ bh=NkoqmV+/+MgUDzje2iLK2AAxtqQAC+CW7XuIOpOYWik=;
+ b=QvjiiIPNRjQ+YFa3jjTC00DIE5wSxuqwUoTAMA/YTlQJTXCRxvFWyKItNS5Hlb2HOp
+ +3hB5aXQN9vrjfxy9d93ka2NCKrG724IelVHEVFZlWuPugIA4c0YASul0cR39xdKCDlp
+ gTK2Sc/QL5gLf5fY0291uzl0RmQbtPeKcTorZz26S6zoXfc3sJB8XRV275MGCNk2NW2s
+ TmyyfFhUL7DuES55y2kdZmCzqtkQGuIVCTtLvWI6fjH1owv1BW9NyflLuW3wjEx9kxBr
+ K0CfHY9jhqR0Y+joyUKb7l9YtLK1HtnYeGkf5auALC8aJ+oJOmBw1ESAjiY+fuRjOAYl pnfA==
+X-Received: by 10.182.113.169 with SMTP id iz9mr6917139obb.40.1368195593012;
+ Fri, 10 May 2013 07:19:53 -0700 (PDT)
+References: <4E003B04-4EFC-4656-A9DD-C073428711DF@gmail.com>
+From: Daniel Condomitti <daniel@condomitti.com>
+Mime-Version: 1.0 (1.0)
+In-Reply-To: <4E003B04-4EFC-4656-A9DD-C073428711DF@gmail.com>
+Date: Fri, 10 May 2013 07:19:52 -0700
+Message-ID: <-3699625031863586184@unknownmsgid>
+Subject: Re: Unicorn behaving irrationally in production after a day
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+X-Gm-Message-State:
+ ALoCoQl5riyxzn8sOdeq2g/i9nfpzjJ5sShW1nHPzEq9BTqUyovNKxw/rX4WF9KS+c0ew940qdCQ
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Are you disconnecting from/reconnecting to your database and any cache
+stores in the before and after_fork hooks? Sharing the socket across
+workers can potentially cause issues like this.
+
+On May 10, 2013, at 6:00 AM, Bogdan Dumitru <dumbogdan@gmail.com> wrote:
+
+> Hey guys,
+>
+> I'm new to Unicorn and have been running into a weird issue. I'm currently running a EC2 cluster with each machine having nginx with 4 unicorn workers. I'm deploying using rubber (https://github.com/rubber/rubber), and the unicorn.rb config is basically the GitHub unicorn config (as detailed here: https://github.com/blog/517-unicorn).
+> Everything works fine when I deploy, but after half a day - 1 day the server behaves irrationally. The server is an api server for a mobile application so I can easily see some variables that, on request, have a certain value, but if I do some checking with the rails console (on the production machine) I get  a different value (the correct one). This seams to me like a weird object caching situation. It all gets solved if I restart unicorn.
+> I'm not sure what config information you guys might be interested in so I won't bloat this mail with anything but let me know if there's any questions I can answer.
+>
+> I hope somebody can point me in the right direction because I can't really make heads or tails of it.
+> Cheers,
+> -b
+>
+> PS: I've read about something similar happening when using memcached for object caching, in a previous version, but that isn't the case here.
+>
+> _______________________________________________
+> Unicorn mailing list - mongrel-unicorn@rubyforge.org
+> http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+> Do not quote signatures (like this one) or top post when replying
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
