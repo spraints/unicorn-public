@@ -1,0 +1,97 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=0.6 required=5.0 tests=AWL,RDNS_NONE,T_DKIM_INVALID
+ shortcircuit=no autolearn=no version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (unknown [50.56.192.79]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id C79431F4DD for <archivist@yhbt.net>; Wed, 15 May 2013
+ 10:41:38 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 195FB2E11C; Wed, 15 May 2013 10:41:39 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+X-Greylist: delayed 322 seconds by postgrey-1.31 at rubyforge; Wed, 15 May
+ 2013 10:41:35 UTC
+Received: from mail-ea0-f172.google.com (mail-ea0-f172.google.com
+ [209.85.215.172]) by rubyforge.org (Postfix) with ESMTP id 969A62E0F0 for
+ <mongrel-unicorn@rubyforge.org>; Wed, 15 May 2013 10:41:35 +0000 (UTC)
+Received: by mail-ea0-f172.google.com with SMTP id d10so973524eaj.31 for
+ <mongrel-unicorn@rubyforge.org>; Wed, 15 May 2013 03:41:34 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=godfat.org; s=google;
+ h=x-received:mime-version:in-reply-to:references:from:date:message-id
+ :subject:to:content-type; bh=DsuQaeJUAO32HziyxOSnmPF//qxp74GdShlKfCw04kI=;
+ b=elKELvYGSH3Uex+jwJshFxiAW4U7xgYGlhbC3g1l0JKQmBPRAbzTSjTXCbUu1LLVkv
+ zTlaQbVxdIm6AE17Iy04AH/yH50aVSFRpvMdhI0mPIgu1JqM4tIM/H2/X9DIdOTFsLjc
+ HL+++1CqHhzrdCiRh2e6UjSExvTBx7U++IlA0=
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com;
+ s=20120113;
+ h=x-received:mime-version:in-reply-to:references:from:date:message-id
+ :subject:to:content-type:x-gm-message-state;
+ bh=DsuQaeJUAO32HziyxOSnmPF//qxp74GdShlKfCw04kI=;
+ b=Z0yXvbZHFKHl2AH2YnfueBf0noxrRRjSooyHYEDVhPX0m5T+HxbdqbbLJXhkUmMgbH
+ T1yK8mThl+0SK7aO7XE9/jk2AYW2KTw4nwfeZvNFtNW4wa7ag5XXZ5ru1s+9jTY4fVZG
+ kLgJ3wSV0FVequD616Aox3ulXUYj3Kx0JX6w3hQA5bAoQIGICnifvW1dWN1STIgECysG
+ nUbFL4p1sYjQqUAdgj9eZTBaGzFaY1zaafnH8A/LHTJmnBfgEEeWgmQ5WTUBcwVq5bBV
+ 2+JT8LKAbdL+GBlpUEiNQUPpd6SOiSy1Ksb5XeW68ISGhDjOFOhLWe0R7W5hBh4BHTAQ XAEA==
+X-Received: by 10.14.220.71 with SMTP id n47mr23839714eep.33.1368614169283;
+ Wed, 15 May 2013 03:36:09 -0700 (PDT)
+MIME-Version: 1.0
+Received: by 10.223.180.69 with HTTP; Wed, 15 May 2013 03:35:39 -0700 (PDT)
+In-Reply-To:
+ <1368613372.26644.140661231300221.3FFB74D3@webmail.messagingengine.com>
+References:
+ <1368607945.12600.140661231269513.4DB9F5BA@webmail.messagingengine.com>
+ <20130515092819.GA16609@dcvr.yhbt.net>
+ <1368610686.19662.140661231285681.094A1C89@webmail.messagingengine.com>
+ <20130515095714.GA22149@dcvr.yhbt.net>
+ <1368613372.26644.140661231300221.3FFB74D3@webmail.messagingengine.com>
+From: "Lin Jen-Shin (godfat)" <godfat@godfat.org>
+Date: Wed, 15 May 2013 18:35:39 +0800
+Message-ID:
+ <CAA2_N1sgUHuyvVfEuNw103ZDEKDMnFORqn9wOvOMyT3GXV22Lw@mail.gmail.com>
+Subject: Re: Growing memory use of master process
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+X-Gm-Message-State:
+ ALoCoQkynp8ZsDinl1LTtZOcs3bznUdmE7VbGKqtEEW9oqB0Dpr1R1Sk2Ne3q3BgUc/I91GLjdsO
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+On Wed, May 15, 2013 at 6:22 PM, Andrew Stewart
+<boss@airbladesoftware.com> wrote:
+> I wonder whether New Relic could be doing this.  I don't really know how
+> New Relic works but the language in its configuration file suggests it
+> polls each app process in the background.
+>
+> It would be interesting to hear what other New Relic users observe
+> happening to their master process's memory footprint.
+
+We're running on Heroku and also using NewRelic. According to my
+observation, the master process is quite stable, staying roughly the
+same memory footprint within 24 hours. (Heroku auto-restarts each
+process each day, so I don't know what would happen after 24 hours)
+
+We're using preload_app=true as well.
+
+As far as I know, NewRelic's agent is running in each worker processes,
+but does nothing in master process. (only a wild guess, I didn't read
+the code there)
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
