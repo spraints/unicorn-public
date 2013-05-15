@@ -1,0 +1,90 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: *
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=1.3 required=5.0 tests=RDNS_NONE,T_DKIM_INVALID
+ shortcircuit=no autolearn=no version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (unknown [50.56.192.79]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id B78DC1F4DD for <archivist@yhbt.net>; Wed, 15 May 2013
+ 09:38:14 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id D8E192E11C; Wed, 15 May 2013 09:38:14 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from out1-smtp.messagingengine.com (out1-smtp.messagingengine.com
+ [66.111.4.25]) by rubyforge.org (Postfix) with ESMTP id D0C7D2E0F0 for
+ <mongrel-unicorn@rubyforge.org>; Wed, 15 May 2013 09:38:07 +0000 (UTC)
+Received: from compute6.internal (compute6.nyi.mail.srv.osa [10.202.2.46]) by
+ gateway1.nyi.mail.srv.osa (Postfix) with ESMTP id EB49820BD0 for
+ <mongrel-unicorn@rubyforge.org>; Wed, 15 May 2013 05:38:06 -0400 (EDT)
+Received: from web6.nyi.mail.srv.osa ([10.202.2.216]) by compute6.internal
+ (MEProxy); Wed, 15 May 2013 05:38:06 -0400
+DKIM-Signature: v=1; a=rsa-sha1; c=relaxed/relaxed; d= airbladesoftware.com;
+ h=message-id:from:to:mime-version
+ :content-transfer-encoding:content-type:subject:date:in-reply-to :references;
+ s=mesmtp; bh=8PnfLtM0EaOgYf/+Wv/hAbXP9Cw=; b=I4sGQv
+ mXgO43cXR0tSPgEKU55fS82qFc7Q1/AkuxyXVOVH6M4i1ce6V8t2PZVtb4Da4Q2Z
+ BhJb477iU/8KSoJD+Zh9qLaA9V99S62cbCgF9Ktnex/ogJnl+iodAsb57Ubr1h5K
+ TN7dXLrLwBqlj4tkW3AE40xMpz5+1Jh6KZ5Wo=
+DKIM-Signature: v=1; a=rsa-sha1; c=relaxed/relaxed; d= messagingengine.com;
+ h=message-id:from:to:mime-version
+ :content-transfer-encoding:content-type:subject:date:in-reply-to :references;
+ s=smtpout; bh=8PnfLtM0EaOgYf/+Wv/hAbXP9Cw=; b=kYqda
+ VaJg7TZHaXlTds6taLDT10x/IhBp2XRFZFjsWm9Fy4X3W9CFrD9xUEwTuhmZngrC
+ lBT9Vq3hyb8PvYNCuX5WvORvApacDd27wG4URt8t9kacHeh9LMMIsmp/q9Av8sTd
+ Yl364OonN93gIiIJLkVEpHnkxYkbTAErWy0ey4=
+Received: by web6.nyi.mail.srv.osa (Postfix, from userid 99) id CA2DB4009E;
+ Wed, 15 May 2013 05:38:06 -0400 (EDT)
+Message-Id:
+ <1368610686.19662.140661231285681.094A1C89@webmail.messagingengine.com>
+X-Sasl-Enc: 5eFMi8AIPEdR+t4arjTAUSD0KUz5cpZPvW1LhLFfVATE 1368610686
+From: Andrew Stewart <boss@airbladesoftware.com>
+To: mongrel-unicorn@rubyforge.org
+MIME-Version: 1.0
+X-Mailer: MessagingEngine.com Webmail Interface - ajax-a83df6b4
+Subject: Re: Growing memory use of master process
+Date: Wed, 15 May 2013 11:38:06 +0200
+In-Reply-To: <20130515092819.GA16609@dcvr.yhbt.net>
+References:
+ <1368607945.12600.140661231269513.4DB9F5BA@webmail.messagingengine.com>
+ <20130515092819.GA16609@dcvr.yhbt.net>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+On Wed, May 15, 2013, at 11:28 AM, Eric Wong wrote:
+> Correct, the master should not grow.  If you're using "preload_app true",
+> can you reproduce the growth without it?
+
+I am using "preload_app true".  I'll experiment without it and see what
+happens.
+
+> If you're using preload_app, I suspect it's some background thread
+> or hook causing it.  Otherwise, can you reproduce this with a barebones
+> application?
+
+Do you mean something like Delayed Job via rake via Upstart?  Or would
+using the Rails (3.0) console affect the master process somehow?
+
+I'll try a barebones application and see if I can reproduce this.
+
+Yours,
+Andy Stewart
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
