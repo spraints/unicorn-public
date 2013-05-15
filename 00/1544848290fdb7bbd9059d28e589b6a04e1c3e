@@ -1,0 +1,103 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=0.8 required=5.0 tests=AWL,FREEMAIL_FROM,RDNS_NONE,
+ T_DKIM_INVALID shortcircuit=no autolearn=no version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (unknown [50.56.192.79]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 51DBB1F4DD for <archivist@yhbt.net>; Wed, 15 May 2013
+ 10:40:33 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 5C7032E11D; Wed, 15 May 2013 10:40:33 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+X-Greylist: delayed 1214 seconds by postgrey-1.31 at rubyforge; Wed, 15 May
+ 2013 10:40:29 UTC
+Received: from mail-wg0-f50.google.com (mail-wg0-f50.google.com
+ [74.125.82.50]) by rubyforge.org (Postfix) with ESMTP id C18992E0F0 for
+ <mongrel-unicorn@rubyforge.org>; Wed, 15 May 2013 10:40:29 +0000 (UTC)
+Received: by mail-wg0-f50.google.com with SMTP id m15so1388131wgh.17 for
+ <mongrel-unicorn@rubyforge.org>; Wed, 15 May 2013 03:40:28 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com;
+ s=20120113; h=mime-version:x-received:in-reply-to:references:date:message-id
+ :subject:from:to:content-type;
+ bh=KJMOsL3Py8n+U1S6yJJjws+yegivvmVB+1ozfJd+NqM=;
+ b=PTK+1ZM1W8foJ0wAV97GiMICVFgnHm7trla+1JiYVIO42QsHL5yrIDAARWzJ2W1N0H
+ W85DW0FFkSjlM5IDqtD9DL48Ui2BBh9SpwZs+/hHLthqo7j2GI6uGJRdglmrtPa9tXND
+ +iLE5SIWe/zzwiZdOe40v0kff4z8plz1AhrpnO+PdEwLHmY5vI3lEP7QSdIuS5haCOts
+ sfKdIyGDpQR6GVyAUubk1irrL1+qq42d6ZOSYGAb+s9eqFqajL/YAk0uPv2ZM6JS2Y34
+ 6FxDz93SYRjiSmx4S5Z8KvYqi1Q3qozg0Twg0DuUhvOhVfN3at32kE0wP4HMR/hW2qSu 6uNw==
+MIME-Version: 1.0
+X-Received: by 10.180.9.238 with SMTP id d14mr13395894wib.18.1368612852749;
+ Wed, 15 May 2013 03:14:12 -0700 (PDT)
+Received: by 10.194.55.6 with HTTP; Wed, 15 May 2013 03:14:12 -0700 (PDT)
+In-Reply-To: <20130515095714.GA22149@dcvr.yhbt.net>
+References:
+ <1368607945.12600.140661231269513.4DB9F5BA@webmail.messagingengine.com>
+ <20130515092819.GA16609@dcvr.yhbt.net>
+ <1368610686.19662.140661231285681.094A1C89@webmail.messagingengine.com>
+ <20130515095714.GA22149@dcvr.yhbt.net>
+Date: Wed, 15 May 2013 11:14:12 +0100
+Message-ID:
+ <CAHBuKRgFVOZJkjutXKUN4dmZuC2kQ=LGkRgGDA+==QJRwye1EQ@mail.gmail.com>
+Subject: Re: Growing memory use of master process
+From: Tatsuya Ono <ononoma@gmail.com>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+> Do you mean something like Delayed Job via rake via Upstart?  Or would
+using the Rails (3.0) console affect the master process somehow?
+
+I don't think so. Delayed job and rails console are independent
+processes. They won't affect unicorn master process.
+
+There are some gem libraries that work in thread. For example,
+NewRelic and AirBrake use thread to report errors and metrics without
+blocking your application. Probably you want to look at libraries like
+them.
+
+
+Tatsuya
+
+
+On 15 May 2013 10:57, Eric Wong <normalperson@yhbt.net> wrote:
+>
+> Andrew Stewart <boss@airbladesoftware.com> wrote:
+> > On Wed, May 15, 2013, at 11:28 AM, Eric Wong wrote:
+> > > If you're using preload_app, I suspect it's some background thread
+> > > or hook causing it.  Otherwise, can you reproduce this with a barebones
+> > > application?
+> >
+> > Do you mean something like Delayed Job via rake via Upstart?  Or would
+> > using the Rails (3.0) console affect the master process somehow?
+>
+> Do any of those connect to the master?  Hopefully somebody else here
+> knows more about Delayed Job and Rails more than I do.
+>
+> Also, if you have something constantly sending signals to the master in
+> a loop, unicorn (and maybe Ruby itself) may have trouble from queueing
+> signals up.
+> _______________________________________________
+> Unicorn mailing list - mongrel-unicorn@rubyforge.org
+> http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+> Do not quote signatures (like this one) or top post when replying
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
