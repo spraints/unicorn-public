@@ -1,0 +1,93 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: *
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=1.3 required=5.0 tests=RDNS_NONE,T_DKIM_INVALID
+ shortcircuit=no autolearn=no version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (unknown [50.56.192.79]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 915971F4DD for <archivist@yhbt.net>; Wed, 15 May 2013
+ 10:23:01 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 947182E11C; Wed, 15 May 2013 10:23:01 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from out1-smtp.messagingengine.com (out1-smtp.messagingengine.com
+ [66.111.4.25]) by rubyforge.org (Postfix) with ESMTP id 10A0D2E0F0 for
+ <mongrel-unicorn@rubyforge.org>; Wed, 15 May 2013 10:22:53 +0000 (UTC)
+Received: from compute6.internal (compute6.nyi.mail.srv.osa [10.202.2.46]) by
+ gateway1.nyi.mail.srv.osa (Postfix) with ESMTP id 1C4C720945 for
+ <mongrel-unicorn@rubyforge.org>; Wed, 15 May 2013 06:22:53 -0400 (EDT)
+Received: from web6.nyi.mail.srv.osa ([10.202.2.216]) by compute6.internal
+ (MEProxy); Wed, 15 May 2013 06:22:53 -0400
+DKIM-Signature: v=1; a=rsa-sha1; c=relaxed/relaxed; d= airbladesoftware.com;
+ h=message-id:from:to:mime-version
+ :content-transfer-encoding:content-type:subject:date:in-reply-to :references;
+ s=mesmtp; bh=d+P1F8/+eheOARsoyQXKXeoL5Qw=; b=oR4Arz
+ OYbt5tiyKOfPD0hWPockwAOLSblLK28wVcTQr7Ysy4bW4J0FNVrvXDhMuBQsZG8D
+ sPEb5WMWQzqA7MFnpqFYGR0OxdKU1XnMmPasTkjfTH4lQHaxDyD+uDz1LeX2r5zD
+ aMAUVOjHx3WZfuxTZdiIwtYZvWd/2nLOxTrBw=
+DKIM-Signature: v=1; a=rsa-sha1; c=relaxed/relaxed; d= messagingengine.com;
+ h=message-id:from:to:mime-version
+ :content-transfer-encoding:content-type:subject:date:in-reply-to :references;
+ s=smtpout; bh=d+P1F8/+eheOARsoyQXKXeoL5Qw=; b=fDzgs
+ NvmnEDylV27aNoM9NIKvhg0KwR8l+L2Qu0vkw3PzcA4G+zs+HK7KEl8Mk5FnmwNQ
+ ZKsuqDNtT7TjJNYW/KE17PmVmVbNt+JYvZTTYOD7PHdFxQjsbEhBUjRZ7XT1S3YK
+ wh0JTMaaMHXApHqgGqJrFCl5QtIEnFaoqCIr3k=
+Received: by web6.nyi.mail.srv.osa (Postfix, from userid 99) id EF72F4009E;
+ Wed, 15 May 2013 06:22:52 -0400 (EDT)
+Message-Id:
+ <1368613372.26644.140661231300221.3FFB74D3@webmail.messagingengine.com>
+X-Sasl-Enc: JnPYCeqR0lftu39pUOG4CsUtGPqCWwCNEjvvDICL6jUI 1368613372
+From: Andrew Stewart <boss@airbladesoftware.com>
+To: mongrel-unicorn@rubyforge.org
+MIME-Version: 1.0
+X-Mailer: MessagingEngine.com Webmail Interface - ajax-a83df6b4
+Subject: Re: Growing memory use of master process
+Date: Wed, 15 May 2013 12:22:52 +0200
+In-Reply-To: <20130515095714.GA22149@dcvr.yhbt.net>
+References:
+ <1368607945.12600.140661231269513.4DB9F5BA@webmail.messagingengine.com>
+ <20130515092819.GA16609@dcvr.yhbt.net>
+ <1368610686.19662.140661231285681.094A1C89@webmail.messagingengine.com>
+ <20130515095714.GA22149@dcvr.yhbt.net>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+On Wed, May 15, 2013, at 11:57 AM, Eric Wong wrote:
+> Andrew Stewart <boss@airbladesoftware.com> wrote:
+> > On Wed, May 15, 2013, at 11:28 AM, Eric Wong wrote:
+> > > If you're using preload_app, I suspect it's some background thread
+> > > or hook causing it.  Otherwise, can you reproduce this with a barebones
+> > > application?
+
+I wonder whether New Relic could be doing this.  I don't really know how
+New Relic works but the language in its configuration file suggests it
+polls each app process in the background.
+
+It would be interesting to hear what other New Relic users observe
+happening to their master process's memory footprint.
+
+> Also, if you have something constantly sending signals to the master in
+> a loop, unicorn (and maybe Ruby itself) may have trouble from queueing
+> signals up.
+
+I'm not aware of anything signalling the master in a loop.
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
