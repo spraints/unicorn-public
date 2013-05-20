@@ -1,0 +1,172 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: *
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=1.3 required=5.0 tests=RDNS_NONE shortcircuit=no
+ autolearn=no version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (unknown [50.56.192.79]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 51A731F6C0 for <archivist@yhbt.net>; Mon, 20 May 2013
+ 16:50:17 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id AC3B02E146; Mon, 20 May 2013 16:50:16 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from plane.gmane.org (plane.gmane.org [80.91.229.3]) by
+ rubyforge.org (Postfix) with ESMTP id 75E8B2E144 for
+ <mongrel-unicorn@rubyforge.org>; Mon, 20 May 2013 16:50:10 +0000 (UTC)
+Received: from list by plane.gmane.org with local (Exim 4.69) (envelope-from
+ <gclrug-mongrel-unicorn@m.gmane.org>) id 1UeTHf-0002dz-Io for
+ mongrel-unicorn@rubyforge.org; Mon, 20 May 2013 18:50:03 +0200
+Received: from c-68-33-117-52.hsd1.va.comcast.net ([68.33.117.52]) by
+ main.gmane.org with esmtp (Gmexim 0.1 (Debian)) id 1AlnuQ-0007hv-00 for
+ <mongrel-unicorn@rubyforge.org>; Mon, 20 May 2013 18:50:03 +0200
+Received: from graham by c-68-33-117-52.hsd1.va.comcast.net with local
+ (Gmexim 0.1 (Debian)) id 1AlnuQ-0007hv-00 for
+ <mongrel-unicorn@rubyforge.org>; Mon, 20 May 2013 18:50:03 +0200
+X-Injected-Via-Gmane: http://gmane.org/
+To: mongrel-unicorn@rubyforge.org
+From: Graham Christensen <graham@grahamc.com>
+Subject: Unicorn + RUnit Rails Not Killing Old Master
+Date: Mon, 20 May 2013 12:46:08 -0400
+Message-ID: <kndk0a$she$1@ger.gmane.org>
+Mime-Version: 1.0
+X-Complaints-To: usenet@ger.gmane.org
+X-Gmane-NNTP-Posting-Host: c-68-33-117-52.hsd1.va.comcast.net
+User-Agent: Unison/2.1.10
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset="us-ascii"; Format="flowed"
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Hi,
+
+I'm deploying Unicorn on a Rails application with RUnit. Technically 
+I'm using Chef's deployment tools, if any of you are familiar with it 
+(https://github.com/opscode-cookbooks/application_ruby) but to be clear 
+they aren't doing anything magical, so this is purely an issue with 
+RUnit and Unicorn.
+
+The TL;DR of the following post, which has lots of pastes (linking to 
+pastebins for easier reading:) when I run /etc/init.d/myzippykid 
+restart, the old unicorn master fails to die, causing the new master to 
+be stuck in a loop waiting to own port 8080. The new master never takes 
+over, as the old master never dies. When I manually kill the master, 
+the new one takes over just fine.
+
+What am I missing in my restart process to make the old master exit?
+
+--
+
+More details:
+
+When I deploy a new version of software, the unicorn master fails to 
+restart. Here is an example of my ps auxfg output after I run 
+`/etc/init.d/myzippykid restart` (which is symlinked to /usr/bin/sv): 
+https://gist.github.com/grahamc/35715c1a2c9717e461e3
+
+When I run `killall unicorn`, the ruby script under runsvdir gets 
+replaced with the unicorn worker. This is because the ruby script is 
+attempting to bind to port 8080, which is already taken up by the 
+unicorn master process. As soon as the old master is out of the way, 
+its capable of binding.
+
+Here is my unicorn configuration at /etc/unicorn/myzippykid.rb: 
+https://gist.github.com/grahamc/08aaed97c9b39cf68f01
+
+Here is my /etc/sv/myzippykid/run script which is how runit runs my 
+unicorn daemon:  https://gist.github.com/grahamc/7ca7e3942d19f60d339a
+
+my bundle_wrapper.sh simply inits the environment with the proper ruby 
+and path: https://gist.github.com/grahamc/9760001e0e20c915d9e9
+
+
+--
+
+The contents of all my pastes for those of you without internet at time 
+of reading:
+
+https://gist.github.com/grahamc/35715c1a2c9717e461e3:
+
+runsvdir -P /etc/service log: 
+............................................................................................................................................. 
+
+ \_ runsv myzippykid
+     \_ svlogd -tt ./main
+     \_ /bin/bash /opt/myzippykid/bundle_wrapper.sh exec unicorn -E 
+staging -c /etc/unicorn/myzippykid.rb
+         \_ ruby 
+/opt/myzippykid/deployment/releases/6328251212178494a6c82b11ec518dc4d1962f9c/vendor/bundle/ruby/2.0.0/bin/unicorn 
+-E staging -c /etc/unicorn/myzippykid.rb
+unicorn master -E staging -c /etc/unicorn/myzippykid.rb
+ \_ unicorn worker[0] -E staging -c /etc/unicorn/myzippykid.rb
+
+
+
+
+https://gist.github.com/grahamc/08aaed97c9b39cf68f01:
+
+# What ports/sockets to listen on, and what options for them.
+listen "8080", :tcp_nodelay => true, :backlog => 100
+
+working_directory '/opt/myzippykid/deployment/current'
+
+# What the timeout for killing busy workers is, in seconds
+timeout 60
+
+# Whether the app should be pre-loaded
+preload_app false
+
+# How many worker processes
+worker_processes 1
+
+
+
+# What to do before we fork a worker
+before_fork do |server, worker|
+  sleep 1
+end
+
+https://gist.github.com/grahamc/7ca7e3942d19f60d339a:
+
+#!/bin/bash
+
+cd /opt/myzippykid/deployment/current
+
+exec 2>&1
+exec /usr/bin/chpst \
+  -u myzippykid:myzippykid \
+  /opt/myzippykid/bundle_wrapper.sh exec \
+  unicorn \
+  -E staging \
+  -c /etc/unicorn/myzippykid.rb
+
+https://gist.github.com/grahamc/9760001e0e20c915d9e9:
+
+#!/bin/bash
+
+source /etc/profile.d/rbenv.sh
+
+bundle $@
+
+
+Thank you for your help,
+-- Graham Christensen
+
+
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
