@@ -1,0 +1,76 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=0.5 required=5.0 tests=AWL,RDNS_NONE shortcircuit=no
+ autolearn=no version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (unknown [50.56.192.79]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id E2A811F6C0 for <archivist@yhbt.net>; Mon, 20 May 2013
+ 17:28:58 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 8A58B2E146; Mon, 20 May 2013 17:28:59 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id BDBBA2E144 for <mongrel-unicorn@rubyforge.org>; Mon,
+ 20 May 2013 17:28:53 +0000 (UTC)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id F3F271F42C; Mon, 20 May 2013 17:28:51 +0000 (UTC)
+Date: Mon, 20 May 2013 17:28:51 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: mongrel-unicorn@rubyforge.org
+Subject: Re: Unicorn + RUnit Rails Not Killing Old Master
+Message-ID: <20130520172851.GA25247@dcvr.yhbt.net>
+References: <kndk0a$she$1@ger.gmane.org>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To: <kndk0a$she$1@ger.gmane.org>
+User-Agent: Mutt/1.5.21 (2010-09-15)
+Cc: Graham Christensen <graham@grahamc.com>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Graham Christensen <graham@grahamc.com> wrote:
+> I'm deploying Unicorn on a Rails application with RUnit. Technically
+> I'm using Chef's deployment tools, if any of you are familiar with
+> it (https://github.com/opscode-cookbooks/application_ruby) but to be
+> clear they aren't doing anything magical, so this is purely an issue
+> with RUnit and Unicorn.
+> 
+> The TL;DR of the following post, which has lots of pastes (linking
+> to pastebins for easier reading:) when I run /etc/init.d/myzippykid
+> restart, the old unicorn master fails to die, causing the new master
+> to be stuck in a loop waiting to own port 8080. The new master never
+> takes over, as the old master never dies. When I manually kill the
+> master, the new one takes over just fine.
+> 
+> What am I missing in my restart process to make the old master exit?
+
+It seems you're missing /etc/init.d/myzippykid in your pastes.
+
+Are you sending SIGQUIT (or SIGTERM) to the old unicorn master?
+If you have old workers servicing requests, the old master will wait
+until all the old workers are done.
+
+Since your timeout is 60s, everything (workers and master) should exit
+around that time period if you have stalled/long-running requests,
+though.
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
