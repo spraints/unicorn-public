@@ -1,0 +1,122 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: *
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=1.3 required=5.0 tests=RDNS_NONE shortcircuit=no
+ autolearn=no version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (unknown [50.56.192.79]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 2100C1F6C0 for <archivist@yhbt.net>; Mon, 20 May 2013
+ 17:51:39 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 93ECD2E146; Mon, 20 May 2013 17:51:39 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from plane.gmane.org (plane.gmane.org [80.91.229.3]) by
+ rubyforge.org (Postfix) with ESMTP id 61D342E068 for
+ <mongrel-unicorn@rubyforge.org>; Mon, 20 May 2013 17:51:30 +0000 (UTC)
+Received: from list by plane.gmane.org with local (Exim 4.69) (envelope-from
+ <gclrug-mongrel-unicorn@m.gmane.org>) id 1UeUF6-0008RR-NZ for
+ mongrel-unicorn@rubyforge.org; Mon, 20 May 2013 19:51:28 +0200
+Received: from c-68-33-117-52.hsd1.va.comcast.net ([68.33.117.52]) by
+ main.gmane.org with esmtp (Gmexim 0.1 (Debian)) id 1AlnuQ-0007hv-00 for
+ <mongrel-unicorn@rubyforge.org>; Mon, 20 May 2013 19:51:28 +0200
+Received: from graham by c-68-33-117-52.hsd1.va.comcast.net with local
+ (Gmexim 0.1 (Debian)) id 1AlnuQ-0007hv-00 for
+ <mongrel-unicorn@rubyforge.org>; Mon, 20 May 2013 19:51:28 +0200
+X-Injected-Via-Gmane: http://gmane.org/
+To: mongrel-unicorn@rubyforge.org
+From: Graham Christensen <graham@grahamc.com>
+Subject: Re: Unicorn + RUnit Rails Not Killing Old Master
+Date: Mon, 20 May 2013 13:51:18 -0400
+Message-ID: <kndnqg$77h$1@ger.gmane.org>
+References: <kndk0a$she$1@ger.gmane.org>
+ <20130520172851.GA25247@dcvr.yhbt.net>
+Mime-Version: 1.0
+X-Complaints-To: usenet@ger.gmane.org
+X-Gmane-NNTP-Posting-Host: c-68-33-117-52.hsd1.va.comcast.net
+User-Agent: Unison/2.1.10
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset="us-ascii"; Format="flowed"
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+On 2013-05-20 17:28:51 +0000, Eric Wong said:
+
+> Graham Christensen <graham@grahamc.com> wrote:
+>> I'm deploying Unicorn on a Rails application with RUnit. Technically
+>> I'm using Chef's deployment tools, if any of you are familiar with
+>> it (https://github.com/opscode-cookbooks/application_ruby) but to be
+>> clear they aren't doing anything magical, so this is purely an issue
+>> with RUnit and Unicorn.
+>> 
+>> The TL;DR of the following post, which has lots of pastes (linking
+>> to pastebins for easier reading:) when I run /etc/init.d/myzippykid
+>> restart, the old unicorn master fails to die, causing the new master
+>> to be stuck in a loop waiting to own port 8080. The new master never
+>> takes over, as the old master never dies. When I manually kill the
+>> master, the new one takes over just fine.
+>> 
+>> What am I missing in my restart process to make the old master exit?
+> 
+> It seems you're missing /etc/init.d/myzippykid in your pastes.
+
+The /etc/init.d/myzippykid is symlinked to /usr/bin/sv which is a 
+binary provided by runit.
+
+> 
+> Are you sending SIGQUIT (or SIGTERM) to the old unicorn master?
+> If you have old workers servicing requests, the old master will wait
+> until all the old workers are done.
+
+This is an interesting question. runit appear to be capturing the PID 
+of my bundle_wrapper.sh instead of the spawned unicorn process. Since 
+this isn't interactive, it probably isn't forwarding the signals to 
+Unicorn. After replacing the `bundle $@` with `exec bundle $@`, and 
+therefore replacing the process with the unicorn command, it all works 
+as intended.
+
+I suppose all it took was that question to jog my memory.
+
+I appreciate your assistance! Here is the complete bundle_wrapper.sh 
+wthich implements everything as intended:
+#!/bin/bash
+
+source /etc/profile.d/rbenv.sh
+
+exec bundle $@
+
+> 
+> Since your timeout is 60s, everything (workers and master) should exit
+> around that time period if you have stalled/long-running requests,
+> though.
+
+Since Unicorn doen't seem to be receiving the signals, this would 
+explain why the timeout never was hit, and nothing ever exited.
+
+> _______________________________________________
+> Unicorn mailing list - mongrel-unicorn@rubyforge.org
+> http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+> Do not quote signatures (like this one) or top post when replying
+
+Thank you a lot!
+
+Graham Christensen
+
+
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
