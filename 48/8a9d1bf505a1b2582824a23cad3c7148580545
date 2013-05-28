@@ -1,0 +1,90 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=0.5 required=5.0 tests=AWL,RDNS_NONE shortcircuit=no
+ autolearn=no version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (unknown [50.56.192.79]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 32B481F5B6 for <archivist@yhbt.net>; Tue, 28 May 2013
+ 17:20:47 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id DF54D2E141; Tue, 28 May 2013 17:20:46 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id ECCE72E138 for <mongrel-unicorn@rubyforge.org>; Tue,
+ 28 May 2013 17:20:38 +0000 (UTC)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id C3CFD1F5B6; Tue, 28 May 2013 17:20:36 +0000 (UTC)
+Date: Tue, 28 May 2013 17:20:36 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Subject: Re: Unicorn freezes, requests got stuck in the queue most likely
+Message-ID: <20130528172036.GA9401@dcvr.yhbt.net>
+References: <op.wxskbj1maya692@earth.site>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To: <op.wxskbj1maya692@earth.site>
+User-Agent: Mutt/1.5.21 (2010-09-15)
+Cc: Gleb Arshinov <gleb@pluron.com>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Alexander Dymo <adymo@pluron.com> wrote:
+> In short:
+> - we have two groups of workers:
+>   - one serving long-running requests that take more than 10 sec, listening to a '/tmp/long_requests_unicorn.sock' socket
+>   - another serving normal requests, listening to '/tmp/unicorn.sock' socket
+> - nginx determines which request goes to which sockets.
+> 
+> This worked perfectly for 2 years. Looks like after we upgraded to
+> unicorn 4.4, the normal requests started to get stuck in the queue.
+> That happens randomly, several times per day. When that happens,
+> requests wait for up to 7 seconds to be served. At that time most or
+> all of the workers are available and not doing anything. Unicorn
+> restart fixes the problem.
+
+How are you determining requests get stuck for up to 7 seconds?
+Just hitting the app?
+
+How is the system (CPU/RAM/swap usage) around this time?
+
+Are you using Raindrops::LastDataRecv or Raindrops::Watcher?
+(If not and you're on Linux, please give them a try[1]).
+
+Anything in the stderr logs?  Dying/restarted workers might cause
+this.  Otherwise, I'd look for unexpected long-running requests
+in your Rails logs.
+
+> Has anyone seen something freezes like that? I'd appreciate any help
+> with debugging and understanding this problem.
+
+I certainly have not.  Did you perform any other upgrades around this
+point?
+
+Can you try reverting to 4.3.1 (or earlier, and not changing anything else)
+and see if the problem presents itself there?
+
+Also, which OS/version is this?
+
+
+[1] http://raindrops.bogomips.org/
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
