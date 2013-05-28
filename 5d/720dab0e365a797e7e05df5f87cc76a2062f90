@@ -1,0 +1,88 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: *
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=1.3 required=5.0 tests=RDNS_NONE shortcircuit=no
+ autolearn=no version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (unknown [50.56.192.79]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 343881F6BF for <archivist@yhbt.net>; Tue, 28 May 2013
+ 11:41:12 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 50BF22E144; Tue, 28 May 2013 11:41:12 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+X-Greylist: delayed 966 seconds by postgrey-1.31 at rubyforge; Tue, 28 May
+ 2013 11:41:05 UTC
+Received: from mail-wi0-f173.google.com (mail-wi0-f173.google.com
+ [209.85.212.173]) by rubyforge.org (Postfix) with ESMTP id 80E0B2E0EA for
+ <mongrel-unicorn@rubyforge.org>; Tue, 28 May 2013 11:41:05 +0000 (UTC)
+Received: by mail-wi0-f173.google.com with SMTP id hi5so2390389wib.0 for
+ <mongrel-unicorn@rubyforge.org>; Tue, 28 May 2013 04:41:03 -0700 (PDT)
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com;
+ s=20120113; h=content-type:to:date:cc:subject:mime-version
+ :content-transfer-encoding:from:message-id:user-agent :x-gm-message-state;
+ bh=2Gdzqn6Fqd9Gz5sZHBkHBHkmy7e3+DEdUWnMvgrqMPs=;
+ b=n+0QY9fXULxutPkzpHohlgkLopUKTJmcd2V1OWBA/MYPipZ2G1DR4t5exaZI+aHcc8
+ XRzG/aE3In2ShpWNBjmlEitQlbU2vZbk1k245DlUU8qO7DFv3ppSNl/5jH324C2DMUIY
+ Y+zVEW8PR4t6W/ge6I4Cqc5+odMZNQjinUqEhmTCPTAq89kBZTbf6xycXjuP0h2Or5C2
+ +C/hN8uUt6Hm0q1ebR+xE3LqMXwb19JDRaFFzNIc3KTAGn6nZhab2X/HbhLlTnJ7UQKV
+ z7RmPBIddkRZbDKsP3ze3WE6onXjcSltfIVbOBIBLAfQ/RFwFvONw7924vxN8VpkfiZ1 I2ZQ==
+X-Received: by 10.180.9.238 with SMTP id d14mr11612630wib.18.1369739856302;
+ Tue, 28 May 2013 04:17:36 -0700 (PDT)
+Received: from earth.site (184-134-134-95.pool.ukrtel.net. [95.134.134.184])
+ by mx.google.com with ESMTPSA id d5sm23641011wic.1.2013.05.28.04.17.34 for
+ <multiple recipients> (version=TLSv1 cipher=RC4-SHA bits=128/128); Tue, 28
+ May 2013 04:17:35 -0700 (PDT)
+To: "unicorn list" <mongrel-unicorn@rubyforge.org>
+Date: Tue, 28 May 2013 14:17:33 +0300
+Subject: Unicorn freezes, requests got stuck in the queue most likely
+MIME-Version: 1.0
+From: "Alexander Dymo" <adymo@pluron.com>
+Message-ID: <op.wxskbj1maya692@earth.site>
+User-Agent: Opera Mail/12.14 (Linux)
+X-Gm-Message-State:
+ ALoCoQk9f/gGZmSBB1LIl7L4N/zRX+wS6ZkNrXzz4ODsDv73qlourCwn4cPqt4Z//1UVHEw968sc
+Cc: Gleb Arshinov <gleb@pluron.com>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset="us-ascii"; Format="flowed"; DelSp="yes"
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Hi,
+
+I'd appreciate an advice on how to debug the following problem: unicorn sometimes freezes for 6-7 seconds and stops taking new requests, then resumes as if nothing happened. Details below.
+
+My setup:
+- nginx 0.7.67 proxying requests to unicorn
+- unicorn 4.4.0
+- rails 2.3.x application
+
+Unicorn is set up as I've described in this list earlier:
+http://rubyforge.org/pipermail/mongrel-unicorn/2010-November/000770.html
+
+In short:
+- we have two groups of workers:
+   - one serving long-running requests that take more than 10 sec, listening to a '/tmp/long_requests_unicorn.sock' socket
+   - another serving normal requests, listening to '/tmp/unicorn.sock' socket
+- nginx determines which request goes to which sockets.
+
+This worked perfectly for 2 years. Looks like after we upgraded to unicorn 4.4, the normal requests started to get stuck in the queue. That happens randomly, several times per day. When that happens, requests wait for up to 7 seconds to be served. At that time most or all of the workers are available and not doing anything. Unicorn restart fixes the problem.
+
+Has anyone seen something freezes like that? I'd appreciate any help with debugging and understanding this problem.
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
