@@ -1,0 +1,84 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=0.6 required=5.0 tests=AWL,RDNS_NONE shortcircuit=no
+ autolearn=no version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (unknown [50.56.192.79]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 1867A1F6BD for <archivist@yhbt.net>; Tue, 28 May 2013
+ 19:03:08 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id E0ABE2E144; Tue, 28 May 2013 19:03:07 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+X-Greylist: delayed 358 seconds by postgrey-1.31 at rubyforge; Tue, 28 May
+ 2013 19:02:57 UTC
+Received: from nora.it-orbita.ru (nora.it-orbita.ru [188.127.226.182]) by
+ rubyforge.org (Postfix) with ESMTP id 806782E138 for
+ <mongrel-unicorn@rubyforge.org>; Tue, 28 May 2013 19:02:57 +0000 (UTC)
+Received: from mami.local (34.250-pool.nikopol.net [213.111.250.34])
+ (authenticated with CRAM-MD5 as list@mrtech.ru) by nora.it-orbita.ru
+ (underworld-mx) with ESMTP/inet id r4SIucXa009764 (using TLSv1/SSLv3 with
+ cipher AES128-SHA/128 verify NOT) for <mongrel-unicorn@rubyforge.org>; Tue,
+ 28 May 2013 18:56:44 GMT
+Mime-Version: 1.0 (Mac OS X Mail 6.3 \(1503\))
+Subject: Re: Unicorn freezes, requests got stuck in the queue most likely
+From: Troex Nevelin <list@mrtech.ru>
+In-Reply-To: <op.wxskbj1maya692@earth.site>
+Date: Tue, 28 May 2013 21:56:38 +0300
+Message-Id: <1E724535-5C14-47BA-97C5-01E2E867FF93@mrtech.ru>
+References: <op.wxskbj1maya692@earth.site>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+X-Mailer: Apple Mail (2.1503)
+X-Greylist: Sender succeeded SMTP AUTH, not delayed by milter-greylist-4.0
+ (nora.it-orbita.ru [188.127.226.182]); Tue, 28 May 2013 18:56:44 +0000 (UTC)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+> This worked perfectly for 2 years. Looks like after we upgraded to unicorn 4.4, the normal requests started to get stuck in the queue. That happens randomly, several times per day. When that happens, requests wait for up to 7 seconds to be served. At that time most or all of the workers are available and not doing anything. Unicorn restart fixes the problem.
+
+Monitoring the queue is important and raindrops is all about it,
+I have a small nice munin script to keep track on it:
+https://github.com/troex/raindrops-watcher-munin
+Live example with 8 workers:
+http://mon.melkov.net/PeterHost-RU/spb1.melkov.net/raindrops_watcher.html
+
+If your unicorn queue gets higher than something is probably blocking
+the app, in my example you can notice on daily graph that at the each
+hour beginning it gets a small spike - that's rake task rushing DB, as
+a result app becoming slower and the queue grows which can lead to that
+clients wait 3-4 seconds while rails log resulting only with 50-100ms
+higher average response times.
+
+
+>From my experience I never had problems between nginx and unicorn,
+if it gets stuck than 99% it's some blocker in the app.
+
+As Eric said the harder to trace issues are when worker dies and you
+don't get logging from rails app, for that case take a look at previous
+post about that problem that helped me to find out the problem in my app:
+http://article.gmane.org/gmane.comp.lang.ruby.unicorn.general/1269
+
+
+Also request-log-analytics and new_relic is good way to start tracing
+blocks and slowdowns in the app. And raindrops if great for monitoring
+the queue before requests get processed by the app.
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
