@@ -1,0 +1,105 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: *
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=1.3 required=5.0 tests=RDNS_NONE,T_DKIM_INVALID
+ shortcircuit=no autolearn=no version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (unknown [50.56.192.79]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 6161E1F5B3 for <archivist@yhbt.net>; Fri,  7 Jun 2013
+ 03:09:42 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 3518E2E150; Fri,  7 Jun 2013 03:09:41 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+X-Greylist: delayed 363 seconds by postgrey-1.31 at rubyforge; Fri, 07 Jun
+ 2013 03:09:35 UTC
+Received: from out2-smtp.messagingengine.com (out2-smtp.messagingengine.com
+ [66.111.4.26]) by rubyforge.org (Postfix) with ESMTP id AB37D2E14A for
+ <mongrel-unicorn@rubyforge.org>; Fri,  7 Jun 2013 03:09:35 +0000 (UTC)
+Received: from compute2.internal (compute2.nyi.mail.srv.osa [10.202.2.42]) by
+ gateway1.nyi.mail.srv.osa (Postfix) with ESMTP id A5FAD20594 for
+ <mongrel-unicorn@rubyforge.org>; Thu,  6 Jun 2013 23:03:32 -0400 (EDT)
+Received: from frontend1.nyi.mail.srv.osa ([10.202.2.160]) by
+ compute2.internal (MEProxy); Thu, 06 Jun 2013 23:03:32 -0400
+DKIM-Signature: v=1; a=rsa-sha1; c=relaxed/relaxed; d=micahchalmer.net;
+ h=from:content-type:content-transfer-encoding:subject:date
+ :message-id:to:mime-version; s=mesmtp; bh=vWzGF9Y6O/p+SshLF0GqXu jybhs=;
+ b=gE7HB4pKjCiIhFkvS6kcsugh9oYYfZMQm7ACUHgX7b9pT8nPPoKvJt
+ J+s8ppvZM9QiMz/jADhfFgbTSkliMDAIj4wndJwRluH2T6bWlGgMwjvMdISwP81g
+ 2y3IThAtpIzTpLUtVu9WYW6O1tMlazmaRGq5I+zrO/Iz2JLC6Grr4=
+DKIM-Signature: v=1; a=rsa-sha1; c=relaxed/relaxed; d= messagingengine.com;
+ h=from:content-type :content-transfer-encoding:subject:date:message-id:to
+ :mime-version; s=smtpout; bh=vWzGF9Y6O/p+SshLF0GqXujybhs=; b=pWI
+ DTwfVuck2+FJq7CYPEkHpVKS5g+O1FW47ewPPkP8h/l1KiMztjX2oSLNkRRf3Kg/
+ KC1jkLVvjp854bwSbBPggglQmJI7E73pg6OX3P5KaV07FwhTAqsqeKBMOeHgsR52
+ kzSr2MW8WVPt96IJag8mTDZ1pOs/BxLK5esgeKq8=
+X-Sasl-enc: 2E6QGV0+dscnedw+TQtYlUdz4tKMENdi4FK9mt91BkgB 1370574212
+Received: from [192.168.1.12] (unknown [68.49.114.188]) by
+ mail.messagingengine.com (Postfix) with ESMTPA id 70F9DC00008 for
+ <mongrel-unicorn@rubyforge.org>; Thu,  6 Jun 2013 23:03:32 -0400 (EDT)
+From: Micah Chalmer <micah@micahchalmer.net>
+Subject: [PATCH 2/2] Make -N/--no-default-middleware option work
+Date: Thu, 6 Jun 2013 23:03:36 -0400
+Message-Id: <B44BDB77-4C32-4552-8A16-EC59DE9C6B18@micahchalmer.net>
+To: mongrel-unicorn@rubyforge.org
+Mime-Version: 1.0 (Apple Message framework v1283)
+X-Mailer: Apple Mail (2.1283)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+This fixes the -N (a.k.a. --no-defaut-middleware) option, which
+was not working.  The problem was that Unicorn::Configurator::RACKUP
+is cleared before the lambda returned by Unicorn.builder is run,
+which means that checking whether the :no_default_middleware option
+was set from the lambda could not detect anything.  This patch copies
+it to a local variable that won't get clobbered, restoring the feature.
+---
+lib/unicorn.rb | 6 +++++-
+1 file changed, 5 insertions(+), 1 deletion(-)
+
+diff --git a/lib/unicorn.rb b/lib/unicorn.rb
+index f0ceffe..2535159 100644
+--- a/lib/unicorn.rb
++++ b/lib/unicorn.rb
+@@ -35,6 +35,10 @@ module Unicorn
+    # allow Configurator to parse cli switches embedded in the ru file
+    op = Unicorn::Configurator::RACKUP.merge!(:file => ru, :optparse => op)
+
++    # Op is going to get cleared before the returned lambda is called, so
++    # save this value so that it's still there when we need it:
++    no_default_middleware = op[:no_default_middleware]
++
+    # always called after config file parsing, may be called after forking
+    lambda do ||
+      inner_app = case ru
+@@ -49,7 +53,7 @@ module Unicorn
+
+      pp({ :inner_app => inner_app }) if $DEBUG
+
+-      return inner_app if op[:no_default_middleware]
++      return inner_app if no_default_middleware
+
+      # return value, matches rackup defaults based on env
+      # Unicorn does not support persistent connections, but Rainbows!
+-- 
+1.8.2
+
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
