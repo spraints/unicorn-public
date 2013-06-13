@@ -1,0 +1,124 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=0.5 required=5.0 tests=AWL,RDNS_NONE shortcircuit=no
+ autolearn=no version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (unknown [50.56.192.79]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id A689B1F5B5 for <archivist@yhbt.net>; Thu, 13 Jun 2013
+ 20:12:26 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 835FF2E14F; Thu, 13 Jun 2013 20:12:27 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 72A152E145 for <mongrel-unicorn@rubyforge.org>; Thu,
+ 13 Jun 2013 19:21:47 +0000 (UTC)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 63E111F433; Thu, 13 Jun 2013 19:21:45 +0000 (UTC)
+Date: Thu, 13 Jun 2013 19:21:45 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: Jonathan Rudenberg <jonathan@titanous.com>
+Subject: Re: HEAD responses contain body
+Message-ID: <20130613192145.GA11696@dcvr.yhbt.net>
+References: <9AEB1922-1C40-4E20-868B-9B890C22905E@titanous.com>
+ <20130613182238.GA11842@dcvr.yhbt.net>
+ <3CDFEE4E-AD32-4C0B-A90A-CEADC003B928@titanous.com>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To: <3CDFEE4E-AD32-4C0B-A90A-CEADC003B928@titanous.com>
+User-Agent: Mutt/1.5.21 (2010-09-15)
+Cc: unicorn list <mongrel-unicorn@rubyforge.org>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Jonathan Rudenberg <jonathan@titanous.com> wrote:
+> On Jun 13, 2013, at 2:22 PM, Eric Wong <normalperson@yhbt.net> wrote:
+> > Jonathan Rudenberg <jonathan@titanous.com> wrote:
+> >> RFC 2616 section 9.4[1] states:
+> >> 
+> >>> The HEAD method is identical to GET except that the server MUST NOT return a message-body in the response.
+> >> 
+> >> A HEAD request against this simple Rack app running on unicorn-4.6.2:
+> >> 
+> >>    require 'rack'
+> >> 
+> > 
+> > +     use Rack::Head
+> > 
+> >>    run lambda { |env| [200, {}, []] }
+> > 
+> > The Rack::Head middleware should be used to correctly strip HEAD
+> > responses of their bodies (frameworks such as Rails/Sinatra should
+> > already add Rack::Head to the middleware stack for you)
+> 
+> This does not change the result, as the Rack::Head implementation looks like this:
+> 
+>     def call(env)
+>       status, headers, body = @app.call(env)
+> 
+>       if env["REQUEST_METHOD"] == "HEAD"
+>         body.close if body.respond_to? :close
+>         [status, headers, []]
+>       else
+>         [status, headers, body]
+>       end
+>     end
+
+OK, I think you were hitting another problem because you were lacking
+Rack::ContentType
+
+Try the following:
+-----------------------8<---------------------
+require 'rack'
+use Rack::ContentLength # less ambiguous than Rack::Chunked adding '0'
+use Rack::Head
+use Rack::ContentType
+run lambda { |env| [200, {}, []] }
+-----------------------8<---------------------
+
+I added the Rack::ContentLength (it's already in the default middleware
+stack) since I believe Rack::Chunked adding the '0' is a violation of
+rfc2616... I'll need to read more closely to be sure.
+
+> >>    HTTP/1.1 500 Internal Server Error
+> > 
+> >> As you can see, not only is there a zero-length chunked encoding body,
+> >> but for some unknown reason there is a 500 response with no body as
+> >> well.
+> > 
+> > Try using "-d" on the command-line to enable debugging to see what the
+> > error is (and check the logs/stderr output).
+> 
+>     Exception `Errno::ENOTCONN' at /Users/titanous/.gem/ruby/1.9.3/gems/unicorn-4.6.2/lib/unicorn/http_server.rb:565 - Socket is not connected
+
+Ugh, that's an unfortunate side effect of the client closing the
+connection, first :/
+
+> > Also, what RACK_ENV (or -E/--env) are you using?  It could be the
+> > incorrect HEAD response tripping Rack::Lint under development mode.
+> 
+> None, specified, I'm booting unicorn with no configuration or flags specified.
+
+That defaults the RACK_ENV to to "development", so you got
+Rack::ContentLength, Rack::Chunked, Rack::CommonLogger,
+Rack::ShowExceptions and Rack::Lint
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
