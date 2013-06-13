@@ -1,0 +1,99 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=0.5 required=5.0 tests=AWL,RDNS_NONE shortcircuit=no
+ autolearn=no version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (unknown [50.56.192.79]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 51BC51F43E for <archivist@yhbt.net>; Thu, 13 Jun 2013
+ 18:45:43 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id C3A1C2E154; Thu, 13 Jun 2013 18:45:43 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 62C632E14A for <mongrel-unicorn@rubyforge.org>; Thu,
+ 13 Jun 2013 18:22:41 +0000 (UTC)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 298631F433; Thu, 13 Jun 2013 18:22:39 +0000 (UTC)
+Date: Thu, 13 Jun 2013 18:22:39 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Subject: Re: HEAD responses contain body
+Message-ID: <20130613182238.GA11842@dcvr.yhbt.net>
+References: <9AEB1922-1C40-4E20-868B-9B890C22905E@titanous.com>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To: <9AEB1922-1C40-4E20-868B-9B890C22905E@titanous.com>
+User-Agent: Mutt/1.5.21 (2010-09-15)
+Cc: Jonathan Rudenberg <jonathan@titanous.com>, "wrote:"@dcvr.yhbt.net
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Jonathan Rudenberg <jonathan@titanous.com> wrote:
+> RFC 2616 section 9.4[1] states:
+> 
+> > The HEAD method is identical to GET except that the server MUST NOT return a message-body in the response.
+> 
+> A HEAD request against this simple Rack app running on unicorn-4.6.2:
+> 
+>     require 'rack'
+> 
+
++     use Rack::Head
+
+>     run lambda { |env| [200, {}, []] }
+
+The Rack::Head middleware should be used to correctly strip HEAD
+responses of their bodies (frameworks such as Rails/Sinatra should
+already add Rack::Head to the middleware stack for you)
+
+> Looks like this on the wire:
+> 
+>     HEAD / HTTP/1.1
+>     User-Agent: curl/7.24.0 (x86_64-apple-darwin12.0) libcurl/7.24.0 OpenSSL/0.9.8x zlib/1.2.5
+>     Host: localhost:8080
+>     Accept: */*
+> 
+>     HTTP/1.1 200 OK
+>     Date: Thu, 13 Jun 2013 16:04:55 GMT
+>     Status: 200 OK
+>     Connection: close
+>     Transfer-Encoding: chunked
+> 
+>     0
+> 
+>     HTTP/1.1 500 Internal Server Error
+
+> As you can see, not only is there a zero-length chunked encoding body,
+> but for some unknown reason there is a 500 response with no body as
+> well.
+
+Try using "-d" on the command-line to enable debugging to see what the
+error is (and check the logs/stderr output).
+
+Also, what RACK_ENV (or -E/--env) are you using?  It could be the
+incorrect HEAD response tripping Rack::Lint under development mode.
+
+> Please cc any responses directly to me, as I do not subscribe to this list.
+
+Done :>
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
