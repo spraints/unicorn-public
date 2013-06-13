@@ -1,0 +1,104 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: *
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=1.3 required=5.0 tests=RDNS_NONE,T_DKIM_INVALID
+ shortcircuit=no autolearn=no version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (unknown [50.56.192.79]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 006D81F43E for <archivist@yhbt.net>; Thu, 13 Jun 2013
+ 16:47:56 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 292F42E158; Thu, 13 Jun 2013 16:47:56 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+X-Greylist: delayed 411 seconds by postgrey-1.31 at rubyforge; Thu, 13 Jun
+ 2013 16:16:41 UTC
+Received: from out3-smtp.messagingengine.com (out3-smtp.messagingengine.com
+ [66.111.4.27]) by rubyforge.org (Postfix) with ESMTP id 9C5512E14A for
+ <mongrel-unicorn@rubyforge.org>; Thu, 13 Jun 2013 16:16:41 +0000 (UTC)
+Received: from compute1.internal (compute1.nyi.mail.srv.osa [10.202.2.41]) by
+ gateway1.nyi.mail.srv.osa (Postfix) with ESMTP id 70A752121B for
+ <mongrel-unicorn@rubyforge.org>; Thu, 13 Jun 2013 12:09:44 -0400 (EDT)
+Received: from frontend1.nyi.mail.srv.osa ([10.202.2.160]) by
+ compute1.internal (MEProxy); Thu, 13 Jun 2013 12:09:45 -0400
+DKIM-Signature: v=1; a=rsa-sha1; c=relaxed/relaxed; d=titanous.com; h=
+ from:content-type:content-transfer-encoding:subject:message-id
+ :date:to:mime-version; s=mesmtp; bh=hY/JnSPLYSqOr+vuuPPnjxAFs2w=; b=
+ jkeZWfS5XGQ+XF8hV+2wPqvaNNrxJol2ZE1xB01rjIJMJbphDiTyKpj9XrDi9uyK
+ vdVMYck4L1PPCDQUn22KDWY79eQWRQHXZSUTz2dE9y2yTvgO4geXOvFgBG5zc3Dc
+ tzvCwTq2+pLRpczdfAoUSfmmVzaP7ntha9Xil/8GEqI=
+DKIM-Signature: v=1; a=rsa-sha1; c=relaxed/relaxed; d= messagingengine.com;
+ h=from:content-type :content-transfer-encoding:subject:message-id:date:to
+ :mime-version; s=smtpout; bh=hY/JnSPLYSqOr+vuuPPnjxAFs2w=; b=Nbv
+ 7WSvJnlbzGuAMSzrOPYCIXSCYLUFsGQzdnzg3Sw0WYlqwt08zdb5znxIwg7P3cJS
+ 1egdgTyFUZgmI5xpi5nv5Q8zMr0AB2PZNF6nw3bx81cuFajxCCxhB9hRAqwQ+63v
+ h/zW6CajHy3QGZdpQy1JMfPdjFvKGT97frMztXnQ=
+X-Sasl-enc: Z08zTsD3LBvSwkA5NZMg4UuRq0oq86staC2ijKhmFTcI 1371139784
+Received: from [10.10.10.124] (unknown [71.185.221.139]) by
+ mail.messagingengine.com (Postfix) with ESMTPA id 413B8C00E89 for
+ <mongrel-unicorn@rubyforge.org>; Thu, 13 Jun 2013 12:09:44 -0400 (EDT)
+From: Jonathan Rudenberg <jonathan@titanous.com>
+Subject: HEAD responses contain body
+Message-Id: <9AEB1922-1C40-4E20-868B-9B890C22905E@titanous.com>
+Date: Thu, 13 Jun 2013 12:09:43 -0400
+To: mongrel-unicorn@rubyforge.org
+Mime-Version: 1.0 (Mac OS X Mail 6.5 \(1508\))
+X-Mailer: Apple Mail (2.1508)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+RFC 2616 section 9.4[1] states:
+
+> The HEAD method is identical to GET except that the server MUST NOT return a message-body in the response.
+
+A HEAD request against this simple Rack app running on unicorn-4.6.2:
+
+    require 'rack'
+
+    run lambda { |env| [200, {}, []] }
+
+Looks like this on the wire:
+
+    HEAD / HTTP/1.1
+    User-Agent: curl/7.24.0 (x86_64-apple-darwin12.0) libcurl/7.24.0 OpenSSL/0.9.8x zlib/1.2.5
+    Host: localhost:8080
+    Accept: */*
+
+    HTTP/1.1 200 OK
+    Date: Thu, 13 Jun 2013 16:04:55 GMT
+    Status: 200 OK
+    Connection: close
+    Transfer-Encoding: chunked
+
+    0
+
+    HTTP/1.1 500 Internal Server Error
+
+As you can see, not only is there a zero-length chunked encoding body, but for some unknown reason there is a 500 response with no body as well.
+
+Please cc any responses directly to me, as I do not subscribe to this list.
+
+Cheers,
+
+Jonathan
+
+[1] https://tools.ietf.org/html/rfc2616#section-9.4
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
