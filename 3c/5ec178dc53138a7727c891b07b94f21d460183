@@ -1,0 +1,84 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: *
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=1.3 required=5.0 tests=RDNS_NONE shortcircuit=no
+ autolearn=no version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (unknown [50.56.192.79]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id A5C6F1F5BD for <archivist@yhbt.net>; Tue, 18 Jun 2013
+ 12:41:29 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id AAA522E158; Tue, 18 Jun 2013 12:41:28 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from mail-bk0-f49.google.com (mail-bk0-f49.google.com
+ [209.85.214.49]) by rubyforge.org (Postfix) with ESMTP id 6596E2E152 for
+ <mongrel-unicorn@rubyforge.org>; Tue, 18 Jun 2013 12:41:22 +0000 (UTC)
+Received: by mail-bk0-f49.google.com with SMTP id mz10so1743516bkb.22 for
+ <mongrel-unicorn@rubyforge.org>; Tue, 18 Jun 2013 05:41:20 -0700 (PDT)
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com;
+ s=20120113; h=mime-version:date:message-id:subject:from:to:content-type
+ :x-gm-message-state; bh=zYUnyq9mnopWUmedM/tgOR6ZloL0A+7UafRQUzqRnRc=;
+ b=DDBuN1lfLHeb2OazrQYm8fh4xSasfAn6Op5umM2+UE0kr6njvdVIMOgGFm4vuRujha
+ kwu9DzB6lE2VpAzlU2NBGYeEyL3YG+CsynGqZBzyVf4l4SIZU+oY9pZAqnId61aChunD
+ 0JtEafwRUyTqUYPaGvbfZ/SBtKJQvjqOVheDDtM/1kCNtFFBNBtO5B+Nrc+J2im3nrKe
+ SuptK5NFrhE9gtePS26vcBN9YExsI58myRzW/FPOMGB2Ge3NdGgh1daejaHgKk4wLFzV
+ 51BL46wqnIf7Uoo4FMwbH+g4FxTX/MlzrIqpsA4YVQAM9JWeYy48uFCx+kpz2dC5VMI0 yDIg==
+MIME-Version: 1.0
+X-Received: by 10.204.188.134 with SMTP id da6mr2632570bkb.121.1371559280801;
+ Tue, 18 Jun 2013 05:41:20 -0700 (PDT)
+Received: by 10.205.12.202 with HTTP; Tue, 18 Jun 2013 05:41:20 -0700 (PDT)
+Date: Tue, 18 Jun 2013 13:41:20 +0100
+Message-ID:
+ <CAErw9DvTeqVKvtBw3JDJ2OAR2mZLLgEiLfermLYvg8_eY4teeQ@mail.gmail.com>
+Subject: PID files not being removed on shutdown
+From: Jon Wood <jon@hubbub.co.uk>
+To: mongrel-unicorn@rubyforge.org
+X-Gm-Message-State:
+ ALoCoQmCQOmFifEjsZmj7bcqgFE1vuW9TrTapebCW6zcw7qqCAeVYtcDAgo+4ABe38l+lh+inJIF
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Hello,
+
+I'm quite consistently seeing an issue where Unicorn leaves its PID
+files in place after a clean shut down, which is causing some issues
+when deploying releases that update Unicorn config.
+
+We're doing hot restarts with USR2+QUIT, and using Upstart for process
+supervision based on the presence of a PID file (this admittedly might
+be a mistake, but I've not seen any better solutions).
+
+This works fine in the case of a hot restart since Unicorn correctly
+updates the PID file, however when we change the configuration for
+Unicorn shutting down the master process doesn't remove the PID file,
+so the supervising Upstart script doesn't detect that the master has
+been shut down and bring up a new one.
+
+I've created a gist[1] of our Upstart and Unicorn configuration files.
+As I say, we might just be doing something stupid here, but Google
+doesn't seem to have shed any light on the issue.
+
+Thanks for any help,
+Jon
+
+[1] https://gist.github.com/jellybob/3789c3f3a00989b63d74
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
