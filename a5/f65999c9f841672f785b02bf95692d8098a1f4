@@ -1,0 +1,84 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=0.5 required=5.0 tests=AWL,RDNS_NONE shortcircuit=no
+ autolearn=no version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (unknown [50.56.192.79]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 35D7C1F5BD for <archivist@yhbt.net>; Tue, 18 Jun 2013
+ 16:48:46 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id CEB742E155; Tue, 18 Jun 2013 16:48:45 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id A61FD2E153 for <mongrel-unicorn@rubyforge.org>; Tue,
+ 18 Jun 2013 16:48:39 +0000 (UTC)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id D7F1E1F5B6; Tue, 18 Jun 2013 16:48:32 +0000 (UTC)
+Date: Tue, 18 Jun 2013 16:48:32 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Subject: Re: PID files not being removed on shutdown
+Message-ID: <20130618164832.GA694@dcvr.yhbt.net>
+References:
+ <CAErw9DvTeqVKvtBw3JDJ2OAR2mZLLgEiLfermLYvg8_eY4teeQ@mail.gmail.com>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To:
+ <CAErw9DvTeqVKvtBw3JDJ2OAR2mZLLgEiLfermLYvg8_eY4teeQ@mail.gmail.com>
+User-Agent: Mutt/1.5.21 (2010-09-15)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Jon Wood <jon@hubbub.co.uk> wrote:
+> Hello,
+> 
+> I'm quite consistently seeing an issue where Unicorn leaves its PID
+> files in place after a clean shut down, which is causing some issues
+> when deploying releases that update Unicorn config.
+> 
+> We're doing hot restarts with USR2+QUIT, and using Upstart for process
+> supervision based on the presence of a PID file (this admittedly might
+> be a mistake, but I've not seen any better solutions).
+
+It's probably better to test the listening port unicorn uses
+(perhaps setup a generic health check endpoint) via socat/curl
+to detect if unicorn is down.
+
+> This works fine in the case of a hot restart since Unicorn correctly
+> updates the PID file, however when we change the configuration for
+> Unicorn shutting down the master process doesn't remove the PID file,
+> so the supervising Upstart script doesn't detect that the master has
+> been shut down and bring up a new one.
+> 
+> I've created a gist[1] of our Upstart and Unicorn configuration files.
+> As I say, we might just be doing something stupid here, but Google
+> doesn't seem to have shed any light on the issue.
+
+> [1] https://gist.github.com/jellybob/3789c3f3a00989b63d74
+
+Do you have anything logging to stderr_path?  That might give you a
+better idea of what's wrong.  Unfortunately, PID files are always bound
+to be racy so perhaps supervisor scripts should test and endpoint of an
+app using socat or curl.
+
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
