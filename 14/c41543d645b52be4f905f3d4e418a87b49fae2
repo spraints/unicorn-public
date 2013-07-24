@@ -1,0 +1,560 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=0.5 required=5.0 tests=AWL,RDNS_NONE shortcircuit=no
+ autolearn=no version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (unknown [50.56.192.79]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id C3C4A1F6F9 for <archivist@yhbt.net>; Fri,  2 Aug 2013
+ 13:37:09 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 3EF252F7C1; Fri,  2 Aug 2013 13:37:10 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 9DAAA2E145 for <mongrel-unicorn@rubyforge.org>; Wed,
+ 24 Jul 2013 03:11:52 +0000 (UTC)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 5958C1F6FD; Wed, 24 Jul 2013 03:11:51 +0000 (UTC)
+Date: Wed, 24 Jul 2013 03:11:51 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: mongrel-unicorn@rubyforge.org
+Subject: [PATCH] unicorn_forever: new executable to respawn masters
+Message-ID: <20130724031151.GA14534@dcvr.yhbt.net>
+MIME-Version: 1.0
+Content-Disposition: inline
+User-Agent: Mutt/1.5.21 (2010-09-15)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Comments/reports of success/failure appreciated.
+
+(Bcc-ing the user who contacted me privately about daemontools :)
+--------------------------------8<------------------------------
+From: Eric Wong <normalperson@yhbt.net>
+Subject: [PATCH] unicorn_forever: new executable to respawn masters
+
+Warning: lightly tested (and not under daemontools/systemd/etc)
+
+This may be useful for daemontools and similar init replacements
+which behave badly when the master process is replaced during the
+normal SIGUSR2 && SIGQUIT routine.
+
+Usage:
+
+  unicorn_forever EXISTING UNICORN COMMAND-LINE
+
+Example:
+
+  unicorn_forever unicorn -c /path/to/unicorn_config.rb config.ru
+
+It can also be used to keep Rainbows! processes alive as long as
+you check for "Rainbows!" constant references in your config file.
+
+  unicorn_forever rainbows -c /path/to/rainbows_config.rb config.ru
+
+Supported signals:
+
+SIGKILL - really kill the unicorn_forever process (unblockable)
+
+SIGSTOP - pause the process, this prevent unicorn_forever from detecting
+          or respawning a dead master
+
+SIGTSTP - same as SIGSTOP
+
+SIGCONT - resumes a process stopped by SIGCONT
+
+Those signals above were really implicit to everything, the following
+two should be familiar to existing unicorn users.
+
+SIGHUP  - reloads the config (just like regular unicorn).
+          This does not touch the existing master process, but allows
+	  future masters to be spawned with a different set of listen
+	  sockets.
+
+SIGUSR1 - reopens existing log files, this signal is forwarded to the
+          regular unicorn master (and thus any workers it has)
+
+All other normal unicorn signals are logged and otherwise ignored.
+They are not forwarded to the unicorn master.
+
+To upgrade a unicorn application, just send SIGQUIT (not SIGUSR2) to the
+existing master and unicorn_forever will automatically respawn.
+
+There is no way to gracefully upgrade unicorn_forever without losing
+connections.  Doing graceful upgrades of unicorn_forever would defeat
+the purpose and cause parents (e.g. daemontools) to notice a child
+death.
+
+unicorn_forever is probably unnecessary for systemd.  The use of cgroups
+with systemd prevents daemons from "escaping" the control of systemd, so
+a daemonized unicorn probably remains visible to systemd.
+
+Implementation:
+
+unicorn_forever is stripped down version of unicorn (and the
+Unicorn::HttpServer class) which contains enough to:
+
+* parse the config file for listeners (and general validation)
+* bind listen sockets
+* issue chdir for the working_directory
+* set the UNICORN_FD environment variable
+* exec the real process (unicorn/rainbows/whatever...)
+
+It does not load nor validate the application.
+---
+ bin/unicorn_forever    | 126 +++++++++++++++++++++
+ lib/unicorn/forever.rb | 289 +++++++++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 415 insertions(+)
+ create mode 100755 bin/unicorn_forever
+ create mode 100644 lib/unicorn/forever.rb
+
+diff --git a/bin/unicorn_forever b/bin/unicorn_forever
+new file mode 100755
+index 0000000..bef3a5f
+--- /dev/null
++++ b/bin/unicorn_forever
+@@ -0,0 +1,126 @@
++#!/this/will/be/overwritten/or/wrapped/anyways/do/not/worry/ruby
++# -*- encoding: binary -*-
++require 'unicorn'
++require 'unicorn/forever'
++require 'optparse'
++
++rackup_opts = Unicorn::Configurator::RACKUP
++options = rackup_opts[:options]
++
++op = OptionParser.new("", 24, '  ') do |opts|
++  cmd = File.basename($0)
++  opts.banner = "Usage: #{cmd} " \
++                "[ruby options] [#{cmd} options] [rackup config file]"
++  opts.separator "Ruby options:"
++
++  lineno = 1
++  opts.on("-e", "--eval LINE", "evaluate a LINE of code") do |line|
++    eval line, TOPLEVEL_BINDING, "-e", lineno
++    lineno += 1
++  end
++
++  opts.on("-d", "--debug", "set debugging flags (set $DEBUG to true)") do
++    $DEBUG = true
++  end
++
++  opts.on("-w", "--warn", "turn warnings on for your script") do
++    $-w = true
++  end
++
++  opts.on("-I", "--include PATH",
++          "specify $LOAD_PATH (may be used more than once)") do |path|
++    $LOAD_PATH.unshift(*path.split(/:/))
++  end
++
++  opts.on("-r", "--require LIBRARY",
++          "require the library, before executing your script") do |library|
++    require library
++  end
++
++  opts.separator "#{cmd} options:"
++
++  # some of these switches exist for rackup command-line compatibility,
++
++  opts.on("-o", "--host HOST",
++          "listen on HOST (default: #{Unicorn::Const::DEFAULT_HOST})") do |h|
++    rackup_opts[:host] = h
++    rackup_opts[:set_listener] = true
++  end
++
++  opts.on("-p", "--port PORT",
++          "use PORT (default: #{Unicorn::Const::DEFAULT_PORT})") do |p|
++    rackup_opts[:port] = p.to_i
++    rackup_opts[:set_listener] = true
++  end
++
++  opts.on("-E", "--env RACK_ENV",
++          "use RACK_ENV for defaults (default: development)") do |e|
++    ENV["RACK_ENV"] = e
++  end
++
++  opts.on("-N", "--no-default-middleware",
++          "do not load middleware implied by RACK_ENV") do |e|
++    rackup_opts[:no_default_middleware] = true
++  end
++
++  opts.on("-D", "--daemonize", "run daemonized in the background") do |d|
++    rackup_opts[:daemonize] = !!d
++  end
++
++  opts.on("-P", "--pid FILE", "DEPRECATED") do |f|
++    warn %q{Use of --pid/-P is strongly discouraged}
++    warn %q{Use the 'pid' directive in the Unicorn config file instead}
++    options[:pid] = f
++  end
++
++  opts.on("-s", "--server SERVER",
++          "this flag only exists for compatibility") do |s|
++    warn "-s/--server only exists for compatibility with rackup"
++  end
++
++  # Unicorn-specific stuff
++  opts.on("-l", "--listen {HOST:PORT|PATH}",
++          "listen on HOST:PORT or PATH",
++          "this may be specified multiple times",
++          "(default: #{Unicorn::Const::DEFAULT_LISTEN})") do |address|
++    options[:listeners] << address
++  end
++
++  opts.on("-c", "--config-file FILE", "Unicorn-specific config file") do |f|
++    options[:config_file] = f
++  end
++
++  # I'm avoiding Unicorn-specific config options on the command-line.
++  # IMNSHO, config options on the command-line are redundant given
++  # config files and make things unnecessarily complicated with multiple
++  # places to look for a config option.
++
++  opts.separator "Common options:"
++
++  opts.on_tail("-h", "--help", "Show this message") do
++    puts opts.to_s.gsub(/^.*DEPRECATED.*$/s, '')
++    exit
++  end
++
++  opts.on_tail("-v", "--version", "Show version") do
++    puts "#{cmd} v#{Unicorn::Const::UNICORN_VERSION}"
++    exit
++  end
++
++  opts.parse! ARGV
++end
++
++# ARGV[0] is usually "unicorn", but "unicorn_rails" or custom
++# BYOE wrappers work, too
++ru = ARGV[1] || 'config.ru'
++Unicorn::Configurator::RACKUP.merge!(:file => ru, :optparse => op)
++op = nil
++
++if $DEBUG
++  require 'pp'
++  pp({
++    :unicorn_options => options,
++    :daemonize => rackup_opts[:daemonize],
++  })
++end
++Unicorn::Forever.new(options).start.join
+diff --git a/lib/unicorn/forever.rb b/lib/unicorn/forever.rb
+new file mode 100644
+index 0000000..3f6c5fe
+--- /dev/null
++++ b/lib/unicorn/forever.rb
+@@ -0,0 +1,289 @@
++# -*- encoding: binary -*-
++#
++# Normally the unicorn master process can handle all the restarting,
++# however with init replacements becoming process managers, we may want
++# to use something which never dies and restarts the master.
++class Unicorn::Forever
++  # :stopdoc:
++  include Unicorn::SocketHelper
++
++  attr_accessor :listener_opts, :init_listeners, :config, :logger
++
++  START_CTX = {
++    :argv => ARGV.map { |arg| arg.dup },
++  }
++
++  # We favor ENV['PWD'] since it is (usually) symlink aware for Capistrano
++  # and like systems
++  START_CTX[:cwd] = begin
++    a = File.stat(pwd = ENV['PWD'])
++    b = File.stat(Dir.pwd)
++    a.ino == b.ino && a.dev == b.dev ? pwd : Dir.pwd
++  rescue
++    Dir.pwd
++  end
++
++  def initialize(options = {})
++    @listeners = []
++    @self_pipe = []
++    @new_listeners = []
++    @init_listeners = options[:listeners] ? options[:listeners].dup : []
++    options[:use_defaults] = true
++    @config = Unicorn::Configurator.new(options)
++    @listener_opts = {}
++    @config.commit!(self, :skip => [:listeners])
++    @respawn = true
++    @self_pipe = Kgio::Pipe.new
++    @self_pipe.each { |io| io.fcntl(Fcntl::F_SETFD, Fcntl::FD_CLOEXEC) }
++    # signal queue used for self-piping
++    @sig_queue = []
++  end
++
++  def setup_sighandlers
++    %w(CHLD HUP QUIT TERM INT USR1 USR2 TTIN TTOU WINCH).each do |s|
++      trap(s) { sig_handler(s.to_sym) }
++    end
++  end
++
++  # Runs the thing.  Returns self so you can run join on it
++  def start
++    # no inheriting, just start the default if needed
++    config_listeners = @config[:listeners].dup
++    if config_listeners.empty?
++      config_listeners << Unicorn::Const::DEFAULT_LISTEN
++      @init_listeners << Unicorn::Const::DEFAULT_LISTEN
++      START_CTX[:argv] << "-l#{Unicorn::Const::DEFAULT_LISTEN}"
++    end
++    @new_listeners.replace(config_listeners)
++
++    bind_new_listeners!
++    setup_sighandlers
++    do_exec
++    self
++  end
++
++  # replaces current listener set with +listeners+.  This will
++  # close the socket if it will not exist in the new listener set
++  def listeners=(listeners)
++    cur_names, dead_names = [], []
++    listener_names.each do |name|
++      if ?/ == name[0]
++        # mark unlinked sockets as dead so we can rebind them
++        (File.socket?(name) ? cur_names : dead_names) << name
++      else
++        cur_names << name
++      end
++    end
++    set_names = listener_names(listeners)
++    dead_names.concat(cur_names - set_names).uniq!
++
++    @listeners.delete_if do |io|
++      if dead_names.include?(sock_name(io))
++        IO_PURGATORY.delete_if do |pio|
++          pio.fileno == io.fileno && (pio.close rescue nil).nil? # true
++        end
++        (io.close rescue nil).nil? # true
++      else
++        set_server_sockopt(io, listener_opts[sock_name(io)])
++        false
++      end
++    end
++
++    (set_names - cur_names).each { |addr| listen(addr) }
++  end
++
++  def stdout_path=(path); redirect_io($stdout, path); end
++  def stderr_path=(path); redirect_io($stderr, path); end
++
++  # for Configurator compatibility:
++  def noop(arg = nil); end
++  alias client_body_buffer_size= noop
++  alias client_body_buffer_size noop
++  alias check_client_connection= noop
++  alias check_client_connection noop
++  alias pid= noop
++  alias pid noop
++  alias preload_app= noop
++  alias preload_app noop
++  alias timeout= noop
++  alias timeout noop
++  alias trust_x_forwarded= noop
++  alias trust_x_forwarded noop
++  alias rewindable_input= noop
++  alias rewindable_input noop
++  alias worker_processes= noop
++  alias worker_processes noop
++  alias after_fork= noop
++  alias after_fork noop
++  alias before_fork= noop
++  alias before_fork noop
++  alias before_exec= noop
++  alias before_exec noop
++
++  # add a given address to the +listeners+ set, idempotently
++  # Allows workers to add a private, per-process listener via the
++  # after_fork hook.  Very useful for debugging and testing.
++  # +:tries+ may be specified as an option for the number of times
++  # to retry, and +:delay+ may be specified as the time in seconds
++  # to delay between retries.
++  # A negative value for +:tries+ indicates the listen will be
++  # retried indefinitely, this is useful when workers belonging to
++  # different masters are spawned during a transparent upgrade.
++  def listen(address, opt = {}.merge(listener_opts[address] || {}))
++    address = config.expand_addr(address)
++    return if String === address && listener_names.include?(address)
++
++    delay = opt[:delay] || 0.5
++    tries = opt[:tries] || 5
++    begin
++      io = bind_listen(address, opt)
++      unless Kgio::TCPServer === io || Kgio::UNIXServer === io
++        IO_PURGATORY << io
++        io = server_cast(io)
++      end
++      @logger.info "listening on addr=#{sock_name(io)} fd=#{io.fileno}"
++      @listeners << io
++      io
++    rescue Errno::EADDRINUSE => err
++      @logger.error "adding listener failed addr=#{address} (in use)"
++      raise err if tries == 0
++      tries -= 1
++      @logger.error "retrying in #{delay} seconds " \
++                    "(#{tries < 0 ? 'infinite' : tries} tries left)"
++      sleep(delay)
++      retry
++    rescue => err
++      @logger.fatal "error adding listener addr=#{address}"
++      raise err
++    end
++  end
++
++  # reaps all unreaped processes
++  def reap_all
++    begin
++      pid, status = Process.waitpid2(-1, Process::WNOHANG)
++      pid or return
++      @logger.error "reaped #{status.inspect}"
++      @exec_pid = nil if pid == @exec_pid
++    rescue Errno::ECHILD
++      break
++    end while true
++  end
++
++  # Monitors child and receives signals forever (or until SIGKILL is sent).
++  # This handles signals one-at-a-time time.
++  # Send SIGSTOP to this process to prevent it from respawning
++  def join
++    begin
++      IO.select([@self_pipe[0]])
++      @self_pipe[0].kgio_tryread(11)
++      reap_all
++      sig = @sig_queue.shift
++
++      case sig
++      when nil # spurious wakeup
++      when :USR1 # rotate logs
++        @logger.info "unicorn-forever reopening logs..."
++        Unicorn::Util.reopen_logs
++        @logger.info "unicorn-forever done reopening logs"
++
++        # this is the only signal we always forward
++        Process.kill(sig, @exec_pid) if @exec_pid
++      when :HUP
++        # we only implement SIGHUP because we need to be aware of new
++        # sockets from updated configs
++        if @config.config_file
++          load_config!
++        else # exec binary and exit if there's no config file
++          @logger.info "SIGHUP received but config file not defined"
++        end
++      else
++        @logger.info "unhandled signal: SIG#{sig} received"
++        zero = START_CTX[:argv][0]
++        if @exec_pid
++          @logger.info("did you mean to signal `#{zero}' at PID:#@exec_pid?")
++        else
++          @logger.info("`#{zero}' not running")
++        end
++      end
++      unless @exec_pid
++        do_exec
++
++        # throttle, in case the master keeps dying, we don't want to burn
++        # cycles and fill up logs by constant respawning
++        sleep 1
++      end
++    rescue => e
++      Unicorn.log_error(@logger, "forever loop error", e)
++    end while true
++    # We don't go down easily, use SIGKILL
++  end
++
++  def sig_handler(s)
++    @sig_queue << s
++    @self_pipe[1].kgio_trywrite('^') # wakeup ourselves from IO.select
++  end
++
++  def do_exec
++    @exec_pid = fork do # This will become the unicorn master process
++      # Don't let actions on any TTY -forever may have influence us
++      Process.setsid
++
++      listener_fds = Hash[@listeners.map do |sock|
++        # IO#close_on_exec= will be available on any future version of
++        # Ruby that sets FD_CLOEXEC by default on new file descriptors
++        # ref: http://redmine.ruby-lang.org/issues/5041
++        sock.close_on_exec = false if sock.respond_to?(:close_on_exec=)
++        [ sock.fileno, sock ]
++      end]
++      ENV['UNICORN_FD'] = listener_fds.keys.join(',')
++      Dir.chdir(START_CTX[:cwd])
++      cmd = START_CTX[:argv]
++
++      # avoid leaking FDs we don't know about, but let before_exec
++      # unset FD_CLOEXEC, if anything else in the app eventually
++      # relies on FD inheritence.
++      (3..1024).each do |io|
++        next if listener_fds.include?(io)
++        io = IO.for_fd(io) rescue next
++        IO_PURGATORY << io
++        io.fcntl(Fcntl::F_SETFD, Fcntl::FD_CLOEXEC)
++      end
++
++      # exec(command, hash) works in at least 1.9.1+, but will only be
++      # required in 1.9.4/2.0.0 at earliest.
++      cmd << listener_fds if RUBY_VERSION >= "1.9.1"
++      @logger.info "executing #{cmd.inspect} (in #{Dir.pwd})"
++      exec(*cmd)
++    end
++  end
++
++  def load_config!
++    @logger.info "reloading config_file=#{@config.config_file}"
++    @config[:listeners].replace(@init_listeners)
++    @config.reload
++    @config.commit!(self)
++    Unicorn::Util.reopen_logs
++    @logger.info "done reloading config_file=#{@config.config_file}"
++  rescue StandardError, LoadError, SyntaxError => e
++    Unicorn.log_error(@logger,
++        "error reloading config_file=#{@config.config_file}", e)
++  end
++
++  # returns an array of string names for the given listener array
++  def listener_names(listeners = @listeners)
++    listeners.map { |io| sock_name(io) }
++  end
++
++  def redirect_io(io, path)
++    File.open(path, 'ab') { |fp| io.reopen(fp) } if path
++    io.sync = true
++  end
++
++  # This binds any listeners we did NOT inherit from the parent
++  def bind_new_listeners!
++    @new_listeners.each { |addr| listen(addr) }
++    raise ArgumentError, "no listeners" if @listeners.empty?
++    @new_listeners.clear
++  end
++end
+-- 
+Eric Wong
+
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
