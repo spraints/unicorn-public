@@ -1,0 +1,80 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=0.5 required=5.0 tests=AWL,RDNS_NONE shortcircuit=no
+ autolearn=no version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (unknown [50.56.192.79]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 22D001F6FE for <archivist@yhbt.net>; Sat,  3 Aug 2013
+ 07:33:24 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 24FF82E34A; Sat,  3 Aug 2013 07:33:24 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 06E652E2BE for <mongrel-unicorn@rubyforge.org>; Sat, 
+ 3 Aug 2013 06:32:46 +0000 (UTC)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id B82931F523; Sat,  3 Aug 2013 06:32:45 +0000 (UTC)
+Date: Sat, 3 Aug 2013 06:32:45 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Subject: Re: Increassing timeouts
+Message-ID: <20130803063245.GA26764@dcvr.yhbt.net>
+References: <DDA1C0EF-0397-43AE-B783-832E4121C515@gmail.com>
+ <20130115194408.GA30869@dcvr.yhbt.net>
+ <1302A068-C31A-4050-8172-80B81EF8E5B7@mrtech.ru>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To: <1302A068-C31A-4050-8172-80B81EF8E5B7@mrtech.ru>
+User-Agent: Mutt/1.5.21 (2010-09-15)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Troex Nevelin <list@mrtech.ru> wrote:
+> On Jan 15, 2013, at 21:44 , Eric Wong <normalperson@yhbt.net> wrote:
+> > But seriously, who will wait 120s for a website to load?
+> 
+> I have similar situation, in my case it's admin interface so admin
+> knows that some operations need time to process and will wait.
+> 
+> Right now I'm running two packs of Unicorn instances - one for quick
+> and one for long requests. But most of the time long request pool is 
+> idling and eating memory.
+
+Cranking up the timeout will improve its chances of being swapped out.
+If memory usage of an infrequently used instance is a concern.
+
+> My question: is possible to change Unicorn timeout per request from
+> Rails app? Middleware hook could be ok too. (not sure if it's possible
+> as I think timeout is set in master).
+
+Right, it's currently not possible to influence the master.  And I'm
+not convinced it's the right way to go, either.
+
+What I've done in the past is to put the client in a periodic refresh
+loop (meta refresh or whatever tag it was) and have it poll the app
+while it was waiting for a long-running job to finish.  I think it was
+(or still is) a common thing...
+
+Btw, Rubyforge delayed this email by over 3 weeks?  But then again you
+responded to a 6 month old thread %x
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
