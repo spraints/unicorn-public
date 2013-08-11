@@ -1,0 +1,121 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: *
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=1.3 required=5.0 tests=FREEMAIL_FROM,RDNS_NONE,
+ T_DKIM_INVALID shortcircuit=no autolearn=no version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (unknown [50.56.192.79]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id A95D51F6FE for <archivist@yhbt.net>; Sun, 11 Aug 2013
+ 20:08:34 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id A9B6E2E153; Sun, 11 Aug 2013 20:08:34 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+X-Greylist: delayed 164619 seconds by postgrey-1.31 at rubyforge; Sun, 11 Aug
+ 2013 19:46:25 UTC
+Received: from mail-oa0-f43.google.com (mail-oa0-f43.google.com
+ [209.85.219.43]) by rubyforge.org (Postfix) with ESMTP id D2AAC2E186 for
+ <mongrel-unicorn@rubyforge.org>; Sun, 11 Aug 2013 19:46:25 +0000 (UTC)
+Received: by mail-oa0-f43.google.com with SMTP id i10so8855215oag.16 for
+ <mongrel-unicorn@rubyforge.org>; Sun, 11 Aug 2013 12:46:24 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com;
+ s=20120113;
+ h=mime-version:in-reply-to:references:from:date:message-id:subject:to
+ :content-type; bh=OiMsJSCxXNGFdPXhoFoLABpzpSn9ysoBi44Ub6m9/7o=;
+ b=Mmh0qa6Gc4RSXv+QGWh3lokVYvKs6E9NTfJU+p4xFbweOa7CiLo+yOO7DUSqFSH6Gh
+ UIG+Aex9e4G9MYSULFhC1w1Q51gWOsvZCbZVSaP+mE0QuP0/Jnlw029PcrEWLb3Vt27q
+ 3RKEzwN+P8LeLwVnRZTX/jNpJ6YdyKqC8t9FNjqXDPmBXZZ4ASMvc9AazBJzwYf9y+i5
+ ov79RKupX3vQ4GKhXaF8FQ+Mlhe5QSsPEH0aJMwgeh23TJXr8k9bczg9vqxtSBUK1bhN
+ cWO7igpE5BndRbh05uoyux2W2IEiothUSawIjrngdrlSUu1IVyLOCdcCCW7qv10z4TfV eAGA==
+X-Received: by 10.60.132.178 with SMTP id ov18mr2154805oeb.39.1376249909814;
+ Sun, 11 Aug 2013 12:38:29 -0700 (PDT)
+MIME-Version: 1.0
+Received: by 10.182.135.132 with HTTP; Sun, 11 Aug 2013 12:38:09 -0700 (PDT)
+In-Reply-To:
+ <CAAB-KcnV+5DFd_3vZC2+Q_e5jw7SjFgQaet552JxrD-TFS3C-w@mail.gmail.com>
+References:
+ <CAM2RUGMUQsCOamRKrnAyp_tewMkBEfz-Z9LsJqVLbnQumzcY9w@mail.gmail.com>
+ <CAAB-KcnV+5DFd_3vZC2+Q_e5jw7SjFgQaet552JxrD-TFS3C-w@mail.gmail.com>
+From: Josh Sharpe <josh.m.sharpe@gmail.com>
+Date: Sun, 11 Aug 2013 15:38:09 -0400
+Message-ID:
+ <CAM2RUGMytrV+8s-K5sm7YnsjrcbTJkmGzGCU5mQTdVVeKr9Hpg@mail.gmail.com>
+Subject: Re: unicorn upstart script
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+I like the unicorn_forever idea, but as it's lightly tested, I
+continued down the path of trying to hack upstart into compliance and
+came up with this...  Might as well share.
+
+This works nicely when USR2 is received, and restarts the master if
+for whatever reason it dies.
+
+Cheers!
+
+$ cat /etc/init/unicorn.conf
+description "Unicorn configuration"
+
+start on filesystem
+stop on shutdown
+
+respawn
+
+kill signal QUIT
+
+script
+  start-stop-daemon --start --chuid blue --chdir
+/u/apps/blue-test-app/current --exec /usr/bin/bundle exec
+unicorn_rails -- -c /u/apps/blue-test-app/shared/system/unicorn.cfg -E
+production
+
+  exists=0
+  pidfile=/tmp/unicorn.master.pid
+  oldpidfile=/tmp/unicorn.master.pid.oldbin
+
+  while [ $exists -eq 0 ]
+  do
+    sleep 0.1
+
+    (test -f $pidfile && pgrep -P $(cat $pidfile)) || (test -f
+$oldpidfile && pgrep -P $(cat $oldpidfile))
+    exists=$?
+  done
+
+  exec rm /tmp/unicorn.master.pid
+  exec rm /tmp/unicorn.master.pid.oldbin
+
+  exit 1
+end script
+
+On Sat, Aug 10, 2013 at 2:20 AM, Hleb Valoshka <375gnu@gmail.com> wrote:
+> On 8/10/13, Josh Sharpe <josh.m.sharpe@gmail.com> wrote:
+>> I'm thinking a a wrapper script maybe required that stays running even
+>> in the event of USR2 to being sent to unicorn, and only dies if the
+>> process identified in the PID file is missing.
+>
+> https://rubyforge.org/pipermail/mongrel-unicorn/2013-July/001820.html
+> _______________________________________________
+> Unicorn mailing list - mongrel-unicorn@rubyforge.org
+> http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+> Do not quote signatures (like this one) or top post when replying
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
