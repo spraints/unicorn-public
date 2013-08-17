@@ -1,0 +1,96 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=0.5 required=5.0 tests=AWL,RDNS_NONE shortcircuit=no
+ autolearn=no version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (unknown [50.56.192.79]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 753B11F6FE for <archivist@yhbt.net>; Sat, 17 Aug 2013
+ 01:20:23 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 249CD2E18B; Sat, 17 Aug 2013 01:20:21 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 391502E145 for <mongrel-unicorn@rubyforge.org>; Sat,
+ 17 Aug 2013 01:20:15 +0000 (UTC)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 0E8A71F5B6 for <mongrel-unicorn@rubyforge.org>; Sat,
+ 17 Aug 2013 01:20:15 +0000 (UTC)
+From: Eric Wong <normalperson@yhbt.net>
+To: mongrel-unicorn@rubyforge.org
+Subject: [PATCH 1/2] http_server: improve handling of client-triggerable
+ socket errors
+Date: Sat, 17 Aug 2013 01:20:11 +0000
+Message-Id: <1376702412-13562-2-git-send-email-normalperson@yhbt.net>
+X-Mailer: git-send-email 1.8.3.2.701.g8c4e4ec
+In-Reply-To: <1376702412-13562-1-git-send-email-normalperson@yhbt.net>
+References: <1376702412-13562-1-git-send-email-normalperson@yhbt.net>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+MIME-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+We do not attempt to write HTTP responses for socket errors if
+clients disconnect from us unexpectedly.
+
+Additionally, we do not hide backtraces EINVAL/EBADF errors, since
+they are indicative of real bugs which must be fixed.
+
+We do continue to hide hide EOF, ECONNRESET, ENOTCONN, and EPIPE
+because clients (even "friendly") ones will break connections due to
+client crashes or network failure (which is common for me :P), and
+the backtraces from those will cause excessive logging and even
+become a DoS vector.
+---
+ lib/unicorn/http_server.rb | 9 +++++----
+ 1 file changed, 5 insertions(+), 4 deletions(-)
+
+diff --git a/lib/unicorn/http_server.rb b/lib/unicorn/http_server.rb
+index cc0a705..bed24d0 100644
+--- a/lib/unicorn/http_server.rb
++++ b/lib/unicorn/http_server.rb
+@@ -520,9 +520,8 @@ def maintain_worker_count
+   # the socket is closed at the end of this function
+   def handle_error(client, e)
+     code = case e
+-    when EOFError,Errno::ECONNRESET,Errno::EPIPE,Errno::EINVAL,Errno::EBADF,
+-         Errno::ENOTCONN
+-      500
++    when EOFError,Errno::ECONNRESET,Errno::EPIPE,Errno::ENOTCONN
++      # client disconnected on us and there's nothing we can do
+     when Unicorn::RequestURITooLongError
+       414
+     when Unicorn::RequestEntityTooLargeError
+@@ -533,7 +532,9 @@ def handle_error(client, e)
+       Unicorn.log_error(@logger, "app error", e)
+       500
+     end
+-    client.kgio_trywrite(err_response(code, @request.response_start_sent))
++    if code
++      client.kgio_trywrite(err_response(code, @request.response_start_sent))
++    end
+     client.close
+     rescue
+   end
+-- 
+1.8.3.2.701.g8c4e4ec
+
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
