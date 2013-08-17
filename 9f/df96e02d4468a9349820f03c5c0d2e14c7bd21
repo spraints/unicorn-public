@@ -1,0 +1,89 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=0.5 required=5.0 tests=AWL,RDNS_NONE shortcircuit=no
+ autolearn=no version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (unknown [50.56.192.79]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 50D001F6FF for <archivist@yhbt.net>; Sat, 17 Aug 2013
+ 01:20:24 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id F06E22E18E; Sat, 17 Aug 2013 01:20:21 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id A9F802E17C for <mongrel-unicorn@rubyforge.org>; Sat,
+ 17 Aug 2013 01:20:16 +0000 (UTC)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 2D7531F6BD for <mongrel-unicorn@rubyforge.org>; Sat,
+ 17 Aug 2013 01:20:15 +0000 (UTC)
+From: Eric Wong <normalperson@yhbt.net>
+To: mongrel-unicorn@rubyforge.org
+Subject: [PATCH 2/2] test_util: fix encoding test for Ruby trunk (2.1.0dev)
+Date: Sat, 17 Aug 2013 01:20:12 +0000
+Message-Id: <1376702412-13562-3-git-send-email-normalperson@yhbt.net>
+X-Mailer: git-send-email 1.8.3.2.701.g8c4e4ec
+In-Reply-To: <1376702412-13562-1-git-send-email-normalperson@yhbt.net>
+References: <1376702412-13562-1-git-send-email-normalperson@yhbt.net>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+MIME-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+As of r40610 in ruby trunk, internal encoding is ignored if
+external coding is ASCII-8BIT (binary)
+
+ref: r40610 http://svn.ruby-lang.org/repos/ruby/trunk
+---
+ test/unit/test_util.rb | 10 ++++++++--
+ 1 file changed, 8 insertions(+), 2 deletions(-)
+
+diff --git a/test/unit/test_util.rb b/test/unit/test_util.rb
+index b8e4043..904d51c 100644
+--- a/test/unit/test_util.rb
++++ b/test/unit/test_util.rb
+@@ -80,7 +80,11 @@ def test_reopen_logs_renamed_with_internal_encoding
+         File.open(tmp_path, "a:#{ext.to_s}:#{int.to_s}") { |fp|
+           fp.sync = true
+           assert_equal ext, fp.external_encoding
+-          assert_equal int, fp.internal_encoding
++
++          if ext != Encoding::BINARY
++            assert_equal int, fp.internal_encoding
++          end
++
+           File.unlink(tmp_path)
+           assert ! File.exist?(tmp_path)
+           Unicorn::Util.reopen_logs
+@@ -88,7 +92,9 @@ def test_reopen_logs_renamed_with_internal_encoding
+           assert File.exist?(tmp_path)
+           assert_equal fp.stat.inspect, File.stat(tmp_path).inspect
+           assert_equal ext, fp.external_encoding
+-          assert_equal int, fp.internal_encoding
++          if ext != Encoding::BINARY
++            assert_equal int, fp.internal_encoding
++          end
+           assert_equal(EXPECT_FLAGS, EXPECT_FLAGS & fp.fcntl(Fcntl::F_GETFL))
+           assert fp.sync
+         }
+-- 
+1.8.3.2.701.g8c4e4ec
+
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
