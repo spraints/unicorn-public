@@ -1,0 +1,103 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=0.5 required=5.0 tests=AWL,RDNS_NONE shortcircuit=no
+ autolearn=no version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (unknown [50.56.192.79]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 7484E1F6BD for <archivist@yhbt.net>; Tue, 20 Aug 2013
+ 21:34:09 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 693CF2E1C6; Tue, 20 Aug 2013 21:34:10 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 9BCED2E1BD for <mongrel-unicorn@rubyforge.org>; Tue,
+ 20 Aug 2013 21:32:59 +0000 (UTC)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 8AC911F464; Tue, 20 Aug 2013 21:32:57 +0000 (UTC)
+Date: Tue, 20 Aug 2013 21:32:57 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Subject: Re: A barrage of unexplained timeouts
+Message-ID: <20130820213257.GA26442@dcvr.yhbt.net>
+References: <1377010076.87748476@apps.rackspace.com>
+ <20130820163745.GA22586@dcvr.yhbt.net>
+ <1377019663.33997248@apps.rackspace.com>
+ <20130820174018.GA25675@dcvr.yhbt.net>
+ <1377022272.215912135@apps.rackspace.com>
+ <20130820184902.GA31845@dcvr.yhbt.net>
+ <1377029010.22657225@apps.rackspace.com>
+ <20130820204244.GA3846@dcvr.yhbt.net>
+ <1377033545.89791642@apps.rackspace.com>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To: <1377033545.89791642@apps.rackspace.com>
+User-Agent: Mutt/1.5.21 (2010-09-15)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+nick@auger.net wrote:
+> "Eric Wong" <normalperson@yhbt.net> said:
+> > nick@auger.net wrote:
+> >> "Eric Wong" <normalperson@yhbt.net> said:
+> > I'm stumped :<
+> 
+> I was afraid you'd say that :(.
+
+Actually, another potential issue is DNS lookups timing out.  But they
+shouldn't take *that* long...
+
+> > Do you have any background threads running that could be hanging the
+> > workers?   This is Ruby 1.8, after all, so there's more likely to be
+> > some blocking call hanging the entire process.  AFAIK, some monitoring
+> > software runs a background thread in the unicorn worker and maybe the
+> > OpenSSL extension doesn't work as well if it encountered network
+> > problems under Ruby 1.8
+> 
+> We don't explicitly create any threads in our rails code.  We do
+> communicate with backgroundrb worker processes, although, none of the
+> strangeness today involved any routes that would hit backgroundrb
+> workers.
+
+I proactively audit every piece of code (including external
+libraries/gems) loaded by an app for potentially blocking calls (hits to
+the filesystem, socket calls w/o timeout/blocking).   I use strace to
+help me find that sometimes...
+
+> Is there any instrumentation that I could add that might help
+> debugging in the future? ($request_time and $upstream_response_time
+> are now in my nginx logs.)  We have noticed these "unexplainable
+> timeouts" before, but typically for a single worker.  If there's some
+> debugging that could be added I might be able to track it down during
+> these one-off events.
+
+As an experiment, can you replay traffic a few minutes leading up to and
+including that 7m period in a test setup with only one straced worker?
+
+Run "strace -T -f -o $FILE -p $PID_OF_WORKER" and see if there's any
+unexpected/surprising dependencies (connect() to unrecognized addresses,
+open() to networked filesystems, fcntl locks, etc...).
+
+You can play around with some other strace options (-v/-s SIZE/-e filters)
+
+Maybe you'll find something, there.
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
