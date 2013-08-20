@@ -1,0 +1,114 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: *
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=1.3 required=5.0 tests=RDNS_NONE shortcircuit=no
+ autolearn=no version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (unknown [50.56.192.79]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 7402A1F6BD for <archivist@yhbt.net>; Tue, 20 Aug 2013
+ 21:19:11 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 5DD1A2E1BF; Tue, 20 Aug 2013 21:19:12 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from smtp125.iad.emailsrvr.com (smtp125.iad.emailsrvr.com
+ [207.97.245.125]) by rubyforge.org (Postfix) with ESMTP id B806C2E17C for
+ <mongrel-unicorn@rubyforge.org>; Tue, 20 Aug 2013 21:19:07 +0000 (UTC)
+Received: from localhost (localhost.localdomain [127.0.0.1]) by
+ smtp42.relay.iad1a.emailsrvr.com (SMTP Server) with ESMTP id 1FA8E1486F8 for
+ <mongrel-unicorn@rubyforge.org>; Tue, 20 Aug 2013 17:19:06 -0400 (EDT)
+X-Virus-Scanned: OK
+Received: from legacy5.wa-web.iad1a (legacy5.wa-web.iad1a.rsapps.net
+ [192.168.2.221]) by smtp42.relay.iad1a.emailsrvr.com (SMTP Server) with ESMTP
+ id 0385014869F for <mongrel-unicorn@rubyforge.org>; Tue, 20 Aug 2013 17:19:05
+ -0400 (EDT)
+Received: from auger.net (localhost [127.0.0.1]) by legacy5.wa-web.iad1a
+ (Postfix) with ESMTP id DBA552E98036 for <mongrel-unicorn@rubyforge.org>;
+ Tue, 20 Aug 2013 17:19:05 -0400 (EDT)
+Received: by apps.rackspace.com (Authenticated sender: nick@auger.net, from:
+ nick@auger.net)  with HTTP; Tue, 20 Aug 2013 17:19:05 -0400 (EDT)
+Date: Tue, 20 Aug 2013 17:19:05 -0400 (EDT)
+Subject: Re: A barrage of unexplained timeouts
+From: nick@auger.net
+To: "unicorn list" <mongrel-unicorn@rubyforge.org>
+MIME-Version: 1.0
+Importance: Normal
+X-Priority: 3 (Normal)
+X-Type: plain
+In-Reply-To: <20130820204244.GA3846@dcvr.yhbt.net>
+References: <1377010076.87748476@apps.rackspace.com> 
+ <20130820163745.GA22586@dcvr.yhbt.net> 
+ <1377019663.33997248@apps.rackspace.com> 
+ <20130820174018.GA25675@dcvr.yhbt.net> 
+ <1377022272.215912135@apps.rackspace.com> 
+ <20130820184902.GA31845@dcvr.yhbt.net> 
+ <1377029010.22657225@apps.rackspace.com> 
+ <20130820204244.GA3846@dcvr.yhbt.net>
+Message-ID: <1377033545.89791642@apps.rackspace.com>
+X-Mailer: webmail7.0
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+"Eric Wong" <normalperson@yhbt.net> said:
+
+> nick@auger.net wrote:
+>> "Eric Wong" <normalperson@yhbt.net> said:
+>> > This is really strange.  This was only really bad for a 7s period?
+>>
+>> It was a 7 minute period.  All of the workers would become busy and
+>> exceed their >120s timeout.  Master would kill and re-spawn them,
+>> they'd start to respond to a handful of requests (anywhere from 5-50)
+>> after which they'd become "busy" again, and get force killed by
+>> master.  This pattern happened 3 times over a 7 minute period.
+>>
+>> > Has it happened again?
+>>
+>> No
+>>
+>> > Anything else going on with the system at that time?  Swapping,
+>> > particularly...
+>>
+>> No swap activity or high load.  Our munin graphs indicate a peak of
+>> web/app server disk latency around that time, although our graphs show
+>> many other similar peaks, without incident.
+> 
+> I'm stumped :<
+
+I was afraid you'd say that :(.
+
+> Do you have any background threads running that could be hanging the
+> workers?   This is Ruby 1.8, after all, so there's more likely to be
+> some blocking call hanging the entire process.  AFAIK, some monitoring
+> software runs a background thread in the unicorn worker and maybe the
+> OpenSSL extension doesn't work as well if it encountered network
+> problems under Ruby 1.8
+
+We don't explicitly create any threads in our rails code.  We do communicate with backgroundrb worker processes, although, none of the strangeness today involved any routes that would hit backgroundrb workers.
+
+Is there any instrumentation that I could add that might help debugging in the future? ($request_time and $upstream_response_time are now in my nginx logs.)  We have noticed these "unexplainable timeouts" before, but typically for a single worker.  If there's some debugging that could be added I might be able to track it down during these one-off events.
+
+Thoughts?
+
+I absolutely appreciate all your help!
+
+-Nick
+
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
