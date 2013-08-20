@@ -1,0 +1,111 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: *
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=1.3 required=5.0 tests=RDNS_NONE shortcircuit=no
+ autolearn=no version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (unknown [50.56.192.79]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id C4A8F1F6FE for <archivist@yhbt.net>; Tue, 20 Aug 2013
+ 18:11:29 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 150DA2E1F2; Tue, 20 Aug 2013 18:11:30 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from smtp175.iad.emailsrvr.com (smtp175.iad.emailsrvr.com
+ [207.97.245.175]) by rubyforge.org (Postfix) with ESMTP id 821372E217 for
+ <mongrel-unicorn@rubyforge.org>; Tue, 20 Aug 2013 18:11:13 +0000 (UTC)
+Received: from localhost (localhost.localdomain [127.0.0.1]) by
+ smtp27.relay.iad1a.emailsrvr.com (SMTP Server) with ESMTP id 5A07C11836D for
+ <mongrel-unicorn@rubyforge.org>; Tue, 20 Aug 2013 14:11:12 -0400 (EDT)
+X-Virus-Scanned: OK
+Received: from legacy1.wa-web.iad1a (legacy1.wa-web.iad1a.rsapps.net
+ [192.168.2.217]) by smtp27.relay.iad1a.emailsrvr.com (SMTP Server) with ESMTP
+ id 45D8A1183BE for <mongrel-unicorn@rubyforge.org>; Tue, 20 Aug 2013 14:11:12
+ -0400 (EDT)
+Received: from auger.net (localhost [127.0.0.1]) by legacy1.wa-web.iad1a
+ (Postfix) with ESMTP id 3528347880B3 for <mongrel-unicorn@rubyforge.org>;
+ Tue, 20 Aug 2013 14:11:12 -0400 (EDT)
+Received: by apps.rackspace.com (Authenticated sender: nick@auger.net, from:
+ nick@auger.net)  with HTTP; Tue, 20 Aug 2013 14:11:12 -0400 (EDT)
+Date: Tue, 20 Aug 2013 14:11:12 -0400 (EDT)
+Subject: Re: A barrage of unexplained timeouts
+From: nick@auger.net
+To: "unicorn list" <mongrel-unicorn@rubyforge.org>
+MIME-Version: 1.0
+Importance: Normal
+X-Priority: 3 (Normal)
+X-Type: plain
+In-Reply-To: <20130820174018.GA25675@dcvr.yhbt.net>
+References: <1377010076.87748476@apps.rackspace.com> 
+ <20130820163745.GA22586@dcvr.yhbt.net> 
+ <1377019663.33997248@apps.rackspace.com> 
+ <20130820174018.GA25675@dcvr.yhbt.net>
+Message-ID: <1377022272.215912135@apps.rackspace.com>
+X-Mailer: webmail7.0
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+"Eric Wong" <normalperson@yhbt.net> said:
+> nick@auger.net wrote:
+>> "Eric Wong" <normalperson@yhbt.net> said:
+>> > Can you take a look at the nginx error and access logs?  From what
+>> > you're saying, there's a chance a request never even got to the Rails
+>> > layer.  However, nginx should be logging failed/long-running requests to
+>> > unicorn.
+>>
+>> The nginx access logs show frequent 499 responses.  The error logs are filled
+>> with:
+>>
+>> connect() failed (110: Connection timed out) while connecting to upstream
+>> upstream timed out (110: Connection timed out) while reading response header from
+>> upstream
+>>
+>> What specific pieces of information should I be looking for in the logs?
+> 
+> Do you have any other requests in your logs which could be taking
+> a long time and hogging workers, but not high enough to trigger the
+> unicorn kill timeout.
+
+I don't *think* so.  Most requests finish <300ms.  We do have some more intensive code-paths, but they're administrative and called much less frequently.  Most of these pages complete in <3seconds.
+
+For requests that made it to rails logging, the LAST processed request before the worker timed-out all completed very quickly (and no real pattern in terms of which page may be triggering it.)
+
+> (enable $request_time in nginx access logs if you haven't already)
+
+I'll enable this.
+
+> Is this with Unix or TCP sockets?  If it's over a LAN, maybe there's
+> still a bad switch/port/cable somewhere (that happens often to me).
+
+TCP sockets, with nginx and unicorn running on the same box.
+
+> With Unix sockets, I don't recall encountering recent problems under
+> Linux.  Which OS are you running?
+
+Stock RHEL 5, kernel 2.6.18.
+
+Thanks again,
+
+-Nick
+
+
+
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
