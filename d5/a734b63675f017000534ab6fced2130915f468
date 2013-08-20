@@ -1,0 +1,130 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: *
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=1.3 required=5.0 tests=RDNS_NONE shortcircuit=no
+ autolearn=no version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (unknown [50.56.192.79]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id D30AA1F6BD for <archivist@yhbt.net>; Tue, 20 Aug 2013
+ 20:10:58 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 3FBF22E1C8; Tue, 20 Aug 2013 20:10:59 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from smtp185.iad.emailsrvr.com (smtp185.iad.emailsrvr.com
+ [207.97.245.185]) by rubyforge.org (Postfix) with ESMTP id C28AA2E18B for
+ <mongrel-unicorn@rubyforge.org>; Tue, 20 Aug 2013 20:03:31 +0000 (UTC)
+Received: from localhost (localhost.localdomain [127.0.0.1]) by
+ smtp58.relay.iad1a.emailsrvr.com (SMTP Server) with ESMTP id 5D66B308323 for
+ <mongrel-unicorn@rubyforge.org>; Tue, 20 Aug 2013 16:03:30 -0400 (EDT)
+X-Virus-Scanned: OK
+Received: from legacy17.wa-web.iad1a (legacy17.wa-web.iad1a.rsapps.net
+ [192.168.4.107]) by smtp58.relay.iad1a.emailsrvr.com (SMTP Server) with ESMTP
+ id 4A558308315 for <mongrel-unicorn@rubyforge.org>; Tue, 20 Aug 2013 16:03:30
+ -0400 (EDT)
+Received: from auger.net (localhost.localdomain [127.0.0.1]) by
+ legacy17.wa-web.iad1a (Postfix) with ESMTP id 37E733B8032 for
+ <mongrel-unicorn@rubyforge.org>; Tue, 20 Aug 2013 16:03:30 -0400 (EDT)
+Received: by apps.rackspace.com (Authenticated sender: nick@auger.net, from:
+ nick@auger.net)  with HTTP; Tue, 20 Aug 2013 16:03:30 -0400 (EDT)
+Date: Tue, 20 Aug 2013 16:03:30 -0400 (EDT)
+Subject: Re: A barrage of unexplained timeouts
+From: nick@auger.net
+To: "unicorn list" <mongrel-unicorn@rubyforge.org>
+MIME-Version: 1.0
+Importance: Normal
+X-Priority: 3 (Normal)
+X-Type: plain
+In-Reply-To: <20130820184902.GA31845@dcvr.yhbt.net>
+References: <1377010076.87748476@apps.rackspace.com> 
+ <20130820163745.GA22586@dcvr.yhbt.net> 
+ <1377019663.33997248@apps.rackspace.com> 
+ <20130820174018.GA25675@dcvr.yhbt.net> 
+ <1377022272.215912135@apps.rackspace.com> 
+ <20130820184902.GA31845@dcvr.yhbt.net>
+Message-ID: <1377029010.22657225@apps.rackspace.com>
+X-Mailer: webmail7.0
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+"Eric Wong" <normalperson@yhbt.net> said:
+
+> nick@auger.net wrote:
+>> "Eric Wong" <normalperson@yhbt.net> said:
+>> >
+>> > Do you have any other requests in your logs which could be taking
+>> > a long time and hogging workers, but not high enough to trigger the
+>> > unicorn kill timeout.
+> 
+>> I don't *think* so.  Most requests finish <300ms.  We do have some
+>> more intensive code-paths, but they're administrative and called much
+>> less frequently.  Most of these pages complete in <3seconds.
+>>
+>> For requests that made it to rails logging, the LAST processed request
+>> before the worker timed-out all completed very quickly (and no real
+>> pattern in terms of which page may be triggering it.)
+> 
+> This is really strange.  This was only really bad for a 7s period?
+
+It was a 7 minute period.  All of the workers would become busy and exceed their >120s timeout.  Master would kill and re-spawn them, they'd start to respond to a handful of requests (anywhere from 5-50) after which they'd become "busy" again, and get force killed by master.  This pattern happened 3 times over a 7 minute period.
+
+> Has it happened again?
+
+No
+
+> Anything else going on with the system at that time?  Swapping, particularly...
+
+No swap activity or high load.  Our munin graphs indicate a peak of web/app server disk latency around that time, although our graphs show many other similar peaks, without incident.
+
+> And if you're inside a VM, maybe your neighbors were hogging things.
+> Large PUT/POST requests which require filesystem I/O are particularly
+> sensitive to this.
+
+We can't blame virtualization as we're on dedicated hardware.
+
+>> > Is this with Unix or TCP sockets?  If it's over a LAN, maybe there's
+>> > still a bad switch/port/cable somewhere (that happens often to me).
+>>
+>> TCP sockets, with nginx and unicorn running on the same box.
+> 
+> OK, that probably rules out a bunch of problems.
+> Just to be thorough, anything interesting in dmesg or syslogs?
+
+Nothing interesting in /var/log/messages.  dmesg (no timestamps) includes lines like:
+
+TCP: Treason uncloaked! Peer ###.###.###.###:63554/80 shrinks window 1149440448:1149447132. Repaired.
+
+>> > With Unix sockets, I don't recall encountering recent problems under
+>> > Linux.  Which OS are you running?
+>>
+>> Stock RHEL 5, kernel 2.6.18.
+> 
+> RHEL 5.0 or 5.x?  I can't remember /that/ far back to 5.0 (I don't think
+> I even tried it until 5.2), but don't recall anything being obviously
+> broken in those...
+
+We're on RHEL 5.6.
+
+Thanks,
+
+-Nick
+
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
