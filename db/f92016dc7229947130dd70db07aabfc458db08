@@ -1,0 +1,73 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=0.5 required=5.0 tests=AWL,RDNS_NONE shortcircuit=no
+ autolearn=no version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (unknown [50.56.192.79]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 3F2451F6FE for <archivist@yhbt.net>; Tue, 20 Aug 2013
+ 16:37:58 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id A16D72E20F; Tue, 20 Aug 2013 16:37:57 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 75EBC2E1EC for <mongrel-unicorn@rubyforge.org>; Tue,
+ 20 Aug 2013 16:37:47 +0000 (UTC)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 6E9F61F6FE; Tue, 20 Aug 2013 16:37:45 +0000 (UTC)
+Date: Tue, 20 Aug 2013 16:37:45 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Subject: Re: A barrage of unexplained timeouts
+Message-ID: <20130820163745.GA22586@dcvr.yhbt.net>
+References: <1377010076.87748476@apps.rackspace.com>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To: <1377010076.87748476@apps.rackspace.com>
+User-Agent: Mutt/1.5.21 (2010-09-15)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+nick@auger.net wrote:
+> We've been running unicorn-3.6.2 on REE 1.8.7 2011.12 in production
+> for quite some time and we use monit to monitor each unicorn worker.
+> Occasionally, I'll get a notification that a worker has timed-out and
+> has been re-spawned.  In all these cases, when I look at the rails
+> logs, I can see the last request that the worker handled, and they all
+> have appeared to complete successfully from the client's perspective
+> (rails and nginx respond with 200), but the unicorn log shows that it
+> was killed due to timeout.  This has always been relatively rare and I
+> thought it was a non-problem.
+> 
+> During this time, our servers (Web, PG DB, and redis) were not under
+> load and IO was normal.  After the last monit notification at 8:30,
+> everything went back to normal.  I understand why unicorns would
+> timeout if they were waiting (>120 secs) on IO, but there aren't any
+> orphaned requests in the rails log.  For each request line, there's a
+> corresponding completion line.  No long running queries to blame on
+> PG, either.
+
+Can you take a look at the nginx error and access logs?  From what
+you're saying, there's a chance a request never even got to the Rails
+layer.  However, nginx should be logging failed/long-running requests to
+unicorn.
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
