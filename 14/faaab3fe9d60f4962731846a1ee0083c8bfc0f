@@ -1,0 +1,79 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: *
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=1.3 required=5.0 tests=FREEMAIL_FROM,RDNS_NONE,
+ T_DKIM_INVALID shortcircuit=no autolearn=no version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (unknown [50.56.192.79]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 375231F6BD for <archivist@yhbt.net>; Wed, 21 Aug 2013
+ 10:36:23 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 143C22E182; Wed, 21 Aug 2013 10:36:23 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+X-Greylist: delayed 440 seconds by postgrey-1.31 at rubyforge; Wed, 21 Aug
+ 2013 10:36:16 UTC
+Received: from mail-vc0-f179.google.com (mail-vc0-f179.google.com
+ [209.85.220.179]) by rubyforge.org (Postfix) with ESMTP id B4AA42E145 for
+ <mongrel-unicorn@rubyforge.org>; Wed, 21 Aug 2013 10:36:16 +0000 (UTC)
+Received: by mail-vc0-f179.google.com with SMTP id ht10so144137vcb.24 for
+ <mongrel-unicorn@rubyforge.org>; Wed, 21 Aug 2013 03:36:15 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com;
+ s=20120113; h=mime-version:date:message-id:subject:from:to:content-type;
+ bh=mltB72oL+vd7mxkb+huDHBY/+tyepNgrXUdy4sEPw7o=;
+ b=E2WSjaP/FemtCRCB2y+jF6QgXJwmeutQQN6xeyZn/d3I+6kJ68om+oyxwoitn3OeeC
+ nB5On+HmuVh33jb2P/XBaduBc8n2btl+i6VYHguMwK8C9f348kjTf5OcgRAGACt2bKe8
+ iis6hUpRGpPrReUR3LEB5JDd15aGEQj+ydD4nRnpRCKQa5pojWUjX+HgJga3MZXNSiaU
+ zkCA7yO3QF329BrZjiuw7GDxIY9a2cb/k1Lx8tU86npWNM9NFE6suV20HuEUIsx4jKWy
+ oZ3cnIjqgvem/EWMQC+b25st/cY/3Mqb/ANYCCkJWMsxAF2U/EttmI+ZVh5TWGu+ksBZ qrqw==
+MIME-Version: 1.0
+X-Received: by 10.220.181.136 with SMTP id by8mr5943027vcb.11.1377080935255;
+ Wed, 21 Aug 2013 03:28:55 -0700 (PDT)
+Received: by 10.58.46.140 with HTTP; Wed, 21 Aug 2013 03:28:55 -0700 (PDT)
+Date: Wed, 21 Aug 2013 12:28:55 +0200
+Message-ID:
+ <CABmj=E6wffWKQYOfK7CyELRWMWgZWx0xrW5TgRfW8Wm+rasErQ@mail.gmail.com>
+Subject: HTTP streaming and Unicorn timeout
+From: Nokan Emiro <uzleepito@gmail.com>
+To: mongrel-unicorn@rubyforge.org
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Hi guys,
+
+I am working on a Rails app that needs to stream some data to the user and
+I have just found out that Unicorn's timeout feature doesn't respect streaming.
+Content generation is interrupted by Unicorn after the timeout is over.  I
+had to comment out the timeout line in the Unicorn config and use
+Rack::Timeout instead.  This way the streaming isn't interrupted, but the normal
+requests (I mean those that don't use streaming) are forced to finish in the
+defined period of time.
+
+I'd like to know your opinion about that.  Why is Unicorn cutting off the app
+even if it streams actively to the user?  Is there any better solutions to my
+problem than using Rack::Timeout and switch off timing out in Unicorn?
+
+Is that a bad idea that the timeout counter should restart counting after
+each byte/packet/chunk traverses trough the connection?
+
+Thanks for any comments, suggestions and observations,
+U.
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
