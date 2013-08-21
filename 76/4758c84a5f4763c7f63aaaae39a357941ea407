@@ -1,0 +1,79 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=0.5 required=5.0 tests=AWL,RDNS_NONE shortcircuit=no
+ autolearn=no version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (unknown [50.56.192.79]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 5A48D1F6FF for <archivist@yhbt.net>; Wed, 21 Aug 2013
+ 16:41:55 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id B64AE2E219; Wed, 21 Aug 2013 16:41:55 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 71C332E214 for <mongrel-unicorn@rubyforge.org>; Wed,
+ 21 Aug 2013 16:41:46 +0000 (UTC)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id CF50C1F464; Wed, 21 Aug 2013 16:41:44 +0000 (UTC)
+Date: Wed, 21 Aug 2013 16:41:44 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Subject: Re: HTTP streaming and Unicorn timeout
+Message-ID: <20130821164144.GA19563@dcvr.yhbt.net>
+References:
+ <CABmj=E6wffWKQYOfK7CyELRWMWgZWx0xrW5TgRfW8Wm+rasErQ@mail.gmail.com>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To:
+ <CABmj=E6wffWKQYOfK7CyELRWMWgZWx0xrW5TgRfW8Wm+rasErQ@mail.gmail.com>
+User-Agent: Mutt/1.5.21 (2010-09-15)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Nokan Emiro <uzleepito@gmail.com> wrote:
+> Hi guys,
+> 
+> I am working on a Rails app that needs to stream some data to the user and
+> I have just found out that Unicorn's timeout feature doesn't respect streaming.
+> Content generation is interrupted by Unicorn after the timeout is over.  I
+> had to comment out the timeout line in the Unicorn config and use
+> Rack::Timeout instead.  This way the streaming isn't interrupted, but the normal
+> requests (I mean those that don't use streaming) are forced to finish in the
+> defined period of time.
+> 
+> I'd like to know your opinion about that.  Why is Unicorn cutting off the app
+> even if it streams actively to the user?  Is there any better solutions to my
+> problem than using Rack::Timeout and switch off timing out in Unicorn?
+
+unicorn isn't appropriate for long-running responses (taking up an
+entire process is expensive), it is designed for fast responses to a
+fast client able to read it quickly.
+
+Using Rack::Timeout with Rainbows! instead of unicorn is probably a
+better idea.
+
+> Is that a bad idea that the timeout counter should restart counting after
+> each byte/packet/chunk traverses trough the connection?
+
+That'd be more expensive for the common case of fast responses
+(which is what unicorn is designed for)
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
