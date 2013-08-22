@@ -1,0 +1,115 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: *
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=1.3 required=5.0 tests=RDNS_NONE shortcircuit=no
+ autolearn=no version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (unknown [50.56.192.79]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 14F251F523 for <archivist@yhbt.net>; Thu, 22 Aug 2013
+ 13:10:47 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 1AD2E2E1C3; Thu, 22 Aug 2013 13:10:47 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from smtp195.iad.emailsrvr.com (smtp195.iad.emailsrvr.com
+ [207.97.245.195]) by rubyforge.org (Postfix) with ESMTP id B558E2E1C0 for
+ <mongrel-unicorn@rubyforge.org>; Thu, 22 Aug 2013 13:10:43 +0000 (UTC)
+Received: from localhost (localhost.localdomain [127.0.0.1]) by
+ smtp29.relay.iad1a.emailsrvr.com (SMTP Server) with ESMTP id 9E8931488A9 for
+ <mongrel-unicorn@rubyforge.org>; Thu, 22 Aug 2013 09:10:42 -0400 (EDT)
+X-Virus-Scanned: OK
+Received: from legacy5.wa-web.iad1a (legacy5.wa-web.iad1a.rsapps.net
+ [192.168.2.221]) by smtp29.relay.iad1a.emailsrvr.com (SMTP Server) with ESMTP
+ id 8A508148813 for <mongrel-unicorn@rubyforge.org>; Thu, 22 Aug 2013 09:10:42
+ -0400 (EDT)
+Received: from auger.net (localhost [127.0.0.1]) by legacy5.wa-web.iad1a
+ (Postfix) with ESMTP id 6858A2E9802E for <mongrel-unicorn@rubyforge.org>;
+ Thu, 22 Aug 2013 09:10:42 -0400 (EDT)
+Received: by apps.rackspace.com (Authenticated sender: nick@auger.net, from:
+ nick@auger.net)  with HTTP; Thu, 22 Aug 2013 09:10:42 -0400 (EDT)
+Date: Thu, 22 Aug 2013 09:10:42 -0400 (EDT)
+Subject: Re: A barrage of unexplained timeouts
+From: nick@auger.net
+To: "unicorn list" <mongrel-unicorn@rubyforge.org>
+MIME-Version: 1.0
+Importance: Normal
+X-Priority: 3 (Normal)
+X-Type: plain
+In-Reply-To: <20130822040903.GA14870@dcvr.yhbt.net>
+References: <1377019663.33997248@apps.rackspace.com> 
+ <20130820174018.GA25675@dcvr.yhbt.net> 
+ <1377022272.215912135@apps.rackspace.com> 
+ <20130820184902.GA31845@dcvr.yhbt.net> 
+ <1377029010.22657225@apps.rackspace.com> 
+ <20130820204244.GA3846@dcvr.yhbt.net> 
+ <1377033545.89791642@apps.rackspace.com> 
+ <20130820213257.GA26442@dcvr.yhbt.net> 
+ <1377092038.61531322@apps.rackspace.com> 
+ <A48E934780B64D9BB79B265E95F84302@gmail.com> 
+ <20130822040903.GA14870@dcvr.yhbt.net>
+Message-ID: <1377177042.425819917@apps.rackspace.com>
+X-Mailer: webmail7.0
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+
+
+"Eric Wong" <normalperson@yhbt.net> said:
+
+> Jimmy Soho <jimmy.soho@gmail.com> wrote:
+>> fwiw, we experience this too irregularly, about once a week or 2 weeks
+>> for a few seconds, and sometimes up to a minute or 2 minutes long. for
+>> no apparent reasons indeed. and at random times.
+> 
+> Wait, based on what you say below, is this happening to unicorn or
+> nginx?
+> 
+>> my suspicion so far has always been that this is due to bad (wifi)
+>> networks of clients. what happens when a request is handled
+>> successfully by rails, but for whatever reason the last bit of the
+>> response can't be delivered because the receiving end is not consuming
+>> in a timely fashion?
+> 
+> So nginx is complaining about disconnected clients, not unicorn,
+> correct?
+> 
+>> If i'm not mistaken i think that rails logs a 200 success message
+>> before the response is actually send back?
+> 
+> Correct, rails/unicorn won't know if the client disconnected until
+> nginx breaks the connection to unicorn.
+> 
+>> Is a response send back by rails / unicorn fully buffered by nginx? Or
+>> is a unicorn worker blocked until the response is confirmed to have
+>> been successfully received by the client?
+> 
+> nginx fully buffers both requests and responses by default.
+> Which leads us to...
+> 
+>> Aside: how do you protect your unicorn workers against a barrage of
+>> client requests that eat the response veeeeeery sloooooooowly?
+> 
+> That's the whole point of using nginx with unicorn.  nginx shields
+> unicorn from slow clients.
+
+Is it possible that the behavior could be related to nginx?  Nginx hanging onto the connection too long from the worker, so that the worker never makes it back into the pool and eventually get's killed for not checking in?
+
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
