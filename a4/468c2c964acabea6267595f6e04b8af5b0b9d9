@@ -1,0 +1,94 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=0.5 required=5.0 tests=AWL,RDNS_NONE shortcircuit=no
+ autolearn=no version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (unknown [50.56.192.79]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 6B5391F6BD for <archivist@yhbt.net>; Thu, 22 Aug 2013
+ 04:09:14 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id E8A312E18E; Thu, 22 Aug 2013 04:09:13 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 9A50E2E17C for <mongrel-unicorn@rubyforge.org>; Thu,
+ 22 Aug 2013 04:09:04 +0000 (UTC)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 947F11F464; Thu, 22 Aug 2013 04:09:03 +0000 (UTC)
+Date: Thu, 22 Aug 2013 04:09:03 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Subject: Re: A barrage of unexplained timeouts
+Message-ID: <20130822040903.GA14870@dcvr.yhbt.net>
+References: <1377019663.33997248@apps.rackspace.com>
+ <20130820174018.GA25675@dcvr.yhbt.net>
+ <1377022272.215912135@apps.rackspace.com>
+ <20130820184902.GA31845@dcvr.yhbt.net>
+ <1377029010.22657225@apps.rackspace.com>
+ <20130820204244.GA3846@dcvr.yhbt.net>
+ <1377033545.89791642@apps.rackspace.com>
+ <20130820213257.GA26442@dcvr.yhbt.net>
+ <1377092038.61531322@apps.rackspace.com>
+ <A48E934780B64D9BB79B265E95F84302@gmail.com>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To: <A48E934780B64D9BB79B265E95F84302@gmail.com>
+User-Agent: Mutt/1.5.20 (2009-06-14)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Jimmy Soho <jimmy.soho@gmail.com> wrote:
+> fwiw, we experience this too irregularly, about once a week or 2 weeks
+> for a few seconds, and sometimes up to a minute or 2 minutes long. for
+> no apparent reasons indeed. and at random times.
+
+Wait, based on what you say below, is this happening to unicorn or
+nginx?
+
+> my suspicion so far has always been that this is due to bad (wifi)
+> networks of clients. what happens when a request is handled
+> successfully by rails, but for whatever reason the last bit of the
+> response can't be delivered because the receiving end is not consuming
+> in a timely fashion?
+
+So nginx is complaining about disconnected clients, not unicorn,
+correct?
+
+> If i'm not mistaken i think that rails logs a 200 success message
+> before the response is actually send back?
+
+Correct, rails/unicorn won't know if the client disconnected until
+nginx breaks the connection to unicorn.
+
+> Is a response send back by rails / unicorn fully buffered by nginx? Or
+> is a unicorn worker blocked until the response is confirmed to have
+> been successfully received by the client?
+
+nginx fully buffers both requests and responses by default.
+Which leads us to...
+
+> Aside: how do you protect your unicorn workers against a barrage of
+> client requests that eat the response veeeeeery sloooooooowly?
+
+That's the whole point of using nginx with unicorn.  nginx shields
+unicorn from slow clients.
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
