@@ -1,0 +1,97 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=0.6 required=5.0 tests=AWL,RDNS_NONE,T_DKIM_INVALID
+ shortcircuit=no autolearn=no version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (unknown [50.56.192.79]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id BF1BA1F464 for <archivist@yhbt.net>; Thu, 22 Aug 2013
+ 16:30:55 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 6AFA22E188; Thu, 22 Aug 2013 16:30:46 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+X-Greylist: delayed 2026 seconds by postgrey-1.31 at rubyforge; Thu, 22 Aug
+ 2013 16:30:33 UTC
+Received: from mail-pb0-f51.google.com (mail-pb0-f51.google.com
+ [209.85.160.51]) by rubyforge.org (Postfix) with ESMTP id BC7082E188 for
+ <mongrel-unicorn@rubyforge.org>; Thu, 22 Aug 2013 16:30:33 +0000 (UTC)
+Received: by mail-pb0-f51.google.com with SMTP id jt11so1996862pbb.38 for
+ <mongrel-unicorn@rubyforge.org>; Thu, 22 Aug 2013 09:30:31 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com;
+ s=20120113; h=mime-version:sender:in-reply-to:references:from:date:message-id
+ :subject:to:content-type; bh=afFepYBuKembbe01hTIMH4Akh5ysAb716Y8df5g+5XY=;
+ b=D9IDTYl6xGJQ5hYlN+23ApgGSPVpC2Z9i0V2+PQR0PYRFDx7Gj0cKOnCAYASyjd+v5
+ dEJxMKEm3qSejEyry+6Tuk8gZLc+7EzNeCTJg+3pyse0sf4EO0vte3p08Plbpvl+Phub
+ ptXWJArtg3UWkgaHg0BeRBv0ZqljKFTtDJD5ghBRgeLWnQFyRHjutv2g3/uh+wH9vJVu
+ tgWm7r/1DQRAZ/etha+NWoqTubTLPgavYQmE402GXjj4Hqj+PnpTl5WM+a7ydv9M400F
+ s6c7n0/qDTJ5KygNIrTgHe+sC+zaDRCRti6yytiYISLeLUzmH4rvVMQWcSbsjD6SA7BM Y+wA==
+X-Received: by 10.68.253.161 with SMTP id ab1mr6036025pbd.76.1377185674919;
+ Thu, 22 Aug 2013 08:34:34 -0700 (PDT)
+MIME-Version: 1.0
+Received: by 10.70.11.4 with HTTP; Thu, 22 Aug 2013 08:33:54 -0700 (PDT)
+In-Reply-To:
+ <CABmj=E69w2MO3=XhZsGOCQJk=Tc_5Xn_BUV8WC6_MA40UbsEpQ@mail.gmail.com>
+References:
+ <CABmj=E6wffWKQYOfK7CyELRWMWgZWx0xrW5TgRfW8Wm+rasErQ@mail.gmail.com>
+ <20130821164144.GA19563@dcvr.yhbt.net>
+ <CABmj=E69w2MO3=XhZsGOCQJk=Tc_5Xn_BUV8WC6_MA40UbsEpQ@mail.gmail.com>
+From: Hongli Lai <hongli@phusion.nl>
+Date: Thu, 22 Aug 2013 17:33:54 +0200
+X-Google-Sender-Auth: Y7Glw8x-1NwQkOz7nnmWYbonLd0
+Message-ID:
+ <CAM3ce8Gwd9FTb+O=X4bPWCAFd4HEmJn6XPqn1WrJZKAdsfrhdA@mail.gmail.com>
+Subject: Re: HTTP streaming and Unicorn timeout
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Maybe you can use a combination. Use Nginx location blocks to forward
+most requests to Unicorn, and forward the streaming URLs to Passenger
+Enterprise/Rainbows/Puma/etc.
+
+On Thu, Aug 22, 2013 at 5:26 PM, Nokan Emiro <uzleepito@gmail.com> wrote:
+> Thank you for your answer Eric.
+>
+>> Using Rack::Timeout with Rainbows! instead of unicorn is probably a
+>> better idea.
+>
+> 99% of the requests are fast and can be served far below 300 ms.  Only
+> a few type of requests need to stream lots of data.  Do you really think that
+> unicorn isn't a good choice in this case and I should consider switching to
+> something else (Rack::Timeout + Rainbows!, Puma or whatever) just for the
+> sake of that 1%?
+>
+> u.
+> _______________________________________________
+> Unicorn mailing list - mongrel-unicorn@rubyforge.org
+> http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+> Do not quote signatures (like this one) or top post when replying
+
+
+
+-- 
+Phusion | Ruby & Rails deployment, scaling and tuning solutions
+
+Web: http://www.phusion.nl/
+E-mail: info@phusion.nl
+Chamber of commerce no: 08173483 (The Netherlands)
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
