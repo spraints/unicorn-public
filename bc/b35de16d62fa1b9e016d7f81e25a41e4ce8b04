@@ -1,0 +1,70 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=0.5 required=5.0 tests=AWL,RDNS_NONE shortcircuit=no
+ autolearn=no version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (unknown [50.56.192.79]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 1863A1F6FF for <archivist@yhbt.net>; Fri, 23 Aug 2013
+ 02:05:02 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id BEB122E1C0; Fri, 23 Aug 2013 02:05:01 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id F1D272E186 for <mongrel-unicorn@rubyforge.org>; Fri,
+ 23 Aug 2013 02:04:53 +0000 (UTC)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 2E0D21F464; Fri, 23 Aug 2013 02:04:53 +0000 (UTC)
+Date: Fri, 23 Aug 2013 02:04:53 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Subject: Re: Ruby 2.0 Bad file descriptor (Errno::EBADF)
+Message-ID: <20130823020453.GA16849@dcvr.yhbt.net>
+References: <AD4B5905-E7D6-48D9-A768-877F3DE9D1B1@icloud.com>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To: <AD4B5905-E7D6-48D9-A768-877F3DE9D1B1@icloud.com>
+User-Agent: Mutt/1.5.21 (2010-09-15)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Port Himmerland <port.himmerland@icloud.com> wrote:
+> hi. i've been trying to upgrade my stack to ruby 2.0 but keep getting this on ubuntu (not on my local os x):
+> 
+> /hello/shared/bundle/ruby/2.0.0/gems/unicorn-4.6.3/lib/unicorn/http_server.rb:746:in `for_fd': Bad file descriptor (Errno::EBADF)
+> 
+> this happens all the time for my legacy rails app, but i'm not able to reproduce on a tiny new rack app. i'm wondering if this could be related:
+> 
+> https://github.com/puma/puma/issues/177
+> https://github.com/puma/puma/pull/220
+
+We've been prepared for close-on-exec by default since unicorn 4.1.0
+over two years ago:
+
+	commit 6ab27beeda3b0aaaa66f7cc4f734944a7aa84385
+	Author: Eric Wong <normalperson@yhbt.net>
+	Date:   Thu Aug 11 12:59:09 2011 -0700
+
+	    future-proof against close-on-exec by default
+
+Did you upgrade to Ruby 2.0.0 before upgrading to unicorn 4.1+?
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
