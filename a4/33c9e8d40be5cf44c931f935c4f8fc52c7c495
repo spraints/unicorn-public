@@ -1,0 +1,90 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=0.5 required=5.0 tests=AWL,RDNS_NONE shortcircuit=no
+ autolearn=no version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (unknown [50.56.192.79]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id E67A31F70D for <archivist@yhbt.net>; Wed,  4 Sep 2013
+ 19:29:44 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 79CCF2E1D6; Wed,  4 Sep 2013 19:29:44 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id D00732E181 for <mongrel-unicorn@rubyforge.org>; Wed, 
+ 4 Sep 2013 19:29:33 +0000 (UTC)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id BF1291F6BD; Wed,  4 Sep 2013 19:29:31 +0000 (UTC)
+Date: Wed, 4 Sep 2013 19:29:31 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Subject: Re: Ruby 2.0 Bad file descriptor (Errno::EBADF)
+Message-ID: <20130904192931.GA30981@dcvr.yhbt.net>
+References: <AD4B5905-E7D6-48D9-A768-877F3DE9D1B1@icloud.com>
+ <20130823020453.GA16849@dcvr.yhbt.net>
+ <loom.20130823T081148-213@post.gmane.org>
+ <20130823064737.GA31699@dcvr.yhbt.net>
+ <loom.20130904T205308-432@post.gmane.org>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To: <loom.20130904T205308-432@post.gmane.org>
+User-Agent: Mutt/1.5.21 (2010-09-15)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Eric Chapweske <eac@zendesk.com> wrote:
+> We ran into the same issue. For us, it was because we were executing the 
+> process using bundle exec.  Bundler doesn't preserve the 1.9 behavior around
+> FD inheritance. https://github.com/bundler/bundler/issues/2628
+
+Thanks Eric!  I just pushed out the following and updated the website.
+
+Subject: [PATCH] Sandbox: document SIGUSR2 + bundler issue with 2.0.0
+
+Thanks to Eric Chapweske for the heads up.
+
+ref: http://mid.gmane.org/loom.20130904T205308-432@post.gmane.org
+---
+ Sandbox | 7 +++++++
+ 1 file changed, 7 insertions(+)
+
+diff --git a/Sandbox b/Sandbox
+index 1df149b..3c7f226 100644
+--- a/Sandbox
++++ b/Sandbox
+@@ -60,6 +60,13 @@ If you're using an older Bundler version (0.9.x), you may need to set or
+ reset GEM_HOME, GEM_PATH and PATH environment variables in the
+ before_exec hook as illustrated by http://gist.github.com/534668
+ 
++=== Ruby 2.0.0 close-on-exec and SIGUSR2 incompatibility
++
++Ruby 2.0.0 enforces FD_CLOEXEC on file descriptors by default.  unicorn
++has been prepared for this behavior since unicorn 4.1.0, but we forgot
++to remind the Bundler developers.  This issue is being tracked here:
++https://github.com/bundler/bundler/issues/2628
++
+ == Isolate
+ 
+ === Running
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
