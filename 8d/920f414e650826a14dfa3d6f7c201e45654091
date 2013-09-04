@@ -1,0 +1,80 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: **
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=2.1 required=5.0 tests=AWL,RCVD_NUMERIC_HELO,
+ RDNS_NONE shortcircuit=no autolearn=no version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (unknown [50.56.192.79]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 78D441F6BD for <archivist@yhbt.net>; Wed,  4 Sep 2013
+ 19:10:32 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 2629F2E1CB; Wed,  4 Sep 2013 19:10:27 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from plane.gmane.org (plane.gmane.org [80.91.229.3]) by
+ rubyforge.org (Postfix) with ESMTP id A98432E1C9 for
+ <mongrel-unicorn@rubyforge.org>; Wed,  4 Sep 2013 19:10:08 +0000 (UTC)
+Received: from list by plane.gmane.org with local (Exim 4.69) (envelope-from
+ <gclrug-mongrel-unicorn@m.gmane.org>) id 1VHISq-0004db-FS for
+ mongrel-unicorn@rubyforge.org; Wed, 04 Sep 2013 21:10:04 +0200
+Received: from 192.161.159.18 ([192.161.159.18]) by main.gmane.org with esmtp
+ (Gmexim 0.1 (Debian)) id 1AlnuQ-0007hv-00 for
+ <mongrel-unicorn@rubyforge.org>; Wed, 04 Sep 2013 21:10:04 +0200
+Received: from eac by 192.161.159.18 with local (Gmexim 0.1 (Debian)) id
+ 1AlnuQ-0007hv-00 for <mongrel-unicorn@rubyforge.org>; Wed, 04 Sep 2013
+ 21:10:04 +0200
+X-Injected-Via-Gmane: http://gmane.org/
+To: mongrel-unicorn@rubyforge.org
+From: Eric Chapweske <eac@zendesk.com>
+Subject: Re: Ruby 2.0 Bad file descriptor (Errno::EBADF)
+Date: Wed, 4 Sep 2013 19:00:32 +0000 (UTC)
+Message-ID: <loom.20130904T205308-432@post.gmane.org>
+References: <AD4B5905-E7D6-48D9-A768-877F3DE9D1B1@icloud.com>
+ <20130823020453.GA16849@dcvr.yhbt.net>
+ <loom.20130823T081148-213@post.gmane.org>
+ <20130823064737.GA31699@dcvr.yhbt.net>
+Mime-Version: 1.0
+X-Complaints-To: usenet@ger.gmane.org
+X-Gmane-NNTP-Posting-Host: sea.gmane.org
+User-Agent: Loom/3.14 (http://gmane.org/)
+X-Loom-IP: 192.161.159.18 (Mozilla/5.0 (Macintosh; Intel Mac OS X 10_7_5)
+ AppleWebKit/537.36 (KHTML, like Gecko) Chrome/29.0.1547.57 Safari/537.36)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Eric Wong <normalperson <at> yhbt.net> writes:
+
+> OK, this is really strange; especially since you're only hitting this
+> on your legacy app and not a new one.
+> 
+> I certainly haven't hit this with Ruby 2.0.0 anywhere (neither unicorn
+> nor Rainbows!).  I'm fairly certain enough folks are using Ruby 2.0.0 by
+> now that we would have more reports if something were amiss.
+> 
+> Let us know what you find, thanks!
+
+
+We ran into the same issue. For us, it was because we were executing the 
+process using bundle exec.  Bundler doesn't preserve the 1.9 behavior around
+FD inheritance. https://github.com/bundler/bundler/issues/2628
+
+
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
