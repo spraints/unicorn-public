@@ -1,0 +1,134 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: *
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=1.3 required=5.0 tests=RDNS_NONE shortcircuit=no
+ autolearn=no version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (unknown [50.56.192.79]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 0BCD744C004 for <archivist@yhbt.net>; Fri, 20 Sep
+ 2013 21:49:29 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id B355E2E1CB; Fri, 20 Sep 2013 21:49:29 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from mail-pd0-f181.google.com (mail-pd0-f181.google.com
+ [209.85.192.181]) by rubyforge.org (Postfix) with ESMTP id 62FB52E185 for
+ <mongrel-unicorn@rubyforge.org>; Fri, 20 Sep 2013 21:49:23 +0000 (UTC)
+Received: by mail-pd0-f181.google.com with SMTP id g10so874393pdj.26 for
+ <mongrel-unicorn@rubyforge.org>; Fri, 20 Sep 2013 14:49:21 -0700 (PDT)
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=1e100.net;
+ s=20130820; h=x-gm-message-state:from:to:cc:subject:date:message-id;
+ bh=g1RlSv9WTmBwHfboe5cmmGACl198ROhJAwBPbEX607w=;
+ b=OW3ocbOgM/Ch9bK1lqVjtlngiOZft0MX74a+Q0GeB+eVl0I/UF2wDUuzSZClzcqw/7
+ evcm+6NeNdYZHr+NhGL1DBFVBNaeRY7EYp7VhAG3Q1O/Ft2ic5qLJkwkRCMkkoQIi93b
+ xiddx/QCGLk9tOn0L0bII1U9u5L3TDEbYRKPfQ1uFIotWZu2m+lj/1lbMtUTURq4VZTu
+ OriPIiQ7whJ6P+q9DoUO9yTTeYsK90a7xUhsswpY6POA5hq+PaM+ZWQjipZsavXDU6Ep
+ 3EUpCH/GX9my1MOv2VRscxUf4Onzh6hfeYEP44W/biwnHj+nVLqdZOCFnFirjPOh5yqb NOCw==
+X-Gm-Message-State:
+ ALoCoQkEzTBgCUQkwqjUr8s6OKB6zSZd+jiaeQhRkVNlQdVdjpY9CQ5Tj9X5B9LZqv86ec9QAdw0
+X-Received: by 10.68.50.165 with SMTP id d5mr10259664pbo.162.1379713261386;
+ Fri, 20 Sep 2013 14:41:01 -0700 (PDT)
+Received: from localhost.localdomain
+ (GITHUB-INC.bar1.SanFrancisco1.Level3.net. [4.53.133.38]) by mx.google.com
+ with ESMTPSA id h2sm17830821pbj.38.1969.12.31.16.00.00 (version=TLSv1
+ cipher=RC4-SHA bits=128/128); Fri, 20 Sep 2013 14:41:00 -0700 (PDT)
+From: Aman Gupta <aman@tmm1.net>
+To: mongrel-unicorn@rubyforge.org
+Subject: [PATCH] preload_app can take an optional block for warmup
+Date: Fri, 20 Sep 2013 14:40:56 -0700
+Message-Id: <1379713256-23933-1-git-send-email-aman@tmm1.net>
+X-Mailer: git-send-email 1.8.3.4
+Cc: Aman Gupta <aman@tmm1.net>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+MIME-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+---
+ lib/unicorn/configurator.rb    | 19 ++++++++++++++++---
+ lib/unicorn/http_server.rb     |  3 +++
+ test/unit/test_configurator.rb |  8 ++++++++
+ 3 files changed, 27 insertions(+), 3 deletions(-)
+
+diff --git a/lib/unicorn/configurator.rb b/lib/unicorn/configurator.rb
+index 0d0eac7..a0ae576 100644
+--- a/lib/unicorn/configurator.rb
++++ b/lib/unicorn/configurator.rb
+@@ -441,9 +441,22 @@ class Unicorn::Configurator
+   # by properly deploying all required code and dependencies.
+   # Using preload_app=true means any application load error will
+   # cause the master process to exit with an error.
+-
+-  def preload_app(bool)
+-    set_bool(:preload_app, bool)
++  #
++  # preload_app can also take an optional block. This block will be invoked
++  # with the rack application and can be used to "warm up" the application
++  # before deployment:
++  #
++  #  preload_app do |app|
++  #    client = Rack::MockRequest.new(app)
++  #    client.get('/')
++  #  end
++  #
++  def preload_app(bool=nil, &block)
++    if block_given? || bool.respond_to?(:call)
++      set_hook(:preload_app, block_given? ? block : bool, 1)
++    else
++      set_bool(:preload_app, bool)
++    end
+   end
+ 
+   # Toggles making \env[\"rack.input\"] rewindable.
+diff --git a/lib/unicorn/http_server.rb b/lib/unicorn/http_server.rb
+index bed24d0..d749a92 100644
+--- a/lib/unicorn/http_server.rb
++++ b/lib/unicorn/http_server.rb
+@@ -721,6 +721,9 @@ class Unicorn::HttpServer
+         Gem.refresh
+       end
+       self.app = app.call
++      if preload_app.respond_to?(:call)
++        preload_app[app]
++      end
+     end
+   end
+ 
+diff --git a/test/unit/test_configurator.rb b/test/unit/test_configurator.rb
+index 1298f0e..8a1a68e 100644
+--- a/test/unit/test_configurator.rb
++++ b/test/unit/test_configurator.rb
+@@ -172,4 +172,12 @@ class TestConfigurator < Test::Unit::TestCase
+     end
+   end
+ 
++  def test_preload_app
++    test_struct = TestStruct.new
++    [ true, false, proc { |a| }, Proc.new { |a| }, lambda { |a| } ].each do |my_proc|
++      Unicorn::Configurator.new(:preload_app => my_proc).commit!(test_struct)
++      assert_equal my_proc, test_struct.preload_app
++    end
++  end
++
+ end
+-- 
+1.8.3.4
+
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
