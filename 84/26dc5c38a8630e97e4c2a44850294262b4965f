@@ -1,0 +1,71 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=0.5 required=5.0 tests=AWL,RDNS_NONE shortcircuit=no
+ autolearn=no version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (unknown [50.56.192.79]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 9D6DD1F700 for <archivist@yhbt.net>; Mon, 23 Sep 2013
+ 10:58:16 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 075D62E1DF; Mon, 23 Sep 2013 10:58:15 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id BAB8E2E1DA for <mongrel-unicorn@rubyforge.org>; Mon,
+ 23 Sep 2013 10:58:08 +0000 (UTC)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 536931F6FB; Mon, 23 Sep 2013 10:58:07 +0000 (UTC)
+Date: Mon, 23 Sep 2013 10:58:07 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: Aman Gupta <aman@tmm1.net>
+Subject: Re: [PATCH] preload_app can take an optional block for warmup
+Message-ID: <20130923105807.GA24712@dcvr.yhbt.net>
+References: <1379713256-23933-1-git-send-email-aman@tmm1.net>
+ <20130921084911.GA29716@dcvr.yhbt.net>
+ <CAK=uwuwJXnE3K+u6mzBbidiqSdswHgC07qRtkhKtAUf-X5YBNQ@mail.gmail.com>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To:
+ <CAK=uwuwJXnE3K+u6mzBbidiqSdswHgC07qRtkhKtAUf-X5YBNQ@mail.gmail.com>
+User-Agent: Mutt/1.5.21 (2010-09-15)
+Cc: unicorn list <mongrel-unicorn@rubyforge.org>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Aman Gupta <aman@tmm1.net> wrote:
+> > In particular, what benefit does this have over putting the same
+> > code in config.ru or config/initializer.rb (or similar?)
+> 
+> With my patch, preload_app yields a rack app object which includes the
+> middleware stack. AFAIK there's no way to do this in the context of
+> config.ru, since the app is still being built. My goal is to warm up
+> the final application that will be serving traffic, including all
+> middleware.
+
+Good point.  Perhaps this can be triggered via Rack::Builder#to_app
+instead, so it can benefit _all_ Rack HTTP servers.
+
+Care to move this discussion over to rack-devel?
+
+There's the odd non-Rack::Builder case, too, but I think everybody just
+uses Rack::Builder via config.ru, right?
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
