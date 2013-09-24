@@ -1,0 +1,128 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=0.5 required=5.0 tests=AWL,RDNS_NONE shortcircuit=no
+ autolearn=no version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (unknown [50.56.192.79]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 708271F6FB for <archivist@yhbt.net>; Tue, 24 Sep 2013
+ 17:40:04 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id D61B92E210; Tue, 24 Sep 2013 17:40:04 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id CF9D82E209 for <mongrel-unicorn@rubyforge.org>; Tue,
+ 24 Sep 2013 17:39:57 +0000 (UTC)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 04D5E1F6F9; Tue, 24 Sep 2013 17:39:55 +0000 (UTC)
+Date: Tue, 24 Sep 2013 17:39:55 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Subject: Re: IOError: closed stream
+Message-ID: <20130924173955.GA1378@dcvr.yhbt.net>
+References:
+ <CAOUKb5dWZg2HAuXi92qt03U3_5NZGhOEwyB7+UqMwBmxdFpHTg@mail.gmail.com>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To:
+ <CAOUKb5dWZg2HAuXi92qt03U3_5NZGhOEwyB7+UqMwBmxdFpHTg@mail.gmail.com>
+User-Agent: Mutt/1.5.21 (2010-09-15)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+David Judd <david@academia.edu> wrote:
+> I'm getting "IOError: closed stream" from inside Unicorn occasionally
+> and I don't know what to make of it. The stack trace looks like this:
+> 
+> unicorn (4.5.0) lib/unicorn/stream_input.rb:129:in `kgio_read' unicorn
+> (4.5.0) lib/unicorn/stream_input.rb:129:in `read_all' unicorn (4.5.0)
+> lib/unicorn/stream_input.rb:60:in `read' unicorn (4.5.0)
+> lib/unicorn/tee_input.rb:84:in `read'
+> config/initializers/rack_request.rb:19:in `POST' rack (1.4.5)
+> lib/rack/request.rb:221:in `params'
+> 
+> Any suggestions what this might indicate? Is this what I should
+> legitimately expect to see if the browser closes the connection
+> abruptly?
+
+Not a client closing the connection, that would be EOFError,
+Errno::ECONNRESET or another Errno::...
+
+IOError means something in the unicorn process closed the connection
+already, which should not happen there.
+
+Do you have anything in your Rack app which does background processing
+of rack.input after the response is written?
+
+That would be the most likely explanation...
+
+> It's happening only for POSTs, and a small percentage of them, but I
+> can't find any further pattern - a variety of content, usually quite
+> small content-lengths.
+> 
+> Currently we're running nginx in front of unicorn via a unix socket.
+> In this state the errors occur at an almost-negligible rate. I
+> experimented yesterday with moving instead to nginx in front of
+> varnish, on a separate machine, with varnish then talking to unicorn
+> via a TCP socket. In that configuration the errors increased
+> dramatically, although the majority of requests still succeeded.
+
+If varnish is used, your nginx -> varnish -> unicorn is what I would
+recommend (not that I have much experience with varnish, but I when I
+last looked at them, nginx was better at handling slow/idle
+connections).
+
+That said, I'm not sure what could cause the increase in errors...
+Is varnish attempting to pre-connect?
+
+Can you reproduce this error on a minimal Rack app from a client
+you control?
+
+> As you can see we're running unicorn 4.5 and rack 1.4.5 - except that
+> I'm monkey-patching Rack::Request to backport the 1.5 POST method,
+> which transforms an earlier nil error in to this one. (On Ruby 2.0.0,
+> on an Ubuntu-precise box on AWS.)
+
+For the mimimal rack test app, try just an unpatched Rack,
+there could be a subtle compatibility problems from the monkey patch.
+
+The basic idea is to eliminate variables and strange/uncommon things to
+pinpoint the problem.
+
+> Any relevant info or suggestions would be appreciated.
+
+Since you're on 4.5, it would not be via rack.hijack ...
+
+I'm not ruling out a bug in unicorn, but I don't think we've heard of
+this problem before.  The code for handling rack.input hasn't been
+changed much, either.  I beat the crap out of it, but usually for PUT
+requests (but not using POST in Rack::Request).
+
+> Apologies if this shows up as a double-post--my first attempt seems to
+> have been rejected because I didn't turn on plain text mode.
+
+Only saw this one.  You can check on gmane.comp.lang.ruby.unicorn.general
+or http://rubyforge.org/pipermail/mongrel-unicorn
+Mailman should be converting HTML to plain-text, but maybe it fails
+sometimes...  I'd rather deal with an occasional double post than every
+message being 2-3 times bigger due to HTML.
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
