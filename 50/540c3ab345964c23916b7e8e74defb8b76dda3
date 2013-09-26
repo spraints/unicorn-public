@@ -1,0 +1,149 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: *
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=1.3 required=5.0 tests=RDNS_NONE shortcircuit=no
+ autolearn=no version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (unknown [50.56.192.79]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 797241F790 for <archivist@yhbt.net>; Thu, 26 Sep 2013
+ 22:31:52 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 11C402E1D9; Thu, 26 Sep 2013 22:31:53 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from mail-vc0-f169.google.com (mail-vc0-f169.google.com
+ [209.85.220.169]) by rubyforge.org (Postfix) with ESMTP id 42D442E1D9 for
+ <mongrel-unicorn@rubyforge.org>; Thu, 26 Sep 2013 22:31:45 +0000 (UTC)
+Received: by mail-vc0-f169.google.com with SMTP id ib11so1363661vcb.0 for
+ <mongrel-unicorn@rubyforge.org>; Thu, 26 Sep 2013 15:31:43 -0700 (PDT)
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=1e100.net;
+ s=20130820; h=x-gm-message-state:mime-version:in-reply-to:references:date
+ :message-id:subject:from:to:content-type;
+ bh=7oSPn8mTrN8C5n3VZDD+V4OzVC+wNANYBQx9Q5LYmLk=;
+ b=CWqRwLw7+l6eZrye9rlu9ZGkbzt3uHm9E3ZgUaHwx6GumLy3tF0+nZeLDeu7Kjj2KM
+ slqpz08dx1+fPc7331PH57ZoMaBeI0vaP+q/3bUVSN/w5UbLWzN7McaNeB8z0HSP5JhG
+ aPMAF73t+EgiNENJpKFJDimAaqqOQRVjcPBmYw5D0rRS2eGOK0anCQikhsV9KYEWgGjh
+ ZLpFFFbx1gx2MRET+oEA7NPAy/O3B7nqwmwo5Ze3j1zxKtVdFy81ffJ1IDBRJmN+ge/z
+ PPT4sCAVUHXJ3jm+iDIWOz8zY7YS7Zz9MIVOmjx50CsmxBs69wG7Q3vqXFAUb4MfAcGo lGCA==
+X-Gm-Message-State:
+ ALoCoQl2vcfPggA/k6bTemWSIPx/aOeLDU3qeZ43fweyLfItHe92LHiog8O5IsRz+RXcF2ufI66E
+MIME-Version: 1.0
+X-Received: by 10.220.94.206 with SMTP id a14mr2826475vcn.19.1380234703465;
+ Thu, 26 Sep 2013 15:31:43 -0700 (PDT)
+Received: by 10.58.180.74 with HTTP; Thu, 26 Sep 2013 15:31:43 -0700 (PDT)
+In-Reply-To:
+ <CAOUKb5dWZg2HAuXi92qt03U3_5NZGhOEwyB7+UqMwBmxdFpHTg@mail.gmail.com>
+References:
+ <CAOUKb5dWZg2HAuXi92qt03U3_5NZGhOEwyB7+UqMwBmxdFpHTg@mail.gmail.com>
+Date: Thu, 26 Sep 2013 15:31:43 -0700
+Message-ID:
+ <CAOUKb5doGF5wTWzrXUYsUtMheZ3kiOtwNJTQz9ZErjcXGpG8tQ@mail.gmail.com>
+Subject: Re: IOError: closed stream
+From: David Judd <david@academia.edu>
+To: mongrel-unicorn@rubyforge.org
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+>
+> Do you have anything in your Rack app which does background processing
+> of rack.input after the response is written?
+> That would be the most likely explanation...
+
+Not that I'm aware of, and I can't find any references to rack.input
+in our codebase aside from the monkeypatch.
+
+> If varnish is used, your nginx -> varnish -> unicorn is what I would
+> recommend (not that I have much experience with varnish, but I when I
+> last looked at them, nginx was better at handling slow/idle
+> connections).
+> That said, I'm not sure what could cause the increase in errors...
+> Is varnish attempting to pre-connect?
+
+I realized when I was seeing the errors en masse, I was actually just
+running varnish->unicorn, no nginx--I hadn't finished the switch to
+nginx->varnish->unicorn which we had planned.
+
+> Can you reproduce this error on a minimal Rack app from a client
+> you control?
+
+I'll give it a shot when I have some time, but suspect it will be
+tough. Even with the 'bad' setup, it's an infrequent error with
+production traffic that's pretty high-volume.
+
+I'll also (actually, probably sooner) actually try the configuration
+of nginx->varnish->unicorn. If that works, or mostly works, I may not
+be able to justify investing the time to dig into this further.
+
+> For the mimimal rack test app, try just an unpatched Rack,
+> there could be a subtle compatibility problems from the monkey patch.
+> The basic idea is to eliminate variables and strange/uncommon things to
+> pinpoint the problem.
+
+With an unpatched Rack, I get a NoMethodError due to
+Rack::Request#POST returning nil. I think there's a one-to-one
+correspondence between when one error would occur and when the other
+would, but I can't confirm that - one started appearing as soon as the
+other disappeared, at roughly the same rate. The seemingly relevant
+commit (although the justification for the change doesn't seem
+related): https://github.com/rack/rack/commit/b0593078ce792a380779528a6a135c066aa03515
+
+Thanks,
+David
+
+On Tue, Sep 24, 2013 at 9:02 AM, David Judd <david@academia.edu> wrote:
+> I'm getting "IOError: closed stream" from inside Unicorn occasionally
+> and I don't know what to make of it. The stack trace looks like this:
+>
+> unicorn (4.5.0) lib/unicorn/stream_input.rb:129:in `kgio_read' unicorn
+> (4.5.0) lib/unicorn/stream_input.rb:129:in `read_all' unicorn (4.5.0)
+> lib/unicorn/stream_input.rb:60:in `read' unicorn (4.5.0)
+> lib/unicorn/tee_input.rb:84:in `read'
+> config/initializers/rack_request.rb:19:in `POST' rack (1.4.5)
+> lib/rack/request.rb:221:in `params'
+>
+> Any suggestions what this might indicate? Is this what I should
+> legitimately expect to see if the browser closes the connection
+> abruptly?
+>
+> It's happening only for POSTs, and a small percentage of them, but I
+> can't find any further pattern - a variety of content, usually quite
+> small content-lengths.
+>
+> Currently we're running nginx in front of unicorn via a unix socket.
+> In this state the errors occur at an almost-negligible rate. I
+> experimented yesterday with moving instead to nginx in front of
+> varnish, on a separate machine, with varnish then talking to unicorn
+> via a TCP socket. In that configuration the errors increased
+> dramatically, although the majority of requests still succeeded.
+>
+> As you can see we're running unicorn 4.5 and rack 1.4.5 - except that
+> I'm monkey-patching Rack::Request to backport the 1.5 POST method,
+> which transforms an earlier nil error in to this one. (On Ruby 2.0.0,
+> on an Ubuntu-precise box on AWS.)
+>
+> Any relevant info or suggestions would be appreciated.
+>
+> Apologies if this shows up as a double-post--my first attempt seems to
+> have been rejected because I didn't turn on plain text mode.
+>
+> Thanks,
+> David
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
