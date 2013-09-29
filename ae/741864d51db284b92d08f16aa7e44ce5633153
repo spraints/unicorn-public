@@ -1,0 +1,95 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: *
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=1.3 required=5.0 tests=RDNS_NONE shortcircuit=no
+ autolearn=no version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (unknown [50.56.192.79]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 597D81F799 for <archivist@yhbt.net>; Sun, 29 Sep 2013
+ 20:21:44 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id D35D82E219; Sun, 29 Sep 2013 20:21:44 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+X-Greylist: delayed 466 seconds by postgrey-1.31 at rubyforge; Sun, 29 Sep
+ 2013 20:21:40 UTC
+Received: from smtp125.iad.emailsrvr.com (smtp125.iad.emailsrvr.com
+ [207.97.245.125]) by rubyforge.org (Postfix) with ESMTP id 7DD912E1ED for
+ <mongrel-unicorn@rubyforge.org>; Sun, 29 Sep 2013 20:21:40 +0000 (UTC)
+Received: from localhost (localhost.localdomain [127.0.0.1]) by
+ smtp32.relay.iad1a.emailsrvr.com (SMTP Server) with ESMTP id 0EE39148237 for
+ <mongrel-unicorn@rubyforge.org>; Sun, 29 Sep 2013 16:13:50 -0400 (EDT)
+X-Virus-Scanned: OK
+Received: from legacy20.wa-web.iad1a (legacy20.wa-web.iad1a.rsapps.net
+ [192.168.2.206]) by smtp32.relay.iad1a.emailsrvr.com (SMTP Server) with ESMTP
+ id F08DF1481CC for <mongrel-unicorn@rubyforge.org>; Sun, 29 Sep 2013 16:13:49
+ -0400 (EDT)
+Received: from auger.net (localhost.localdomain [127.0.0.1]) by
+ legacy20.wa-web.iad1a (Postfix) with ESMTP id C66E13C70084 for
+ <mongrel-unicorn@rubyforge.org>; Sun, 29 Sep 2013 16:13:49 -0400 (EDT)
+Received: by apps.rackspace.com (Authenticated sender: nick@auger.net, from:
+ nick@auger.net)  with HTTP; Sun, 29 Sep 2013 16:13:49 -0400 (EDT)
+Date: Sun, 29 Sep 2013 16:13:49 -0400 (EDT)
+Subject: More unexplained timeouts
+From: nick@auger.net
+To: mongrel-unicorn@rubyforge.org
+MIME-Version: 1.0
+Importance: Normal
+X-Priority: 3 (Normal)
+X-Type: plain
+Message-ID: <1380485629.811321251@apps.rackspace.com>
+X-Mailer: webmail7.0
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+We're still suffering from unexplained workers timing out.  We recently upgraded to the latest unicorn 4.6.3 (while still on REE 1.8.7) in the hopes that it would solve our issues.  Unfortunately, this seemed to exacerbate the problem, with timeouts happening more frequently, but that could be related to greater precision in timeouts in newer versions of unicorn.  (In our unicorn 3.6.2, a timeout set to 120s might not ACTUALLY timeout until 180s or more, thus allowing a bit more time for Ruby to finish whatever it was choking on.)
+
+We dropped the timeout down to 65s (to make sure it was triggered) and then tried to add greater logging (per http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/1269.)  The START/FINISH approach confirms it's not an issue with our application code, ie:
+
+HH:MM:SS- S/F[PID]- /PATH
+15:21:01- START-25904- /pathA
+15:21:01- FINISH-25904- /pathA
+15:21:01- START-25904- /pathB
+15:21:01- FINISH-25904- /pathB
+15:21:01- START-25904- /pathC
+15:21:01- FINISH-25904- /pathC
+worker=11 PID:25904 timeout (66s > 65s), killing
+reaped #<Process::Status: pid=25904,signaled(SIGKILL=9)> worker=11
+
+For each START we always get a corresponding FINISH and then the worker is killed.  Additionally, our nginx logs confirm that this last request was sent back to the client.  No 'upstream' errors in our nginx log, either.
+
+When we tried the Thread sleep approach, nothing actually appeared in the logs.  I imagine this means that ruby or some C extension is misbehaving.
+
+Unfortunately, it's been impossible for us to recreate this in development.  
+
+Thoughts?
+
+RHEL 5.6
+REE 1.8.7 2011.12
+Unicorn 4.6.3
+16 unicorn workers on 8 cores
+No swap activity, no peaks in load
+
+Again, thanks for all your help!
+
+-Nick
+
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
