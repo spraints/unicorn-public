@@ -1,0 +1,110 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=0.5 required=5.0 tests=AWL,RDNS_NONE shortcircuit=no
+ autolearn=no version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (unknown [50.56.192.79]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 633DC44C00D for <archivist@yhbt.net>; Mon, 30 Sep
+ 2013 00:07:38 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 0257A2E21A; Mon, 30 Sep 2013 00:07:39 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id C89F12E21A for <mongrel-unicorn@rubyforge.org>; Mon,
+ 30 Sep 2013 00:06:22 +0000 (UTC)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 3A22744C00D; Mon, 30 Sep 2013 00:06:20 +0000 (UTC)
+Date: Mon, 30 Sep 2013 00:06:17 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Subject: Re: More unexplained timeouts
+Message-ID: <20130930000617.GA27578@dcvr.yhbt.net>
+References: <1380485629.811321251@apps.rackspace.com>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To: <1380485629.811321251@apps.rackspace.com>
+User-Agent: Mutt/1.5.21 (2010-09-15)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+nick@auger.net wrote:
+> We're still suffering from unexplained workers timing out.  We
+> recently upgraded to the latest unicorn 4.6.3 (while still on REE
+> 1.8.7) in the hopes that it would solve our issues.  Unfortunately,
+> this seemed to exacerbate the problem, with timeouts happening more
+> frequently, but that could be related to greater precision in timeouts
+> in newer versions of unicorn.  (In our unicorn 3.6.2, a timeout set to
+> 120s might not ACTUALLY timeout until 180s or more, thus allowing a
+> bit more time for Ruby to finish whatever it was choking on.)
+
+Yes, there were some fixes in 4.x to improve the timeout accuracy.
+
+> We dropped the timeout down to 65s (to make sure it was triggered) and
+> then tried to add greater logging (per
+> http://permalink.gmane.org/gmane.comp.lang.ruby.unicorn.general/1269.)
+> The START/FINISH approach confirms it's not an issue with our
+> application code, ie:
+> 
+> HH:MM:SS- S/F[PID]- /PATH
+> 15:21:01- START-25904- /pathA
+> 15:21:01- FINISH-25904- /pathA
+> 15:21:01- START-25904- /pathB
+> 15:21:01- FINISH-25904- /pathB
+> 15:21:01- START-25904- /pathC
+> 15:21:01- FINISH-25904- /pathC
+> worker=11 PID:25904 timeout (66s > 65s), killing
+> reaped #<Process::Status: pid=25904,signaled(SIGKILL=9)> worker=11
+> 
+> For each START we always get a corresponding FINISH and then the
+> worker is killed.  Additionally, our nginx logs confirm that this last
+> request was sent back to the client.  No 'upstream' errors in our
+> nginx log, either.
+> 
+> When we tried the Thread sleep approach, nothing actually appeared in
+> the logs.  I imagine this means that ruby or some C extension is
+> misbehaving.
+
+Sounds like it.  1.8 and old C extensions could easily lock up the
+interpreter on blocking calls.
+
+Another problem could be using new versions of C extensions that are no
+longer tested under 1.8.  I admit I haven't tested recent versions of
+unicorn/kgio/raindrops on 1.8 lately, either, but I'm _fairly_ sure they
+still work since they haven't changed much.
+
+> Unfortunately, it's been impossible for us to recreate this in
+> development.  
+
+Are you running any different gems/extensions in development vs
+production?
+
+> Thoughts?
+> 
+> RHEL 5.6
+> REE 1.8.7 2011.12
+> Unicorn 4.6.3
+> 16 unicorn workers on 8 cores
+> No swap activity, no peaks in load
+
+What other gems/extensions do you use?
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
