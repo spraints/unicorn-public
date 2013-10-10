@@ -1,0 +1,97 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=0.5 required=5.0 tests=AWL,RDNS_NONE shortcircuit=no
+ autolearn=no version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (unknown [50.56.192.79]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 039551F73E for <archivist@yhbt.net>; Thu, 10 Oct 2013
+ 22:54:04 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id E2C932E1DD; Thu, 10 Oct 2013 22:54:04 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 6A6AA2E1DB for <mongrel-unicorn@rubyforge.org>; Thu,
+ 10 Oct 2013 22:53:59 +0000 (UTC)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 177DD1F737; Thu, 10 Oct 2013 22:53:57 +0000 (UTC)
+Date: Thu, 10 Oct 2013 22:53:56 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Subject: Re: unicorn simple cgi without rails
+Message-ID: <20131010225356.GA11485@dcvr.yhbt.net>
+References: <BAY168-W75210ADA572964921374F9D41E0@phx.gbl>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To: <BAY168-W75210ADA572964921374F9D41E0@phx.gbl>
+User-Agent: Mutt/1.5.21 (2010-09-15)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+nomad Bellcam <damonswirled@hotmail.com> wrote:
+> my website is mostly static with some small cgi areas, and i like to
+> use ruby for the cgi. when i did my research for the best ruby cgi
+> handler for nginx, unicorn figured prominently in my results, and so i
+> became interested in trying it. i spent some time reading up on how to
+> configure and use it but have been unsuccessful implementing, mostly i
+> believe due to the fact that i do not have a rails framework installed
+> nor a legitimate rackup config.ru
+
+> my question is this: does it make any sense at all to use unicorn as a
+> ruby cgi handler if i am not also using rails?
+
+Yes, but perhaps Rainbows! (a sister project of unicorn) is better
+<http://rainbows.rubyforge.org/> since it has less overhead when
+waiting for a big CGI to run.  If performance/scalability isn't
+an issue, then unicorn is fine for CGI.  unicorn is much easier
+to configure as there's less documentation to read :)
+
+> and if there is indeed
+> some sense in this idea, how might i go about it? is there a simple
+> rackup file that would work for a configuration such as this? i
+> couldn't find any information on rackup configs of this sort, and not
+> being familiar with rails the terrain simply became to steep at this
+> point to continue without some guidance or assurances.
+
+You can check out rack-legacy git://github.com/eric1234/rack-legacy
+
+I've never used rack-legacy, as I've been running the bundled
+Unicorn::App::ExecCGI before with cgit <http://git.zx2c4.com/cgit/>.
+I haven't used it on anything but cgit, however.
+
+I use the following for serving http://bogomips.org/unicorn.git
+
+(I run this with Rainbows!, but it's fine with unicorn, too)
+------------------------ config.ru ------------------------
+require "unicorn/app/exec_cgi"
+map("http://bogomips.org/") do
+  repo = "/path/to/my/git/repos/on/bogomips.org"
+  cgit = Unicorn::App::ExecCgi.new("#{repo}/cgit.cgi")
+
+  # Attempts static file serving with Rack::File, first.
+  # Fall back to calling cgit if the URL matches .git
+  # Otherwise, just return a 404
+  r404 = [ 404, [ %w(Content-Length 0), %w(Content-Type text/plain) ], [] ]
+  cgit_wrap = lambda { |e| e["PATH_INFO"] =~ %r{\.git} ? cgit.call(e) : r404 }
+  run Rack::Cascade.new([ Rack::File.new(repo), cgit_wrap ])
+end
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
