@@ -1,0 +1,115 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=0.5 required=5.0 tests=AWL,RDNS_NONE shortcircuit=no
+ autolearn=no version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (unknown [50.56.192.79]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 016A21F6D3 for <archivist@yhbt.net>; Sun, 20 Oct 2013
+ 04:45:09 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 90A332E186; Sun, 20 Oct 2013 04:45:08 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id DAC0B2E182; Sun, 20 Oct 2013 04:44:21 +0000 (UTC)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 9DD261F464; Sun, 20 Oct 2013 04:44:20 +0000 (UTC)
+Date: Sun, 20 Oct 2013 04:44:20 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: mongrel-unicorn@rubyforge.org
+Subject: [RFC] workaround reopen atomicity issues for stdio vs non-stdio
+Message-ID: <20131020044420.GA2734@dcvr.yhbt.net>
+MIME-Version: 1.0
+Content-Disposition: inline
+User-Agent: Mutt/1.5.21 (2010-09-15)
+Cc: rainbows-talk@rubyforge.org
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+In multithreaded apps, we must use dup2/dup3 with a temporary
+descriptor to reopen log files atomically.  This is the only way
+to protect all concurrent userspace access to a file when reopening.
+
+ref: http://bugs.ruby-lang.org/issues/9036
+ref: yahns commit bcb10abe53cfb1d6a8ef7daef59eb10ced397c8a
+---
+ Review of this patch is greatly appreciated.  This doesn't affect most
+ unicorn users unless they spawn threads themselves and write to log
+ files in their app.  This does affect Rainbows! users who configure
+ Rainbows! to use threads, though.
+
+
+ Also, I guess I should announce yahns on these lists for those not on
+ ruby-talk:  http://yahns.yhbt.net/README
+ git clone git://yhbt.net/yahns - not for production, yet, but soon
+ I can write HTTP servers all day long, really, I just can't stand
+ web browsers :P
+
+ lib/unicorn/util.rb | 24 ++++++++++++++++++++++--
+ 1 file changed, 22 insertions(+), 2 deletions(-)
+
+diff --git a/lib/unicorn/util.rb b/lib/unicorn/util.rb
+index f84241c..94c4e37 100644
+--- a/lib/unicorn/util.rb
++++ b/lib/unicorn/util.rb
+@@ -39,7 +39,7 @@ module Unicorn::Util
+     to_reopen.each do |fp|
+       orig_st = begin
+         fp.stat
+-      rescue IOError, Errno::EBADF
++      rescue IOError, Errno::EBADF # race
+         next
+       end
+ 
+@@ -50,8 +50,28 @@ module Unicorn::Util
+       end
+ 
+       begin
+-        File.open(fp.path, 'a') { |tmpfp| fp.reopen(tmpfp) }
++        # stdin, stdout, stderr are special.  The following dance should
++        # guarantee there is no window where `fp' is unwritable in MRI
++        # (or any correct Ruby implementation).
++        #
++        # Fwiw, GVL has zero bearing here.  This is tricky because of
++        # the unavoidable existence of stdio FILE * pointers for
++        # std{in,out,err} in all programs which may use the standard C library
++        if fp.fileno <= 2
++          # We do not want to hit fclose(3)->dup(2) window for std{in,out,err}
++          # MRI will use freopen(3) here internally on std{in,out,err}
++          fp.reopen(fp.path, "a")
++        else
++          # We should not need this workaround, Ruby can be fixed:
++          #    http://bugs.ruby-lang.org/issues/9036
++          # MRI will not call call fclose(3) or freopen(3) here
++          # since there's no associated std{in,out,err} FILE * pointer
++          # This should atomically use dup3(2) (or dup2(2)) syscall
++          File.open(fp.path, "a") { |tmpfp| fp.reopen(tmpfp) }
++        end
++
+         fp.sync = true
++        fp.flush # IO#sync=true may not implicitly flush
+         new_st = fp.stat
+ 
+         # this should only happen in the master:
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
