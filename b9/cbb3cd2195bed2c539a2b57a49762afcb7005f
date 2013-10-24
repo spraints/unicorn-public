@@ -1,0 +1,103 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=0.5 required=5.0 tests=AWL,RDNS_NONE shortcircuit=no
+ autolearn=no version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (unknown [50.56.192.79]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 1A0431FD63 for <archivist@yhbt.net>; Thu, 24 Oct 2013
+ 20:27:17 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 91AD52E1E7; Thu, 24 Oct 2013 20:27:17 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id B4A982E1DB for <mongrel-unicorn@rubyforge.org>; Thu,
+ 24 Oct 2013 20:27:10 +0000 (UTC)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 7DA0A1FD5F; Thu, 24 Oct 2013 20:27:08 +0000 (UTC)
+Date: Thu, 24 Oct 2013 20:27:08 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Subject: Re: pid file handling issue
+Message-ID: <20131024202708.GA4738@dcvr.yhbt.net>
+References:
+ <CABHxtY4KFQ5SXSsWqxUVu5MfiGBELOxQa2fT2-hGidx8Zbyuow@mail.gmail.com>
+ <20131024005316.GA10239@dcvr.yhbt.net>
+ <CABHxtY5m4fNNXS7qMP8LEwbnJDA9nvnkMvzVD=VXcKVsY2RxyQ@mail.gmail.com>
+ <20131024020338.GA12078@dcvr.yhbt.net>
+ <CABHxtY4W=rMZb+bv_RqqH0uQy76stHrPY63phz91u+gutaJC=Q@mail.gmail.com>
+ <20131024182137.GA25770@dcvr.yhbt.net>
+ <CABHxtY4ax=yzCL-tEvad9LZw13CYiewhP0jy5vvQWy5vQOqaXw@mail.gmail.com>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To:
+ <CABHxtY4ax=yzCL-tEvad9LZw13CYiewhP0jy5vvQWy5vQOqaXw@mail.gmail.com>
+User-Agent: Mutt/1.5.21 (2010-09-15)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Michael Fischer <mfischer@zendesk.com> wrote:
+> On Thu, Oct 24, 2013 at 11:21 AM, Eric Wong <normalperson@yhbt.net> wrote:
+> 
+> > Right, we looked at using rename last year but I didn't think it's possible
+> > given we need to write the pid file before binding new listen sockets
+> >
+> >   http://mid.gmane.org/20121127215146.GA23452@dcvr.yhbt.net
+> >
+> > But perhaps we can drop the pid file late iff ENV["UNICORN_FD"] is
+> > detected.  I'll see if that can be done w/o breaking compatibility.
+> 
+> My opinion is that supporting backward compatibility cases that are
+> clearly poorly designed, at least in open-source software, is
+> ill-advised.  (I'm referring to the Mongrel compatibility semantics
+> discussed in that article.)
+> 
+> That aside, I don't yet understand this "need" you're referring to.
+> The control flow I'm proposing is as follows:
+
+I'm not really sure, either; I just remember it was somewhat important
+to Mongrel back then.  I'll get back to this later today/tomorrow.
+Your control flow looks correct, though.
+
+> > But NTP syncs early in the boot process before most processes (including
+> > unicorn) are started.  It shouldn't matter, then, right?
+> 
+> Truth be told, I'm not completely certain why this is an issue.  My
+> reading of procps and the kernel suggests it should be doing the right
+> thing, but I tried this at first:
+> 
+> - Touch a timestamp file before sending P a SIGUSR2.
+> - Wait for oldpid to disappear
+> - Read the stime field from ps(1) for the remaining master process (P or P')
+> - If stime < mtime of timestamp: new process failed.  If stime >
+> mtime, new process succeeded.
+> 
+> But for reasons unclear to me, sometimes the stime of P' (successful
+> reload) would predate the timestamp!  This was obviously agonizing.
+
+OK, comparing mtime vs calculated value of stime is not possible because
+of time adjustments.  Process start time is stored as monotonic time,
+and calculated in ps(1) to real clock time.
+
+So you can only compare stimes between different processes.  Comparing
+stime to the mtime/ctime/atime of any file will not work reliably.
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
