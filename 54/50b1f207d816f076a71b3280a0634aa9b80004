@@ -1,0 +1,77 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=0.4 required=5.0 tests=AWL,FREEMAIL_FROM,RDNS_NONE,
+ T_DKIM_INVALID shortcircuit=no autolearn=no version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (unknown [50.56.192.79]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 509971FD63 for <archivist@yhbt.net>; Thu, 24 Oct 2013
+ 16:37:54 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 886CD2E1D4; Thu, 24 Oct 2013 16:37:53 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+X-Greylist: delayed 307 seconds by postgrey-1.31 at rubyforge; Thu, 24 Oct
+ 2013 16:31:31 UTC
+Received: from mail-ie0-f172.google.com (mail-ie0-f172.google.com
+ [209.85.223.172]) by rubyforge.org (Postfix) with ESMTP id 521DF2E1CF for
+ <mongrel-unicorn@rubyforge.org>; Thu, 24 Oct 2013 16:31:31 +0000 (UTC)
+Received: by mail-ie0-f172.google.com with SMTP id tp5so4436481ieb.17 for
+ <mongrel-unicorn@rubyforge.org>; Thu, 24 Oct 2013 09:31:30 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com;
+ s=20120113;
+ h=mime-version:in-reply-to:references:from:date:message-id:subject:to
+ :content-type; bh=f/eebBmtghufB8VLavXy+ZTnQz08cDtVLT/IFZgg5VQ=;
+ b=RxOXNFk34wcoFn04zKb8SmfxR24oyEaBG100IpCZxZ/0jryG5laU03nydFoWGsNL1k
+ ZJ6e5woGdwsOp3LaFETW+1w5eVVEx0ih+aCv8CL2dCcpmUmoN0MHYLXKANbwTKYRyQLE
+ i1RAY2s29LzTsnygdjKWh3zcGZGWaka2PG5ET3BvOZuCWO0kRISE9S7XGYRXUfrjNgcA
+ URRMNRy24iDF3+CCe34ta0lPN1cC+d3/NRx8ZZrKQDH9GBOJJCZFD1QPoY1OqvHX+ltj
+ iDr/Rd6ynOc+7IngiWD1h9UCR263w87pQkw83HCY2DRXEUwAKK6GbdFLPxVfpPSMRdbD ZpEg==
+X-Received: by 10.50.67.105 with SMTP id m9mr2414213igt.34.1382631980017;
+ Thu, 24 Oct 2013 09:26:20 -0700 (PDT)
+MIME-Version: 1.0
+Received: by 10.64.226.166 with HTTP; Thu, 24 Oct 2013 09:25:58 -0700 (PDT)
+In-Reply-To: <20131024161711.GA15219@dcvr.yhbt.net>
+References:
+ <CAAtdryOypyUFMJcMPQ6sSt5EjpeLAKSoZAiEwbTNWK6aEevAdQ@mail.gmail.com>
+ <20131024161711.GA15219@dcvr.yhbt.net>
+From: Alex Sharp <ajsharp@gmail.com>
+Date: Thu, 24 Oct 2013 09:25:58 -0700
+Message-ID:
+ <CAB3oGjqzu5scnTvjDmdHtim18-e_HW0+iEDyBS1hvM1En_oRsw@mail.gmail.com>
+Subject: Re: Forking non web processes
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+On Thu, Oct 24, 2013 at 9:17 AM, Eric Wong <normalperson@yhbt.net> wrote:
+> I'm also wondering why... sidekiq/resque are standalone daemons
+> themselves.  Shouldn't that be done as part of the deploy/init process?
+> (unicorn isn't going to become init/upstart/systemd)
+
+Agree with Eric here. You probably want to run unicorn and sidekiq /
+resque in a way that they're not coupled to one another. They should
+have different startup scripts and monitoring properties. And
+eventually you may want to move your background worker processes to
+another machine.
+
+- alex sharp
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
