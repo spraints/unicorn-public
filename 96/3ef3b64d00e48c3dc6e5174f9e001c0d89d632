@@ -1,0 +1,84 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=0.5 required=5.0 tests=AWL,RDNS_NONE shortcircuit=no
+ autolearn=no version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (unknown [50.56.192.79]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id BE78444C1A0 for <archivist@yhbt.net>; Thu, 24 Oct
+ 2013 00:53:22 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 21BF22E1FF; Thu, 24 Oct 2013 00:53:22 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id F055A2E1F6 for <mongrel-unicorn@rubyforge.org>; Thu,
+ 24 Oct 2013 00:53:17 +0000 (UTC)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 2E19344C19E; Thu, 24 Oct 2013 00:53:17 +0000 (UTC)
+Date: Thu, 24 Oct 2013 00:53:17 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Subject: Re: pid file handling issue
+Message-ID: <20131024005316.GA10239@dcvr.yhbt.net>
+References:
+ <CABHxtY4KFQ5SXSsWqxUVu5MfiGBELOxQa2fT2-hGidx8Zbyuow@mail.gmail.com>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To:
+ <CABHxtY4KFQ5SXSsWqxUVu5MfiGBELOxQa2fT2-hGidx8Zbyuow@mail.gmail.com>
+User-Agent: Mutt/1.5.21 (2010-09-15)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Michael Fischer <mfischer@zendesk.com> wrote:
+> Hi everyone,
+> 
+> While writing a script to determine the success or failure of a
+> Unicorn reload attempt (without having to parse a log), I noticed that
+> Unicorn doesn't preserve the timestamp of its pid file.  In other
+> words, instead of renaming pidfile to pidfile.oldbin (and then back
+> again if the reload failed), it creates a new pid file for each master
+> phase change.
+> 
+> This means we cannot simply compare the mtime of the current pidfile
+> against the time the USR2 signal was given in order to make a
+> reasonable conclusion.
+> 
+> I tried another method, which was to look at the start time of the
+> process as reported by ps(1), but on Linux, that time does not come
+> from the wall clock: it's derived from the number of jiffies since
+> system boot.  So it's not guaranteed to be accurate, especially if the
+> wall clock was incorrect at system boot.
+> 
+> Are there any other methods anyone can suggest?  Otherwise, a change
+> to Unicorn's behavior with respect to pid file maintenance would be
+> kindly appreciated.
+
+I read and stash the value of the pid file before issuing any USR2.
+Later, you can issue "kill -0 $old_pid" after sending SIGQUIT
+to ensure it's dead.
+
+Checking the mtime of the pidfile is really bizarre...
+
+OTOH, there's times when users accidentally remove a pid
+file and regenerate by hand it from ps(1), too...
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
