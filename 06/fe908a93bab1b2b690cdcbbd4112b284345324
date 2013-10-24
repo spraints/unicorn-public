@@ -1,0 +1,120 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: *
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=1.4 required=5.0 tests=AWL,RDNS_NONE shortcircuit=no
+ autolearn=no version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (unknown [50.56.192.79]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 54A331FD66 for <archivist@yhbt.net>; Thu, 24 Oct 2013
+ 17:51:20 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 09EB02E1CE; Thu, 24 Oct 2013 17:51:19 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from mail-pd0-f176.google.com (mail-pd0-f176.google.com
+ [209.85.192.176]) by rubyforge.org (Postfix) with ESMTP id F19382E18D for
+ <mongrel-unicorn@rubyforge.org>; Thu, 24 Oct 2013 17:51:09 +0000 (UTC)
+Received: by mail-pd0-f176.google.com with SMTP id g10so2768298pdj.35 for
+ <mongrel-unicorn@rubyforge.org>; Thu, 24 Oct 2013 10:51:08 -0700 (PDT)
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=1e100.net;
+ s=20130820; h=x-gm-message-state:mime-version:in-reply-to:references:date
+ :message-id:subject:from:to:content-type;
+ bh=JhO3oAN/+2wODOwuQNRpdD9TvA2MSaQ5DA48F8HZ/Bo=;
+ b=BHdmPyiR/USj4KmPE7E7XjSMTulWJ6EYAvtvdTz+WFwT1p9XIga9eni1J/t6JwcHY3
+ QUcorbcGfWHTh9UWb/iRTT5ounGBBLIbhzP46SMDOfb41hznbubglpvpZu+De6TfoO4c
+ Ri+HvX+EN6JqID+90In+7uyiJIVuv4FEsvT/wP21lpwYfDvwIxsdadyMrrCpLHnyx5dO
+ QohpDzz/UlPn7x9WuG+kyZpIjZOH4LHdeLshDt6NcgN6BaKvKYDIKpQlvY7Ku+paBHVY
+ J5DwXyAMOBmYTIeKj8X1+26Ca50ycA+/pkVn+Ds9HphHSLCCWkBvzz9p4sdo6jFXRSb2 yQdg==
+X-Gm-Message-State:
+ ALoCoQkNja+D9ynQK5PDIev4Aig7a+K5BWGpsGGLpBiO9+70r+saIZVUdDSbJSSXouATLX9ZtlNj
+MIME-Version: 1.0
+X-Received: by 10.66.155.102 with SMTP id vv6mr4460183pab.89.1382637068377;
+ Thu, 24 Oct 2013 10:51:08 -0700 (PDT)
+Received: by 10.68.73.202 with HTTP; Thu, 24 Oct 2013 10:51:08 -0700 (PDT)
+In-Reply-To: <20131024020338.GA12078@dcvr.yhbt.net>
+References:
+ <CABHxtY4KFQ5SXSsWqxUVu5MfiGBELOxQa2fT2-hGidx8Zbyuow@mail.gmail.com>
+ <20131024005316.GA10239@dcvr.yhbt.net>
+ <CABHxtY5m4fNNXS7qMP8LEwbnJDA9nvnkMvzVD=VXcKVsY2RxyQ@mail.gmail.com>
+ <20131024020338.GA12078@dcvr.yhbt.net>
+Date: Thu, 24 Oct 2013 10:51:08 -0700
+Message-ID:
+ <CABHxtY4W=rMZb+bv_RqqH0uQy76stHrPY63phz91u+gutaJC=Q@mail.gmail.com>
+Subject: Re: pid file handling issue
+From: Michael Fischer <mfischer@zendesk.com>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+On Wed, Oct 23, 2013 at 7:03 PM, Eric Wong <normalperson@yhbt.net> wrote:
+
+>> > I read and stash the value of the pid file before issuing any USR2.
+>> > Later, you can issue "kill -0 $old_pid" after sending SIGQUIT
+>> > to ensure it's dead.
+>>
+>> That's inherently racy; another process can claim the old PID in the interim.
+>
+> Right, but raciness goes for anything regarding pid files.
+>
+> The OS does make an effort to avoid recycling PIDs too often,
+> and going through all the PIDs in a system quickly is
+> probably rare.  I haven't hit it, at least.
+
+That's not good enough.
+
+The fact that the pid file contains a pid is immaterial to me; I don't
+even need to look at it.  I only care about when it was created, or
+what its inode number is, so that I can detect whether Unicorn was
+last successfully started or restarted.  rename(2) is atomic per POSIX
+and is not subject to race conditions.
+
+>> > Checking the mtime of the pidfile is really bizarre...
+>>
+>> Perhaps (though it's a normative criticism), but on the other hand, it
+>> isn't subject to the race above.
+>
+> It's still racy in a different way, though (file could change right
+> after checking).
+
+If the file's mtime or inode number changes under my proposal, that
+means the reload must have been successful.   What race condition are
+you referring to that would render this conclusion inaccurate?
+
+> Having the process start time in /proc be unreliable because the server
+> has the wrong time is also in the same category of corner cases.
+
+This is absolutely not true.  A significant minority, if not a
+majority, of servers will have at least slightly inaccurate wall
+clocks on boot.  This is usually corrected during boot by an NTP sync,
+but by then the die has already been cast insofar as ps(1) output is
+concerned.
+
+> Also, can you check the inode of the /proc/$pid entry?  Perhaps
+
+That's not portable.
+
+> PID files are horrible, really :<
+
+To reiterate, I'm not using the PID file in this instance to determine
+Unicorn's PID.  It could be empty, for all I care.
+
+--Michael
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
