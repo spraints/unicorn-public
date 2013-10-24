@@ -1,0 +1,88 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: *
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=1.4 required=5.0 tests=AWL,RDNS_NONE shortcircuit=no
+ autolearn=no version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (unknown [50.56.192.79]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 6125444C19F for <archivist@yhbt.net>; Thu, 24 Oct
+ 2013 01:01:40 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 0EEA72E203; Thu, 24 Oct 2013 01:01:40 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+X-Greylist: delayed 9617 seconds by postgrey-1.31 at rubyforge; Thu, 24 Oct
+ 2013 01:01:34 UTC
+Received: from mail-pb0-f52.google.com (mail-pb0-f52.google.com
+ [209.85.160.52]) by rubyforge.org (Postfix) with ESMTP id 03CAE2E1F8 for
+ <mongrel-unicorn@rubyforge.org>; Thu, 24 Oct 2013 01:01:33 +0000 (UTC)
+Received: by mail-pb0-f52.google.com with SMTP id wy17so1767314pbc.25 for
+ <mongrel-unicorn@rubyforge.org>; Wed, 23 Oct 2013 18:01:33 -0700 (PDT)
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=1e100.net;
+ s=20130820; h=x-gm-message-state:mime-version:in-reply-to:references:date
+ :message-id:subject:from:to:content-type;
+ bh=PSQ6zKBgbqeZOvwQitAaYZd5oZE/E2fwt6uKk5yrB1w=;
+ b=QH1Ipt26osGuu3sipnURv7dqaR3TYzefjPm1b6TPkDYi2Rmx2hgswq5Faz6qiAO+UQ
+ Occpegoi2QO7mPQEk+V3BohZiPJ+iWDdeMfosVV3tH1muClnGedEEEKRqIN8yvFwixhU
+ 3nIwAiB/ta7xM1dbPRhdqQKkvuzoIk6xU3ImLA8DNOE+U7f8gTeCdrj8ffPt90mLUGIY
+ sDSv6sYI5OGFs7l4TKBUUZlysEoMxCjJx1Ba42Qk4WuL6kGlyZhoU8S5Kgo8z3JV2Dq0
+ g1mGzEyu4bV4pK5WojI5VFhSMTFPKUlJtiorsEC495J6n4X3O7zCJsCvIzxWjqBlMS1u stHw==
+X-Gm-Message-State:
+ ALoCoQmgrBDi1/etgOEC/+Hb64vXaUZIGHy2zF++3C/f2MHqfw6xzmybR+BD6+RbudhTf6P7UgbF
+MIME-Version: 1.0
+X-Received: by 10.66.102.66 with SMTP id fm2mr591112pab.94.1382576493506;
+ Wed, 23 Oct 2013 18:01:33 -0700 (PDT)
+Received: by 10.68.73.202 with HTTP; Wed, 23 Oct 2013 18:01:33 -0700 (PDT)
+In-Reply-To: <20131024005316.GA10239@dcvr.yhbt.net>
+References:
+ <CABHxtY4KFQ5SXSsWqxUVu5MfiGBELOxQa2fT2-hGidx8Zbyuow@mail.gmail.com>
+ <20131024005316.GA10239@dcvr.yhbt.net>
+Date: Wed, 23 Oct 2013 18:01:33 -0700
+Message-ID:
+ <CABHxtY5m4fNNXS7qMP8LEwbnJDA9nvnkMvzVD=VXcKVsY2RxyQ@mail.gmail.com>
+Subject: Re: pid file handling issue
+From: Michael Fischer <mfischer@zendesk.com>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+On Wed, Oct 23, 2013 at 5:53 PM, Eric Wong <normalperson@yhbt.net> wrote:
+
+> I read and stash the value of the pid file before issuing any USR2.
+> Later, you can issue "kill -0 $old_pid" after sending SIGQUIT
+> to ensure it's dead.
+
+That's inherently racy; another process can claim the old PID in the interim.
+
+> Checking the mtime of the pidfile is really bizarre...
+
+Perhaps (though it's a normative criticism), but on the other hand, it
+isn't subject to the race above.
+
+> OTOH, there's times when users accidentally remove a pid
+> file and regenerate by hand it from ps(1), too...
+
+Sure, but (a) that's a corner case I'm not particularly concerned
+about, and (b) it wouldn't cause any problems, assuming the user did
+this before any reload attempt, and not in the middle or something.
+
+--Michael
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
