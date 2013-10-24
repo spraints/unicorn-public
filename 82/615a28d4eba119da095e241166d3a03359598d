@@ -1,0 +1,90 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=0.5 required=5.0 tests=AWL,RDNS_NONE shortcircuit=no
+ autolearn=no version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (unknown [50.56.192.79]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 4A0201FD60 for <archivist@yhbt.net>; Thu, 24 Oct 2013
+ 02:03:45 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 984692E19A; Thu, 24 Oct 2013 02:03:44 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id C6E972E18E for <mongrel-unicorn@rubyforge.org>; Thu,
+ 24 Oct 2013 02:03:39 +0000 (UTC)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id BFBE81FD5F; Thu, 24 Oct 2013 02:03:38 +0000 (UTC)
+Date: Thu, 24 Oct 2013 02:03:38 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Subject: Re: pid file handling issue
+Message-ID: <20131024020338.GA12078@dcvr.yhbt.net>
+References:
+ <CABHxtY4KFQ5SXSsWqxUVu5MfiGBELOxQa2fT2-hGidx8Zbyuow@mail.gmail.com>
+ <20131024005316.GA10239@dcvr.yhbt.net>
+ <CABHxtY5m4fNNXS7qMP8LEwbnJDA9nvnkMvzVD=VXcKVsY2RxyQ@mail.gmail.com>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To:
+ <CABHxtY5m4fNNXS7qMP8LEwbnJDA9nvnkMvzVD=VXcKVsY2RxyQ@mail.gmail.com>
+User-Agent: Mutt/1.5.21 (2010-09-15)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Michael Fischer <mfischer@zendesk.com> wrote:
+> On Wed, Oct 23, 2013 at 5:53 PM, Eric Wong <normalperson@yhbt.net> wrote:
+> 
+> > I read and stash the value of the pid file before issuing any USR2.
+> > Later, you can issue "kill -0 $old_pid" after sending SIGQUIT
+> > to ensure it's dead.
+> 
+> That's inherently racy; another process can claim the old PID in the interim.
+
+Right, but raciness goes for anything regarding pid files.
+
+The OS does make an effort to avoid recycling PIDs too often,
+and going through all the PIDs in a system quickly is
+probably rare.  I haven't hit it, at least.
+
+> > Checking the mtime of the pidfile is really bizarre...
+> 
+> Perhaps (though it's a normative criticism), but on the other hand, it
+> isn't subject to the race above.
+
+It's still racy in a different way, though (file could change right
+after checking).
+
+> > OTOH, there's times when users accidentally remove a pid
+> > file and regenerate by hand it from ps(1), too...
+> 
+> Sure, but (a) that's a corner case I'm not particularly concerned
+> about, and (b) it wouldn't cause any problems, assuming the user did
+> this before any reload attempt, and not in the middle or something.
+
+Having the process start time in /proc be unreliable because the server
+has the wrong time is also in the same category of corner cases.
+
+Also, can you check the inode of the /proc/$pid entry?  Perhaps
+
+PID files are horrible, really :<
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
