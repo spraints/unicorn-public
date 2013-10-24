@@ -1,0 +1,168 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: *
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=1.6 required=5.0 tests=AWL,DRUGS_ERECTILE,RDNS_NONE
+ shortcircuit=no autolearn=no version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (unknown [50.56.192.79]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id A09EC1FD63 for <archivist@yhbt.net>; Thu, 24 Oct 2013
+ 23:00:01 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 339692E216; Thu, 24 Oct 2013 23:00:01 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id F033F2E216 for <mongrel-unicorn@rubyforge.org>; Thu,
+ 24 Oct 2013 22:58:17 +0000 (UTC)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id DCD401FD5F; Thu, 24 Oct 2013 22:58:15 +0000 (UTC)
+Date: Thu, 24 Oct 2013 22:58:15 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Subject: Re: pid file handling issue
+Message-ID: <20131024225815.GA1968@dcvr.yhbt.net>
+References:
+ <CABHxtY4KFQ5SXSsWqxUVu5MfiGBELOxQa2fT2-hGidx8Zbyuow@mail.gmail.com>
+ <20131024005316.GA10239@dcvr.yhbt.net>
+ <CABHxtY5m4fNNXS7qMP8LEwbnJDA9nvnkMvzVD=VXcKVsY2RxyQ@mail.gmail.com>
+ <20131024020338.GA12078@dcvr.yhbt.net>
+ <CABHxtY4W=rMZb+bv_RqqH0uQy76stHrPY63phz91u+gutaJC=Q@mail.gmail.com>
+ <20131024182137.GA25770@dcvr.yhbt.net>
+ <CABHxtY4ax=yzCL-tEvad9LZw13CYiewhP0jy5vvQWy5vQOqaXw@mail.gmail.com>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To:
+ <CABHxtY4ax=yzCL-tEvad9LZw13CYiewhP0jy5vvQWy5vQOqaXw@mail.gmail.com>
+User-Agent: Mutt/1.5.21 (2010-09-15)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Michael Fischer <mfischer@zendesk.com> wrote:
+> (1) Previous-generation parent (P) receives SIGUSR2.
+> (2) P renames unicorn.pid to unicorn.oldpid
+> (3) P forks child (P'); if fork unsuccessful, P renames unicorn.oldpid
+> to unicorn.pid.
+> (4) P' calls exec and attempts to start; creates unicorn.pid. P
+> watches for SIGCHLD from P'.  If received, P renames unicorn.oldpid to
+> unicorn.pid.
+> (5) P' sends SIGQUIT to P.  P' unlinks unicorn.oldpid.  P' is now P.
+> 
+> What am I missing here?  This is, to my knowledge, precisely what
+> nginx does (http://wiki.nginx.org/CommandLine#Upgrading_To_a_New_Binary_On_The_Fly).
+
+OK, this is probably safe and do what you want.
+It's sitting in master for now:
+
+------------------------------ 8< --------------------------------
+From: Eric Wong <e@80x24.org>
+Subject: [PATCH] attempt to rename PID file when possible
+
+This will preserve mtime on successful renames for comparisions.
+While we're at it, avoid writing the new PID until the listeners are
+inherited successfully.  This can be useful to avoid accidentally
+clobbering a good PID if binding the listener or building the app
+(preload_app==true) fails
+---
+ lib/unicorn/http_server.rb | 48 +++++++++++++++++++++++++++++++++++-----------
+ 1 file changed, 37 insertions(+), 11 deletions(-)
+
+diff --git a/lib/unicorn/http_server.rb b/lib/unicorn/http_server.rb
+index bed24d0..cd160c5 100644
+--- a/lib/unicorn/http_server.rb
++++ b/lib/unicorn/http_server.rb
+@@ -134,11 +134,22 @@ class Unicorn::HttpServer
+     # Note that signals don't actually get handled until the #join method
+     QUEUE_SIGS.each { |sig| trap(sig) { SIG_QUEUE << sig; awaken_master } }
+     trap(:CHLD) { awaken_master }
+-    self.pid = config[:pid]
++
++    # write pid early for Mongrel compatibility if we're not inheriting sockets
++    # This was needed for compatibility with some health checker a long time
++    # ago.  This unfortunately has the side effect of clobbering valid PID
++    # files.
++    self.pid = config[:pid] unless ENV["UNICORN_FD"]
+ 
+     self.master_pid = $$
+     build_app! if preload_app
+     bind_new_listeners!
++
++    # Assuming preload_app==false, we drop the pid file after the app is ready
++    # to process requests.  If binding or build_app! fails with
++    # preload_app==true, we'll never get here and the parent will recover
++    self.pid = config[:pid] if ENV["UNICORN_FD"]
++
+     spawn_missing_workers
+     self
+   end
+@@ -180,6 +191,21 @@ class Unicorn::HttpServer
+     Unicorn::HttpRequest::DEFAULTS["rack.logger"] = @logger = obj
+   end
+ 
++  def clobber_pid(path)
++    unlink_pid_safe(@pid) if @pid
++    if path
++      fp = begin
++        tmp = "#{File.dirname(path)}/#{rand}.#$$"
++        File.open(tmp, File::RDWR|File::CREAT|File::EXCL, 0644)
++      rescue Errno::EEXIST
++        retry
++      end
++      fp.syswrite("#$$\n")
++      File.rename(fp.path, path)
++      fp.close
++    end
++  end
++
+   # sets the path for the PID file of the master process
+   def pid=(path)
+     if path
+@@ -194,18 +220,18 @@ class Unicorn::HttpServer
+                              "(or pid=#{path} is stale)"
+       end
+     end
+-    unlink_pid_safe(pid) if pid
+ 
+-    if path
+-      fp = begin
+-        tmp = "#{File.dirname(path)}/#{rand}.#$$"
+-        File.open(tmp, File::RDWR|File::CREAT|File::EXCL, 0644)
+-      rescue Errno::EEXIST
+-        retry
++    # rename the old pid if posible
++    if @pid && path
++      begin
++        File.rename(@pid, path)
++      rescue Errno::ENOENT, Errno::EXDEV
++        # a user may have accidentally removed the original.
++        # Obviously cross-FS renames
++        clobber_pid(path)
+       end
+-      fp.syswrite("#$$\n")
+-      File.rename(fp.path, path)
+-      fp.close
++    else
++      clobber_pid(path)
+     end
+     @pid = path
+   end
+-- 
+1.8.4.483.g7fe67e6.dirty
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
