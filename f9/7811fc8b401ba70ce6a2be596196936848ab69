@@ -1,0 +1,133 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: **
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=2.5 required=5.0 tests=AWL,DRUGS_ERECTILE,RDNS_NONE
+ shortcircuit=no autolearn=no version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (unknown [50.56.192.79]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 7F7DE1FD63 for <archivist@yhbt.net>; Thu, 24 Oct 2013
+ 19:57:26 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id C01AB2E1DC; Thu, 24 Oct 2013 19:57:26 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from mail-pb0-f44.google.com (mail-pb0-f44.google.com
+ [209.85.160.44]) by rubyforge.org (Postfix) with ESMTP id 52BDE2E1DC for
+ <mongrel-unicorn@rubyforge.org>; Thu, 24 Oct 2013 19:57:24 +0000 (UTC)
+Received: by mail-pb0-f44.google.com with SMTP id xa7so3133848pbc.31 for
+ <mongrel-unicorn@rubyforge.org>; Thu, 24 Oct 2013 12:57:22 -0700 (PDT)
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=1e100.net;
+ s=20130820; h=x-gm-message-state:mime-version:in-reply-to:references:date
+ :message-id:subject:from:to:content-type;
+ bh=mw3+U5HEjgOZ9rV5zL4we9RNc8pF+rdMuBRvKM1BpDk=;
+ b=K7DzAWN0dInG7/hS3JFlgV9wSKlGct16K7rK9/yBsnqB28rtS5HZGcp37eDws9xMDi
+ hFLJXCm6A0vQ+g164QEBzpDFizo0YbHh4eZI3+Aqise5flX1QF4VaoNnqKeBHd5wnLRS
+ SK6THXv7yAQHoeWwjcgy3q9z76w/n5KJCQyfF0tT87MrzdqBmgmLFcYmqJI8y1jk3m+n
+ SxOR7C+kQKuLKvJbjJfKInn2psg6gCMoAVCBxVypkBf1zc3HBxGdFshiQ4CM8zsMkA0c
+ Te56Dx4IsoKnBahrBGLEzRqC9MHz99sQvAQIZWY3QSJMY9x/rJrkr/rExRxBnu0gu88/ Jm8w==
+X-Gm-Message-State:
+ ALoCoQl2NDf43WY+U8KiZEWC/RRQ83kWvjY0aA36IQuB6eYCqaOTbanAeQ+v2rWUsY6xZ/Wpe9ii
+MIME-Version: 1.0
+X-Received: by 10.68.192.195 with SMTP id hi3mr4616070pbc.18.1382644642596;
+ Thu, 24 Oct 2013 12:57:22 -0700 (PDT)
+Received: by 10.68.73.202 with HTTP; Thu, 24 Oct 2013 12:57:22 -0700 (PDT)
+In-Reply-To: <20131024182137.GA25770@dcvr.yhbt.net>
+References:
+ <CABHxtY4KFQ5SXSsWqxUVu5MfiGBELOxQa2fT2-hGidx8Zbyuow@mail.gmail.com>
+ <20131024005316.GA10239@dcvr.yhbt.net>
+ <CABHxtY5m4fNNXS7qMP8LEwbnJDA9nvnkMvzVD=VXcKVsY2RxyQ@mail.gmail.com>
+ <20131024020338.GA12078@dcvr.yhbt.net>
+ <CABHxtY4W=rMZb+bv_RqqH0uQy76stHrPY63phz91u+gutaJC=Q@mail.gmail.com>
+ <20131024182137.GA25770@dcvr.yhbt.net>
+Date: Thu, 24 Oct 2013 12:57:22 -0700
+Message-ID:
+ <CABHxtY4ax=yzCL-tEvad9LZw13CYiewhP0jy5vvQWy5vQOqaXw@mail.gmail.com>
+Subject: Re: pid file handling issue
+From: Michael Fischer <mfischer@zendesk.com>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+On Thu, Oct 24, 2013 at 11:21 AM, Eric Wong <normalperson@yhbt.net> wrote:
+
+> Right, we looked at using rename last year but I didn't think it's possible
+> given we need to write the pid file before binding new listen sockets
+>
+>   http://mid.gmane.org/20121127215146.GA23452@dcvr.yhbt.net
+>
+> But perhaps we can drop the pid file late iff ENV["UNICORN_FD"] is
+> detected.  I'll see if that can be done w/o breaking compatibility.
+
+My opinion is that supporting backward compatibility cases that are
+clearly poorly designed, at least in open-source software, is
+ill-advised.  (I'm referring to the Mongrel compatibility semantics
+discussed in that article.)
+
+That aside, I don't yet understand this "need" you're referring to.
+The control flow I'm proposing is as follows:
+
+(1) Previous-generation parent (P) receives SIGUSR2.
+(2) P renames unicorn.pid to unicorn.oldpid
+(3) P forks child (P'); if fork unsuccessful, P renames unicorn.oldpid
+to unicorn.pid.
+(4) P' calls exec and attempts to start; creates unicorn.pid. P
+watches for SIGCHLD from P'.  If received, P renames unicorn.oldpid to
+unicorn.pid.
+(5) P' sends SIGQUIT to P.  P' unlinks unicorn.oldpid.  P' is now P.
+
+What am I missing here?  This is, to my knowledge, precisely what
+nginx does (http://wiki.nginx.org/CommandLine#Upgrading_To_a_New_Binary_On_The_Fly).
+
+>> If the file's mtime or inode number changes under my proposal, that
+>> means the reload must have been successful.   What race condition are
+>> you referring to that would render this conclusion inaccurate?
+>
+> It doesn't mean the process didn't exit/crash right after writing the PID.
+
+That should not happen per (4) above.
+
+> But NTP syncs early in the boot process before most processes (including
+> unicorn) are started.  It shouldn't matter, then, right?
+
+Truth be told, I'm not completely certain why this is an issue.  My
+reading of procps and the kernel suggests it should be doing the right
+thing, but I tried this at first:
+
+- Touch a timestamp file before sending P a SIGUSR2.
+- Wait for oldpid to disappear
+- Read the stime field from ps(1) for the remaining master process (P or P')
+- If stime < mtime of timestamp: new process failed.  If stime >
+mtime, new process succeeded.
+
+But for reasons unclear to me, sometimes the stime of P' (successful
+reload) would predate the timestamp!  This was obviously agonizing.
+
+>> To reiterate, I'm not using the PID file in this instance to determine
+>> Unicorn's PID.  It could be empty, for all I care.
+>
+> OK.  I assume you do the same for nginx?
+
+With nginx we have -t; we can at least test the config file and have a
+reasonable degree of certainty that it will reload properly.  With
+Rack apps, not so much. :)
+
+--Michael
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
