@@ -1,0 +1,100 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: *
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=1.3 required=5.0 tests=AWL,FREEMAIL_FROM,RDNS_NONE,
+ T_DKIM_INVALID shortcircuit=no autolearn=no version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (unknown [50.56.192.79]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 531EC1F6F8 for <archivist@yhbt.net>; Fri, 25 Oct 2013
+ 20:53:35 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 6C1322E1D3; Fri, 25 Oct 2013 20:53:35 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from mail-ob0-f170.google.com (mail-ob0-f170.google.com
+ [209.85.214.170]) by rubyforge.org (Postfix) with ESMTP id 2DC0E2E1CC for
+ <mongrel-unicorn@rubyforge.org>; Fri, 25 Oct 2013 20:53:28 +0000 (UTC)
+Received: by mail-ob0-f170.google.com with SMTP id wp18so1496878obc.15 for
+ <mongrel-unicorn@rubyforge.org>; Fri, 25 Oct 2013 13:53:26 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com;
+ s=20120113;
+ h=mime-version:in-reply-to:references:date:message-id:subject:from:to
+ :content-type; bh=qejnz2naXWWICQrStKfm3dpSX6dDFdg9vvdQS6LkI4A=;
+ b=co4A27No+6COk7Lr0P/qYnztdDFi8d9SnLSrnyeJgLIImfRR/a7reuVP7W7RMqCiS7
+ sItpHRn7fCrR9S6K1guX76sMWKSIBFz82BOzotLvmwY2CxHwi7r3AmI3w2uArTWnMWbp
+ TaS2bNjgtBgcZ1aPR3Ij8W+fJnHDNHemS2kXbjCBZxMCbf1VMC2OLrKRAprraDDtrjCK
+ /7U/bxuihs9gOY+TUgjMA38aQhxlOBkOg7THtXgslTXyMeh5XV3BA028jFP+CT1zjRjd
+ yFNYYKBRGLYMdnD7DoIM3EfDzyacYMwCYIBo2f/zVJaeTPOZZB4/zTfUGP6eXTw3TQsQ Gv8Q==
+MIME-Version: 1.0
+X-Received: by 10.60.44.239 with SMTP id h15mr4647811oem.22.1382734406612;
+ Fri, 25 Oct 2013 13:53:26 -0700 (PDT)
+Received: by 10.76.167.41 with HTTP; Fri, 25 Oct 2013 13:53:26 -0700 (PDT)
+In-Reply-To: <20131025204435.GA18120@dcvr.yhbt.net>
+References:
+ <CAAtdryMDGDb6vv0meZxtfGvBfB9P5xm8MqMvwuGQb5HZQF_bdw@mail.gmail.com>
+ <20131025204435.GA18120@dcvr.yhbt.net>
+Date: Sat, 26 Oct 2013 07:53:26 +1100
+Message-ID:
+ <CAAtdryMPFg4HSKzHKD_j7QAFOtOppiqJL1OviA7vHhswp0yL3A@mail.gmail.com>
+Subject: Re: Forking non web processes
+From: Sam Saffron <sam.saffron@gmail.com>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Nice, will try this out, thank you
+
+On Sat, Oct 26, 2013 at 7:44 AM, Eric Wong <normalperson@yhbt.net> wrote:
+> Sam Saffron <sam.saffron@gmail.com> wrote:
+>> The only reason for this level of crazy is to get the 30% memory
+>> saving you do when forking off a master in Ruby 2.0s CoW friendly GC.
+>> I understand this is less traditional, but perfectly acceptable for
+>> low cost VPS hosting.
+>>
+>> The unicorn master does "reap/terminate" the child fork on startup, so
+>> you are forced to hold off on forking.
+>
+> You can probably replace a worker process in the after_fork hook
+>
+> (totally untested)
+>
+> after_fork do |server, worker|
+>   if worker.nr == 1
+>     server.listeners = [] # drop listen sockets
+>
+>     # keep ticking
+>     Thread.new { worker.tick = Time.now.to_i while sleep(server.timeout/2) }
+>     begin
+>       run_your_own_thing
+>     ensure
+>       exit
+>     end
+>   end
+> end
+>
+> Or even just fork off via your Rack app.  This will be more portable in
+> case you want to try a different server.  unicorn workers do nothing
+> special with SIGCHLD, so your app can do whatever it wants with it.
+> _______________________________________________
+> Unicorn mailing list - mongrel-unicorn@rubyforge.org
+> http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+> Do not quote signatures (like this one) or top post when replying
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
