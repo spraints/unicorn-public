@@ -1,0 +1,90 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=0.5 required=5.0 tests=AWL,RDNS_NONE shortcircuit=no
+ autolearn=no version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (unknown [50.56.192.79]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id BADE51F6F8 for <archivist@yhbt.net>; Fri, 25 Oct 2013
+ 20:49:37 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 1FEA22E1CF; Fri, 25 Oct 2013 20:49:38 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 861AE2E1C8 for <mongrel-unicorn@rubyforge.org>; Fri,
+ 25 Oct 2013 20:49:31 +0000 (UTC)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id B5BD31F5B6; Fri, 25 Oct 2013 20:49:28 +0000 (UTC)
+Date: Fri, 25 Oct 2013 20:49:28 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: mongrel-unicorn@rubyforge.org
+Subject: Re: [PATCH] support SO_REUSEPORT on new listeners (:reuseport)
+Message-ID: <20131025204928.GB18120@dcvr.yhbt.net>
+References: <20131025203440.GA17963@dcvr.yhbt.net>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To: <20131025203440.GA17963@dcvr.yhbt.net>
+User-Agent: Mutt/1.5.21 (2010-09-15)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Eric Wong <normalperson@yhbt.net> wrote:
+> This allows users to start an independent instance of unicorn on
+> a the same port as a running unicorn (as long as both instances
+> use :reuseport).
+> 
+> ref: https://lwn.net/Articles/542629/
+> ---
+
+Also pushed out a couple of trivial IO_PURGATORY-related fixes to
+support this.  We'll drop 1.8 support one of these days.
+
+commit e025cd99beee500f175a3bcc302a1307b39ffb77
+Author: Eric Wong <e@80x24.org>
+Date:   Fri Oct 25 19:45:15 2013 +0000
+
+    avoid IO_PURGATORY on Ruby 1.9+
+    
+    Ruby 1.9 and later includes IO#autoclose=, so we can use it
+    and prevent some dead IO objects from hanging around.
+
+commit 7c125886b5862bf20711bae22e6697ad46141434
+Author: Eric Wong <e@80x24.org>
+Date:   Fri Oct 25 19:27:05 2013 +0000
+
+    support SO_REUSEPORT on new listeners (:reuseport)
+    
+    This allows users to start an independent instance of unicorn on
+    a the same port as a running unicorn (as long as both instances
+    use :reuseport).
+    
+    ref: https://lwn.net/Articles/542629/
+
+commit 1dc099228ee0f59c13385a3e7346a2cb37d85153
+Author: Eric Wong <e@80x24.org>
+Date:   Fri Oct 25 19:54:39 2013 +0000
+
+    tests: limit oobgc check to accepted sockets
+    
+    Otherwise these tests fail if we start using IO#autoclose=true
+    on Ruby 1.9 (and also if we use IPv6 sockets for tests).
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
