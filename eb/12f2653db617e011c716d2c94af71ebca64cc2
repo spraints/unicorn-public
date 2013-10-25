@@ -1,0 +1,82 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=0.6 required=5.0 tests=AWL,RDNS_NONE,T_DKIM_INVALID
+ shortcircuit=no autolearn=no version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (unknown [50.56.192.79]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 541AD1F734 for <archivist@yhbt.net>; Fri, 25 Oct 2013
+ 07:58:21 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 1CD6A2E20F; Fri, 25 Oct 2013 07:58:21 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+X-Greylist: delayed 1087 seconds by postgrey-1.31 at rubyforge; Fri, 25 Oct
+ 2013 07:58:14 UTC
+Received: from mail-pa0-f43.google.com (mail-pa0-f43.google.com
+ [209.85.220.43]) by rubyforge.org (Postfix) with ESMTP id D6CCC2E1DF for
+ <mongrel-unicorn@rubyforge.org>; Fri, 25 Oct 2013 07:58:14 +0000 (UTC)
+Received: by mail-pa0-f43.google.com with SMTP id hz1so3688255pad.2 for
+ <mongrel-unicorn@rubyforge.org>; Fri, 25 Oct 2013 00:58:13 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com;
+ s=20120113; h=mime-version:sender:in-reply-to:references:from:date:message-id
+ :subject:to:content-type; bh=bk2eHTDFRQk2u/RnGk04Az3BDP+Q6aj/aRvX1TM7KhM=;
+ b=s8Kd7ycOAbFW9MzR6JKa/KoJ5Ia8WKNPg4qal2w1eBgMi2wSHly7INBbfTe42zEcTY
+ zsk1UPHCtKy22uyPs+vmRmhs+D1jCnfPh2+58vkdvm+HaV7rA4sRGqPn4PzVgfS3pM62
+ aWLdggEFI37XK30PHWcQ2lojHMm3ZG3hwdOjROjaEcP6nNSjxBBfvZqdSbY52Yv1s1AR
+ 4KrKUVwb1PcX7c8bq4Nby9YpK5yrut6nDLWl2troRSw90WnsGyQEPM2CaDhXI7giuFCK
+ W57ezJqvkYjbnoZzVpKCKD6wSi5fUDIxTvL09u9Rn87A2MykMDkfcV3NfPzNQRVplJvb hSXQ==
+X-Received: by 10.67.22.67 with SMTP id hq3mr9256279pad.132.1382686477030;
+ Fri, 25 Oct 2013 00:34:37 -0700 (PDT)
+MIME-Version: 1.0
+Received: by 10.70.11.4 with HTTP; Fri, 25 Oct 2013 00:33:56 -0700 (PDT)
+In-Reply-To: <20131024225815.GA1968@dcvr.yhbt.net>
+References:
+ <CABHxtY4KFQ5SXSsWqxUVu5MfiGBELOxQa2fT2-hGidx8Zbyuow@mail.gmail.com>
+ <20131024005316.GA10239@dcvr.yhbt.net>
+ <CABHxtY5m4fNNXS7qMP8LEwbnJDA9nvnkMvzVD=VXcKVsY2RxyQ@mail.gmail.com>
+ <20131024020338.GA12078@dcvr.yhbt.net>
+ <CABHxtY4W=rMZb+bv_RqqH0uQy76stHrPY63phz91u+gutaJC=Q@mail.gmail.com>
+ <20131024182137.GA25770@dcvr.yhbt.net>
+ <CABHxtY4ax=yzCL-tEvad9LZw13CYiewhP0jy5vvQWy5vQOqaXw@mail.gmail.com>
+ <20131024225815.GA1968@dcvr.yhbt.net>
+From: Hongli Lai <hongli@phusion.nl>
+Date: Fri, 25 Oct 2013 09:33:56 +0200
+X-Google-Sender-Auth: s8dz1iElIzQw5715AEXbDPGLdx8
+Message-ID:
+ <CAM3ce8FuR0PO4b0xk526MzVW=AOQqVXOtMkQAvVN2Rrzxx-3nw@mail.gmail.com>
+Subject: Re: pid file handling issue
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+On Fri, Oct 25, 2013 at 12:58 AM, Eric Wong <normalperson@yhbt.net> wrote:
+> +    # rename the old pid if posible
+
+Nitpick: you have a typo here. :)
+
+-- 
+Phusion | Ruby & Rails deployment, scaling and tuning solutions
+
+Web: http://www.phusion.nl/
+E-mail: info@phusion.nl
+Chamber of commerce no: 08173483 (The Netherlands)
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
