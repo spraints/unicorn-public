@@ -1,0 +1,100 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=0.5 required=5.0 tests=AWL,RDNS_NONE shortcircuit=no
+ autolearn=no version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (unknown [50.56.192.79]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id CC9AA1F5B6 for <archivist@yhbt.net>; Fri, 25 Oct 2013
+ 20:32:01 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 894BA2E1C5; Fri, 25 Oct 2013 20:32:02 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id CF81F2E18F for <mongrel-unicorn@rubyforge.org>; Fri,
+ 25 Oct 2013 20:31:57 +0000 (UTC)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 16CDB1F5B6; Fri, 25 Oct 2013 20:31:56 +0000 (UTC)
+Date: Fri, 25 Oct 2013 20:31:55 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Subject: Re: pid file handling issue
+Message-ID: <20131025203155.GA17767@dcvr.yhbt.net>
+References:
+ <CABHxtY4KFQ5SXSsWqxUVu5MfiGBELOxQa2fT2-hGidx8Zbyuow@mail.gmail.com>
+ <20131024005316.GA10239@dcvr.yhbt.net>
+ <CABHxtY5m4fNNXS7qMP8LEwbnJDA9nvnkMvzVD=VXcKVsY2RxyQ@mail.gmail.com>
+ <20131024020338.GA12078@dcvr.yhbt.net>
+ <CABHxtY4W=rMZb+bv_RqqH0uQy76stHrPY63phz91u+gutaJC=Q@mail.gmail.com>
+ <20131024182137.GA25770@dcvr.yhbt.net>
+ <CABHxtY4ax=yzCL-tEvad9LZw13CYiewhP0jy5vvQWy5vQOqaXw@mail.gmail.com>
+ <20131024225815.GA1968@dcvr.yhbt.net>
+ <CAM3ce8FuR0PO4b0xk526MzVW=AOQqVXOtMkQAvVN2Rrzxx-3nw@mail.gmail.com>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To:
+ <CAM3ce8FuR0PO4b0xk526MzVW=AOQqVXOtMkQAvVN2Rrzxx-3nw@mail.gmail.com>
+User-Agent: Mutt/1.5.21 (2010-09-15)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Hongli Lai <hongli@phusion.nl> wrote:
+> On Fri, Oct 25, 2013 at 12:58 AM, Eric Wong <normalperson@yhbt.net> wrote:
+> > +    # rename the old pid if posible
+> 
+> Nitpick: you have a typo here. :)
+
+Thanks, will push :)
+
+Subject: [PATCH] http_server: fixup comments for PID file renaming
+
+Thanks to Hongli Lai for noticing my typo.  While we're at it, finish up
+a halfway-written comment for the EXDEV case
+---
+ lib/unicorn/http_server.rb | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/lib/unicorn/http_server.rb b/lib/unicorn/http_server.rb
+index a6266ea..2decd77 100644
+--- a/lib/unicorn/http_server.rb
++++ b/lib/unicorn/http_server.rb
+@@ -221,13 +221,13 @@ class Unicorn::HttpServer
+       end
+     end
+ 
+-    # rename the old pid if posible
++    # rename the old pid if possible
+     if @pid && path
+       begin
+         File.rename(@pid, path)
+       rescue Errno::ENOENT, Errno::EXDEV
+-        # a user may have accidentally removed the original.
+-        # Obviously cross-FS renames
++        # a user may have accidentally removed the original,
++        # obviously cross-FS renames don't work, either.
+         clobber_pid(path)
+       end
+     else
+-- 
+1.8.4.483.g7fe67e6.dirty
+
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
