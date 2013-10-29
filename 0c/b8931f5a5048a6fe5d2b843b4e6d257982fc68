@@ -1,0 +1,70 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=0.5 required=5.0 tests=AWL,RDNS_NONE shortcircuit=no
+ autolearn=no version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (unknown [50.56.192.79]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 6F97F1FD40 for <archivist@yhbt.net>; Tue, 29 Oct 2013
+ 00:49:38 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 03C362E18C; Tue, 29 Oct 2013 00:49:37 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id ADA7A2E153 for <mongrel-unicorn@rubyforge.org>; Tue,
+ 29 Oct 2013 00:49:28 +0000 (UTC)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id BB22E1F735; Tue, 29 Oct 2013 00:49:27 +0000 (UTC)
+Date: Tue, 29 Oct 2013 00:49:27 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: mongrel-unicorn@rubyforge.org
+Subject: [PATCH 2/1] configurator: validate :reuseport for boolean-ess
+Message-ID: <20131029004927.GA30136@dcvr.yhbt.net>
+References: <20131025203440.GA17963@dcvr.yhbt.net>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To: <20131025203440.GA17963@dcvr.yhbt.net>
+User-Agent: Mutt/1.5.21 (2010-09-15)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+In case we (and Linux) supports other values in the future,
+we can update it then.  Until now, ensure users only set
+true or false for this option.
+---
+ lib/unicorn/configurator.rb | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/lib/unicorn/configurator.rb b/lib/unicorn/configurator.rb
+index fc3405a..9406223 100644
+--- a/lib/unicorn/configurator.rb
++++ b/lib/unicorn/configurator.rb
+@@ -415,7 +415,7 @@ class Unicorn::Configurator
+         Integer === value or
+           raise ArgumentError, "not an integer: #{key}=#{value.inspect}"
+       end
+-      [ :tcp_nodelay, :tcp_nopush, :ipv6only ].each do |key|
++      [ :tcp_nodelay, :tcp_nopush, :ipv6only, :reuseport ].each do |key|
+         (value = options[key]).nil? and next
+         TrueClass === value || FalseClass === value or
+           raise ArgumentError, "not boolean: #{key}=#{value.inspect}"
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
