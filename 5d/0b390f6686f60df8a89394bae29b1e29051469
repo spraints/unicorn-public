@@ -1,0 +1,115 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: *
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=1.3 required=5.0 tests=FREEMAIL_FROM,RDNS_NONE,
+ T_DKIM_INVALID shortcircuit=no autolearn=no version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (unknown [50.56.192.79]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 9DDDC1FDEB for <archivist@yhbt.net>; Fri,  1 Nov 2013
+ 19:00:09 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 62C7C2E2CE; Fri,  1 Nov 2013 19:00:10 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+X-Greylist: delayed 6933 seconds by postgrey-1.31 at rubyforge; Fri, 01 Nov
+ 2013 19:00:02 UTC
+Received: from mail-lb0-f175.google.com (mail-lb0-f175.google.com
+ [209.85.217.175]) by rubyforge.org (Postfix) with ESMTP id 785CD2E2CE for
+ <mongrel-unicorn@rubyforge.org>; Fri,  1 Nov 2013 19:00:02 +0000 (UTC)
+Received: by mail-lb0-f175.google.com with SMTP id z5so3728612lbh.20 for
+ <mongrel-unicorn@rubyforge.org>; Fri, 01 Nov 2013 12:00:00 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com;
+ s=20120113;
+ h=mime-version:in-reply-to:references:date:message-id:subject:from:to
+ :content-type; bh=UtMDdZ2T6Ivebm+x8aa3e4pCx08oAN9rydQ39YP6K4U=;
+ b=VPWwAKEHJ/NRHklZkUxQeveSekyig9hgv4ZizXdgLyV3KHgS0S/qwvj7VlFRyBhBLP
+ 2nDkIEyl1Qk2AEqVqmvWvpH1aMHd3+dukLT8D7kCibI5yWEDS/ajuKD8u7YtS7WG7sdN
+ vYkHUwXiPPMNFQA1he9KDiyk2R7mpWnzsNRhDrmJjwjh6Wk4g+x2AFYcyoiI0zxZ1aRz
+ n8Gdm30wW1lQu/nzEdWRgtoVdwntP4jBdII8bYD1UDXJMHK+i+FQ/bbkSfA1LHz4dVS9
+ XQdBl3mbDv4Htu30BuewrvIlSgnMSd4SZYeV/N+qxq12NblkM92j3Hg2vQAnQpHAwlls HJtA==
+MIME-Version: 1.0
+X-Received: by 10.112.143.166 with SMTP id sf6mr2642391lbb.29.1383332400362;
+ Fri, 01 Nov 2013 12:00:00 -0700 (PDT)
+Received: by 10.114.233.198 with HTTP; Fri, 1 Nov 2013 12:00:00 -0700 (PDT)
+In-Reply-To: <20131101185407.GB14472@dcvr.yhbt.net>
+References: <5273c853.0575320a.4f74.ffffaae6@mx.google.com>
+ <20131101165002.GA2425@dcvr.yhbt.net>
+ <CAD1Aak3E1bPaDs93L0vm=P8w84A+ksfbe8bKLGVFqUWnU7cGYw@mail.gmail.com>
+ <20131101185407.GB14472@dcvr.yhbt.net>
+Date: Fri, 1 Nov 2013 15:00:00 -0400
+Message-ID:
+ <CAD1Aak2iTPNAzz8rGGFtqrvTHKY5LbBMyq3t5_XNz53zVqWrLA@mail.gmail.com>
+Subject: Re: [PATCH] construct listener_fds Hash in 1.8 compatible way
+From: "Ernest W. Durbin III" <ewdurbin@gmail.com>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+On Fri, Nov 1, 2013 at 2:54 PM, Eric Wong <normalperson@yhbt.net> wrote:
+> "Ernest W. Durbin III" <ewdurbin@gmail.com> wrote:
+>> On Fri, Nov 1, 2013 at 12:50 PM, Eric Wong <normalperson@yhbt.net> wrote:
+>> > "Ernest W. Durbin III" <ewdurbin@gmail.com> wrote:
+>> >> This renables the ability for Ruby 1.8 environments to perform reexecs
+>> >
+>> > Is this for Ruby 1.8.6?  I've only tested on 1.8.7,
+>> > I haven't had a 1.8.6 installation in a while.
+>> >
+>>
+>> I'll admit that the reason I need it is for a Ruby 1.8.6 environment...
+>
+> OK (wow!).   I've been pondering dropping 1.8 entirely, but I think I'll
+> keep it for now since CentOS 6.x still uses it
+>
+> Anyways, was that the only 1.8.6-incompatible thing we did?
+
+That's all I've found so far! Happy to be dropping thin, and I promise
+we're on course to get past 1.8.6 at some point... But I'm just the
+Ops guy :)
+
+>
+>> However, Ruby 1.8.7 does not have support for that Hash constructor
+>> either it simply fails silently and in a bug prone manner.
+>>
+>> ```
+>> [ernestd@ewd3do ~]$ ruby --version
+>> ruby 1.8.7 (2011-06-30 patchlevel 352) [i386-linux]
+>> [ernestd@ewd3do ~]$ irb
+>> irb(main):001:0> thing = Hash[ [ 'foo', 'bar' ], ['fizz', 'buzz'] ]
+>> => {["foo", "bar"]=>["fizz", "buzz"]}
+>
+> Actually, on 1.8.7, unicorn does the following (note the extra outer array)
+>
+> irb(main):001:0> thing = Hash[ [ [ 'foo', 'bar' ], ['fizz', 'buzz'] ] ]
+> => {"fizz"=>"buzz", "foo"=>"bar"}
+>
+> so it was fine
+
+Interesting. Sorry I missed that in the initial irb tests.
+
+Funnily enough, the List of List's Constructor type isn't documented for 1.8.7
+
+Thanks Again!
+
+> _______________________________________________
+> Unicorn mailing list - mongrel-unicorn@rubyforge.org
+> http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+> Do not quote signatures (like this one) or top post when replying
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
