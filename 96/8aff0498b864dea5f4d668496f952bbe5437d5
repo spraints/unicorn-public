@@ -1,0 +1,131 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: *
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=1.3 required=5.0 tests=AWL,FREEMAIL_FROM,RDNS_NONE,
+ T_DKIM_INVALID shortcircuit=no autolearn=no version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (unknown [50.56.192.79]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 467C844C1A0 for <archivist@yhbt.net>; Fri,  1 Nov
+ 2013 20:09:02 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 19DD32E1C7; Fri,  1 Nov 2013 20:09:02 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from mail-lb0-f177.google.com (mail-lb0-f177.google.com
+ [209.85.217.177]) by rubyforge.org (Postfix) with ESMTP id E20652E1C7 for
+ <mongrel-unicorn@rubyforge.org>; Fri,  1 Nov 2013 20:08:57 +0000 (UTC)
+Received: by mail-lb0-f177.google.com with SMTP id u14so3792338lbd.22 for
+ <mongrel-unicorn@rubyforge.org>; Fri, 01 Nov 2013 13:08:55 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com;
+ s=20120113;
+ h=mime-version:in-reply-to:references:date:message-id:subject:from:to
+ :content-type; bh=BNeQ9b+qE5lY3Mn64+G0WkFq2AUGLUt5PL9WTUSFboc=;
+ b=DWLSUU+7Rrdl27c0DelFSprPxedxIv9FkLfLuCJWFr89FtbJ01WhJJf8c3VAZOxUmc
+ LRI3fur9tez9LCgn+zJ66US8cG5C+mhg4gtNgjYDYh0y1WbkAoYd9JN0HROcgxKqwH+x
+ rjlynb07QuX+niBb5s24fiN8h7O+1DgsUIJssWRveB+fxKGYnpIodfUHQ19+o2ZVaNDp
+ fmJT6E67I8bh3OZwB8atJg8fnMd1lyTfsaw94bWCoSNlnjWdEnFDD/AQJbg9wykGKUbW
+ ZZgyJv1aB1Pq2mW3hzqPdbezuW/6nd2CjDAF1bJpH/hvvTNRJl1kW6ClpGNrG/+7eW3p xYmQ==
+MIME-Version: 1.0
+X-Received: by 10.152.235.40 with SMTP id uj8mr2347672lac.39.1383336535674;
+ Fri, 01 Nov 2013 13:08:55 -0700 (PDT)
+Received: by 10.114.233.198 with HTTP; Fri, 1 Nov 2013 13:08:55 -0700 (PDT)
+In-Reply-To: <20131101200700.GA24502@dcvr.yhbt.net>
+References:
+ <CAD1Aak00u90+SXN0ndSaDHJEEvGrJKBcedCbM_xLFMouZO3zgQ@mail.gmail.com>
+ <20131101200700.GA24502@dcvr.yhbt.net>
+Date: Fri, 1 Nov 2013 16:08:55 -0400
+Message-ID:
+ <CAD1Aak1JZS_OHAcbiEccnCYxzhyxdoKhoGpCGbC=r-M-XrVafw@mail.gmail.com>
+Subject: Re: [ISSUE] Unicorn appears to be leaking TCP sockets
+From: "Ernest W. Durbin III" <ewdurbin@gmail.com>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+On Fri, Nov 1, 2013 at 4:07 PM, Eric Wong <normalperson@yhbt.net> wrote:
+> "Ernest W. Durbin III" <ewdurbin@gmail.com> wrote:
+>> Gist containing configs and logs:
+>> https://gist.github.com/ewdurbin/1d9d2ea14a4231a5e7cc
+>
+> I was stumped until I saw your command-line:
+>
+>   "-p", "/var/run/marketing-staging/unicorn.pid"
+>
+> PID file path is '-P' (but we recommend using the config file for that)
+>
+> Pushing out the following:
+
+Gorgeous! Thank you for the swift response.
+
+> ------------------------8<------------------------------------
+> Subject: [PATCH] bin/*: enforce -p/--port argument to be a valid integer
+>
+> Users may confuse '-p' with the (to-be-deprecated) '-P/--pid'
+> option, leading to surprising behavior if a pathname is passed as a
+> port, because String#to_i would convert it to zero, causing:
+>
+>     TCPServer.new(host, port = 0)
+>
+> to bind to a random, unused port.
+> ---
+>  bin/unicorn       | 6 +++---
+>  bin/unicorn_rails | 6 +++---
+>  2 files changed, 6 insertions(+), 6 deletions(-)
+>
+> diff --git a/bin/unicorn b/bin/unicorn
+> index 01984f8..c272e43 100755
+> --- a/bin/unicorn
+> +++ b/bin/unicorn
+> @@ -47,9 +47,9 @@ op = OptionParser.new("", 24, '  ') do |opts|
+>      rackup_opts[:set_listener] = true
+>    end
+>
+> -  opts.on("-p", "--port PORT",
+> -          "use PORT (default: #{Unicorn::Const::DEFAULT_PORT})") do |p|
+> -    rackup_opts[:port] = p.to_i
+> +  opts.on("-p", "--port PORT", Integer,
+> +          "use PORT (default: #{Unicorn::Const::DEFAULT_PORT})") do |port|
+> +    rackup_opts[:port] = port
+>      rackup_opts[:set_listener] = true
+>    end
+>
+> diff --git a/bin/unicorn_rails b/bin/unicorn_rails
+> index 4bd599f..b080846 100755
+> --- a/bin/unicorn_rails
+> +++ b/bin/unicorn_rails
+> @@ -48,9 +48,9 @@ op = OptionParser.new("", 24, '  ') do |opts|
+>      rackup_opts[:set_listener] = true
+>    end
+>
+> -  opts.on("-p", "--port PORT",
+> -          "use PORT (default: #{Unicorn::Const::DEFAULT_PORT})") do |p|
+> -    rackup_opts[:port] = p.to_i
+> +  opts.on("-p", "--port PORT", Integer,
+> +          "use PORT (default: #{Unicorn::Const::DEFAULT_PORT})") do |port|
+> +    rackup_opts[:port] = port
+>      rackup_opts[:set_listener] = true
+>    end
+>
+> _______________________________________________
+> Unicorn mailing list - mongrel-unicorn@rubyforge.org
+> http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+> Do not quote signatures (like this one) or top post when replying
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
