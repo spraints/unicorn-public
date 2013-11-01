@@ -1,0 +1,114 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=0.5 required=5.0 tests=AWL,RDNS_NONE shortcircuit=no
+ autolearn=no version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (unknown [50.56.192.79]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 9609D1FDEC for <archivist@yhbt.net>; Fri,  1 Nov 2013
+ 18:49:47 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 48F562E2D2; Fri,  1 Nov 2013 18:49:48 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 5B5242E2CE for <mongrel-unicorn@rubyforge.org>; Fri, 
+ 1 Nov 2013 18:49:44 +0000 (UTC)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 6C5B31FD5B; Fri,  1 Nov 2013 18:49:42 +0000 (UTC)
+Date: Fri, 1 Nov 2013 18:49:42 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Subject: Re: [PATCH] construct listener_fds Hash in 1.8 compatible way
+Message-ID: <20131101184942.GA14472@dcvr.yhbt.net>
+References: <5273c853.0575320a.4f74.ffffaae6@mx.google.com>
+ <CAAB-Kc=j8N7rKhoES6usmObu7vvZHBMBS5Dg=2_R3jZ8yhOaXA@mail.gmail.com>
+ <CAD1Aak2zhOdP141p=G_bw0i4LD=eEvUp-mynqQ2figHKT-u0PA@mail.gmail.com>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To:
+ <CAD1Aak2zhOdP141p=G_bw0i4LD=eEvUp-mynqQ2figHKT-u0PA@mail.gmail.com>
+User-Agent: Mutt/1.5.21 (2010-09-15)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+"Ernest W. Durbin III" <ewdurbin@gmail.com> wrote:
+> On Fri, Nov 1, 2013 at 1:46 PM, Hleb Valoshka <375gnu@gmail.com> wrote:
+> > On 11/1/13, Ernest W. Durbin III <ewdurbin@gmail.com> wrote:
+> >
+> >> +      LISTENERS.map do |sock|
+> >
+> > You mean LISTENERS.each, aren't you? :)
+
+Yes, LISTENERS.each is correct here.  Thanks for the catch!
+
+> the call has been to `LISTENERS.map` as far back in the history of
+> lib/unicorn/http_server.rb as i could find.
+
+It used to be map because we wanted it to return an array.  Now we don't
+care for the return value, so I've tweaked it to each.
+
+Pushed out the following, thanks all.  Should have out 4.7.0 within
+a few days (few more cleanups while we're at it).
+
+>From 7e9e4c740aba24096f768f578779dc1053cb8b70 Mon Sep 17 00:00:00 2001
+From: "Ernest W. Durbin III" <ewdurbin@gmail.com>
+Date: Fri, 1 Nov 2013 10:12:33 -0400
+Subject: [PATCH] construct listener_fds Hash in 1.8.6 compatible way
+
+This renables the ability for Ruby 1.8.6 environments to perform reexecs
+
+[ew: clarified this is for 1.8.6,
+ favor literal {} over Hash.new,
+ tweaked LISTENERS.map => LISTENERS.each, thanks to Hleb Valoshka
+]
+
+Signed-off-by: Eric Wong <normalperson@yhbt.net>
+---
+ lib/unicorn/http_server.rb | 7 ++++---
+ 1 file changed, 4 insertions(+), 3 deletions(-)
+
+diff --git a/lib/unicorn/http_server.rb b/lib/unicorn/http_server.rb
+index 2decd77..402f133 100644
+--- a/lib/unicorn/http_server.rb
++++ b/lib/unicorn/http_server.rb
+@@ -449,13 +449,14 @@ class Unicorn::HttpServer
+     end
+ 
+     self.reexec_pid = fork do
+-      listener_fds = Hash[LISTENERS.map do |sock|
++      listener_fds = {}
++      LISTENERS.each do |sock|
+         # IO#close_on_exec= will be available on any future version of
+         # Ruby that sets FD_CLOEXEC by default on new file descriptors
+         # ref: http://redmine.ruby-lang.org/issues/5041
+         sock.close_on_exec = false if sock.respond_to?(:close_on_exec=)
+-        [ sock.fileno, sock ]
+-      end]
++        listener_fds[sock.fileno] = sock
++      end
+       ENV['UNICORN_FD'] = listener_fds.keys.join(',')
+       Dir.chdir(START_CTX[:cwd])
+       cmd = [ START_CTX[0] ].concat(START_CTX[:argv])
+-- 
+1.8.4.483.g7fe67e6.dirty
+
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
