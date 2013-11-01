@@ -1,0 +1,96 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: *
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=1.3 required=5.0 tests=FREEMAIL_FROM,
+ MSGID_FROM_MTA_HEADER,RDNS_NONE,T_DKIM_INVALID shortcircuit=no autolearn=no
+ version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (unknown [50.56.192.79]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 84E3C44C1CB for <archivist@yhbt.net>; Fri,  1 Nov
+ 2013 15:27:29 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id CD3492E2CE; Fri,  1 Nov 2013 15:27:26 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+X-Greylist: delayed 396 seconds by postgrey-1.31 at rubyforge; Fri, 01 Nov
+ 2013 15:27:17 UTC
+Received: from mail-ie0-f178.google.com (mail-ie0-f178.google.com
+ [209.85.223.178]) by rubyforge.org (Postfix) with ESMTP id 2BDC12E2CD for
+ <mongrel-unicorn@rubyforge.org>; Fri,  1 Nov 2013 15:27:17 +0000 (UTC)
+Received: by mail-ie0-f178.google.com with SMTP id x13so7579934ief.23 for
+ <mongrel-unicorn@rubyforge.org>; Fri, 01 Nov 2013 08:27:16 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com;
+ s=20120113; h=message-id:to:from:date:subject;
+ bh=oT1p2o6qWnHHxxmITMFyNbaLtK8B3DixuwvMhIFZW1o=;
+ b=t3YcafQeKx9JFI9RdXTeZS7GQxP8gWqRQkYWmsSWMSPv0QWUIrCcmSC+AtoCbpPQFz
+ hGJUpPhB2VhZyZNNZNHJZgTcbZcO1I1lZgReV5AlXwUOGDNi/6zcWxbe60E9kmSMvheG
+ qCLeMFj3iASKsvcy5BCL39smSuD3j2rs1qnHrV/P3EWJ3zb7WftOXSvdxWCf4s2u0FaT
+ F4pIRU9OVmRzgRdJLkX7QVz8e+oYwEnM9PQAlDKOOdTPKJCphXAaY5yn87y+Y82MmdLX
+ U1PkkqV4HdJ3zO2gifGcyKo6rxRUBNwxN29gc/4t3LCc8w6xQVFWLO0/1/E6l8SHfXAr As1w==
+X-Received: by 10.50.154.104 with SMTP id vn8mr2681945igb.15.1383319635916;
+ Fri, 01 Nov 2013 08:27:15 -0700 (PDT)
+Received: from ewd3gate.ernestdurbin.com (cpe-75-187-146-176.neo.res.rr.com.
+ [75.187.146.176]) by mx.google.com with ESMTPSA id
+ ka5sm3847889igb.2.2013.11.01.08.27.13 for <mongrel-unicorn@rubyforge.org>
+ (version=TLSv1 cipher=RC4-SHA bits=128/128); Fri, 01 Nov 2013 08:27:15 -0700
+ (PDT)
+Message-ID: <5273c853.0575320a.4f74.ffffaae6@mx.google.com>
+Received: by ewd3gate.ernestdurbin.com (sSMTP sendmail emulation); Fri,  1
+ Nov 2013 11:27:12 -0400
+To: mongrel-unicorn@rubyforge.org
+From: "Ernest W. Durbin III" <ewdurbin@gmail.com>
+Date: Fri, 1 Nov 2013 10:12:33 -0400
+Subject: [PATCH] construct listener_fds Hash in 1.8 compatible way
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+MIME-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+This renables the ability for Ruby 1.8 environments to perform reexecs
+---
+ lib/unicorn/http_server.rb | 7 ++++---
+ 1 file changed, 4 insertions(+), 3 deletions(-)
+
+diff --git a/lib/unicorn/http_server.rb b/lib/unicorn/http_server.rb
+index 2decd77..9a5795c 100644
+--- a/lib/unicorn/http_server.rb
++++ b/lib/unicorn/http_server.rb
+@@ -449,13 +449,14 @@ class Unicorn::HttpServer
+     end
+ 
+     self.reexec_pid = fork do
+-      listener_fds = Hash[LISTENERS.map do |sock|
++      listener_fds = Hash.new
++      LISTENERS.map do |sock|
+         # IO#close_on_exec= will be available on any future version of
+         # Ruby that sets FD_CLOEXEC by default on new file descriptors
+         # ref: http://redmine.ruby-lang.org/issues/5041
+         sock.close_on_exec = false if sock.respond_to?(:close_on_exec=)
+-        [ sock.fileno, sock ]
+-      end]
++        listener_fds[sock.fileno] = sock
++      end
+       ENV['UNICORN_FD'] = listener_fds.keys.join(',')
+       Dir.chdir(START_CTX[:cwd])
+       cmd = [ START_CTX[0] ].concat(START_CTX[:argv])
+-- 
+1.8.4
+
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
