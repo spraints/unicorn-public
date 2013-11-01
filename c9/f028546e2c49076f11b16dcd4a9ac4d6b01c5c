@@ -1,0 +1,112 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=0.5 required=5.0 tests=AWL,RDNS_NONE shortcircuit=no
+ autolearn=no version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (unknown [50.56.192.79]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id C98DE44C1A0 for <archivist@yhbt.net>; Fri,  1 Nov
+ 2013 20:07:09 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 0383F2E1CD; Fri,  1 Nov 2013 20:07:08 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id D84882E1C7 for <mongrel-unicorn@rubyforge.org>; Fri, 
+ 1 Nov 2013 20:07:02 +0000 (UTC)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id CD57544C19F; Fri,  1 Nov 2013 20:07:00 +0000 (UTC)
+Date: Fri, 1 Nov 2013 20:07:00 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Subject: Re: [ISSUE] Unicorn appears to be leaking TCP sockets
+Message-ID: <20131101200700.GA24502@dcvr.yhbt.net>
+References:
+ <CAD1Aak00u90+SXN0ndSaDHJEEvGrJKBcedCbM_xLFMouZO3zgQ@mail.gmail.com>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To:
+ <CAD1Aak00u90+SXN0ndSaDHJEEvGrJKBcedCbM_xLFMouZO3zgQ@mail.gmail.com>
+User-Agent: Mutt/1.5.21 (2010-09-15)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+"Ernest W. Durbin III" <ewdurbin@gmail.com> wrote:
+> Gist containing configs and logs:
+> https://gist.github.com/ewdurbin/1d9d2ea14a4231a5e7cc
+
+I was stumped until I saw your command-line:
+
+  "-p", "/var/run/marketing-staging/unicorn.pid"
+
+PID file path is '-P' (but we recommend using the config file for that)
+
+Pushing out the following:
+------------------------8<------------------------------------
+Subject: [PATCH] bin/*: enforce -p/--port argument to be a valid integer
+
+Users may confuse '-p' with the (to-be-deprecated) '-P/--pid'
+option, leading to surprising behavior if a pathname is passed as a
+port, because String#to_i would convert it to zero, causing:
+
+    TCPServer.new(host, port = 0)
+
+to bind to a random, unused port.
+---
+ bin/unicorn       | 6 +++---
+ bin/unicorn_rails | 6 +++---
+ 2 files changed, 6 insertions(+), 6 deletions(-)
+
+diff --git a/bin/unicorn b/bin/unicorn
+index 01984f8..c272e43 100755
+--- a/bin/unicorn
++++ b/bin/unicorn
+@@ -47,9 +47,9 @@ op = OptionParser.new("", 24, '  ') do |opts|
+     rackup_opts[:set_listener] = true
+   end
+ 
+-  opts.on("-p", "--port PORT",
+-          "use PORT (default: #{Unicorn::Const::DEFAULT_PORT})") do |p|
+-    rackup_opts[:port] = p.to_i
++  opts.on("-p", "--port PORT", Integer,
++          "use PORT (default: #{Unicorn::Const::DEFAULT_PORT})") do |port|
++    rackup_opts[:port] = port
+     rackup_opts[:set_listener] = true
+   end
+ 
+diff --git a/bin/unicorn_rails b/bin/unicorn_rails
+index 4bd599f..b080846 100755
+--- a/bin/unicorn_rails
++++ b/bin/unicorn_rails
+@@ -48,9 +48,9 @@ op = OptionParser.new("", 24, '  ') do |opts|
+     rackup_opts[:set_listener] = true
+   end
+ 
+-  opts.on("-p", "--port PORT",
+-          "use PORT (default: #{Unicorn::Const::DEFAULT_PORT})") do |p|
+-    rackup_opts[:port] = p.to_i
++  opts.on("-p", "--port PORT", Integer,
++          "use PORT (default: #{Unicorn::Const::DEFAULT_PORT})") do |port|
++    rackup_opts[:port] = port
+     rackup_opts[:set_listener] = true
+   end
+ 
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
