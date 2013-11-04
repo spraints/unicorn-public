@@ -1,0 +1,135 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=0.5 required=5.0 tests=AWL,RDNS_NONE shortcircuit=no
+ autolearn=no version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (unknown [50.56.192.79]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 2C4081FE45 for <archivist@yhbt.net>; Mon,  4 Nov 2013
+ 18:38:07 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 8ED222E1BD; Mon,  4 Nov 2013 18:38:06 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id ACA042E153 for <mongrel-unicorn@rubyforge.org>; Mon, 
+ 4 Nov 2013 18:37:51 +0000 (UTC)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 888751FE44; Mon,  4 Nov 2013 18:37:49 +0000 (UTC)
+Date: Mon, 4 Nov 2013 18:37:49 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Subject: Re: Unicorn 4.7.0 tests fail on OSX 10.7.5 and debian squeeze
+Message-ID: <20131104183749.GA18534@dcvr.yhbt.net>
+References: <014F1E10E50D4DA08811BBF10CC70038@gmail.com>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To: <014F1E10E50D4DA08811BBF10CC70038@gmail.com>
+User-Agent: Mutt/1.5.21 (2010-09-15)
+Cc: Andrew Hobson <ahobson@gmail.com>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Andrew Hobson <ahobson@gmail.com> wrote:
+> On both my machines, it is commit 7c125886b5862bf20711bae22e6697ad46141434 that breaks the tests.
+
+> : Finished tests in 0.041678s, 263.9282 tests/s, 1943.4714 assertions/s.
+> :
+> : 1) Failure:
+> : test_reuseport(TestSocketHelper) [test/unit/test_socket_helper.rb:193]:
+> : <1> expected but was
+> : <512>.
+> :
+> : 11 tests, 81 assertions, 1 failures, 0 errors, 0 skips
+> 
+> I don't see how the current test can be platform independent.  The following diff fixes OSX for me:
+> 
+> diff --git a/test/unit/test_socket_helper.rb b/test/unit/test_socket_helper.rb
+> index abc177b..2244442 100644
+> --- a/test/unit/test_socket_helper.rb
+> +++ b/test/unit/test_socket_helper.rb
+> @@ -189,7 +189,6 @@ class TestSocketHelper < Test::Unit::TestCase
+> port = unused_port @test_addr
+> name = "#@test_addr:#{port}"
+> sock = bind_listen(name, :reuseport => true)
+> - cur = sock.getsockopt(Socket::SOL_SOCKET, SO_REUSEPORT).unpack('i')[0]
+> - assert_equal 1, cur
+> + assert sock.getsockopt(Socket::SOL_SOCKET, SO_REUSEPORT).bool
+> end if defined?(SO_REUSEPORT)
+
+I can't use .bool for Ruby 1.8, unfortunately.
+I've just use assert_operator in my proposed patch below.
+
+> The error I get when I test 4.7.0 on debian squeeze (in a VM):
+> 
+> : 1) Error:
+> : test_reuseport(TestSocketHelper):
+> : Errno::ENOPROTOOPT: Protocol not available
+
+Oops, I forgot Linux < 3.9 is still widely in use(!)
+
+> I don't know how unicorn should deal with that.  I suppose ignoring
+> ENOPROTOOPT if RUBY_PLATFORM =~ /linux/ is an option, but it is
+> certainly not an appealing one.
+
+I'll just ignore it in the test.  If a user requests it, then they'll
+see the error (but we leave SO_REUSEPORT off by default)
+
+Will push the following:
+
+From: Eric Wong <normalperson@yhbt.net>
+Subject: [PATCH] tests: fix SO_REUSEPORT tests for old Linux and non-Linux
+
+On BSD-derived platforms the getsockopt true value may be any
+(>= 0) value, not just one as it is on Linux.
+
+Additionally, SO_REUSEPORT is only supported since Linux 3.9, so
+folks on older kernels may not have it available.  We still define it
+for Linux since kernel upgrades are usually more common than glibc
+upgrades.
+
+Note: we will still raise an exception at runtime if a user
+explicitly requests :reuseport in their config and runs an
+older Linux kernel.
+
+Reported-by: Andrew Hobson <ahobson@gmail.com>
+---
+ test/unit/test_socket_helper.rb | 6 ++++--
+ 1 file changed, 4 insertions(+), 2 deletions(-)
+
+diff --git a/test/unit/test_socket_helper.rb b/test/unit/test_socket_helper.rb
+index abc177b..8992757 100644
+--- a/test/unit/test_socket_helper.rb
++++ b/test/unit/test_socket_helper.rb
+@@ -190,6 +190,8 @@ class TestSocketHelper < Test::Unit::TestCase
+     name = "#@test_addr:#{port}"
+     sock = bind_listen(name, :reuseport => true)
+     cur = sock.getsockopt(Socket::SOL_SOCKET, SO_REUSEPORT).unpack('i')[0]
+-    assert_equal 1, cur
+-  end if defined?(SO_REUSEPORT)
++    assert_operator cur, :>, 0
++  rescue Errno::ENOPROTOOPT
++    # kernel does not support SO_REUSEPORT (older Linux)
++  end
+ end
+-- 
+1.8.4.483.g7fe67e6.dirty
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
