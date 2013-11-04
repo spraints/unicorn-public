@@ -1,0 +1,132 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: *
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=1.3 required=5.0 tests=AWL,FREEMAIL_FROM,RDNS_NONE,
+ T_DKIM_INVALID shortcircuit=no autolearn=no version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (unknown [50.56.192.79]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 9E28F44C1A4 for <archivist@yhbt.net>; Mon,  4 Nov
+ 2013 18:13:13 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 76CCC2E19F; Mon,  4 Nov 2013 18:13:12 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+X-Greylist: delayed 495 seconds by postgrey-1.31 at rubyforge; Mon, 04 Nov
+ 2013 18:13:04 UTC
+Received: from mail-gg0-f172.google.com (mail-gg0-f172.google.com
+ [209.85.161.172]) by rubyforge.org (Postfix) with ESMTP id 8A9DC2E153 for
+ <mongrel-unicorn@rubyforge.org>; Mon,  4 Nov 2013 18:13:04 +0000 (UTC)
+Received: by mail-gg0-f172.google.com with SMTP id k3so2690513ggn.17 for
+ <mongrel-unicorn@rubyforge.org>; Mon, 04 Nov 2013 10:13:03 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com;
+ s=20120113; h=date:from:to:message-id:subject:mime-version:content-type
+ :content-transfer-encoding:content-disposition;
+ bh=Vz6cnYCkCjKAvOrft+Hq5nyENbNt/sHNkubtb5DBA48=;
+ b=IogkNFSu8l5v5hsKvCBxDg91pmXWKk1/KjqL07JG9SRHBbtLZqX+ZJ9aeK9uYn/L6F
+ g8tEVrAPlYylu136d1Of6ukaHlfGqWYqFCHAV+3+Nh5aiZ+MpE042aeB8NegA7DNOa8X
+ D12t7Kh+ADZ1N8P1tNpPeF3dDfPQA2pZpsCqrvn2UWN7g2aCbK/2ZznYfrkmJ9f525vV
+ Yr20fi8VpyO0k1nOx0AAB2Ck1Fl8YwAz6N7JazBfGSYeIpAF+wCKUlxLgz3hDyDP86vE
+ 6xY3cHsvVtLVEkoMX+8WfapTsnH3TO0wyamN5eXH7Ef87e8ZbJccyd7LMOSilyDSCld4 BrIA==
+X-Received: by 10.236.130.52 with SMTP id j40mr50874yhi.151.1383588285247;
+ Mon, 04 Nov 2013 10:04:45 -0800 (PST)
+Received: from [172.22.0.212] (fw1.damballa.com. [72.5.89.102]) by
+ mx.google.com with ESMTPSA id q9sm28685543yhk.16.2013.11.04.10.04.44 for
+ <mongrel-unicorn@rubyforge.org> (version=TLSv1 cipher=RC4-SHA bits=128/128);
+ Mon, 04 Nov 2013 10:04:44 -0800 (PST)
+Date: Mon, 4 Nov 2013 13:04:43 -0500
+From: Andrew Hobson <ahobson@gmail.com>
+To: mongrel-unicorn@rubyforge.org
+Message-ID: <014F1E10E50D4DA08811BBF10CC70038@gmail.com>
+Subject: Unicorn 4.7.0 tests fail on OSX 10.7.5 and debian squeeze
+X-Mailer: sparrow 1.6.4 (build 1176)
+MIME-Version: 1.0
+Content-Disposition: inline
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Hi,
+
+I am getting failing tests on both OSX and debian squeeze, but the errors are different.
+
+On both my machines, it is commit 7c125886b5862bf20711bae22e6697ad46141434 that breaks the tests.
+
+I am using an old(ish) version of ruby: 1.9.3p125, but I don't think that should matter.
+
+
+The error I get when I test 4.7.0 on OSX 10.7.5:
+
+: Finished tests in 0.041678s, 263.9282 tests/s, 1943.4714 assertions/s.
+:
+: 1) Failure:
+: test_reuseport(TestSocketHelper) [test/unit/test_socket_helper.rb:193]:
+: <1> expected but was
+: <512>.
+:
+: 11 tests, 81 assertions, 1 failures, 0 errors, 0 skips
+
+
+
+I don't see how the current test can be platform independent.  The following diff fixes OSX for me:
+
+diff --git a/test/unit/test_socket_helper.rb b/test/unit/test_socket_helper.rb
+index abc177b..2244442 100644
+--- a/test/unit/test_socket_helper.rb
++++ b/test/unit/test_socket_helper.rb
+@@ -189,7 +189,6 @@ class TestSocketHelper < Test::Unit::TestCase
+port = unused_port @test_addr
+name = "#@test_addr:#{port}"
+sock = bind_listen(name, :reuseport => true)
+- cur = sock.getsockopt(Socket::SOL_SOCKET, SO_REUSEPORT).unpack('i')[0]
+- assert_equal 1, cur
++ assert sock.getsockopt(Socket::SOL_SOCKET, SO_REUSEPORT).bool
+end if defined?(SO_REUSEPORT)
+end
+
+
+
+
+The error I get when I test 4.7.0 on debian squeeze (in a VM):
+
+: 1) Error:
+: test_reuseport(TestSocketHelper):
+: Errno::ENOPROTOOPT: Protocol not available
+: /home/ahobson/git/unicorn/test/ruby-1.9.3/lib/unicorn/socket_helper.rb:183:in `setsockopt'
+: /home/ahobson/git/unicorn/test/ruby-1.9.3/lib/unicorn/socket_helper.rb:183:in `new_tcp_server'
+: /home/ahobson/git/unicorn/test/ruby-1.9.3/lib/unicorn/socket_helper.rb:165:in `bind_listen'
+: test/unit/test_socket_helper.rb:191:in `test_reuseport'
+:
+: 14 tests, 84 assertions, 0 failures, 1 errors, 0 skips
+
+
+
+It appears that on linux, SO_REUSEPORT is not necessary to reuse the address/port across processes and may in fact fail.
+
+https://github.com/joyent/libuv/pull/902
+
+I don't know how unicorn should deal with that.  I suppose ignoring ENOPROTOOPT if RUBY_PLATFORM =~ /linux/ is an option, but it is certainly not an appealing one.
+
+Thanks,
+
+--drew
+
+
+
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
