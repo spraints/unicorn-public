@@ -1,0 +1,324 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: *
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=1.5 required=5.0 tests=AWL,DATE_IN_PAST_96_XX,
+ NORMAL_HTTP_TO_IP,RDNS_NONE shortcircuit=no autolearn=no version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (unknown [50.56.192.79]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 42A3B1FD4D for <archivist@yhbt.net>; Sun, 10 Nov 2013
+ 14:46:44 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id D8B472E18C; Sun, 10 Nov 2013 14:46:42 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 02CE52E17C for <mongrel-unicorn@rubyforge.org>; Sun,
+ 10 Nov 2013 14:46:38 +0000 (UTC)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 7052D1FF41; Tue,  5 Nov 2013 20:51:17 +0000 (UTC)
+Date: Tue, 5 Nov 2013 20:51:17 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: Andrew Hobson <ahobson@gmail.com>
+Subject: Re: Handling closed clients
+Message-ID: <20131105205117.GA21430@dcvr.yhbt.net>
+References: <EEC9EE945FE240D2AB396470D47E8AC4@gmail.com>
+ <20131105172056.GA25190@dcvr.yhbt.net> <m2iow6k7nk.fsf@macdaddy.atl.damballa>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To: <m2iow6k7nk.fsf@macdaddy.atl.damballa>
+User-Agent: Mutt/1.5.21 (2010-09-15)
+Cc: mongrel-unicorn@rubyforge.org
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+(Please don't cull Cc:, I'm assuming you're not subscribed to the
+ mailing list since we don't require subscriptions)
+
+Andrew Hobson <ahobson@gmail.com> wrote:
+> Eric Wong <normalperson@yhbt.net> writes:
+> 
+> > Those clients should really be hitting nginx, first.
+> 
+> I apologize for not being clear.  They are hitting apache first.
+
+Heh, just as bad, since I'm not aware of any Apache config which will
+protect unicorn from slow clients.
+
+> > Fwiw, wrapping the app Unicorn::PrereadInput middleware may help in
+> > this situation if you're dealing with a buggy local client.
+> 
+> Hmm, I might give that a try.
+
+I expect that to consolidate your errors to one place and your
+application wont try to write errors.
+
+But yeah, you're still opening up yourself to slow clients limiting
+your concurrency without nginx.
+
+> > IOError usually means an attempt to use the socket when it was already
+> > closed (possibly after it hit ECONNRESET/EPIPE/ENOTCONN).
+> >
+> > The only place we close the client socket where it might be visible to a
+> > Rack app is in the eof! method of StreamInput.  Based on what I'm
+> > reading, this is what's happening.
+> 
+> Our application does not use the socket directly. It is a relatively
+> simple sinatra application that is accepting a file upload. As far as I
+> can tell from putting in some debugging statements in our code, the
+> error happens when we return a 400 error status when certain parameters
+> are missing.
+
+Right, however your upload processing will indirectly trigger socket
+reads: env["rack.input"].read -> Unicorn::StreamInput#eof! ->
+Unicorn::ClientShutdown.
+
+> I should have included this before, so here's an example stack trace
+> (using a pre-release gem with the fixes from 24b9f66dcdda44378b4053645333ce9ce336b413):
+> 
+> ERROR -- : app error: closed stream (IOError)
+> ERROR -- : gems/unicorn-4.6.3.5.ga9df/lib/unicorn/http_response.rb:53:in `write'
+> ERROR -- : gems/unicorn-4.6.3.5.ga9df/lib/unicorn/http_response.rb:53:in `http_response_write'
+> ERROR -- : gems/unicorn-4.6.3.5.ga9df/lib/unicorn/http_server.rb:563:in `process_client'
+> ERROR -- : gems/unicorn-4.6.3.5.ga9df/lib/unicorn/http_server.rb:633:in `worker_loop'
+> ERROR -- : gems/unicorn-4.6.3.5.ga9df/lib/unicorn/http_server.rb:500:in `spawn_missing_workers'
+> ERROR -- : gems/unicorn-4.6.3.5.ga9df/lib/unicorn/http_server.rb:511:in `maintain_worker_count'
+> ERROR -- : gems/unicorn-4.6.3.5.ga9df/lib/unicorn/http_server.rb:277:in `join'
+> ERROR -- : gems/unicorn-4.6.3.5.ga9df/bin/unicorn:126:in `<top (required)>'
+> ERROR -- : bin/unicorn:21:in `load'
+> ERROR -- : bin/unicorn:21:in `<main>'
+
+Yep, I had your stack trace in my mind already :)
+
+> So it looks to me like what happens is that unicorn tries to write to
+> the socket to report the error and then it hits a generic IOError,
+> possibly from kgio:
+> 
+> http://bogomips.org/kgio.git/tree/ext/kgio/my_fileno.h#n34
+
+Yes, but it would really happen from anything which attempted to
+use the socket.
+
+> > However, lately, I'm thinking merely calling .shutdown on the socket is
+> > sufficient (patch below), and the close just confuses things.
+> 
+> I tried it out on my test case below.
+> 
+> > The Rack application should _always_ be trapping exceptions it
+> > generates, including DB.  Where we log "app error" is only to tell the
+> > app author to fix their code and prevent a buggy app from completely
+> > breaking a worker.
+> 
+> I agree that applications should be trapping exceptions. I speculated
+> that the change is "incompatible" because now buggy applications that
+> raise EOFError will not report a 500 error. In fact, they won't return
+> anything at all. Maybe that's ok, but it seems like a pretty big change.
+> Or maybe I am misunderstanding entirely.
+
+Applications need to be aware of who raises EOFError.  It would handle
+it differently if it's a backend connection it makes or if a client
+triggered it (Unicorn::ClientShutdown).
+
+Since Unicorn::ClientShutdown is a subclass of EOFError, that should
+make things a little easier to distinguish (but unfortunately, forces
+some client code to be Unicorn-specific).
+
+> > Your patch is badly whitespace mangled so I can't apply it.
+> 
+> Please accept my apologies for the sloppiness. I have included a non
+> mangled version below.
+> 
+> I think the test case I added called test_file_streamed_request_close
+> accurately reproduces the situation we are encountering, even though it
+> does so in a very heavy handed way.  The change to handle_error fixes
+> the test case, but it does change the behavior of another test case.
+> 
+> > Anyways, I think closing the socket while app dispatch is running
+> > is sufficient to avoid IOError (you'll end up hitting ENOTCONN
+> > instead, I think).
+> 
+> I applied the patch, but it does not fix the
+> test_file_streamed_request_close test case I have created.
+
+Right.  The socket is no longer closed with my patch, so
+your test case does not reproduce what unicorn might do internally.
+
+> Thank you for your feedback,
+> 
+> diff --git a/lib/unicorn/http_server.rb b/lib/unicorn/http_server.rb
+> index 402f133..3620427 100644
+> --- a/lib/unicorn/http_server.rb
+> +++ b/lib/unicorn/http_server.rb
+> @@ -547,8 +547,6 @@ class Unicorn::HttpServer
+>    # the socket is closed at the end of this function
+>    def handle_error(client, e)
+>      code = case e
+> -    when EOFError,Errno::ECONNRESET,Errno::EPIPE,Errno::ENOTCONN
+> -      # client disconnected on us and there's nothing we can do
+
+Removing this is bad, at least the Errno::* portions since
+we might be outside of app dispatch and log_error would spew
+a backtrace for every single dropped/incomplete connection
+(this is still an issue on a LAN for me, but I use the worst LANs in
+the world :x)
+
+I'm trying to minimize the places we call IO#close on the socket,
+since we'll trigger IOError in other places (as you've experienced).
+
+>      when Unicorn::RequestURITooLongError
+>        414
+>      when Unicorn::RequestEntityTooLargeError
+> @@ -556,8 +554,12 @@ class Unicorn::HttpServer
+>      when Unicorn::HttpParserError # try to tell the client they're bad
+>        400
+>      else
+> -      Unicorn.log_error(@logger, "app error", e)
+> -      500
+> +      if client.closed?
+> +        # client disconnected on us and there's nothing we can do
+> +      else
+> +        Unicorn.log_error(@logger, "app error", e)
+> +        500
+> +      end
+>      end
+>      if code
+>        client.kgio_trywrite(err_response(code, @request.response_start_sent))
+
+In other words, your change to handle_error would fail the following case:
+
+--- a/test/unit/test_server.rb
++++ b/test/unit/test_server.rb
+@@ -265,4 +267,29 @@ class WebServerTest < Test::Unit::TestCase
+   def test_listener_names
+     assert_equal [ "127.0.0.1:#@port" ], Unicorn.listener_names
+   end
++
++  def test_eof_headers
++    teardown
++    app = lambda { |env| [200, {}, []] }
++    redirect_test_io do
++      @server = HttpServer.new(app, :listeners => [ "127.0.0.1:#@port"] )
++      @server.start
++    end
++
++    sock = TCPSocket.new('127.0.0.1', @port)
++    sock.syswrite("GET / HTTP/1.0\r\n") # partial request
++    sock.shutdown
++    assert_raises(EOFError) { sock.readpartial(666) }
++    sock.close
++
++    # just send another complete request to ensure the log message from the
++    # first (failed) request is flushed out to FS
++    sock = TCPSocket.new('127.0.0.1', @port)
++    sock.syswrite("GET / HTTP/1.0\r\n\r\n")
++    assert_match %r{200 OK}, sock.read
++    sock.close
++
++    lines = File.readlines("test_stderr.#$$.log")
++    assert lines.grep(/app error:/).empty?
++  end
+ end
+
+(I thought we already had a test for this, but apparently not..)
+
+> diff --git a/test/unit/test_server.rb b/test/unit/test_server.rb
+> index e5b335f..2fca1b4 100644
+> --- a/test/unit/test_server.rb
+> +++ b/test/unit/test_server.rb
+> @@ -145,8 +145,7 @@ class WebServerTest < Test::Unit::TestCase
+>      # processing on us even during app dispatch
+>      sock.shutdown(Socket::SHUT_WR)
+>      IO.select([sock], nil, nil, 60) or raise "Timed out"
+> -    buf = sock.read
+> -    assert_equal "", buf
+> +    assert_match %r{\AHTTP/1.[01] 500\b}, sock.sysread(4096)
+
+I don't agree with this at all.  500 means something in the server
+broke, but in this case the _client_ broke.
+
+>      next_client = Net::HTTP.get(URI.parse("http://127.0.0.1:#@port/"))
+>      assert_equal 'hello!\n', next_client
+>      lines = File.readlines("test_stderr.#$$.log")
+> @@ -265,4 +264,55 @@ class WebServerTest < Test::Unit::TestCase
+>    def test_listener_names
+>      assert_equal [ "127.0.0.1:#@port" ], Unicorn.listener_names
+>    end
+> +
+> +  # ensure that EOFError from client code is not ignored
+> +  def test_eof_app
+> +    teardown
+> +    app = lambda { |env| raise EOFError }
+> +    # [200, {}, []] }
+> +    redirect_test_io do
+> +      @server = HttpServer.new(app, :listeners => [ "127.0.0.1:#@port"] )
+> +      @server.start
+> +    end
+
+I don't think defining behavior here is good (other than being able to
+handle subsequent, unrelated requests with the process).  This is a
+application bug if it can't handle the exceptions it raises.
+
+> +    sock = TCPSocket.new('127.0.0.1', @port)
+> +    sock.syswrite("GET / HTTP/1.0\r\n\r\n")
+> +    assert_match %r{\AHTTP/1.[01] 500\b}, sock.sysread(4096)
+> +    assert_nil sock.close
+> +    lines = File.readlines("test_stderr.#$$.log")
+> +    assert lines.grep(/app error:/)
+> +  end
+> +
+> +  def test_file_streamed_request_close
+> +    teardown
+> +    # do a funky dance so that the socket is closed partway though the request
+> +    tmp = Tempfile.new('test_file_streamed_request_close')
+> +    app = lambda { |env|
+> +      while File.zero?(tmp.path)
+> +        sleep(0.2)
+> +      end
+> +      tmp.unlink
+> +      o = env['rack.input'].instance_variable_get(:@socket)
+> +      o.close
+
+With my proposed patch to eliminate IO#close from StreamInput,
+this test is no longer an accurate representation of unicorn behavior.
+
+> +      hdrs = { 'Content-Type' => 'text/plain' }
+> +      [ 200, hdrs, [ "#$$\n" ] ]
+> +    }
+> +    # [200, {}, []] }
+> +    redirect_test_io do
+> +      @server = HttpServer.new(app, :listeners => [ "127.0.0.1:#@port"] )
+> +      @server.start
+> +    end
+> +    sock = TCPSocket.new('127.0.0.1', @port)
+> +    body = "a" * 10
+> +    long = "PUT /test HTTP/1.1\r\nContent-length: #{body.length + 10}\r\n\r\n" + body
+> +    sock.syswrite(long)
+> +    sock.close
+> +    tmp.puts "ok"
+> +    tmp.flush
+> +    while File.exists?(tmp.path)
+> +      sleep(0.2)
+> +    end
+> +    lines = File.readlines("test_stderr.#$$.log")
+> +    assert lines.grep(/app error:/).empty?
+> +  end
+> +
+>  end
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
