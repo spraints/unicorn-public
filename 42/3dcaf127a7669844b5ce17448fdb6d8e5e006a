@@ -1,0 +1,122 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=0.5 required=5.0 tests=AWL,RDNS_NONE shortcircuit=no
+ autolearn=no version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (unknown [50.56.192.79]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 131BF1FF2C for <archivist@yhbt.net>; Tue,  5 Nov 2013
+ 17:21:09 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id CDAED2E1C0; Tue,  5 Nov 2013 17:21:08 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id D9DEC2E1C0 for <mongrel-unicorn@rubyforge.org>; Tue, 
+ 5 Nov 2013 17:20:58 +0000 (UTC)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id D7F731FEE2; Tue,  5 Nov 2013 17:20:56 +0000 (UTC)
+Date: Tue, 5 Nov 2013 17:20:56 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: Andrew Hobson <ahobson@gmail.com>
+Subject: Re: Handling closed clients
+Message-ID: <20131105172056.GA25190@dcvr.yhbt.net>
+References: <EEC9EE945FE240D2AB396470D47E8AC4@gmail.com>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To: <EEC9EE945FE240D2AB396470D47E8AC4@gmail.com>
+User-Agent: Mutt/1.5.21 (2010-09-15)
+Cc: mongrel-unicorn@rubyforge.org
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Andrew Hobson <ahobson@gmail.com> wrote:
+> We have a service that clients use to upload files. We have a couple
+> of clients that are on slow links and so their upload times out. We
+> get errors in the logs that I'd like to get rid of.
+
+Those clients should really be hitting nginx, first.
+
+> I was hoping that the recent commit
+> 24b9f66dcdda44378b4053645333ce9ce336b413 would help us, but it does
+> not. After digging in a bit, I have some ideas about why and a patch
+> I'd like comments on.
+
+Bubbling a socket level error during an application dispatch is tricky
+because the application might not be prepared to handle it.
+
+Unfortunately this error is unique to unicorn since it implements
+streaming input.
+
+Fwiw, wrapping the app Unicorn::PrereadInput middleware may help in
+this situation if you're dealing with a buggy local client.
+
+> The commit above attempts to ignore exceptions of types EOFError,
+> Errno::ECONNRESET, Errno::EPIPE, and Errno::ENOTCONN. However, that
+> doesn't address our issue because our exception comes when trying to
+> write the response. It is a generic IOError and thus is not handled.
+
+IOError usually means an attempt to use the socket when it was already
+closed (possibly after it hit ECONNRESET/EPIPE/ENOTCONN).
+
+The only place we close the client socket where it might be visible to a
+Rack app is in the eof! method of StreamInput.  Based on what I'm
+reading, this is what's happening.
+
+However, lately, I'm thinking merely calling .shutdown on the socket is
+sufficient (patch below), and the close just confuses things.
+
+> In addition, I believe that change is unsafe because I believe client
+> code could raise those exceptions. Think about a client with a
+> database connection: that could also raise e.g. EOFError. I believe
+> unicorn needs to check the status of the client connection instead of
+> the type of exception that is raised.
+
+The Rack application should _always_ be trapping exceptions it
+generates, including DB.  Where we log "app error" is only to tell the
+app author to fix their code and prevent a buggy app from completely
+breaking a worker.
+
+This also means the app needs to abort application processing if
+env["rack.input"] operations return EOFError (Unicorn::ClientShutdown).
+
+> The patch below has two new test cases: one where the client code
+> raises an EOFError and one that replicates the condition we see where
+> the client socket is closed before the response can be written.
+
+Your patch is badly whitespace mangled so I can't apply it.
+Anyways, I think closing the socket while app dispatch is running
+is sufficient to avoid IOError (you'll end up hitting ENOTCONN
+instead, I think).
+
+diff --git a/lib/unicorn/stream_input.rb b/lib/unicorn/stream_input.rb
+index c8a4240..d4aa5f9 100644
+--- a/lib/unicorn/stream_input.rb
++++ b/lib/unicorn/stream_input.rb
+@@ -141,7 +141,6 @@ private
+     # raised EOFError on us.
+     if @socket
+       @socket.shutdown
+-      @socket.close
+     end
+   ensure
+     raise Unicorn::ClientShutdown, "bytes_read=#{@bytes_read}", []
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
