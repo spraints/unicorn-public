@@ -1,0 +1,184 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: *
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=1.3 required=5.0 tests=AWL,FREEMAIL_FROM,
+ NORMAL_HTTP_TO_IP,RDNS_NONE,T_DKIM_INVALID shortcircuit=no autolearn=no
+ version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (unknown [50.56.192.79]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 961E11FF2C for <archivist@yhbt.net>; Tue,  5 Nov 2013
+ 14:52:56 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id F10312E1CC; Tue,  5 Nov 2013 14:52:56 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from mail-gg0-f171.google.com (mail-gg0-f171.google.com
+ [209.85.161.171]) by rubyforge.org (Postfix) with ESMTP id E28D42E1CA for
+ <mongrel-unicorn@rubyforge.org>; Tue,  5 Nov 2013 14:52:41 +0000 (UTC)
+Received: by mail-gg0-f171.google.com with SMTP id 21so2360031ggh.2 for
+ <mongrel-unicorn@rubyforge.org>; Tue, 05 Nov 2013 06:52:40 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com;
+ s=20120113; h=date:from:to:message-id:subject:mime-version:content-type
+ :content-transfer-encoding:content-disposition;
+ bh=ld7awZ0EU1Qxe3oTrw3llDlxWHA5YqmWdrbeLtaqIlM=;
+ b=oU0f7IYYYJuQ4WtrgyHjjlVGSl6yUMWEYSxsH4uFV4Vk/sKQeVdx15r3RG2+JhYlNp
+ ktJ9xowSkEULRpUxyHxLm2HZwotkIl/StQ4UynHVd804e99m3QwsAD+ui3RhnH4+MriQ
+ MmNMB0yU3v+zgHKNfBaGmF7cW6xwxdfD16SmxPf3OIHL/hpbC7pzayYtug6u/b57y5E/
+ WdzT09PlYugS4Di7zVXusF+XMhYafL8b+bKcnkTXS/KT9CSAg80zCpFZZrJvA5UL1eFS
+ R+uetiiCzBnHCqYEyxTuKYq1jPRRowm+LRGnmc1rGOoOH9NUqUkXByee0qOoASEGqGlT kSQA==
+X-Received: by 10.236.126.79 with SMTP id a55mr749610yhi.107.1383662810897;
+ Tue, 05 Nov 2013 06:46:50 -0800 (PST)
+Received: from [172.22.0.212] (fw1.damballa.com. [72.5.89.102]) by
+ mx.google.com with ESMTPSA id 48sm36564406yhq.11.2013.11.05.06.46.50 for
+ <mongrel-unicorn@rubyforge.org> (version=TLSv1 cipher=RC4-SHA bits=128/128);
+ Tue, 05 Nov 2013 06:46:50 -0800 (PST)
+Date: Tue, 5 Nov 2013 09:46:49 -0500
+From: Andrew Hobson <ahobson@gmail.com>
+To: mongrel-unicorn@rubyforge.org
+Message-ID: <EEC9EE945FE240D2AB396470D47E8AC4@gmail.com>
+Subject: Handling closed clients
+X-Mailer: sparrow 1.6.4 (build 1176)
+MIME-Version: 1.0
+Content-Disposition: inline
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+We have a service that clients use to upload files. We have a couple of clients that are on slow links and so their upload times out. We get errors in the logs that I'd like to get rid of.
+
+I was hoping that the recent commit 24b9f66dcdda44378b4053645333ce9ce336b413 would help us, but it does not. After digging in a bit, I have some ideas about why and a patch I'd like comments on.
+
+The commit above attempts to ignore exceptions of types EOFError, Errno::ECONNRESET, Errno::EPIPE, and Errno::ENOTCONN. However, that doesn't address our issue because our exception comes when trying to write the response. It is a generic IOError and thus is not handled.
+
+In addition, I believe that change is unsafe because I believe client code could raise those exceptions. Think about a client with a database connection: that could also raise e.g. EOFError. I believe unicorn needs to check the status of the client connection instead of the type of exception that is raised.
+
+The patch below has two new test cases: one where the client code raises an EOFError and one that replicates the condition we see where the client socket is closed before the response can be written.
+
+It changes the behavior of the 'test_client_shutdown_write_truncates' test, but I believe the change makes sense. If the client socket is still open for writing, unicorn should write the response.
+
+Thoughts?
+
+--drew
+
+diff --git a/lib/unicorn/http_server.rb b/lib/unicorn/http_server.rb
+index 402f133..3620427 100644
+--- a/lib/unicorn/http_server.rb
++++ b/lib/unicorn/http_server.rb
+@@ -547,8 +547,6 @@ class Unicorn::HttpServer
+# the socket is closed at the end of this function
+def handle_error(client, e)
+code = case e
+- when EOFError,Errno::ECONNRESET,Errno::EPIPE,Errno::ENOTCONN
+- # client disconnected on us and there's nothing we can do
+when Unicorn::RequestURITooLongError
+414
+when Unicorn::RequestEntityTooLargeError
+@@ -556,8 +554,12 @@ class Unicorn::HttpServer
+when Unicorn::HttpParserError # try to tell the client they're bad
+400
+else
+- Unicorn.log_error(@logger, "app error", e)
+- 500
++ if client.closed?
++ # client disconnected on us and there's nothing we can do
++ else
++ Unicorn.log_error(@logger, "app error", e)
++ 500
++ end
+end
+if code
+client.kgio_trywrite(err_response(code, @request.response_start_sent))
+diff --git a/test/unit/test_server.rb b/test/unit/test_server.rb
+index e5b335f..2fca1b4 100644
+--- a/test/unit/test_server.rb
++++ b/test/unit/test_server.rb
+@@ -145,8 +145,7 @@ class WebServerTest < Test::Unit::TestCase
+# processing on us even during app dispatch
+sock.shutdown(Socket::SHUT_WR)
+IO.select([sock], nil, nil, 60) or raise "Timed out"
+- buf = sock.read
+- assert_equal "", buf
++ assert_match %r{\AHTTP/1.[01] 500\b}, sock.sysread(4096)
+next_client = Net::HTTP.get(URI.parse("http://127.0.0.1:#@port/"))
+assert_equal 'hello!\n', next_client
+lines = File.readlines("test_stderr.#$$.log")
+@@ -265,4 +264,55 @@ class WebServerTest < Test::Unit::TestCase
+def test_listener_names
+assert_equal [ "127.0.0.1:#@port" ], Unicorn.listener_names
+end
++
++ # ensure that EOFError from client code is not ignored
++ def test_eof_app
++ teardown
++ app = lambda { |env| raise EOFError }
++ # [200, {}, []] }
++ redirect_test_io do
++ @server = HttpServer.new(app, :listeners => [ "127.0.0.1:#@port"] )
++ @server.start
++ end
++ sock = TCPSocket.new('127.0.0.1', @port)
++ sock.syswrite("GET / HTTP/1.0\r\n\r\n")
++ assert_match %r{\AHTTP/1.[01] 500\b}, sock.sysread(4096)
++ assert_nil sock.close
++ lines = File.readlines("test_stderr.#$$.log")
++ assert lines.grep(/app error:/)
++ end
++
++ def test_file_streamed_request_close
++ teardown
++ # do a funky dance so that the socket is closed partway though the request
++ tmp = Tempfile.new('test_file_streamed_request_close')
++ app = lambda { |env|
++ while File.zero?(tmp.path)
++ sleep(0.2)
++ end
++ tmp.unlink
++ o = env['rack.input'].instance_variable_get(:@socket)
++ o.close
++ hdrs = { 'Content-Type' => 'text/plain' }
++ [ 200, hdrs, [ "#$$\n" ] ]
++ }
++ # [200, {}, []] }
++ redirect_test_io do
++ @server = HttpServer.new(app, :listeners => [ "127.0.0.1:#@port"] )
++ @server.start
++ end
++ sock = TCPSocket.new('127.0.0.1', @port)
++ body = "a" * 10
++ long = "PUT /test HTTP/1.1\r\nContent-length: #{body.length + 10}\r\n\r\n" + body
++ sock.syswrite(long)
++ sock.close
++ tmp.puts "ok"
++ tmp.flush
++ while File.exists?(tmp.path)
++ sleep(0.2)
++ end
++ lines = File.readlines("test_stderr.#$$.log")
++ assert lines.grep(/app error:/).empty?
++ end
++
+end
+
+
+
+
+
+
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
