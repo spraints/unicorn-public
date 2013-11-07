@@ -1,0 +1,102 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=0.5 required=5.0 tests=AWL,RDNS_NONE shortcircuit=no
+ autolearn=no version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (unknown [50.56.192.79]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 9C3941FD4B for <archivist@yhbt.net>; Sun, 10 Nov 2013
+ 14:46:42 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 033682E17C; Sun, 10 Nov 2013 14:46:41 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 07B872E17C for <mongrel-unicorn@rubyforge.org>; Sun,
+ 10 Nov 2013 14:46:33 +0000 (UTC)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 9401C1FF36; Thu,  7 Nov 2013 20:22:38 +0000 (UTC)
+Date: Thu, 7 Nov 2013 20:22:38 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: Andrew Hobson <ahobson@gmail.com>
+Subject: [PATCH] stream_input: avoid IO#close on client disconnect
+Message-ID: <20131107202238.GA21405@dcvr.yhbt.net>
+References: <EEC9EE945FE240D2AB396470D47E8AC4@gmail.com>
+ <20131105172056.GA25190@dcvr.yhbt.net> <m2iow6k7nk.fsf@macdaddy.atl.damballa>
+ <20131105205117.GA21430@dcvr.yhbt.net> <m21u2sjpc9.fsf@macdaddy.atl.damballa>
+ <20131107164825.GA26547@dcvr.yhbt.net>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To: <20131107164825.GA26547@dcvr.yhbt.net>
+User-Agent: Mutt/1.5.21 (2010-09-15)
+Cc: mongrel-unicorn@rubyforge.org
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Eric Wong <normalperson@yhbt.net> wrote:
+> Andrew Hobson <ahobson@gmail.com> wrote:
+> > I applied that one line patch a day and a half ago and we haven't seen
+> > the error in the field (yet). I am optimistic you have elegantly fixed
+> > the problem.
+> > 
+> > If we do see an error, I will send another email to the list.
+> > 
+> > Thanks again for your help,
+> 
+> No problem, I'll push that out later today.
+
+Pushed, thanks again:
+
+>From f4005d5efc608e7d75371f0d0527041facd33f89 Mon Sep 17 00:00:00 2001
+From: Eric Wong <normalperson@yhbt.net>
+Date: Thu, 7 Nov 2013 20:10:01 +0000
+Subject: [PATCH] stream_input: avoid IO#close on client disconnect
+
+This can avoid IOError from being seen by the application, and also
+reduces points where IO#close may be called.  This is a good thing
+if we eventually port this code into a low-level server like
+cmogstored where per-client memory space is defined by FD number of
+a client.
+
+Reported-by: Andrew Hobson <ahobson@gmail.com>
+---
+ lib/unicorn/stream_input.rb | 5 +----
+ 1 file changed, 1 insertion(+), 4 deletions(-)
+
+diff --git a/lib/unicorn/stream_input.rb b/lib/unicorn/stream_input.rb
+index c8a4240..9278f47 100644
+--- a/lib/unicorn/stream_input.rb
++++ b/lib/unicorn/stream_input.rb
+@@ -139,10 +139,7 @@ private
+     # we do support clients that shutdown(SHUT_WR) after the
+     # _entire_ request has been sent, and those will not have
+     # raised EOFError on us.
+-    if @socket
+-      @socket.shutdown
+-      @socket.close
+-    end
++    @socket.shutdown if @socket
+   ensure
+     raise Unicorn::ClientShutdown, "bytes_read=#{@bytes_read}", []
+   end
+-- 
+1.8.4.483.g7fe67e6.dirty
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
