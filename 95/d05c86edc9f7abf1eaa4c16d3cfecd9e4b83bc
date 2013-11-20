@@ -1,0 +1,103 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=0.5 required=5.0 tests=AWL,RDNS_NONE shortcircuit=no
+ autolearn=no version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (unknown [50.56.192.79]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id BC2A820286 for <archivist@yhbt.net>; Wed, 20 Nov 2013
+ 09:47:24 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id A0BEC2630AC; Wed, 20 Nov 2013 09:47:24 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 76B2F2630A6 for <mongrel-unicorn@rubyforge.org>; Wed,
+ 20 Nov 2013 09:47:18 +0000 (UTC)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 9147D20286; Wed, 20 Nov 2013 09:47:17 +0000 (UTC)
+Date: Wed, 20 Nov 2013 09:47:17 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: Joe Van Dyk <joe@tanga.com>
+Subject: Re: Fwd: Zero-downtime deploys, signals, ruby-pg
+Message-ID: <20131120094717.GA17836@dcvr.yhbt.net>
+References: <mailman.0.1384904190.12484.mongrel-unicorn@rubyforge.org>
+ <CACfv+p+4FK5BSL4D0uMi-Zgtf7VtcpTVu7sG4WXv2YXWyRbeWA@mail.gmail.com>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To:
+ <CACfv+p+4FK5BSL4D0uMi-Zgtf7VtcpTVu7sG4WXv2YXWyRbeWA@mail.gmail.com>
+User-Agent: Mutt/1.5.21 (2010-09-15)
+Cc: mongrel-unicorn@rubyforge.org
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Joe Van Dyk <joe@tanga.com> wrote:
+> Just sent this via gmail. Any ideas why I got this error?
+
+It contained an HTML portion which Mailman couldn't strip or handle.
+Forwarding to the list for now[1]
+
+> ---------- Forwarded message ----------
+> From: Joe Van Dyk <joe@tanga.com>
+> To: unicorn list <mongrel-unicorn@rubyforge.org>
+> Cc:
+> Date: Tue, 19 Nov 2013 15:29:27 -0800
+> Subject: Zero-downtime deploys, signals, ruby-pg
+> Hi folks,
+> 
+> I think the upgrade to ruby-pg 0.16 broke the zero-downtime deployments on
+> unicorn.
+> 
+> See mailing list post here:
+> https://groups.google.com/d/msg/ruby-pg/5_ylGmog1S4/uvQ3EDl7MUUJ
+> 
+> I think the problem is that unicorn sends a signal to the worker thread
+> when it's about to be shutdown. ruby-pg receives that signal and
+> immediately cancels any actively-running queries. Leading to exceptions
+> like:
+> 
+> PG::QueryCanceled: ERROR: canceling statement due to user request : UPDATE
+> "orders" SET...
+> from deep inside Sequel or ActiveRecord.
+> 
+> Michael Granger said it's a unicorn problem (apparently).
+
+Unfortunately, there's no easy solution in unicorn.
+
+ruby-pg is correct in interrupting the running query since it doesn't
+know if the interrupt signal is for graceful unicorn shutdown or if the
+user is thinking: "must stop query now or all data is destroyed!"
+
+So I suspect ruby-pg favors the panicking user who accidentally issued
+an UPDATE or DELETE without a proper WHERE clause :)
+
+As far as workarounds on the unicorn/rack-side go:
+
+1) retry on PG::QueryCanceled queries, this is analogous to the
+   EINTR retries Ruby does for most interrupted syscalls.
+   However, this takes time and you need to be careful in case
+   you forgot transactions and what not.
+
+2) Avoid SIGQUIT on the unicorn master completely, just send SIGKILL
+   to the master.  The workers will slowly realize the master is dead
+   and die gracefully.  This could increase RAM usage.
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
