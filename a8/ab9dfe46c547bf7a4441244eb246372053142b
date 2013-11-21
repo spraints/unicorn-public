@@ -1,0 +1,83 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=0.7 required=5.0 tests=AWL,RDNS_NONE,T_DKIM_INVALID
+ shortcircuit=no autolearn=no version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (unknown [50.56.192.79]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id C7FCE44C1C1 for <archivist@yhbt.net>; Thu, 21 Nov
+ 2013 11:08:58 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 8DDCD26306F; Thu, 21 Nov 2013 11:08:58 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+X-Greylist: delayed 592 seconds by postgrey-1.31 at rubyforge; Thu, 21 Nov
+ 2013 11:08:50 UTC
+Received: from out5-smtp.messagingengine.com (out5-smtp.messagingengine.com
+ [66.111.4.29]) by rubyforge.org (Postfix) with ESMTP id 58BF226306F for
+ <mongrel-unicorn@rubyforge.org>; Thu, 21 Nov 2013 11:08:49 +0000 (UTC)
+Received: from compute4.internal (compute4.nyi.mail.srv.osa [10.202.2.44]) by
+ gateway1.nyi.mail.srv.osa (Postfix) with ESMTP id 66BC521B38 for
+ <mongrel-unicorn@rubyforge.org>; Thu, 21 Nov 2013 05:58:56 -0500 (EST)
+Received: from frontend1 ([10.202.2.160]) by compute4.internal (MEProxy);
+ Thu, 21 Nov 2013 05:58:56 -0500
+DKIM-Signature: v=1; a=rsa-sha1; c=relaxed/relaxed; d= airbladesoftware.com;
+ h=from:content-type :content-transfer-encoding:date:subject:to:message-id
+ :mime-version; s=mesmtp; bh=Tc858f4B50d+HhTpuw+pvc0msj4=; b=wcSz
+ 7MleRLs3sh/Q6QWLA8qw4yk0Zaw5l2Ym6FZxDkI3yyHhYCTTQT/+2GFFZbG2oACV
+ uUkDopTyAEblrhazTyJTgOrn0hGY6jroAiR5ox5Ngq/sd2wRgxK+tG+AbLooc7/z
+ 4potdUvrE1JawPdiifdqbL2yt6pax1tlMu8BR0Q=
+DKIM-Signature: v=1; a=rsa-sha1; c=relaxed/relaxed; d= messagingengine.com;
+ h=from:content-type :content-transfer-encoding:date:subject:to:message-id
+ :mime-version; s=smtpout; bh=Tc858f4B50d+HhTpuw+pvc0msj4=; b=j0n
+ k5o4zYyzFMqaTJ5ZMJh/XnAhcy3H/ER1dwNdldrkpSRE7cc0t7pEvI8R9Gcgt6l8
+ sJDknGlcehj3pFCTTyjwKPUGYJbnNObgCSMzIgUtN4oB9PP1LBnLm3v3UUy6XYNl
+ HHbXtxaxBCsA4melSdhlSQPforIuP269G2weCl18=
+X-Sasl-enc: ii5XE7VoGkkeI23cpTXZNjApPCmhduJHeTieC2TBSEts 1385031536
+Received: from [192.168.88.239] (unknown [80.146.246.2]) by
+ mail.messagingengine.com (Postfix) with ESMTPA id E1D27C00E83; Thu, 21 Nov
+ 2013 05:58:55 -0500 (EST)
+From: Andrew Stewart <boss@airbladesoftware.com>
+Date: Thu, 21 Nov 2013 11:58:54 +0100
+Subject: Best way to deploy an internal Rack app?
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Message-Id: <D604FB44-E1D1-4BEB-B732-249D105621BC@airbladesoftware.com>
+Mime-Version: 1.0 (Mac OS X Mail 6.6 \(1510\))
+X-Mailer: Apple Mail (2.1510)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Hello!
+
+I have a Rails monolith and have identified a few parts which can be chipped off and deployed as self-contained services, called by the monolith.
+
+Each service will be a rack app presenting an API over HTTP.  For now everything will run on the same box.  The services shouldn't be exposed to the outside world.
+
+I have almost built the first service and am now wondering how best to serve it.  For example:
+
+- Does Unicorn alone suffice or should I front it with Nginx?
+- To keep the services internal do I just listen to a port on the loopback interface?
+
+Thanks in advance,
+
+Andrew Stewart
+
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
