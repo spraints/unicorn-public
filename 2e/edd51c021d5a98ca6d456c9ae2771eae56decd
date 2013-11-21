@@ -1,0 +1,73 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=0.5 required=5.0 tests=AWL,RDNS_NONE shortcircuit=no
+ autolearn=no version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (unknown [50.56.192.79]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id D8A9744C1C2 for <archivist@yhbt.net>; Thu, 21 Nov
+ 2013 17:22:50 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 53E2E262680; Thu, 21 Nov 2013 17:22:51 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 2A9C0263058 for <mongrel-unicorn@rubyforge.org>; Thu,
+ 21 Nov 2013 17:22:46 +0000 (UTC)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 5712F44C1C1; Thu, 21 Nov 2013 17:22:44 +0000 (UTC)
+Date: Thu, 21 Nov 2013 17:22:44 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Subject: Re: Best way to deploy an internal Rack app?
+Message-ID: <20131121172244.GA20007@dcvr.yhbt.net>
+References: <D604FB44-E1D1-4BEB-B732-249D105621BC@airbladesoftware.com>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To: <D604FB44-E1D1-4BEB-B732-249D105621BC@airbladesoftware.com>
+User-Agent: Mutt/1.5.21 (2010-09-15)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Andrew Stewart <boss@airbladesoftware.com> wrote:
+> Hello!
+> 
+> I have a Rails monolith and have identified a few parts which can be
+> chipped off and deployed as self-contained services, called by the
+> monolith.
+> 
+> Each service will be a rack app presenting an API over HTTP.  For now
+> everything will run on the same box.  The services shouldn't be
+> exposed to the outside world.
+
+> I have almost built the first service and am now wondering how best to serve it.  For example:
+> 
+> - Does Unicorn alone suffice or should I front it with Nginx?
+
+This depends on how you want clients to connect.  Either the unicorns
+need to listen on different addresses/ports, or you can set up nginx to
+handle routing so clients only connect to nginx.
+
+> - To keep the services internal do I just listen to a port on the
+> loopback interface?
+
+Any address:port (127.0.0.1:1234, 127.0.0.2:1234, ...), or unix socket.
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
