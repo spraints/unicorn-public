@@ -1,0 +1,133 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: *
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=1.3 required=5.0 tests=FREEMAIL_FROM,RDNS_NONE,
+ T_DKIM_INVALID shortcircuit=no autolearn=no version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (unknown [50.56.192.79]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 23FA244C216 for <archivist@yhbt.net>; Tue, 26 Nov
+ 2013 18:35:10 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id A3319263076; Tue, 26 Nov 2013 18:35:10 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from mail-yh0-f50.google.com (mail-yh0-f50.google.com
+ [209.85.213.50]) by rubyforge.org (Postfix) with ESMTP id AFBC1263076 for
+ <mongrel-unicorn@rubyforge.org>; Tue, 26 Nov 2013 18:35:05 +0000 (UTC)
+Received: by mail-yh0-f50.google.com with SMTP id b6so4262036yha.37 for
+ <mongrel-unicorn@rubyforge.org>; Tue, 26 Nov 2013 10:35:04 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com;
+ s=20120113; h=message-id:date:from:user-agent:mime-version:to:cc:subject
+ :references:in-reply-to:content-type:content-transfer-encoding;
+ bh=9hv9FfS0noit0xA+qTY14Mc7eiF4Cbx5SoDK1cSygOE=;
+ b=H7uVFmj0FF4WtJrA/wtvn8efNoSjPkf/MzCCKy+v0poHBU1Lpwotfbp0I66dvH6e7X
+ G8Mz0BPDgyixef4ZOSW5iqxp6mAOksqNTsu3I8USdW9/GZxMLavpmmlKxIWb6IzuhWO0
+ QvxEh5bq2/fbuu5SyFMm9/YlCSsY8FaJhwiksVvZvoISZ/TJuihP+0Vrf7FWpfMb8Am4
+ OMg0N7ZnALYg6QG7H0OoAp3bKeLjCiBEX84zZQNe7FlEWDrJktpR0NHwq/lJV3y/Xr5U
+ CFWqvpyuPQKR6nyiIcuZbx5CSGpMBkE2HHPue2yb5S7ctaUeCA7IHUAI/EyMOx/ILXKp Joqw==
+X-Received: by 10.236.131.169 with SMTP id m29mr32561821yhi.0.1385490904028;
+ Tue, 26 Nov 2013 10:35:04 -0800 (PST)
+Received: from [192.168.1.5] ([179.217.1.154]) by mx.google.com with ESMTPSA
+ id r1sm84317967yhf.17.2013.11.26.10.35.02 for <multiple recipients>
+ (version=TLSv1 cipher=ECDHE-RSA-RC4-SHA bits=128/128); Tue, 26 Nov 2013
+ 10:35:03 -0800 (PST)
+Message-ID: <5294E9D4.5030608@gmail.com>
+Date: Tue, 26 Nov 2013 16:35:00 -0200
+From: Rodrigo Rosenfeld Rosas <rr.rosas@gmail.com>
+User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:17.0) Gecko/20131103
+ Icedove/17.0.10
+MIME-Version: 1.0
+To: Eric Wong <normalperson@yhbt.net>
+Subject: Re: What does it mean for the unicorn process to be bound to a
+ terminal?
+References: <5294A289.1020300@gmail.com>
+ <20131126180400.GA15932@dcvr.yhbt.net>
+In-Reply-To: <20131126180400.GA15932@dcvr.yhbt.net>
+Cc: unicorn list <mongrel-unicorn@rubyforge.org>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset="us-ascii"; Format="flowed"
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Em 26-11-2013 16:04, Eric Wong escreveu:
+> Rodrigo Rosenfeld Rosas <rr.rosas@gmail.com> wrote:
+>> For a long time I struggle to understand this part:
+>>
+>> http://unicorn.bogomips.org/SIGNALS.html
+>>
+>> "3. You can now send WINCH to the old master process so only the new
+>> workers serve requests. If your unicorn process is bound to an
+>> interactive terminal, you can skip this step."
+>>
+>> I asked a teammate and he didn't understand this part either, so
+>> maybe it's confusing for other people too.
+>>
+>> Would you mind to clarify what you mean by that?
+> It means actions on the terminal which started unicorn won't affect it.
+> So if the user hits Ctrl-C from the terminal, unicorn will not receive
+> SIGINT.  Likewise for Ctrl-\ and SIGINT, and if a user resizes his
+> terminal (common with xterm and friends), there's no SIGWINCH.
+>
+> setsid(2) is the syscall used to detach from a controlling terminal
+> (among other things).  Maybe there's documentation elsewhere to the
+> setsid(2) which explains this part more, but neither the POSIX nor Linux
+> manpage for that distributed by Debian (wheezy) really explain this.
+I see. If I understood correctly this only happens in foreground mode, 
+so something like that would help me to understand the sentence:
+
+"...If your unicorn process is bound to an interactive terminal (running in the foreground), you can skip this step."
+
+>> Also, a section with suggestions on how to properly automate a
+>> deployment with no downtime would be helpful.
+>>
+>> What I see is that most recipes, like the ones I've seen for
+>> Capistrano for example, will simply send a QUIT after USR2 to the
+>> old master without actually checking if the deploy was successful
+>> and won't use the WINCH and HUP signals to deal with health
+>> checking...
+> Patches welcome.
+
+I'd provide one if I could figure out some good way to automate this. 
+Currently I perform all steps manually in production for zero downtime 
+and only manage the other environments with Capistrano, except when I 
+have a programmed downtime window for production.
+
+> I haven't deployed an app entirely with Capistrano in
+> years nor do I use any common/widely-known deployment system.  I usually
+> just end using something like the init script in examples/init.sh
+
+I believe it would help the documentation if you added a link to init.sh 
+in the SIGNALS page:
+
+http://bogomips.org/unicorn.git/tree/examples/init.sh
+
+Anyway, even that script won't take care of making sure that the reload 
+action will rollback in case of an unsuccessful deploy.
+
+I realize it's not easy to detect if the deploy was successful and that 
+it's very application dependent, but some generic procedures would be 
+helpful for a basic Rails application. Unfortunately I don't know what 
+would be a good strategy, that's why I asked :P
+
+Thank you for explaining the interactive terminal binding question :)
+
+Best,
+Rodrigo.
+
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
