@@ -1,0 +1,86 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: *
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=1.4 required=5.0 tests=AWL,RDNS_NONE shortcircuit=no
+ autolearn=no version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (unknown [50.56.192.79]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id AA6D9202B4 for <archivist@yhbt.net>; Tue, 26 Nov 2013
+ 01:42:11 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id B56B026202D; Tue, 26 Nov 2013 01:42:08 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from mail-pb0-f42.google.com (mail-pb0-f42.google.com
+ [209.85.160.42]) by rubyforge.org (Postfix) with ESMTP id 8B8C926202D for
+ <mongrel-unicorn@rubyforge.org>; Tue, 26 Nov 2013 01:42:03 +0000 (UTC)
+Received: by mail-pb0-f42.google.com with SMTP id uo5so7074903pbc.1 for
+ <mongrel-unicorn@rubyforge.org>; Mon, 25 Nov 2013 17:42:03 -0800 (PST)
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=1e100.net;
+ s=20130820; h=x-gm-message-state:mime-version:in-reply-to:references:date
+ :message-id:subject:from:to:content-type:content-transfer-encoding;
+ bh=/DC6JCVBJaqobLf1sP+D23Htn2P+TF06lMirsXzzFdY=;
+ b=O3SzhwUihs8EkgZ6Vd0DQA/jhXlOvm9HQj2vngfXrpe/6dmw/f8AlY7d7fhbkTagEg
+ yILgmXvCYnv3pX1M7vLJ8ssqEZi6HzdxL6rUvatLW89W4KTXwkELCcEleKsB8MONam3Q
+ vurVaggKqJaUPYg/a6+MuLDERmge6LQ6RpijWrhcLE5Xud8jvSwmfchrMSvyaSx6tgM2
+ yGpTayva0qn00maaHdnYcoWZobzNa30HJarMsg1HiIxEKKmZlAGfCwo6g1oeADTZyBUk
+ sFZ9e/n4kXe9WKBVHT4FiZUxtdNTQUroEvohlKtps1bE8h19jTANCTcnQXBUMOnuX46G lNAg==
+X-Gm-Message-State:
+ ALoCoQnmpeNPPytZV3uTzWyO3C0Z4EC7F91kMb/Ph1XirBlHQVvINoA5t2kWAIOkz6Hzc3jFpmcm
+MIME-Version: 1.0
+X-Received: by 10.69.29.107 with SMTP id jv11mr5632229pbd.147.1385430123040;
+ Mon, 25 Nov 2013 17:42:03 -0800 (PST)
+Received: by 10.68.106.3 with HTTP; Mon, 25 Nov 2013 17:42:02 -0800 (PST)
+In-Reply-To:
+ <CAHStS5gFYcPBDxkVizAHrOeDKAkjT69kruFdgaY0CbB+vLbK8Q@mail.gmail.com>
+References:
+ <CAHStS5gFYcPBDxkVizAHrOeDKAkjT69kruFdgaY0CbB+vLbK8Q@mail.gmail.com>
+Date: Mon, 25 Nov 2013 17:42:02 -0800
+Message-ID:
+ <CABHxtY7R8yACnJt0_SntDUA_tBwDucEewjOovtnsCHAveXfAcw@mail.gmail.com>
+Subject: Re: Issues with PID file renaming
+From: Michael Fischer <mfischer@zendesk.com>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="windows-1252"
+Content-Transfer-Encoding: quoted-printable
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+On Mon, Nov 25, 2013 at 5:00 PM, Jimmy Soho <jimmy.soho@gmail.com> wrote:
+
+> I think the problem for us is caused by monit, our process monitor,
+> which monitors the unicorn.pid file:
+>
+> check process unicorn with pidfile
+> /srv/app.itrp-staging.com/shared/pids/unicorn.pid
+>   start program =3D "/etc/init.d/unicorn start"
+>   stop program =3D "/etc/init.d/unicorn stop"
+>   =85
+
+I'd suggest that you monitor Unicorn by issuing a test request to it
+via its listening socket instead.  Ultimately, you're more likely
+concerned about whether Unicorn is serving requests, not whether its
+pid file exists.  (Such a check can also lead to false positives;
+consider what might happen if an admin or the Linux OOM killer sends
+it a SIGKILL, leaving the pid file intact.)
+
+Best regards,
+
+--Michael
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
