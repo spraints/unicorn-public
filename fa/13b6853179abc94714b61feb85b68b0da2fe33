@@ -1,0 +1,79 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: *
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=1.4 required=5.0 tests=AWL,RDNS_NONE shortcircuit=no
+ autolearn=no version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (unknown [50.56.192.79]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id A2A4044C216 for <archivist@yhbt.net>; Tue, 26 Nov
+ 2013 19:14:38 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 6CCFE263078; Tue, 26 Nov 2013 19:14:39 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from mail-pb0-f42.google.com (mail-pb0-f42.google.com
+ [209.85.160.42]) by rubyforge.org (Postfix) with ESMTP id 4DA6F263076 for
+ <mongrel-unicorn@rubyforge.org>; Tue, 26 Nov 2013 19:14:34 +0000 (UTC)
+Received: by mail-pb0-f42.google.com with SMTP id uo5so8749565pbc.1 for
+ <mongrel-unicorn@rubyforge.org>; Tue, 26 Nov 2013 11:14:32 -0800 (PST)
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=1e100.net;
+ s=20130820; h=x-gm-message-state:mime-version:in-reply-to:references:date
+ :message-id:subject:from:to:content-type;
+ bh=o6d3Uh1s1CAJsXJHWIPCEJ3hXfmhtgR66jhGDPtLBnM=;
+ b=PpKgS11wEttzTQJjTw0NKvRQ8r6cpYTNbtFZtIyHo8piJvGM60pZM0lyO0vnejVOda
+ Y4cX2y96XflxjouhYkU4iAoP5ZxO6qss4yNSY9qoNejinWRTmKqHIm8ES1ZcO+pPBhwI
+ ylCFs3XNXTgZlq064WZmJoui2f7tOD5049wijR16v9+fFcMbQjWjmw/zaBa4/Ru1M1vD
+ 4SiXERxMvPxuuRgP3i8Tm4cbmYzOPR0Gm7P009WtL2PIiE6W6vIh52Q+SXQENQB2ZfCQ
+ a3IfvccXC1X6xQOYcgilgdZ42RU5eSd+XoFzvpaT27eMdRQvFypQMq3QEr4CWEM+1L5V +x7g==
+X-Gm-Message-State:
+ ALoCoQleR1MQJB6RFGcVZg5IXB8EcGahsJ+CcCmlxk8JOQ+AQLwLtizPCW0Qi/6GCVT+KdboJ3BK
+MIME-Version: 1.0
+X-Received: by 10.69.29.107 with SMTP id jv11mr897864pbd.147.1385493272328;
+ Tue, 26 Nov 2013 11:14:32 -0800 (PST)
+Received: by 10.68.106.3 with HTTP; Tue, 26 Nov 2013 11:14:32 -0800 (PST)
+In-Reply-To: <5294E9D4.5030608@gmail.com>
+References: <5294A289.1020300@gmail.com>
+ <20131126180400.GA15932@dcvr.yhbt.net> <5294E9D4.5030608@gmail.com>
+Date: Tue, 26 Nov 2013 11:14:32 -0800
+Message-ID:
+ <CABHxtY55Rbs+=i4vJJ03Aew6KxFcw8uW8fs47wxxb4JVkg-Onw@mail.gmail.com>
+Subject: Re: What does it mean for the unicorn process to be bound to a
+ terminal?
+From: Michael Fischer <mfischer@zendesk.com>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+On Tue, Nov 26, 2013 at 10:35 AM, Rodrigo Rosenfeld Rosas
+<rr.rosas@gmail.com> wrote:
+
+> I'd provide one if I could figure out some good way to automate this.
+> Currently I perform all steps manually in production for zero downtime and
+> only manage the other environments with Capistrano, except when I have a
+> programmed downtime window for production.
+
+Here's what we do (this is in unicorn.rb).  We send the master a
+SIGUSR2 via our init script, which starts the process.
+
+http://pastebin.com/02y0y34q
+
+--Michael
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
