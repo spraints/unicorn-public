@@ -1,0 +1,102 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=0.5 required=5.0 tests=AWL,RDNS_NONE shortcircuit=no
+ autolearn=no version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (unknown [50.56.192.79]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 04861202B4 for <archivist@yhbt.net>; Tue, 26 Nov 2013
+ 01:20:45 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 8B620262678; Tue, 26 Nov 2013 01:20:44 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id DAAF126202D for <mongrel-unicorn@rubyforge.org>; Tue,
+ 26 Nov 2013 01:20:37 +0000 (UTC)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id E2728202B3; Tue, 26 Nov 2013 01:20:36 +0000 (UTC)
+Date: Tue, 26 Nov 2013 01:20:36 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Subject: Re: Issues with PID file renaming
+Message-ID: <20131126012036.GA5868@dcvr.yhbt.net>
+References:
+ <CAHStS5gFYcPBDxkVizAHrOeDKAkjT69kruFdgaY0CbB+vLbK8Q@mail.gmail.com>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To:
+ <CAHStS5gFYcPBDxkVizAHrOeDKAkjT69kruFdgaY0CbB+vLbK8Q@mail.gmail.com>
+User-Agent: Mutt/1.5.21 (2010-09-15)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Jimmy Soho <jimmy.soho@gmail.com> wrote:
+> Hi Eric,
+> 
+> Since we upgraded from 4.6.2 to 4.7.0 we're regularly having issues
+> where one or more unicorn master processes would not upgrade
+> correctly, resulting in an (old) master process.
+> 
+> What I notice is the following: when upgrading with 4.6.2 the file
+> unicorn.pid is copied to unicorn.pid.oldbin and the unicorn.pid file
+> is updated (the (new) master process). After a while the worker pid
+> files are updated and the unicorn.pid.oldbin file disappears, and all
+> is fine.
+
+Ugh.  This is what I feared...  Slow startup time of most Ruby web apps
+doesn't help.
+
+> When upgrading with 4.7.0 though the file unicorn.pid.oldbin is
+> created, but there is no unicorn.pid file. After a while (when the new
+> master process has finished initialising, and is ready to fork the
+> workers) the worker pid files are updated and a unicorn.pid file
+> appears, and then the unicorn.pid.oldbin file disappears.
+> 
+> So there is a relatively long period where there is no unicorn.pid file.
+> 
+> I think the problem for us is caused by monit, our process monitor,
+> which monitors the unicorn.pid file:
+> 
+> check process unicorn with pidfile
+> /srv/app.itrp-staging.com/shared/pids/unicorn.pid
+>   start program = "/etc/init.d/unicorn start"
+>   stop program = "/etc/init.d/unicorn stop"
+>   ...
+
+Is there an alternate way to monitor unicorn with monit?
+But I'd like to keep your case working if possible.
+
+> Because the unicorn.pid file is absent for a relatively long period
+> monit will try to start unicorn, while an upgrade is in progress.
+> (which might be another issue: the start action should recognise a
+> start or upgrade process is already underway; sadly this check too
+> relies on the existence of the unicorn.pid file)
+> 
+> I think the way 4.6.2 worked is better. There should be a pid file for
+> the new master process the moment it's created.
+
+> What do you think?
+
+How about having the old process create a hard link to .oldbin,
+and having the new one override the pid if Process.ppid == pid file?
+The check is still racy, but that's what pid files are :<
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
