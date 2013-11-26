@@ -1,0 +1,128 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=0.5 required=5.0 tests=AWL,RDNS_NONE shortcircuit=no
+ autolearn=no version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (unknown [50.56.192.79]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id E8CC144C217 for <archivist@yhbt.net>; Tue, 26 Nov
+ 2013 19:21:05 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id C5ED526307C; Tue, 26 Nov 2013 19:21:06 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 27A04263077 for <mongrel-unicorn@rubyforge.org>; Tue,
+ 26 Nov 2013 19:21:04 +0000 (UTC)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id D45A244C210; Tue, 26 Nov 2013 19:21:01 +0000 (UTC)
+Date: Tue, 26 Nov 2013 19:21:01 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Subject: Re: What does it mean for the unicorn process to be bound to a
+ terminal?
+Message-ID: <20131126192101.GA23189@dcvr.yhbt.net>
+References: <5294A289.1020300@gmail.com>
+ <20131126180400.GA15932@dcvr.yhbt.net> <5294E9D4.5030608@gmail.com>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To: <5294E9D4.5030608@gmail.com>
+User-Agent: Mutt/1.5.21 (2010-09-15)
+Cc: Rodrigo Rosenfeld Rosas <rr.rosas@gmail.com>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Rodrigo Rosenfeld Rosas <rr.rosas@gmail.com> wrote:
+> I see. If I understood correctly this only happens in foreground
+> mode, so something like that would help me to understand the
+> sentence:
+
+> "...If your unicorn process is bound to an interactive terminal
+> (running in the foreground), you can skip this step."
+
+I used "not daemonized", since it's possible for a background process
+to have a controlling terminal:
+
+     unicorn ... & # runs background, still attached to terminal
+     fg # foreground again
+
+Pushed as fa17da92aa4e76d5fd63cb9b74d6884d611ec899
+(also added a link to the init.sh example)
+---------------------------8<----------------------------
+Subject: [PATCH] doc: clarify SIGNALS and reference init example
+
+"interactive terminal" needed clarification.
+
+While we're at it, link to the init.sh example since it may
+be shared with nginx.
+
+Reported-by: Rodrigo Rosenfeld Rosas
+ref: <5294E9D4.5030608@gmail.com>
+---
+ SIGNALS | 7 +++++--
+ 1 file changed, 5 insertions(+), 2 deletions(-)
+
+diff --git a/SIGNALS b/SIGNALS
+index 8851775..48c651e 100644
+--- a/SIGNALS
++++ b/SIGNALS
+@@ -7,6 +7,9 @@ signal handling matches the behavior of {nginx}[http://nginx.net/] so it
+ should be possible to easily share process management scripts between
+ Unicorn and nginx.
+ 
++One example init script is distributed with unicorn:
++http://unicorn.bogomips.org/examples/init.sh
++
+ === Master Process
+ 
+ * HUP - reloads config file and gracefully restart all workers.
+@@ -101,8 +104,8 @@ The procedure is exactly like that of nginx:
+ 
+ 3. You can now send WINCH to the old master process so only the new workers
+    serve requests.  If your unicorn process is bound to an interactive
+-   terminal, you can skip this step.  Step 5 will be more difficult but
+-   you can also skip it if your process is not daemonized.
++   terminal (not daemonized), you can skip this step.  Step 5 will be more
++   difficult but you can also skip it if your process is not daemonized.
+ 
+ 4. You should now ensure that everything is running correctly with the
+    new workers as the old workers die off.
+---------------------------8<----------------------------
+> I believe it would help the documentation if you added a link to
+> init.sh in the SIGNALS page:
+> 
+> http://bogomips.org/unicorn.git/tree/examples/init.sh
+
+> Anyway, even that script won't take care of making sure that the
+> reload action will rollback in case of an unsuccessful deploy.
+> 
+> I realize it's not easy to detect if the deploy was successful and
+> that it's very application dependent, but some generic procedures
+> would be helpful for a basic Rails application. Unfortunately I
+> don't know what would be a good strategy, that's why I asked :P
+
+Right.  Different apps require different validation, especially
+those intended for GUI web browsers.
+
+> Thank you for explaining the interactive terminal binding question :)
+
+No problem!
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
