@@ -1,0 +1,78 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=0.5 required=5.0 tests=AWL,RDNS_NONE shortcircuit=no
+ autolearn=no version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (unknown [50.56.192.79]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 5018644C217 for <archivist@yhbt.net>; Fri,  6 Dec
+ 2013 18:49:02 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 4E91D263089; Fri,  6 Dec 2013 18:49:00 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 910C1263089 for <mongrel-unicorn@rubyforge.org>; Fri,
+ 6 Dec 2013 18:48:51 +0000 (UTC)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 6328F44C216; Fri,  6 Dec 2013 18:48:49 +0000 (UTC)
+Date: Fri, 6 Dec 2013 18:48:49 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Subject: Re: unblock function in pg messes up with unicorn
+Message-ID: <20131206184849.GA27820@dcvr.yhbt.net>
+References:
+ <CAAtdryPgc3N6N6kTJaNpYJb5VNvdtROd+37Pc3Z4PQUBssc39g@mail.gmail.com>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To:
+ <CAAtdryPgc3N6N6kTJaNpYJb5VNvdtROd+37Pc3Z4PQUBssc39g@mail.gmail.com>
+User-Agent: Mutt/1.5.21 (2010-09-15)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Sam Saffron <sam.saffron@gmail.com> wrote:
+> 1. Is this a pg bug? How could they even implement a ubf in such a way
+> that it does not stop queries when signals are sent? The main issue is
+> that without this Thread.kill will have to wait for queries to finish.
+
+No, not a pg bug.  pg needs to account for the user hitting Ctrl-C and
+wanting to cancel a query (oh-no-I-started-DELETE-without-WHERE!).
+
+> 2. Is this a ruby bug? should there be a more sophisticated protocol
+> here? Should trap handlers inform the runtime that a ubf is not
+> needed?
+
+I don't know.  Something like: trap(:QUIT, no_ubf: true) { ... }  ?
+
+> something else ?
+
+Also see http://mid.gmane.org/20131120094717.GA17836@dcvr.yhbt.net
+
+Btw, given the master <-> worker separation in unicorn, we can also
+have the master talk to the worker through a pipe and avoid signals
+between the two.
+
+> Similar issue exists in mysql afaik.
+
+I don't think the mysql2 gem currently interrupts running queries.
+Not sure about the others.
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
