@@ -1,0 +1,484 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: *
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=1.3 required=5.0 tests=AWL,FREEMAIL_FROM,RDNS_NONE,
+ T_DKIM_INVALID shortcircuit=no autolearn=no version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (unknown [50.56.192.79]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id C4CDC44C1B5 for <archivist@yhbt.net>; Tue, 10 Dec
+ 2013 00:50:27 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 4356D2631F4; Tue, 10 Dec 2013 00:50:25 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+X-Greylist: delayed 1310 seconds by postgrey-1.31 at rubyforge; Tue, 10 Dec
+ 2013 00:50:17 UTC
+Received: from mail-qa0-f47.google.com (mail-qa0-f47.google.com
+ [209.85.216.47]) by rubyforge.org (Postfix) with ESMTP id 6EE142631F4 for
+ <mongrel-unicorn@rubyforge.org>; Tue, 10 Dec 2013 00:50:17 +0000 (UTC)
+Received: by mail-qa0-f47.google.com with SMTP id w5so3209179qac.13 for
+ <mongrel-unicorn@rubyforge.org>; Mon, 09 Dec 2013 16:50:17 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com;
+ s=20120113;
+ h=mime-version:in-reply-to:references:date:message-id:subject:from:to
+ :content-type; bh=UUZXG8pj7isW0djHSYvuslAr4QRFSLCwCgi0cRxxS70=;
+ b=MaPqOXQlaJriTRDbIt5yUo1Y/v8DVMRDzS+BRuAvZVp13NeoHk8REH4HSWeObFBP5t
+ ojihfAhhT3a76YDl5RmJny/r7qL8dTrHkUTZDZsYDyEo4MiiDNdLuWl5Vs1wKw56MjOq
+ UUWO3/8zNU0bLUdc+vXzccCCOYBA80T9EhyWSB6MQr+konl6wU06ZpXu8yBpGE1rUuF4
+ mNsPCugNdGvCnpTB2DVLAF7p29/h/OUdy9jmmFDnad1o2KyI+FxyfwQG7wjhTn85zYqa
+ +1XIVEfvHTp2rC5NCp5X0cNjrN6l3Nu7wfEuxBy4EwXTylfCuEzo/klYFMQGzdNS8FtD il5Q==
+MIME-Version: 1.0
+X-Received: by 10.49.1.106 with SMTP id 10mr189463106qel.55.1386634946468;
+ Mon, 09 Dec 2013 16:22:26 -0800 (PST)
+Received: by 10.229.226.6 with HTTP; Mon, 9 Dec 2013 16:22:26 -0800 (PST)
+In-Reply-To: <20131209095250.GA28025@dcvr.yhbt.net>
+References: <20131209095250.GA28025@dcvr.yhbt.net>
+Date: Tue, 10 Dec 2013 11:22:26 +1100
+Message-ID:
+ <CAAtdryP-SJ4xyp-zStU06W0kVvhZdYHGHk9wvR_divcsdURreA@mail.gmail.com>
+Subject: Re: [PATCH] rework master-to-worker signaling to use a pipe
+From: Sam Saffron <sam.saffron@gmail.com>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Eric,
+
+Your work on unicorn is exemplary and responsiveness second to none. I
+did want to take a full circle back though on the issue.
+
+After discussing with tmm1 and ko1 the conclusion is that pg is using
+ubfs incorrectly. They are just there to unblock io, not as a
+termination hook, once io is unblocked you still need to be able to
+re-acquire. pg was using ubfs as termination hooks. See full
+discussion at: https://groups.google.com/forum/#!topic/ruby-pg/5_ylGmog1S4
+
+The end result is that I suggested Lars open a ticket for redmine if
+we need a ubfs to act as termination hooks, the change to pg was
+reverted.
+
+Bottom line is that your change is not really required.
+
+Thanks you so much for being super responsive here. Sorry if I caused
+you to go on a tangent you did need to go on.
+
+Sam
+
+On Mon, Dec 9, 2013 at 8:52 PM, Eric Wong <normalperson@yhbt.net> wrote:
+> Signaling using normal kill(2) is preserved, but the master now
+> prefers to signal workers using a pipe rather than kill(2).
+> Non-graceful signals (:TERM/:KILL) are still sent using kill(2),
+> as they ask for immediate shutdown.
+>
+> This change is necessary to avoid triggering the ubf (unblocking
+> function) for rb_thread_call_without_gvl (and similar) functions
+> extensions.  Most notably, this fixes compatibility with newer
+> versions of the 'pg' gem which will cancel a running DB query if
+> signaled[1].
+>
+> This also has the nice side-effect of allowing a premature
+> master death (assuming preload_app didn't cause the master to
+> spawn off rogue child daemons).
+>
+> Note: users should also refrain from using "killall" if using the
+> 'pg' gem or something like it.
+>
+> Unfortunately, this increases FD usage in the master as the writable
+> end of the pipe is preserved in the master.  This limit the number
+> of worker processes the master may run to the open file limit of the
+> master process.  Increasing the open file limit of the master
+> process may be needed.  However, the FD use on the workers is
+> reduced by one as the internal self-pipe is no longer used.  Thus,
+> overall pipe allocation for the kernel remains unchanged.
+>
+> [1] - pg is correct to cancel a query, as it cannot know if
+>       the signal was for a) graceful unicorn shutdown or
+>       b) oh-noes-I-started-a-bad-query-ABORT-ABORT-ABORT!!
+> ---
+>   Pushed to master on git://bogomips.org/unicorn.git
+>   commit 6f6e4115b4bb03e5e7c55def91527799190566f2
+>
+>  SIGNALS                    |  6 ++++
+>  lib/unicorn.rb             |  5 +++
+>  lib/unicorn/http_server.rb | 85 +++++++++++++++++++++++-----------------------
+>  lib/unicorn/worker.rb      | 64 ++++++++++++++++++++++++++++++++++
+>  4 files changed, 118 insertions(+), 42 deletions(-)
+>
+> diff --git a/SIGNALS b/SIGNALS
+> index 48c651e..ef0b0d9 100644
+> --- a/SIGNALS
+> +++ b/SIGNALS
+> @@ -45,6 +45,10 @@ http://unicorn.bogomips.org/examples/init.sh
+>
+>  === Worker Processes
+>
+> +Note: as of unicorn 4.8, the master uses a pipe to signal workers
+> +instead of kill(2) for most cases.  Using signals still (and works and
+> +remains supported for external tools/libraries), however.
+> +
+>  Sending signals directly to the worker processes should not normally be
+>  needed.  If the master process is running, any exited worker will be
+>  automatically respawned.
+> @@ -52,6 +56,8 @@ automatically respawned.
+>  * INT/TERM - Quick shutdown, immediately exit.
+>    Unless WINCH has been sent to the master (or the master is killed),
+>    the master process will respawn a worker to replace this one.
+> +  Immediate shutdown is still triggered using kill(2) and not the
+> +  internal pipe as of unicorn 4.8
+>
+>  * QUIT - Gracefully exit after finishing the current request.
+>    Unless WINCH has been sent to the master (or the master is killed),
+> diff --git a/lib/unicorn.rb b/lib/unicorn.rb
+> index 2535159..638b846 100644
+> --- a/lib/unicorn.rb
+> +++ b/lib/unicorn.rb
+> @@ -97,6 +97,11 @@ module Unicorn
+>      logger.error "#{prefix}: #{message} (#{exc.class})"
+>      exc.backtrace.each { |line| logger.error(line) }
+>    end
+> +
+> +  # remove this when we only support Ruby >= 2.0
+> +  def self.pipe # :nodoc:
+> +    Kgio::Pipe.new.each { |io| io.fcntl(Fcntl::F_SETFD, Fcntl::FD_CLOEXEC) }
+> +  end
+>    # :startdoc:
+>  end
+>  # :enddoc:
+> diff --git a/lib/unicorn/http_server.rb b/lib/unicorn/http_server.rb
+> index f15c8a7..ae8ad13 100644
+> --- a/lib/unicorn/http_server.rb
+> +++ b/lib/unicorn/http_server.rb
+> @@ -42,16 +42,8 @@ class Unicorn::HttpServer
+>    # it to wake up the master from IO.select in exactly the same manner
+>    # djb describes in http://cr.yp.to/docs/selfpipe.html
+>    #
+> -  # * The workers immediately close the pipe they inherit from the
+> -  # master and replace it with a new pipe after forking.  This new
+> -  # pipe is also used to wakeup from IO.select from inside (worker)
+> -  # signal handlers.  However, workers *close* the pipe descriptors in
+> -  # the signal handlers to raise EBADF in IO.select instead of writing
+> -  # like we do in the master.  We cannot easily use the reader set for
+> -  # IO.select because LISTENERS is already that set, and it's extra
+> -  # work (and cycles) to distinguish the pipe FD from the reader set
+> -  # once IO.select returns.  So we're lazy and just close the pipe when
+> -  # a (rare) signal arrives in the worker and reinitialize the pipe later.
+> +  # * The workers immediately close the pipe they inherit.  See the
+> +  # Unicorn::Worker class for the pipe workers use.
+>    SELF_PIPE = []
+>
+>    # signal queue used for self-piping
+> @@ -127,7 +119,7 @@ class Unicorn::HttpServer
+>      inherit_listeners!
+>      # this pipe is used to wake us up from select(2) in #join when signals
+>      # are trapped.  See trap_deferred.
+> -    init_self_pipe!
+> +    SELF_PIPE.replace(Unicorn.pipe)
+>
+>      # setup signal handlers before writing pid file in case people get
+>      # trigger happy and send signals as soon as the pid file exists.
+> @@ -306,14 +298,14 @@ class Unicorn::HttpServer
+>          logger.info "master reopening logs..."
+>          Unicorn::Util.reopen_logs
+>          logger.info "master done reopening logs"
+> -        kill_each_worker(:USR1)
+> +        soft_kill_each_worker(:USR1)
+>        when :USR2 # exec binary, stay alive in case something went wrong
+>          reexec
+>        when :WINCH
+>          if Unicorn::Configurator::RACKUP[:daemonized]
+>            respawn = false
+>            logger.info "gracefully stopping all workers"
+> -          kill_each_worker(:QUIT)
+> +          soft_kill_each_worker(:QUIT)
+>            self.worker_processes = 0
+>          else
+>            logger.info "SIGWINCH ignored because we're not daemonized"
+> @@ -345,7 +337,11 @@ class Unicorn::HttpServer
+>      self.listeners = []
+>      limit = Time.now + timeout
+>      until WORKERS.empty? || Time.now > limit
+> -      kill_each_worker(graceful ? :QUIT : :TERM)
+> +      if graceful
+> +        soft_kill_each_worker(:QUIT)
+> +      else
+> +        kill_each_worker(:TERM)
+> +      end
+>        sleep(0.1)
+>        reap_all_workers
+>      end
+> @@ -498,6 +494,7 @@ class Unicorn::HttpServer
+>    end
+>
+>    def after_fork_internal
+> +    SELF_PIPE.each { |io| io.close }.clear # this is master-only, now
+>      @ready_pipe.close if @ready_pipe
+>      Unicorn::Configurator::RACKUP.clear
+>      @ready_pipe = @init_listeners = @before_exec = @before_fork = nil
+> @@ -517,6 +514,7 @@ class Unicorn::HttpServer
+>        before_fork.call(self, worker)
+>        if pid = fork
+>          WORKERS[pid] = worker
+> +        worker.atfork_parent
+>        else
+>          after_fork_internal
+>          worker_loop(worker)
+> @@ -531,9 +529,7 @@ class Unicorn::HttpServer
+>    def maintain_worker_count
+>      (off = WORKERS.size - worker_processes) == 0 and return
+>      off < 0 and return spawn_missing_workers
+> -    WORKERS.dup.each_pair { |wpid,w|
+> -      w.nr >= worker_processes and kill_worker(:QUIT, wpid) rescue nil
+> -    }
+> +    WORKERS.each_value { |w| w.nr >= worker_processes and w.soft_kill(:QUIT) }
+>    end
+>
+>    # if we get any error, try to write something back to the client
+> @@ -600,6 +596,7 @@ class Unicorn::HttpServer
+>    # traps for USR1, USR2, and HUP may be set in the after_fork Proc
+>    # by the user.
+>    def init_worker_process(worker)
+> +    worker.atfork_child
+>      # we'll re-trap :QUIT later for graceful shutdown iff we accept clients
+>      EXIT_SIGS.each { |sig| trap(sig) { exit!(0) } }
+>      exit!(0) if (SIG_QUEUE & EXIT_SIGS)[0]
+> @@ -608,23 +605,27 @@ class Unicorn::HttpServer
+>      SIG_QUEUE.clear
+>      proc_name "worker[#{worker.nr}]"
+>      START_CTX.clear
+> -    init_self_pipe!
+>      WORKERS.clear
+> +
+> +    after_fork.call(self, worker) # can drop perms and create listeners
+>      LISTENERS.each { |sock| sock.fcntl(Fcntl::F_SETFD, Fcntl::FD_CLOEXEC) }
+> -    after_fork.call(self, worker) # can drop perms
+> +
+>      worker.user(*user) if user.kind_of?(Array) && ! worker.switched
+>      self.timeout /= 2.0 # halve it for select()
+>      @config = nil
+>      build_app! unless preload_app
+>      ssl_enable!
+>      @after_fork = @listener_opts = @orig_app = nil
+> +    readers = LISTENERS.dup
+> +    readers << worker
+> +    trap(:QUIT) { readers.each { |io| io.close }.replace([false]) }
+> +    readers
+>    end
+>
+>    def reopen_worker_logs(worker_nr)
+>      logger.info "worker=#{worker_nr} reopening logs..."
+>      Unicorn::Util.reopen_logs
+>      logger.info "worker=#{worker_nr} done reopening logs"
+> -    init_self_pipe!
+>      rescue => e
+>        logger.error(e) rescue nil
+>        exit!(77) # EX_NOPERM in sysexits.h
+> @@ -635,22 +636,24 @@ class Unicorn::HttpServer
+>    # given a INT, QUIT, or TERM signal)
+>    def worker_loop(worker)
+>      ppid = master_pid
+> -    init_worker_process(worker)
+> +    readers = init_worker_process(worker)
+>      nr = 0 # this becomes negative if we need to reopen logs
+> -    l = LISTENERS.dup
+> -    ready = l.dup
+>
+> -    # closing anything we IO.select on will raise EBADF
+> -    trap(:USR1) { nr = -65536; SELF_PIPE[0].close rescue nil }
+> -    trap(:QUIT) { worker = nil; LISTENERS.each { |s| s.close rescue nil }.clear }
+> -    logger.info "worker=#{worker.nr} ready"
+> +    # this only works immediately if the master sent us the signal
+> +    # (which is the normal case)
+> +    trap(:USR1) { nr = -65536 }
+> +
+> +    ready = readers.dup
+> +    @logger.info "worker=#{worker.nr} ready"
+>
+>      begin
+>        nr < 0 and reopen_worker_logs(worker.nr)
+>        nr = 0
+> -
+>        worker.tick = Time.now.to_i
+> -      while sock = ready.shift
+> +      tmp = ready.dup
+> +      while sock = tmp.shift
+> +        # Unicorn::Worker#kgio_tryaccept is not like accept(2) at all,
+> +        # but that will return false
+>          if client = sock.kgio_tryaccept
+>            process_client(client)
+>            nr += 1
+> @@ -663,8 +666,8 @@ class Unicorn::HttpServer
+>        # we're probably reasonably busy, so avoid calling select()
+>        # and do a speculative non-blocking accept() on ready listeners
+>        # before we sleep again in select().
+> -      unless nr == 0 # (nr < 0) => reopen logs (unlikely)
+> -        ready = l.dup
+> +      unless nr == 0
+> +        tmp = ready.dup
+>          redo
+>        end
+>
+> @@ -672,11 +675,11 @@ class Unicorn::HttpServer
+>
+>        # timeout used so we can detect parent death:
+>        worker.tick = Time.now.to_i
+> -      ret = IO.select(l, nil, SELF_PIPE, @timeout) and ready = ret[0]
+> +      ret = IO.select(readers, nil, nil, @timeout) and ready = ret[0]
+>      rescue => e
+> -      redo if nr < 0 && (Errno::EBADF === e || IOError === e) # reopen logs
+> -      Unicorn.log_error(@logger, "listen loop error", e) if worker
+> -    end while worker
+> +      redo if nr < 0
+> +      Unicorn.log_error(@logger, "listen loop error", e) if readers[0]
+> +    end while readers[0]
+>    end
+>
+>    # delivers a signal to a worker and fails gracefully if the worker
+> @@ -692,6 +695,10 @@ class Unicorn::HttpServer
+>      WORKERS.keys.each { |wpid| kill_worker(signal, wpid) }
+>    end
+>
+> +  def soft_kill_each_worker(signal)
+> +    WORKERS.each_value { |worker| worker.soft_kill(signal) }
+> +  end
+> +
+>    # unlinks a PID file at given +path+ if it contains the current PID
+>    # still potentially racy without locking the directory (which is
+>    # non-portable and may interact badly with other programs), but the
+> @@ -720,7 +727,7 @@ class Unicorn::HttpServer
+>      config[:listeners].replace(@init_listeners)
+>      config.reload
+>      config.commit!(self)
+> -    kill_each_worker(:QUIT)
+> +    soft_kill_each_worker(:QUIT)
+>      Unicorn::Util.reopen_logs
+>      self.app = orig_app
+>      build_app! if preload_app
+> @@ -756,12 +763,6 @@ class Unicorn::HttpServer
+>      io.sync = true
+>    end
+>
+> -  def init_self_pipe!
+> -    SELF_PIPE.each { |io| io.close rescue nil }
+> -    SELF_PIPE.replace(Kgio::Pipe.new)
+> -    SELF_PIPE.each { |io| io.fcntl(Fcntl::F_SETFD, Fcntl::FD_CLOEXEC) }
+> -  end
+> -
+>    def inherit_listeners!
+>      # inherit sockets from parents, they need to be plain Socket objects
+>      # before they become Kgio::UNIXServer or Kgio::TCPServer
+> diff --git a/lib/unicorn/worker.rb b/lib/unicorn/worker.rb
+> index 1fb6a4a..e74a1c9 100644
+> --- a/lib/unicorn/worker.rb
+> +++ b/lib/unicorn/worker.rb
+> @@ -12,6 +12,7 @@ class Unicorn::Worker
+>    # :stopdoc:
+>    attr_accessor :nr, :switched
+>    attr_writer :tmp
+> +  attr_reader :to_io # IO.select-compatible
+>
+>    PER_DROP = Raindrops::PAGE_SIZE / Raindrops::SIZE
+>    DROPS = []
+> @@ -23,6 +24,66 @@ class Unicorn::Worker
+>      @raindrop[@offset] = 0
+>      @nr = nr
+>      @tmp = @switched = false
+> +    @to_io, @master = Unicorn.pipe
+> +  end
+> +
+> +  def atfork_child # :nodoc:
+> +    # we _must_ close in child, parent just holds this open to signal
+> +    @master = @master.close
+> +  end
+> +
+> +  # master fakes SIGQUIT using this
+> +  def quit # :nodoc:
+> +    @master = @master.close if @master
+> +  end
+> +
+> +  # parent does not read
+> +  def atfork_parent # :nodoc:
+> +    @to_io = @to_io.close
+> +  end
+> +
+> +  # call a signal handler immediately without triggering EINTR
+> +  # We do not use the more obvious Process.kill(sig, $$) here since
+> +  # that signal delivery may be deferred.  We want to avoid signal delivery
+> +  # while the Rack app.call is running because some database drivers
+> +  # (e.g. ruby-pg) may cancel pending requests.
+> +  def fake_sig(sig) # :nodoc:
+> +    old_cb = trap(sig, "IGNORE")
+> +    old_cb.call
+> +  ensure
+> +    trap(sig, old_cb)
+> +  end
+> +
+> +  # master sends fake signals to children
+> +  def soft_kill(sig) # :nodoc:
+> +    case sig
+> +    when Integer
+> +      signum = sig
+> +    else
+> +      signum = Signal.list[sig.to_s] or
+> +          raise ArgumentError, "BUG: bad signal: #{sig.inspect}"
+> +    end
+> +    # writing and reading 4 bytes on a pipe is atomic on all POSIX platforms
+> +    # Do not care in the odd case the buffer is full, here.
+> +    @master.kgio_trywrite([signum].pack('l'))
+> +  rescue Errno::EPIPE
+> +    # worker will be reaped soon
+> +  end
+> +
+> +  # this only runs when the Rack app.call is not running
+> +  # act like a listener
+> +  def kgio_tryaccept # :nodoc:
+> +    case buf = @to_io.kgio_tryread(4)
+> +    when String
+> +      # unpack the buffer and trigger the signal handler
+> +      signum = buf.unpack('l')
+> +      fake_sig(signum[0])
+> +      # keep looping, more signals may be queued
+> +    when nil # EOF: master died, but we are at a safe place to exit
+> +      fake_sig(:QUIT)
+> +    when :wait_readable # keep waiting
+> +      return false
+> +    end while true # loop, as multiple signals may be sent
+>    end
+>
+>    # worker objects may be compared to just plain Integers
+> @@ -49,8 +110,11 @@ class Unicorn::Worker
+>      end
+>    end
+>
+> +  # called in both the master (reaping worker) and worker (SIGQUIT handler)
+>    def close # :nodoc:
+>      @tmp.close if @tmp
+> +    @master.close if @master
+> +    @to_io.close if @to_io
+>    end
+>
+>    # :startdoc:
+> --
+> Eric Wong
+> _______________________________________________
+> Unicorn mailing list - mongrel-unicorn@rubyforge.org
+> http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+> Do not quote signatures (like this one) or top post when replying
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
