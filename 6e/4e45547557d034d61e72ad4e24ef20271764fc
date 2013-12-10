@@ -1,0 +1,78 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=0.5 required=5.0 tests=AWL,RDNS_NONE shortcircuit=no
+ autolearn=no version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (unknown [50.56.192.79]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id BE31720281 for <archivist@yhbt.net>; Tue, 10 Dec 2013
+ 01:58:35 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 6D12C2631FB; Tue, 10 Dec 2013 01:58:34 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 034112631F8 for <mongrel-unicorn@rubyforge.org>; Tue,
+ 10 Dec 2013 01:58:25 +0000 (UTC)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id E439A1FD71; Tue, 10 Dec 2013 01:58:24 +0000 (UTC)
+Date: Tue, 10 Dec 2013 01:58:24 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Subject: Re: [PATCH] rework master-to-worker signaling to use a pipe
+Message-ID: <20131210015824.GA20757@dcvr.yhbt.net>
+References: <20131209095250.GA28025@dcvr.yhbt.net>
+ <CAAtdryP-SJ4xyp-zStU06W0kVvhZdYHGHk9wvR_divcsdURreA@mail.gmail.com>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To:
+ <CAAtdryP-SJ4xyp-zStU06W0kVvhZdYHGHk9wvR_divcsdURreA@mail.gmail.com>
+User-Agent: Mutt/1.5.21 (2010-09-15)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Sam Saffron <sam.saffron@gmail.com> wrote:
+> Bottom line is that your change is not really required.
+
+OK.  However, the other benefit of the change is that master process
+death can be detected much sooner.  (The per-process open file limit
+issue doesn't really bother me with my change, since the overall kernel
+pipe usage does not change).
+
+I suppose ruby-pg users can do something like:
+
+	trap(:EXIT) { pg.cancel }
+
+if they really want to be able to abort in-progress queries
+
+> Thanks you so much for being super responsive here. Sorry if I caused
+> you to go on a tangent you did need to go on.
+
+No worries, I was already using a similar method to (only) detect master
+process death in another master-worker server.  Anyways, there's nothing
+pg-specific to it and I was always slightly worried signals would cause
+some buggy code behave incorrectly in the face of EINTR (though most of
+C Ruby + extensions seem well-behaved in that regard).
+
+So I'm likely to go forward with it (if not for unicorn 4.8, then 5.0)
+
+Thanks for bringing this issue to everyone's attention.
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
