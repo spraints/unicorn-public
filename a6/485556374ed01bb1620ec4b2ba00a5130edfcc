@@ -1,0 +1,84 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: *
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=1.4 required=5.0 tests=AWL,RDNS_NONE shortcircuit=no
+ autolearn=no version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (unknown [50.56.192.79]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id DCDDA20288 for <archivist@yhbt.net>; Wed, 11 Dec 2013
+ 13:54:23 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 7BE5C2E20B; Wed, 11 Dec 2013 13:54:22 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from mail-pb0-f47.google.com (mail-pb0-f47.google.com
+ [209.85.160.47]) by rubyforge.org (Postfix) with ESMTP id 079922E20C for
+ <mongrel-unicorn@rubyforge.org>; Wed, 11 Dec 2013 13:54:18 +0000 (UTC)
+Received: by mail-pb0-f47.google.com with SMTP id um1so9924971pbc.6 for
+ <mongrel-unicorn@rubyforge.org>; Wed, 11 Dec 2013 05:54:17 -0800 (PST)
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=1e100.net;
+ s=20130820; h=x-gm-message-state:mime-version:in-reply-to:references:date
+ :message-id:subject:from:to:content-type:content-transfer-encoding;
+ bh=unjAYjAFwCRAQIreo5oLLdKh3l5pwBBVo6SGcBag8CE=;
+ b=BU5zeje7ECt1w1h8TCDZEK5q2Hb+JEGWmPQmqHG/CQv0G5Isz9s2DIG/rzaUJTImda
+ ZerxpcqoJEj9+B2F1fcHUmHNVg66bzSkYPq0ywoQ9s8YdNcQF9prdWh90hbPXficbRN/
+ NhgpwR+ezh2PwTPpJGoUBm3Egjh/qkBbFFUO5JKDzOCymdAUbZIP5vBfyDO5xgMN4tMx
+ JyXlhzGJEvokH1WexBXusvrMPJ9dF19uPT6A4Egs4oJCG6GdiluIZ0QiXE8+zapvHvFp
+ Li2FbjTdtSQNLFeqx1zgHcSTqdMnq6TMR40VB4afXVr2RDyQ/PaJdPR0BbiUCws+uP7g gmOQ==
+X-Gm-Message-State:
+ ALoCoQkypLqrbz2wDbocBWJ5LvAXNcJLmIeXz2N9IPTf6QrhIfuahSicN10AOLSQ73l8SG9+1QM6
+MIME-Version: 1.0
+X-Received: by 10.68.236.133 with SMTP id uu5mr1655410pbc.153.1386770057428;
+ Wed, 11 Dec 2013 05:54:17 -0800 (PST)
+Received: by 10.68.106.3 with HTTP; Wed, 11 Dec 2013 05:54:17 -0800 (PST)
+In-Reply-To: <52A7995B.7010905@gentoo.org>
+References:
+ <CAHStS5gFYcPBDxkVizAHrOeDKAkjT69kruFdgaY0CbB+vLbK8Q@mail.gmail.com>
+ <20131126012036.GA5868@dcvr.yhbt.net> <52A70D26.7020105@gentoo.org>
+ <20131210195255.GA26226@dcvr.yhbt.net> <52A7995B.7010905@gentoo.org>
+Date: Wed, 11 Dec 2013 13:54:17 +0000
+Message-ID:
+ <CABHxtY73qfZCHVW3VCW2ghRHgSoGSmVRMzfuqEeSQcxnnjfD5Q@mail.gmail.com>
+Subject: Re: Issues with PID file renaming
+From: Michael Fischer <mfischer@zendesk.com>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="iso-8859-1"
+Content-Transfer-Encoding: quoted-printable
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+On Tue, Dec 10, 2013 at 10:44 PM, Petteri R=E4ty <betelgeuse@gentoo.org> wr=
+ote:
+
+> At least for pid based monitoring tools it is (I do agree with others
+> that you should also be monitoring http though). For example monit
+> requires that you give it a pid file. Why is it wrong for them to point
+> to the same pid?
+
+Monit doesn't require a pid, never has:
+
+http://mmonit.com/monit/documentation/monit.html#connection_testing
+
+To answer your question, though, the reason the pid files must contain
+different PIDs is that the two processes (previous and
+current-generation masters) have different PIDs.  And some of us do
+care that they differ :)
+
+--Michael
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
