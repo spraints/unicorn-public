@@ -1,0 +1,72 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: *
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=1.4 required=5.0 tests=AWL,RDNS_NONE shortcircuit=no
+ autolearn=no version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (unknown [50.56.192.79]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id AEF9C2028F for <archivist@yhbt.net>; Thu, 12 Dec 2013
+ 18:37:48 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 4E699263098; Thu, 12 Dec 2013 18:37:49 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from mail-pb0-f43.google.com (mail-pb0-f43.google.com
+ [209.85.160.43]) by rubyforge.org (Postfix) with ESMTP id 8F8B2262678 for
+ <mongrel-unicorn@rubyforge.org>; Thu, 12 Dec 2013 18:37:42 +0000 (UTC)
+Received: by mail-pb0-f43.google.com with SMTP id rq2so1002478pbb.2 for
+ <mongrel-unicorn@rubyforge.org>; Thu, 12 Dec 2013 10:37:40 -0800 (PST)
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=1e100.net;
+ s=20130820; h=x-gm-message-state:mime-version:date:message-id:subject:from:to
+ :content-type; bh=JU2QbF9sVCYNOLfqHsE9wZPbbx+sXd0DObiN7b3Jfqs=;
+ b=fA0sogLvc4Nn2cf6T0xDvNww37p945q6Y8WmbL70teOePqP2+3k6nvt7WjX5JkXpZZ
+ MkwGV8hxLCDp9wlAJzgB6z89MTmFOzIVaxIAu0FyrWSkjEtGwEpIEAk7glYq+raA4zpU
+ 2K2OfE8vSATm5Bfr6nz7NeIguy1/psN591ePDSpMIbIxJs8KxKTBkq+lKIZ9MsKpmzmK
+ eBVdV+iF4erR2o7U5inv0+VOeOi1Vo+amLYIQNorJCgTwqNdLWATTVKEtMG1Ol0Ut2A3
+ VaKKB1GFIbwV4/n3pXneOtqB6wWS2VXOh52RFynv3HQXMyDlajU/tjElO7LdnjyaJd2d 9hfQ==
+X-Gm-Message-State:
+ ALoCoQnoKlEJyUWKergo68gw/gNJvnQVAs/w39qC3LhddZ4lDQ9mAH22pi4IXMq2rsS3MIxXhtIA
+MIME-Version: 1.0
+X-Received: by 10.68.232.196 with SMTP id tq4mr14677870pbc.166.1386873460581;
+ Thu, 12 Dec 2013 10:37:40 -0800 (PST)
+Received: by 10.68.106.3 with HTTP; Thu, 12 Dec 2013 10:37:40 -0800 (PST)
+Date: Thu, 12 Dec 2013 18:37:40 +0000
+Message-ID:
+ <CABHxtY6qeV-Faj997Hho2dBzG3NKDJphA5JEqCns1YtyBJaUeg@mail.gmail.com>
+Subject: Bad file descriptor on reload under Ruby 2.0
+From: Michael Fischer <mfischer@zendesk.com>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+If you're getting an EBADF (bad file descriptor) error when re-execing
+Unicorn under Ruby >= 2.0 (see, e.g,
+http://rubyforge.org/pipermail/mongrel-unicorn/2013-August/001858.html),
+it's likely that you're re-running Unicorn via "bundle exec":
+
+http://developer.zendesk.com/blog/2013/10/09/ruby-2-0-changes-exec-bundler/
+
+The fix is to use a binstub for unicorn.
+
+Best regards,
+
+--Michael
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
