@@ -1,0 +1,88 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: *
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=1.3 required=5.0 tests=FREEMAIL_FROM,RDNS_NONE
+ shortcircuit=no autolearn=no version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (unknown [50.56.192.79]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id EE3D51FE1D for <archivist@yhbt.net>; Thu,  2 Jan 2014
+ 00:48:50 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 370C626308D; Thu,  2 Jan 2014 00:48:49 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+X-Greylist: delayed 396 seconds by postgrey-1.31 at rubyforge; Thu, 02 Jan
+ 2014 00:48:39 UTC
+Received: from mout.gmx.net (mout.gmx.net [212.227.17.22]) by rubyforge.org
+ (Postfix) with ESMTP id 15BE926308D for <mongrel-unicorn@rubyforge.org>; Thu,
+ 2 Jan 2014 00:48:39 +0000 (UTC)
+Received: from tydirium.the-staging.com ([88.11.93.57]) by mail.gmx.com
+ (mrgmx102) with ESMTPA (Nemesis) id 0Lv8hi-1VGyKR1T62-010P21 for
+ <mongrel-unicorn@rubyforge.org>; Thu, 02 Jan 2014 01:41:53 +0100
+Date: Thu, 2 Jan 2014 01:41:51 +0100
+From: Carlos =?iso-8859-1?Q?Pe=F1as?= <theistian@gmx.com>
+To: mongrel-unicorn@rubyforge.org
+Subject: Is it possible to log better info in timeouts?
+Message-ID: <20140102004150.GA11314@tydirium.the-staging.com>
+MIME-Version: 1.0
+Content-Disposition: inline
+User-Agent: Mutt/1.5.21 (2010-09-15)
+X-Provags-ID: V03:K0:1B4ch1Kqnt2kpJNwckCfl2ljUMhB85AxH3wVIMb7EXistyv5cI7
+ F97pqKb8nYCwz+5dX7WurVD/eSPvA1Wzir8gtAuUGhQZrFv5JJJfNux1GebJICNFcwcbyXp
+ Ipb/uRsJ8AkPyblFrXllb0sKKwJmvFAvfSsnqLwYixGaYLhILVtrAygZXCgNuC8DEqci/jC
+ EL+/oWfcfxxkzbmOAeFqQ==
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="iso-8859-1"
+Content-Transfer-Encoding: quoted-printable
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Hi!
+
+Recently we had an issue with an external service for an app served with
+unicorn. And some of our requests died with unicorn's timeout because a
+not properly secured call to this external service. We had 20s
+timeout but in production with ten worker and a big percent of urls
+hitting external services 20 secons of timeout sooner or later brings
+down the entire site.
+
+in the logs when this hapens this line is left for debugging:
+
+E, [2013-12-25T23:56:49.363426 #26324] ERROR -- : worker=3D2 PID:27956 time=
+out (21s > 20s), killing
+E, [2014-12-25T23:56:49.396005 #26324] ERROR -- : reaped #<Process::Status:=
+ pid 27956 SIGKILL (signal 9)> worker=3D2
+
+
+Is it possible to opt to print to the error log some other info perhaps
+the bactrace of the process or the offending request?
+
+Even better whould be possible to hack a watchdog that could log "slow
+requests" like mysql slow_queries?
+
+I'm asking after look a bit the code but it's a bit far away for my
+skills right now.
+
+Thanks.
+
+-- =
+
+Carlos Pe=F1as San Jos=E9
+carlos@adoptales.es
+
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
