@@ -1,0 +1,83 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: *
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=1.3 required=5.0 tests=AWL,FREEMAIL_FROM,RDNS_NONE,
+ T_DKIM_INVALID shortcircuit=no autolearn=no version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (unknown [50.56.192.79]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 0EBBD44C1A8 for <archivist@yhbt.net>; Fri,  3 Jan
+ 2014 20:48:10 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id E05F5263103; Fri,  3 Jan 2014 20:48:10 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from mail-qc0-f174.google.com (mail-qc0-f174.google.com
+ [209.85.216.174]) by rubyforge.org (Postfix) with ESMTP id 902BF263103 for
+ <mongrel-unicorn@rubyforge.org>; Fri,  3 Jan 2014 20:48:03 +0000 (UTC)
+Received: by mail-qc0-f174.google.com with SMTP id n7so14755756qcx.5 for
+ <mongrel-unicorn@rubyforge.org>; Fri, 03 Jan 2014 12:48:01 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com;
+ s=20120113;
+ h=mime-version:in-reply-to:references:date:message-id:subject:from:to
+ :content-type; bh=viyaboY5OKWSGypYOEKF5ivEj//7fwk7YprA/FvQkow=;
+ b=o8lYaEIdVmRA1OlXtTRlu4j52xK+znzIzsk0OFyVs8maDN2Eri5qkmY6jRF0oWM2sw
+ MZP9ekQb7smRrwsLgDcFdpZ9t988xb8ugYUaxncVvJE3QxZxBHtVdbJcb58Gr6rFdW21
+ ezzR3iG4v5USGy3dMixwrcxoo8TQKGCyOpdtm1Zzmlrhz1Ig80j/9PT8k2nZAtE6cZrD
+ 87uesvz0KGPM5cJrp2k+lpDUcS4zdNfW4Zq1KiTvmDb1IvBTbgRXUC9BRgR4zYskPaAe
+ fbUUyXyXErObtVyK5JWpB4ttig7tfJo1b4N7zYkmgOLWKwwYaGkKhGfEFspqukAJzz0Q KKkA==
+MIME-Version: 1.0
+X-Received: by 10.229.194.1 with SMTP id dw1mr150092716qcb.20.1388781750867;
+ Fri, 03 Jan 2014 12:42:30 -0800 (PST)
+Received: by 10.229.226.6 with HTTP; Fri, 3 Jan 2014 12:42:30 -0800 (PST)
+In-Reply-To:
+ <CAF5DW8K9u6tdreDpCqOz90w=NXF659CUnvOiiDRjH=-jiL961Q@mail.gmail.com>
+References:
+ <CAF5DW8K9u6tdreDpCqOz90w=NXF659CUnvOiiDRjH=-jiL961Q@mail.gmail.com>
+Date: Sat, 4 Jan 2014 07:42:30 +1100
+Message-ID:
+ <CAAtdryP0jVcWLG6sUOjeT3Sr2qZ5scc-AqKS1NOoGY2gCErCvg@mail.gmail.com>
+Subject: Re: Zero-downtime restarts while updating the environment?
+From: Sam Saffron <sam.saffron@gmail.com>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+cycling in and out of the load balancer is standard, you can also do
+this: http://samsaffron.com/archive/2013/11/13/live-restarts-of-a-supervised-unicorn-process
+
+On Sat, Jan 4, 2014 at 6:15 AM, Jonathan del Strother
+<maillist@steelskies.com> wrote:
+> Hi there,
+> I recently ran into a problem where I had to update bundler from 1.3
+> to 1.5 so that it recognised the "platforms:[ruby_21]" option in my
+> Gemfile.  However, Unicorn continued to use Bundler 1.3 when I
+> re-exec'd it via USR2 (perhaps unsurprisingly), and so couldn't load
+> my new gemfile until I completely restarted it.
+>
+> I ended up tweaking our balancers to funnel all our traffic to half
+> our backend machines, restarted unicorn on the other half, then
+> flipped the traffic to the first half and repeat.  Is that the
+> standard way of doing it, or is there a better way?
+> _______________________________________________
+> Unicorn mailing list - mongrel-unicorn@rubyforge.org
+> http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+> Do not quote signatures (like this one) or top post when replying
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
