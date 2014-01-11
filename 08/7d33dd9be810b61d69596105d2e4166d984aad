@@ -1,0 +1,83 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=0.5 required=5.0 tests=AWL,RDNS_NONE shortcircuit=no
+ autolearn=no version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (unknown [50.56.192.79]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 3F89C216D2 for <archivist@yhbt.net>; Sat, 11 Jan 2014
+ 07:41:15 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 1CE3A2630B4; Sat, 11 Jan 2014 07:41:13 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id A859B2630B1 for <mongrel-unicorn@rubyforge.org>; Sat,
+ 11 Jan 2014 07:41:07 +0000 (UTC)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 1959E1FE26; Sat, 11 Jan 2014 07:40:46 +0000 (UTC)
+Date: Sat, 11 Jan 2014 07:40:45 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: mongrel-unicorn@rubyforge.org
+Subject: [ANN] unicorn 4.8.0 - big internal changes, but compatible
+Message-ID: <20140111074045.GA29055@dcvr.yhbt.net>
+MIME-Version: 1.0
+Content-Disposition: inline
+User-Agent: Mutt/1.5.21 (2010-09-15)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Changes:
+
+This release contains fairly major internal workings of master-to-worker
+notifications.  The master process no longer sends signals to workers
+for most tasks.  This works around some compatibility issues with some
+versions of the "pg" gem (and potentially any other code which may not
+handle EINTR properly).  One extra benefit is it also helps stray
+workers notice a rare, unexpected master death more easily.  Workers
+continue to (and will always) accept existing signals for compatibility
+with tools/scripts which may signal workers.
+
+PID file are always written early (even on upgrade) again to avoid
+breaking strange monitoring setups which use PID files.  Keep in mind we
+have always discouraged monitoring based on PID files as they are
+fragile.
+
+We now avoid bubbling IOError to the Rack app on premature client
+disconnects when streaming the input body.  This is usually not a
+problem with nginx, but may be on some LAN setups without nginx).
+
+Thanks to Sam Saffron, Jimmy Soho, Rodrigo Rosenfeld Rosas,
+Michael Fischer, and Andrew Hobson for their help with this release.
+
+Note: the unicorn mailing list will be moved/changed soon due to the
+RubyForge shutdown.  unicorn will always rely only on Free Software.
+There will never be any sign-up requirements nor terms-of-service to
+agree to when communicating with us.
+
+* http://unicorn.bogomips.org/
+* mongrel-unicorn@rubyforge.org
+* git://bogomips.org/unicorn.git
+* http://unicorn.bogomips.org/NEWS.atom.xml
+
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
