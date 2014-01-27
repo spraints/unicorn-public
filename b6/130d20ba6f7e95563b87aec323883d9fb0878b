@@ -1,0 +1,122 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=0.5 required=5.0 tests=AWL,RDNS_NONE shortcircuit=no
+ autolearn=no version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (unknown [50.56.192.79]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 54DDD21656 for <archivist@yhbt.net>; Mon, 27 Jan 2014
+ 16:56:51 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 3E0952E18B; Mon, 27 Jan 2014 16:56:50 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id EC1A12E185 for <mongrel-unicorn@rubyforge.org>; Mon,
+ 27 Jan 2014 16:56:42 +0000 (UTC)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id F3E8621655; Mon, 27 Jan 2014 16:56:40 +0000 (UTC)
+Date: Mon, 27 Jan 2014 16:56:40 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: mongrel-unicorn@rubyforge.org
+Subject: listen loop error in 4.8.0
+Message-ID: <20140127165640.GA7074@dcvr.yhbt.net>
+MIME-Version: 1.0
+Content-Disposition: inline
+User-Agent: Mutt/1.5.21 (2010-09-15)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Hey all, I'm trying to diagnose an issue with another user over
+private email.
+
+It seems io.close in the trap(:QUIT) handler of the worker process is
+causing an IOError, which means an IO in the readers array already got
+closed somehow.  This shouldn't happen, and CRuby 2.x doesn't seem
+to interrupt itself inside signal handlers[1].
+
+Below is what I have so far...
+
+Worst case is we're not any worse off than before; but we
+could be hiding another bug with the "rescue nil" on io.close.
+
+An extra set of eyes would be appreciated.
+
+Pushed to the llerrloop branch of git://bogomips.org/unicorn.git
+Also on rubygems.org: gem install --pre -v 4.8.0.1.g10a2 unicorn
+
+[1] - however other Ruby runtimes may.
+
+Subject: [PATCH] http_server: safer SIGQUIT handler for worker
+
+This protects us from two potential errors:
+
+1) we (or our app) somehow called IO#close on one of the sockets
+   we listen on without removing it from the readers array.
+   We'll ignore IOErrors from IO#close and assume we wanted to
+   close it.
+
+2) our SIGQUIT handler is interrupted by itself.  This is currently
+   not possible with (MRI) Ruby 2.x, but it may happen in other
+   implementations (as it does in normal C code).
+---
+ lib/unicorn/http_server.rb | 11 +++++++++--
+ 1 file changed, 9 insertions(+), 2 deletions(-)
+
+diff --git a/lib/unicorn/http_server.rb b/lib/unicorn/http_server.rb
+index ae8ad13..2052d53 100644
+--- a/lib/unicorn/http_server.rb
++++ b/lib/unicorn/http_server.rb
+@@ -591,6 +591,13 @@ class Unicorn::HttpServer
+   EXIT_SIGS = [ :QUIT, :TERM, :INT ]
+   WORKER_QUEUE_SIGS = QUEUE_SIGS - EXIT_SIGS
+ 
++  def nuke_listeners!(readers)
++    # only called from the worker, ordering is important here
++    tmp = readers.dup
++    readers.replace([false]) # ensure worker does not continue ASAP
++    tmp.each { |io| io.close rescue nil } # break out of IO.select
++  end
++
+   # gets rid of stuff the worker has no business keeping track of
+   # to free some resources and drops all sig handlers.
+   # traps for USR1, USR2, and HUP may be set in the after_fork Proc
+@@ -618,7 +625,7 @@ class Unicorn::HttpServer
+     @after_fork = @listener_opts = @orig_app = nil
+     readers = LISTENERS.dup
+     readers << worker
+-    trap(:QUIT) { readers.each { |io| io.close }.replace([false]) }
++    trap(:QUIT) { nuke_listeners!(readers) }
+     readers
+   end
+ 
+@@ -677,7 +684,7 @@ class Unicorn::HttpServer
+       worker.tick = Time.now.to_i
+       ret = IO.select(readers, nil, nil, @timeout) and ready = ret[0]
+     rescue => e
+-      redo if nr < 0
++      redo if nr < 0 && readers[0]
+       Unicorn.log_error(@logger, "listen loop error", e) if readers[0]
+     end while readers[0]
+   end
+-- 
+1.8.5.3.368.gab0bcec
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
