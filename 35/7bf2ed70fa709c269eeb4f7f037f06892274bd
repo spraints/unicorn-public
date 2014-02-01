@@ -1,0 +1,90 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: *
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=1.9 required=5.0 tests=AWL,RDNS_NONE,
+ UNWANTED_LANGUAGE_BODY shortcircuit=no autolearn=no version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (unknown [50.56.192.79]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 26D3120FBC for <archivist@yhbt.net>; Sat,  1 Feb 2014
+ 20:28:52 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 1FB652E18C; Sat,  1 Feb 2014 20:28:51 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id C3BB22E17C for <mongrel-unicorn@rubyforge.org>; Sat, 
+ 1 Feb 2014 20:28:42 +0000 (UTC)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 7B5A820878; Sat,  1 Feb 2014 20:28:40 +0000 (UTC)
+Date: Sat, 1 Feb 2014 20:28:40 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: mongrel-unicorn@rubyforge.org
+Subject: [PATCH] avoid race condition during worker startup
+Message-ID: <20140201202840.GA12609@dcvr.yhbt.net>
+MIME-Version: 1.0
+Content-Disposition: inline
+User-Agent: Mutt/1.5.21 (2010-09-15)
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+We close SELF_PIPE in the worker immediately, but signal handlers
+do not get setup immediately.  So prevent workers from erroring out
+due to invalid SELF_PIPE.
+---
+  gem install --pre -v 4.8.1.1.g9b565 unicorn
+
+ lib/unicorn/http_server.rb | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/lib/unicorn/http_server.rb b/lib/unicorn/http_server.rb
+index 2052d53..21cb9a1 100644
+--- a/lib/unicorn/http_server.rb
++++ b/lib/unicorn/http_server.rb
+@@ -120,6 +120,7 @@ class Unicorn::HttpServer
+     # this pipe is used to wake us up from select(2) in #join when signals
+     # are trapped.  See trap_deferred.
+     SELF_PIPE.replace(Unicorn.pipe)
++    @master_pid = $$
+ 
+     # setup signal handlers before writing pid file in case people get
+     # trigger happy and send signals as soon as the pid file exists.
+@@ -133,7 +134,6 @@ class Unicorn::HttpServer
+     # we upgrade and the upgrade breaks during preload_app==true && build_app!
+     self.pid = config[:pid]
+ 
+-    self.master_pid = $$
+     build_app! if preload_app
+     bind_new_listeners!
+ 
+@@ -390,6 +390,7 @@ class Unicorn::HttpServer
+   end
+ 
+   def awaken_master
++    return if $$ != @master_pid
+     SELF_PIPE[1].kgio_trywrite('.') # wakeup master process from select
+   end
+ 
+-- 
+1.8.5.3.368.gab0bcec
+
+-- 
+Eric Wong
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
