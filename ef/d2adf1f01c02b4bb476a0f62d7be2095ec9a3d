@@ -1,0 +1,237 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=0.8 required=5.0 tests=AWL,RDNS_NONE shortcircuit=no
+ autolearn=no version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (unknown [50.56.192.79]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 7FD6944C1DF for <archivist@yhbt.net>; Wed, 19 Feb
+ 2014 21:13:18 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 47BAB2E20E; Wed, 19 Feb 2014 21:13:18 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 17C892E20E for <mongrel-unicorn@rubyforge.org>; Wed,
+ 19 Feb 2014 21:13:14 +0000 (UTC)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id BC2F544C1DD for <mongrel-unicorn@rubyforge.org>; Wed,
+ 19 Feb 2014 21:07:42 +0000 (UTC)
+From: Eric Wong <e@80x24.org>
+To: mongrel-unicorn@rubyforge.org
+Subject: [PATCH 1/2] remove SSL tests
+Date: Wed, 19 Feb 2014 21:07:41 +0000
+Message-Id: <1392844062-14981-1-git-send-email-e@80x24.org>
+X-Mailer: git-send-email 1.9.0.rc3.13.gda73b5f
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+MIME-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+This feature is on hold for now, since it never really took
+off and kgio-monkey is more-or-less abandoned.  I'm not looking
+forward to supporting OpenSSL unless there's interest.
+
+This was mainly intended as an experiment to deal with a bad
+hardware/firmware situation on a LAN I have.  It allowed SSL
+to abort on corrupt packets.
+---
+ script/isolate_for_tests      |  1 -
+ t/.gitignore                  |  1 -
+ t/GNUmakefile                 |  6 +---
+ t/sslgen.sh                   | 71 -------------------------------------------
+ t/t0600-https-server-basic.sh | 48 -----------------------------
+ 5 files changed, 1 insertion(+), 126 deletions(-)
+ delete mode 100755 t/sslgen.sh
+ delete mode 100755 t/t0600-https-server-basic.sh
+
+diff --git a/script/isolate_for_tests b/script/isolate_for_tests
+index 63df48e..6f0a9fc 100755
+--- a/script/isolate_for_tests
++++ b/script/isolate_for_tests
+@@ -17,7 +17,6 @@ opts = {
+ pid = fork do
+   Isolate.now!(opts) do
+     gem 'raindrops', '0.12.0'
+-    gem 'kgio-monkey', '0.4.0'
+     gem 'kgio', '2.8.1'
+     gem 'rack', '1.5.2'
+   end
+diff --git a/t/.gitignore b/t/.gitignore
+index 1ba7e52..2312321 100644
+--- a/t/.gitignore
++++ b/t/.gitignore
+@@ -2,4 +2,3 @@
+ /.dep+*
+ /*.crt
+ /*.key
+-/ssl-stamp
+diff --git a/t/GNUmakefile b/t/GNUmakefile
+index bac50a6..8f2668c 100644
+--- a/t/GNUmakefile
++++ b/t/GNUmakefile
+@@ -45,11 +45,7 @@ random_blob:
+ 	dd if=/dev/urandom bs=1M count=30 of=$@.$(pid)
+ 	mv $@.$(pid) $@
+ 
+-ssl-stamp:
+-	./sslgen.sh
+-	> $@
+-
+-$(T): random_blob ssl-stamp
++$(T): random_blob
+ 
+ dependencies := socat curl
+ deps := $(addprefix .dep+,$(dependencies))
+diff --git a/t/sslgen.sh b/t/sslgen.sh
+deleted file mode 100755
+index e37d966..0000000
+--- a/t/sslgen.sh
++++ /dev/null
+@@ -1,71 +0,0 @@
+-#!/bin/sh
+-set -e
+-
+-lock=$0.lock
+-while ! mkdir $lock 2>/dev/null
+-do
+-	echo >&2 "PID=$$ waiting for $lock"
+-	sleep 1
+-done
+-pid=$$
+-trap 'if test $$ -eq $pid; then rmdir $lock; fi' EXIT
+-
+-certinfo() {
+-	echo US
+-	echo Hell
+-	echo A Very Special Place
+-	echo Monkeys
+-	echo Poo-Flingers
+-	echo 127.0.0.1
+-	echo kgio@bogomips.org
+-}
+-
+-certinfo2() {
+-	certinfo
+-	echo
+-	echo
+-}
+-
+-ca_certinfo () {
+-	echo US
+-	echo Hell
+-	echo An Even More Special Place
+-	echo Deranged Monkeys
+-	echo Poo-Hurlers
+-	echo 127.6.6.6
+-	echo unicorn@bogomips.org
+-}
+-
+-openssl genrsa -out ca.key 1024
+-ca_certinfo | openssl req -new -x509 -days 666 -key ca.key -out ca.crt
+-
+-openssl genrsa -out bad-ca.key 1024
+-ca_certinfo | openssl req -new -x509 -days 666 -key bad-ca.key -out bad-ca.crt
+-
+-openssl genrsa -out server.key 1024
+-certinfo2 | openssl req -new -key server.key -out server.csr
+-
+-openssl x509 -req -days 666 \
+-	-in server.csr -CA ca.crt -CAkey ca.key -set_serial 1 -out server.crt
+-n=2
+-mk_client_cert () {
+-	CLIENT=$1
+-	openssl genrsa -out $CLIENT.key 1024
+-	certinfo2 | openssl req -new -key $CLIENT.key -out $CLIENT.csr
+-
+-	openssl x509 -req -days 666 \
+-		-in $CLIENT.csr -CA $CA.crt -CAkey $CA.key -set_serial $n \
+-		-out $CLIENT.crt
+-	rm -f $CLIENT.csr
+-	n=$(($n + 1))
+-}
+-
+-CA=ca
+-mk_client_cert client1
+-mk_client_cert client2
+-
+-CA=bad-ca mk_client_cert bad-client
+-
+-rm -f server.csr
+-
+-echo OK
+diff --git a/t/t0600-https-server-basic.sh b/t/t0600-https-server-basic.sh
+deleted file mode 100755
+index 5dd0d65..0000000
+--- a/t/t0600-https-server-basic.sh
++++ /dev/null
+@@ -1,48 +0,0 @@
+-#!/bin/sh
+-. ./test-lib.sh
+-t_plan 7 "simple HTTPS connection tests"
+-
+-t_begin "setup and start" && {
+-	rtmpfiles curl_err
+-	unicorn_setup
+-cat > $unicorn_config <<EOF
+-ssl do
+-  listen "$listen"
+-  ssl_certificate "server.crt"
+-  ssl_certificate_key "server.key"
+-end
+-pid "$pid"
+-stderr_path "$r_err"
+-stdout_path "$r_out"
+-EOF
+-	unicorn -D -c $unicorn_config env.ru
+-	unicorn_wait_start
+-}
+-
+-t_begin "single request" && {
+-	curl -sSfv --cacert ca.crt https://$listen/
+-}
+-
+-t_begin "check stderr has no errors" && {
+-	check_stderr
+-}
+-
+-t_begin "multiple requests" && {
+-	curl -sSfv --no-keepalive --cacert ca.crt \
+-		https://$listen/ https://$listen/ 2>> $curl_err >> $tmp
+-		dbgcat curl_err
+-}
+-
+-t_begin "check stderr has no errors" && {
+-	check_stderr
+-}
+-
+-t_begin "killing succeeds" && {
+-	kill $unicorn_pid
+-}
+-
+-t_begin "check stderr has no errors" && {
+-	check_stderr
+-}
+-
+-t_done
+-- 
+1.9.0.rc3.13.gda73b5f
+
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
