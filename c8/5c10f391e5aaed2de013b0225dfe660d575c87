@@ -1,0 +1,67 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=0.5 required=5.0 tests=AWL,RDNS_NONE shortcircuit=no
+ autolearn=no version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (unknown [50.56.192.79]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 32BBF44C1DF for <archivist@yhbt.net>; Mon, 24 Feb
+ 2014 19:01:40 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 824D32E18D; Mon, 24 Feb 2014 19:01:39 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id DEE462E19D for <mongrel-unicorn@rubyforge.org>; Mon,
+ 24 Feb 2014 19:01:32 +0000 (UTC)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id DD3D944C1DD; Mon, 24 Feb 2014 19:01:30 +0000 (UTC)
+Date: Mon, 24 Feb 2014 19:01:30 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: Ilya Bazylchuk <ilya.bazylchuk@gmail.com>
+Subject: Re: Stucks DB connections
+Message-ID: <20140224190130.GA21041@dcvr.yhbt.net>
+References: <1EC1C721-9404-4230-9623-F9E713EB46C8@gmail.com>
+ <20140224182553.GA19993@dcvr.yhbt.net>
+ <17CD6ADE-9BBE-4989-B846-C9568F2D2973@gmail.com>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To: <17CD6ADE-9BBE-4989-B846-C9568F2D2973@gmail.com>
+User-Agent: Mutt/1.5.21 (2010-09-15)
+Cc: mongrel-unicorn@rubyforge.org
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Ilya Bazylchuk <ilya.bazylchuk@gmail.com> wrote:
+> Ubuntu 12.04.2 LTS (GNU/Linux 3.2.0-40-virtual x86_64) without any changes.
+> 
+> In resque, sidekiq we don't have this problems. Can be stuck
+> connection, when unicorn reset request by timeout?
+
+It could be stuck if your DB adapter times out and forget to
+reset/rollback transactions on the connections.  Check with the DB
+adapter developers.
+
+Note: the internal timeout of unicorn isn't intended for DB failures,
+that is a last resort.  Use the builtin timeout of the DB adapters.
+
+(Btw, please keep the mailing list Cc-ed and don't top post)
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
