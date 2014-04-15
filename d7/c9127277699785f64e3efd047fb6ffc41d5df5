@@ -1,0 +1,85 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=0.5 required=5.0 tests=AWL,RDNS_NONE shortcircuit=no
+ autolearn=no version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (unknown [50.56.192.79]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 21F6B20E51 for <archivist@yhbt.net>; Tue, 15 Apr 2014
+ 08:43:36 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 05DBD2E1EE; Tue, 15 Apr 2014 08:43:34 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id BB6842E1F2 for <mongrel-unicorn@rubyforge.org>; Tue,
+ 15 Apr 2014 08:43:28 +0000 (UTC)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 81FA920E51; Tue, 15 Apr 2014 08:43:27 +0000 (UTC)
+Date: Tue, 15 Apr 2014 08:43:27 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Subject: Re: Workers reaped with SIGABRT - how to debug?
+Message-ID: <20140415084327.GA28899@dcvr.yhbt.net>
+References:
+ <CADBUp+3v0za7qQDBPt4b15jiMA2GpXpxbMLw6CQY3dRkjv=UoQ@mail.gmail.com>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To:
+ <CADBUp+3v0za7qQDBPt4b15jiMA2GpXpxbMLw6CQY3dRkjv=UoQ@mail.gmail.com>
+Cc: Henrik Nyh <henrik@barsoom.se>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Henrik Nyh <henrik@barsoom.se> wrote:
+> We get errors like this one a few times a day:
+> 
+>     Apr 13 12:16:31 app1 unicorn.log:  E, [2014-04-13T12:16:31.302011
+> #17269] ERROR -- : reaped #<Process::Status: pid 17300 SIGABRT (signal
+> 6)> worker=2
+> 
+> We use Unicorn 4.8.2, Ruby 2.1.1 and a Ruby on Rails app.
+ 
+> It doesn't seem to happen at any obvious time, like during or just
+> after deploys.
+> 
+> We were previously on Ruby 1.9.3 with Unicorn 4.8.0. Then we had
+> almost the same issue but with SIGIOT, I believe. Then we upgraded
+> Ruby to 2.1.1. I believe that's when it changed to SIGABRT. Then we
+> upgraded Unicorn to 4.8.2 with no improvement.
+> 
+> We're not sure how to debug this - any suggestions on either what the
+> problem could be, or how to debug it?
+
+This is may be a bug in a C extension RubyGem or even Ruby itself.
+Do you get core dumps + backtraces or any other error messages in the logs?
+Which OS/distribution is this?
+
+Since you see SIGABRT/SIGIOT and not SIGSEGV, you might be crashing
+inside the SIGSEGV handler of Ruby itself.
+
+Can you also try --enable-debug-env when you ./configure Ruby?
+Thanks in advance for any more info you can provide!
+
+(Btw, please keep everybody Cc:-ed since the mailing list is going
+ in that direction, and rubyforge.org isn't very reliable in its
+ final days.  New ML announcement in a few days).
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
