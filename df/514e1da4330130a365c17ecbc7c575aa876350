@@ -1,0 +1,109 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: *
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=1.3 required=5.0 tests=RDNS_NONE,T_DKIM_INVALID
+ shortcircuit=no autolearn=no version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (unknown [50.56.192.79]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 39C1E20E50 for <archivist@yhbt.net>; Tue, 15 Apr 2014
+ 10:42:16 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 085502E18A; Tue, 15 Apr 2014 10:42:15 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+X-Greylist: delayed 457 seconds by postgrey-1.31 at rubyforge; Tue, 15 Apr
+ 2014 10:42:07 UTC
+Received: from mail-lb0-f178.google.com (mail-lb0-f178.google.com
+ [209.85.217.178]) by rubyforge.org (Postfix) with ESMTP id 185782E187 for
+ <mongrel-unicorn@rubyforge.org>; Tue, 15 Apr 2014 10:42:06 +0000 (UTC)
+Received: by mail-lb0-f178.google.com with SMTP id s7so6677562lbd.37 for
+ <mongrel-unicorn@rubyforge.org>; Tue, 15 Apr 2014 03:42:05 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com;
+ s=20120113;
+ h=mime-version:sender:in-reply-to:references:date:message-id:subject
+ :from:to:cc:content-type; bh=2EGfaJsTS9lHAJOWHP0KHH6cHHXHS8tW9x9Lfex5FB4=;
+ b=rFI4HJbS3cPRdq5kF4hkv+pAAwfgBJ93Sb2URkl+XOvr7zA6Inf/tZi8b0WlSHSHzG
+ 02YEkRR6fo3jw02e3HrnuYhv58QlTkEuLAuHeW6FCiXJ//o6XKHvfdm9HdWWaZ5b9oGp
+ 1sWxV4qlC1yg/mNklUH2cdvB8P4+Pnq3zm3ioR6XfF+DYLEQLZlzl/1z56BlsQ9Stlpx
+ ZBOWI6GtLJjbYqXLq2ZeRR8cCF7D0ZodmLZWCg4pjKUnPq4qs2xfA3q+ByTJlhB2q2Na
+ v9TsJB03EDn7EGmBKSRTqzjqGOHCE1DSDd4g93HGuKYXujEWIQXH8hrTmKf0zFnqEVRN sM0w==
+MIME-Version: 1.0
+X-Received: by 10.112.141.10 with SMTP id rk10mr741892lbb.26.1397558066126;
+ Tue, 15 Apr 2014 03:34:26 -0700 (PDT)
+Received: by 10.114.212.99 with HTTP; Tue, 15 Apr 2014 03:34:26 -0700 (PDT)
+In-Reply-To:
+ <CADBUp+2TcpzdLoUa3HAAyR_Yf2ufGG2RiO66nRy5ywRPWLtQYw@mail.gmail.com>
+References:
+ <CADBUp+3v0za7qQDBPt4b15jiMA2GpXpxbMLw6CQY3dRkjv=UoQ@mail.gmail.com>
+ <20140415084327.GA28899@dcvr.yhbt.net>
+ <CADBUp+2TcpzdLoUa3HAAyR_Yf2ufGG2RiO66nRy5ywRPWLtQYw@mail.gmail.com>
+Date: Tue, 15 Apr 2014 06:34:26 -0400
+X-Google-Sender-Auth: 21HnaofZJt_vfH_ty-NeV-yJFb4
+Message-ID:
+ <CAMF1rWB39OFkqg3_3=zUw5jeOsHe4+fyvC8_EUAYYzLqK1OWPw@mail.gmail.com>
+Subject: Re: Workers reaped with SIGABRT - how to debug?
+From: Aaron Suggs <aaron@ktheory.com>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Henrik, we had the same problem after upgrading to Ruby 2.1.1. My
+coworker Tieg Zaharia tracked it down to this bug with
+BigDecimal#to_d:
+
+https://bugs.ruby-lang.org/issues/9657
+
+He discusses a workaround (using BigDecimal coercion instead of #to_d).
+
+Worked for us.
+
+-Aaron
+
+On Tue, Apr 15, 2014 at 5:05 AM, Henrik Nyh <henrik@barsoom.se> wrote:
+> On Tue, Apr 15, 2014 at 10:43 AM, Eric Wong <normalperson@yhbt.net> wrote:
+>> This is may be a bug in a C extension RubyGem or even Ruby itself.
+>> Do you get core dumps + backtraces or any other error messages in the logs?
+>
+> You'd expect this to be in the Rails app's production.log, right? We
+> added that to our logging service this morning - we'll check it the
+> next time this error happens. Maybe we could also try to dig it up
+> from archived logs.
+>
+>> Which OS/distribution is this?
+>
+> Ubuntu 12.04.1 LTS
+>
+>> Since you see SIGABRT/SIGIOT and not SIGSEGV, you might be crashing
+>> inside the SIGSEGV handler of Ruby itself.
+>>
+>> Can you also try --enable-debug-env when you ./configure Ruby?
+>
+> I guess that would output more details to the Rails production.log in
+> the event of a crash? Will look into that.
+>
+>> Thanks in advance for any more info you can provide!
+>
+> Thanks so much for the help! Much appreciated.
+> _______________________________________________
+> Unicorn mailing list - mongrel-unicorn@rubyforge.org
+> http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+> Do not quote signatures (like this one) or top post when replying
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
