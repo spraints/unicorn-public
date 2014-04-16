@@ -1,0 +1,88 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: *
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=1.3 required=5.0 tests=RDNS_NONE shortcircuit=no
+ autolearn=no version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (unknown [50.56.192.79]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 78D1C20E50 for <archivist@yhbt.net>; Wed, 16 Apr 2014
+ 07:08:38 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id C51702E1D7; Wed, 16 Apr 2014 07:08:34 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from mail-la0-f41.google.com (mail-la0-f41.google.com
+ [209.85.215.41]) by rubyforge.org (Postfix) with ESMTP id 0AED02E1D7 for
+ <mongrel-unicorn@rubyforge.org>; Wed, 16 Apr 2014 07:08:28 +0000 (UTC)
+Received: by mail-la0-f41.google.com with SMTP id gl10so7928840lab.0 for
+ <mongrel-unicorn@rubyforge.org>; Wed, 16 Apr 2014 00:08:26 -0700 (PDT)
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=1e100.net;
+ s=20130820;
+ h=x-gm-message-state:mime-version:in-reply-to:references:from:date
+ :message-id:subject:to:cc:content-type;
+ bh=pYsSbF81JXgDBv/qaxHwwXmVUND/hsLzeGg9cVA/7ZY=;
+ b=lAZJiOzRRNTgwadCQipM3R0WfDCzd4HRKGNCo9+1RWAVuDNJAcnqwI8vVSXRfu7Uvv
+ aKCRYtaSx8jaPETEcWKHyFXWGSnt1MxSDDCn0aO9ZXywl3ij/fwJBR00BLBv+nnmtmLh
+ dmjDXGJ2g2l/TyuMc3L49IJz8yTTxttIa8l/W6K/z5/LGfft8xAUO02Wee1LlPXLMxFE
+ SG1CmsoDaEfNQe40/qpSf6dB5WAy0O3K3i5HBvJshnDgObexGWnvq0/U9VuGoG/z4pye
+ VWutozH710p/A589/62N20Pto2L4aQG7PqPfzrMhq7Ka1SzmctnZU1SL0KOggioYVga/ HS2w==
+X-Gm-Message-State:
+ ALoCoQndVhGqj1FhzKpbAJuFYeWBcqrj5VvT+aa2jSuZzQ1FB5XPAisDGFcPDLzxh+1Zkzf5pn95
+X-Received: by 10.112.128.231 with SMTP id nr7mr1757305lbb.9.1397632106118;
+ Wed, 16 Apr 2014 00:08:26 -0700 (PDT)
+MIME-Version: 1.0
+Received: by 10.115.1.197 with HTTP; Wed, 16 Apr 2014 00:08:06 -0700 (PDT)
+X-Originating-IP: [92.33.33.90]
+In-Reply-To:
+ <CADBUp+2TcpzdLoUa3HAAyR_Yf2ufGG2RiO66nRy5ywRPWLtQYw@mail.gmail.com>
+References:
+ <CADBUp+3v0za7qQDBPt4b15jiMA2GpXpxbMLw6CQY3dRkjv=UoQ@mail.gmail.com>
+ <20140415084327.GA28899@dcvr.yhbt.net>
+ <CADBUp+2TcpzdLoUa3HAAyR_Yf2ufGG2RiO66nRy5ywRPWLtQYw@mail.gmail.com>
+From: Henrik Nyh <henrik@barsoom.se>
+Date: Wed, 16 Apr 2014 09:08:06 +0200
+Message-ID:
+ <CADBUp+1xAhRnOCBJ4w+ESDCX+e-_cKVpAStjgaX3_65AL_QU2g@mail.gmail.com>
+Subject: Re: Workers reaped with SIGABRT - how to debug?
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Cc: aaron@ktheory.com
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+> Henrik, we had the same problem after upgrading to Ruby 2.1.1. My
+> coworker Tieg Zaharia tracked it down to this bug with
+> BigDecimal#to_d:
+>
+> https://bugs.ruby-lang.org/issues/9657
+>
+> He discusses a workaround (using BigDecimal coercion instead of #to_d).
+>
+> Worked for us.
+
+Thank you! We'll look into that. We've definitely seen that error in CI.
+
+I couldn't find any segfaults in our production logs by the way, but
+I'm still not sure exactly where they would go. Have looked in our
+production.log (at the default prod log level) and the unicorn.log.
+
+(Sidenote: I think you have to CC everyone, not just reply to the
+list, or it only goes to the web archives.)
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
