@@ -1,0 +1,83 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: *
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=1.3 required=5.0 tests=RDNS_NONE shortcircuit=no
+ autolearn=no version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (unknown [50.56.192.79]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 0237820E52 for <archivist@yhbt.net>; Wed, 16 Apr 2014
+ 04:07:03 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 8EA4A2E261; Wed, 16 Apr 2014 04:07:02 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from mail-ig0-f181.google.com (mail-ig0-f181.google.com
+ [209.85.213.181]) by rubyforge.org (Postfix) with ESMTP id D99922E25F for
+ <mongrel-unicorn@rubyforge.org>; Wed, 16 Apr 2014 04:04:06 +0000 (UTC)
+Received: by mail-ig0-f181.google.com with SMTP id h18so597911igc.14 for
+ <mongrel-unicorn@rubyforge.org>; Tue, 15 Apr 2014 21:04:06 -0700 (PDT)
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=1e100.net;
+ s=20130820; h=x-gm-message-state:sender:from:to:cc:subject:date:message-id;
+ bh=d7SllhRadA6sOi/moepIY/ZRD6IVkca/VBNWaJfc3ac=;
+ b=axyRqZTfxkyy+etXy0groXzlSyMF47KvJL5NkhTq6LIHKQIdGz/O07K2QtcM7vblY9
+ PpfLvFC/qleJ4i2+PhikkNNW3NVMAsXA1TmhPCpZ6b3AzHI1HCwnR6ieunqFiI+nR6Fw
+ 7x6gY+CPxNiKJfo2BkgymPUOwx9WUW1o0MePZ3VAolyswLtz73kYbvEkVwNKr9euz42y
+ XH/SUgvCMbQK2WVnfJHLirEWU2ZEjW26XCG2ngu398BYbX7J7BV0dRU7ZP1s1PJKnFju
+ kDei7zMG9SUW7e1szYccFc1HiyfS7+2DBL60GMs1SyUZ4oZeiY5mqURrIUq2QWfPduMD anIw==
+X-Gm-Message-State:
+ ALoCoQlY+O4upj5g2+Z5AmdXn2oot2avgUMy6OzvxpiHlv8bfZRNt7sV/m5xBFfbF+1tAJA3gUiK
+X-Received: by 10.50.4.74 with SMTP id i10mr7398729igi.43.1397619325374; Tue,
+ 15 Apr 2014 20:35:25 -0700 (PDT)
+Received: from vagrant.myshopify.io.localdomain ([184.175.41.220]) by
+ mx.google.com with ESMTPSA id w4sm24878363igl.7.2014.04.15.20.35.23 for
+ <multiple recipients> (version=TLSv1.1 cipher=ECDHE-RSA-RC4-SHA
+ bits=128/128); Tue, 15 Apr 2014 20:35:24 -0700 (PDT)
+X-Google-Original-From: Camilo Lopez <camilo@shopify.com>
+From: Camilo Lopez <camilo@camilolopez.com>
+To: mongrel-unicorn@rubyforge.org
+Subject: [PATCH] Print stack for lazy workers
+Date: Wed, 16 Apr 2014 03:35:17 +0000
+Message-Id: <1397619318-28190-1-git-send-email-camilo@shopify.com>
+X-Mailer: git-send-email 1.9.2
+Cc: Camilo Lopez <camilo@shopify.com>, admin@camilolopez.com
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+MIME-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+This patch attemps at making the debugging of lazy workers easier by making sure
+unicorn prints a stack trace to STDERR.
+
+The patch does 2 things
+
+  1. It kills lazy workers with TERM first and then attempts a KILL
+  2. Prints the stack trace on every kill signal
+
+Camilo Lopez (1):
+  Kill lazy workers with TERM before KILL
+
+ lib/unicorn/http_server.rb | 31 +++++++++++++++++++------------
+ lib/unicorn/worker.rb      |  7 ++++++-
+ 2 files changed, 25 insertions(+), 13 deletions(-)
+
+-- 
+1.9.2
+
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
