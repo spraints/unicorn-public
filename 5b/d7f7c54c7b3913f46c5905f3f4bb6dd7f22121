@@ -1,0 +1,63 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=0.5 required=5.0 tests=AWL,RDNS_NONE shortcircuit=no
+ autolearn=no version=3.3.2
+X-Original-To: archivist@yhbt.net
+Delivered-To: archivist@dcvr.yhbt.net
+Received: from rubyforge.org (unknown [50.56.192.79]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 86D8420E51 for <archivist@yhbt.net>; Wed, 16 Apr 2014
+ 08:44:27 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 2CF982E29F; Wed, 16 Apr 2014 08:44:27 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id 10F102E29F for <mongrel-unicorn@rubyforge.org>; Wed,
+ 16 Apr 2014 08:44:17 +0000 (UTC)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 9BB0120E50; Wed, 16 Apr 2014 08:44:16 +0000 (UTC)
+Date: Wed, 16 Apr 2014 08:44:16 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Subject: Re: [PATCH] Kill lazy workers with TERM before KILL
+Message-ID: <20140416084416.GA9709@dcvr.yhbt.net>
+References: <1397619318-28190-1-git-send-email-camilo@shopify.com>
+ <1397619318-28190-2-git-send-email-camilo@shopify.com>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To: <1397619318-28190-2-git-send-email-camilo@shopify.com>
+Cc: Camilo Lopez <camilo@shopify.com>, admin@camilolopez.com
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Camilo Lopez <camilo@camilolopez.com> wrote:
+> We want to know what was going on with a lazy worker, KILL is un-trappable so we
+> are sending TERM instead, then to make sure the process really dies we are
+> KILLing a second later.
+
+Sorry, no.  I've rejected similar patches in the past.  If your process
+is capable of responding to SIGTERM, the Ruby VM is still in good shape
+and capable of doing timeouts within itself.
+
+Use application timeouts, which work without modifying unicorn
+(and work on servers other than unicorn):
+http://unicorn.bogomips.org/Application_Timeouts.html
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
