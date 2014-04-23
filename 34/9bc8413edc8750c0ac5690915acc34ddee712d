@@ -1,0 +1,63 @@
+From ew@dcvr.yhbt.net  Wed Apr 23 09: 30:54 2014
+Return-Path: <ew@dcvr.yhbt.net>
+X-Original-To: pi+piham
+Delivered-To: pi+piham@dcvr.yhbt.net
+Received: by dcvr.yhbt.net (Postfix, from userid 1000) id CF3411F728; Wed, 23
+ Apr 2014 09:30:54 +0000 (UTC)
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-3.0 required=5.0 tests=ALL_TRUSTED,AWL,BAYES_00
+ shortcircuit=no autolearn=ham version=3.3.2
+X-Original-To: e@80x24.org
+Delivered-To: ew@dcvr.yhbt.net
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 1B84A1F6D3; Wed, 23 Apr 2014 08:54:21 +0000 (UTC)
+Date: Wed, 23 Apr 2014 08:54:20 +0000
+From: Eric Wong <e@80x24.org>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Cc: Sam Saffron <sam.saffron@gmail.com>
+Subject: Re: Is there a cleaner way of hooking into the event loop?
+Message-ID: <20140423085420.GA12306@dcvr.yhbt.net>
+References:
+ <CAAtdryNzTzDk+V2bEfePvL6wtxQ3FSW-Nm=EA2eih9RRmZ2cYg@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To:
+ <CAAtdryNzTzDk+V2bEfePvL6wtxQ3FSW-Nm=EA2eih9RRmZ2cYg@mail.gmail.com>
+
+Sam Saffron <sam.saffron@gmail.com> wrote:
+> I am spawning sidekiqs from the master process so I share memory
+> better, added this patch
+> 
+> https://github.com/discourse/discourse/commit/4aaedb82d09d53159a99c3c94c0232c3cf5b0725
+ 
+> Thing is I need to be in the master thread for both checks and
+> spawning cause of this https://bugs.ruby-lang.org/issues/9751
+
+I'll try to take a look at that, soon[1]
+
+> Is there a cleaner way to hook in?
+
+Not really.  I can't promise no changes, but at least you told us about
+it.
+
+I don't want to encourage apps written specifically for unicorn and
+defeating the point of Rack, either; but I don't imagine unicorn
+changing much[2] until Rack 2.0 (if that ever happens?)
+
+
+[1] - Most of my energy is devoted public-inbox.org right now.
+      With the imminent death of the Rubyforge lists,
+      Free Software extremist-console-junkies like me need
+      to keep distributed communication alive and usable to
+      non-GUI users.
+
+[2] - Obvious the mailing list will change :P
+      And probably some wankery in providing an nginx alternative
+      via yahns[3], but this won't change unicorn itself.
+
+[3] - allowing for lazy buffering on streaming output
+      and selectively handling MT-safe endpoints yahns,
+      while proxying non-MT-safe endpoints to unicorn...
