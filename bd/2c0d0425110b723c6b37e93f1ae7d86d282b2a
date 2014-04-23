@@ -1,0 +1,74 @@
+From ew@dcvr.yhbt.net  Wed Apr 23 08: 26:12 2014
+Return-Path: <ew@dcvr.yhbt.net>
+X-Original-To: pi+piham
+Delivered-To: pi+piham@dcvr.yhbt.net
+Received: by dcvr.yhbt.net (Postfix, from userid 1000) id 512BB1F735; Wed, 23
+ Apr 2014 08:26:12 +0000 (UTC)
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=-0.9 required=5.0 tests=AWL,BAYES_00,FREEMAIL_FROM,
+ RCVD_IN_DNSWL_BLOCKED,RDNS_NONE,T_DKIM_INVALID shortcircuit=no autolearn=no
+ version=3.3.2
+X-Original-To: normalperson@yhbt.net
+Delivered-To: ew@dcvr.yhbt.net
+Received: from rubyforge.org (unknown [50.56.192.79]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 468611F6FD for <normalperson@yhbt.net>; Wed, 23 Apr
+ 2014 01:27:13 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id C8C1F2E1FE; Wed, 23 Apr 2014 01:27:12 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from mail-qa0-f54.google.com (mail-qa0-f54.google.com
+ [209.85.216.54]) by rubyforge.org (Postfix) with ESMTP id 567AD2E1FB for
+ <mongrel-unicorn@rubyforge.org>; Wed, 23 Apr 2014 01:21:45 +0000 (UTC)
+Received: by mail-qa0-f54.google.com with SMTP id w8so262332qac.13 for
+ <mongrel-unicorn@rubyforge.org>; Tue, 22 Apr 2014 18:21:44 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com;
+ s=20120113; h=mime-version:date:message-id:subject:from:to:content-type;
+ bh=/zXL8ViMB4V7iZbM0MHTTKS+Cz7XXyeyqEut10lreSE=;
+ b=Mo+t27uiVwHXViRytDKmV1yxl4nX0/vyYV9PfMxOQt05Y2BF9wEDdfY6in7DoxjSQl
+ xgnl+fl3UEHWn+chVKnvil4UefT8VdfBQjjXOhwsH1Bo6YmYSHmtR5zet8Nhxse/YA4A
+ yB/mkeOJu8kMVdx+1KCVVlK2hbIODjqf7LxGwRPbUTO8+y9LlYw2s/my7/er3iYc/nlM
+ F7y6aKaiHhvHKY+O8ZYe1EavTqJ7KhhYu5L/KG9uZMUq7ctKPSF4QYHWjjjqbtCtJLS2
+ o/kWtaZUDQFdxG8kfSTbfcGKSdgoe5JKFYkuYyS2XX+Jhx9gMnBNo3qLXx2/9ij1scpW 9pRQ==
+MIME-Version: 1.0
+X-Received: by 10.229.230.68 with SMTP id jl4mr53346040qcb.2.1398216104864;
+ Tue, 22 Apr 2014 18:21:44 -0700 (PDT)
+Received: by 10.229.28.138 with HTTP; Tue, 22 Apr 2014 18:21:44 -0700 (PDT)
+Date: Wed, 23 Apr 2014 11:21:44 +1000
+Message-ID:
+ <CAAtdryNzTzDk+V2bEfePvL6wtxQ3FSW-Nm=EA2eih9RRmZ2cYg@mail.gmail.com>
+Subject: Is there a cleaner way of hooking into the event loop?
+From: Sam Saffron <sam.saffron@gmail.com>
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+Reply-To: unicorn list <mongrel-unicorn@rubyforge.org>
+List-Id: unicorn list <mongrel-unicorn.rubyforge.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <mailto:mongrel-unicorn@rubyforge.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+I am spawning sidekiqs from the master process so I share memory
+better, added this patch
+
+https://github.com/discourse/discourse/commit/4aaedb82d09d53159a99c3c94c0232c3cf5b0725
+
+Thing is I need to be in the master thread for both checks and
+spawning cause of this https://bugs.ruby-lang.org/issues/9751
+
+Is there a cleaner way to hook in?
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
