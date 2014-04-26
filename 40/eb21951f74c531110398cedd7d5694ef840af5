@@ -1,0 +1,543 @@
+From ew@dcvr.yhbt.net  Sat Apr 26 06: 00:51 2014
+Return-Path: <ew@dcvr.yhbt.net>
+X-Original-To: pi+piham
+Delivered-To: pi+piham@dcvr.yhbt.net
+Received: by dcvr.yhbt.net (Postfix, from userid 1000) id 6FAD71F6FD; Sat, 26
+ Apr 2014 06:00:51 +0000 (UTC)
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=-1.1 required=5.0 tests=BAYES_00,
+ RCVD_IN_DNSWL_BLOCKED,RDNS_NONE shortcircuit=no autolearn=no version=3.3.2
+X-Original-To: normalperson@yhbt.net
+Delivered-To: ew@dcvr.yhbt.net
+Received: from rubyforge.org (unknown [50.56.192.79]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id B2C2F1F6D3 for <normalperson@yhbt.net>; Sat, 26 Apr
+ 2014 04:02:04 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 0A3052E1E1; Sat, 26 Apr 2014 04:01:58 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+X-Greylist: delayed 1337 seconds by postgrey-1.31 at rubyforge; Sat, 26 Apr
+ 2014 03:42:56 UTC
+Received: from mail-ig0-f175.google.com (mail-ig0-f175.google.com
+ [209.85.213.175]) by rubyforge.org (Postfix) with ESMTP id 5DC982E190 for
+ <mongrel-unicorn@rubyforge.org>; Sat, 26 Apr 2014 03:42:56 +0000 (UTC)
+Received: by mail-ig0-f175.google.com with SMTP id h3so2945589igd.2 for
+ <mongrel-unicorn@rubyforge.org>; Fri, 25 Apr 2014 20:42:55 -0700 (PDT)
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=1e100.net;
+ s=20130820; h=x-gm-message-state:from:to:cc:subject:date:message-id;
+ bh=5fvGgwNdGaH59WSF6DF4bBpksr5wuC1ItIoA8mVIuR0=;
+ b=PDoRHRdNOMFGBIy8VnqIRYDXr/Aot09y+7SMKVYuAU7xwEDCG1Dv31jyLONeRhSiZO
+ PzqXB6U29Nu3Lc3rW/kZ8Ym/1pYPlkAKlPTJ+6aWmF/WG6q9X04WKTsDuHcXfyn0eO6k
+ rXmlhr6TRnrcRz67Nah0A/5LI45Iq6E0GkR8VHVH26lu8uDy+kWHXFbx5S8qbYKkUHXb
+ soeau/D6kYrvWrnaZAUtKfFZ5kvElWpB2DffeR0zwnNfMIuAQOvioWttoJ58WMupPqBO
+ Y2csHa4+UJZ9HVNBrOSQI18PhtYFVy6fgI+F+X2OOV860o6R/5mC0BW/PfxVfw9TgBPD Jshw==
+X-Gm-Message-State:
+ ALoCoQnEP0QB7mmJY7kw3TM623zGV6w+XzbjJtJshQ1UzvBXz/k6O59RPogL6RF+WQZU7Q074QHc
+X-Received: by 10.50.61.142 with SMTP id p14mr9321136igr.12.1398482435369;
+ Fri, 25 Apr 2014 20:20:35 -0700 (PDT)
+Received: from phos.ktdreyer.com (c-50-170-158-162.hsd1.co.comcast.net.
+ [50.170.158.162]) by mx.google.com with ESMTPSA id
+ qh3sm2088787igb.17.2014.04.25.20.20.33 for <multiple recipients>
+ (version=TLSv1.2 cipher=ECDHE-RSA-AES128-GCM-SHA256 bits=128/128); Fri, 25
+ Apr 2014 20:20:34 -0700 (PDT)
+From: Ken Dreyer <ktdreyer@ktdreyer.com>
+To: mongrel-unicorn@rubyforge.org
+Subject: [PATCH] tests: switch to minitest
+Date: Fri, 25 Apr 2014 21:20:26 -0600
+Message-Id: <1398482426-3245-1-git-send-email-ktdreyer@ktdreyer.com>
+X-Mailer: git-send-email 1.9.0
+Cc: Ken Dreyer <ktdreyer@ktdreyer.com>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+Reply-To: unicorn list <mongrel-unicorn@rubyforge.org>
+List-Id: unicorn list <mongrel-unicorn.rubyforge.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <mailto:mongrel-unicorn@rubyforge.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+MIME-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Ruby 1.9+ uses Minitest as the backend for Test::Unit. As of Minitest 5,
+the shim has lost some backwards compatibility. It is time to make the
+jump to minitest.
+
+Adjust the unicorn test suite to support Minitest 5's syntax.
+
+Minitest versions 4 and below do not support the newer Minitest::Test
+class that arrived in version 5. For that case, use the
+MiniTest::Unit::TestCase class as a fallback.
+---
+Please keep me in the CC as I'm not subscribed to the unicorn email list.
+
+ setup.rb                              | 12 ++++--------
+ test/exec/test_exec.rb                | 16 ++++++++--------
+ test/test_helper.rb                   | 13 ++++++++++---
+ test/unit/test_configurator.rb        |  8 +++-----
+ test/unit/test_droplet.rb             |  4 ++--
+ test/unit/test_http_parser.rb         |  2 +-
+ test/unit/test_http_parser_ng.rb      | 12 ++++++------
+ test/unit/test_http_parser_xftrust.rb |  2 +-
+ test/unit/test_request.rb             |  2 +-
+ test/unit/test_response.rb            |  2 +-
+ test/unit/test_server.rb              |  2 +-
+ test/unit/test_signals.rb             |  2 +-
+ test/unit/test_sni_hostnames.rb       |  4 ++--
+ test/unit/test_socket_helper.rb       |  2 +-
+ test/unit/test_stream_input.rb        |  4 ++--
+ test/unit/test_tee_input.rb           |  4 ++--
+ test/unit/test_upload.rb              |  4 ++--
+ test/unit/test_util.rb                |  2 +-
+ unicorn.gemspec                       |  1 +
+ 19 files changed, 50 insertions(+), 48 deletions(-)
+
+diff --git a/setup.rb b/setup.rb
+index cf1abd9..42ce95c 100644
+--- a/setup.rb
++++ b/setup.rb
+@@ -1458,14 +1458,10 @@ class Installer
+       return
+     end
+     $stderr.puts 'Running tests...' if verbose?
+-    begin
+-      require 'test/unit'
+-    rescue LoadError
+-      setup_rb_error 'test/unit cannot loaded.  You need Ruby 1.8 or later to invoke this task.'
+-    end
+-    runner = Test::Unit::AutoRunner.new(true)
+-    runner.to_run << TESTDIR
+-    runner.run
++    $dir = File.dirname(File.expand_path(__FILE__))
++    $LOAD_PATH.unshift $dir
++    $LOAD_PATH.unshift $dir + '/lib/'
++    Dir.glob "./test/**/test_*.rb", &method(:require)
+   end
+ 
+   #
+diff --git a/test/exec/test_exec.rb b/test/exec/test_exec.rb
+index 10a1bae..dd13931 100644
+--- a/test/exec/test_exec.rb
++++ b/test/exec/test_exec.rb
+@@ -20,7 +20,7 @@ unless try_require('rack')
+   do_test = false
+ end
+ 
+-class ExecTest < Test::Unit::TestCase
++class ExecTest < Minitest::Test
+   trap(:QUIT, 'IGNORE')
+ 
+   HI = <<-EOS
+@@ -316,7 +316,7 @@ EOF
+       assert(system($unicorn_bin, "-h"), "help text returns true")
+     end
+     assert_equal 0, File.stat("test_stderr.#$$.log").size
+-    assert_not_equal 0, File.stat("test_stdout.#$$.log").size
++    refute_equal 0, File.stat("test_stdout.#$$.log").size
+     lines = File.readlines("test_stdout.#$$.log")
+ 
+     # Be considerate of the on-call technician working from their
+@@ -386,7 +386,7 @@ EOF
+     wait_for_file(old_file)
+     wait_for_file(pid_file)
+     new_pid = File.read(pid_file).to_i
+-    assert_not_equal current_pid, new_pid
++    refute_equal current_pid, new_pid
+     assert_equal current_pid, File.read(old_file).to_i
+     results = retry_hit(["http://#{@addr}:#{@port}/",
+                          "http://#{@addr}:#{port2}/"])
+@@ -448,7 +448,7 @@ EOF
+     wait_for_file(old_file)
+     wait_for_file(pid_file)
+     new_pid = File.read(pid_file).to_i
+-    assert_not_equal current_pid, new_pid
++    refute_equal current_pid, new_pid
+     assert_equal current_pid, File.read(old_file).to_i
+     results = retry_hit(["http://#{@addr}:#{@port}/"])
+     assert_equal String, results[0].class
+@@ -520,7 +520,7 @@ EOF
+     results = retry_hit(["http://#{@addr}:#{@port}/"])
+     assert_equal String, results[0].class
+     worker_pid = results[0].to_i
+-    assert_not_equal pid, worker_pid
++    refute_equal pid, worker_pid
+     s = UNIXSocket.new(tmp.path)
+     s.syswrite("GET / HTTP/1.0\r\n\r\n")
+     results = ''
+@@ -755,7 +755,7 @@ EOF
+       assert_equal String, results.class
+     end
+ 
+-    assert_not_equal 0, new_log.size
++    refute_equal 0, new_log.size
+     reexec_usr2_quit_test(pid, pid_file)
+   end
+ 
+@@ -777,7 +777,7 @@ EOF
+     assert_equal String, results[0].class
+     wait_for_file(pid_file)
+     new_pid = File.read(pid_file).to_i
+-    assert_not_equal pid, new_pid
++    refute_equal pid, new_pid
+     pid, status = Process.waitpid2(pid)
+     assert status.success?, "original process exited successfully"
+     Process.kill(0, new_pid)
+@@ -845,7 +845,7 @@ EOF
+     File.truncate(log.path, 0)
+     wait_for_file(pid_file)
+     pid = File.read(pid_file).to_i
+-    assert_not_equal orig_pid, pid
++    refute_equal orig_pid, pid
+     curr_fds = `ls -l /proc/#{pid}/fd`.split(/\n/)
+     assert $?.success?
+ 
+diff --git a/test/test_helper.rb b/test/test_helper.rb
+index c65f2f3..db7def1 100644
+--- a/test/test_helper.rb
++++ b/test/test_helper.rb
+@@ -18,7 +18,7 @@ ENV['NO_PROXY'] ||= ENV['UNICORN_TEST_ADDR'] || '127.0.0.1'
+ DEFAULT_TRIES = 1000
+ DEFAULT_RES = 0.2
+ 
+-require 'test/unit'
++require 'minitest/autorun'
+ require 'net/http'
+ require 'digest/sha1'
+ require 'uri'
+@@ -34,6 +34,13 @@ if ENV['DEBUG']
+   Debugger.start
+ end
+ 
++if Minitest.const_defined?('Test')
++  # We're on Minitest 5+. Nothing to do here.
++else
++  # Minitest 4 doesn't have Minitest::Test yet.
++  Minitest::Test = MiniTest::Unit::TestCase
++end
++
+ def redirect_test_io
+   orig_err = STDERR.dup
+   orig_out = STDOUT.dup
+@@ -199,7 +206,7 @@ def reexec_usr2_quit_test(pid, pid_file)
+   new_pid = File.read(pid_file).to_i
+ 
+   # kill old master process
+-  assert_not_equal pid, new_pid
++  refute_equal pid, new_pid
+   assert_equal pid, old_pid
+   Process.kill(:QUIT, old_pid)
+   retry_hit(["http://#{@addr}:#{@port}/"])
+@@ -225,7 +232,7 @@ def reexec_basic_test(pid, pid_file)
+   wait_master_ready(master_log)
+   assert File.exist?(pid_file), "pid=#{pid_file} exists"
+   new_pid = File.read(pid_file).to_i
+-  assert_not_equal pid, new_pid
++  refute_equal pid, new_pid
+   Process.kill(0, new_pid)
+   Process.kill(:QUIT, new_pid)
+ end
+diff --git a/test/unit/test_configurator.rb b/test/unit/test_configurator.rb
+index 1298f0e..3aa7076 100644
+--- a/test/unit/test_configurator.rb
++++ b/test/unit/test_configurator.rb
+@@ -1,12 +1,12 @@
+ # -*- encoding: binary -*-
+ 
+-require 'test/unit'
++require 'test/test_helper'
+ require 'tempfile'
+ require 'unicorn'
+ 
+ TestStruct = Struct.new(
+   *(Unicorn::Configurator::DEFAULTS.keys + %w(listener_opts listeners)))
+-class TestConfigurator < Test::Unit::TestCase
++class TestConfigurator < Minitest::Test
+ 
+   def test_config_init
+     Unicorn::Configurator.new {}
+@@ -137,9 +137,7 @@ class TestConfigurator < Test::Unit::TestCase
+     test_struct = TestStruct.new
+     tmp.syswrite("check_client_connection true\n")
+ 
+-    assert_nothing_raised do
+-      Unicorn::Configurator.new(:config_file => tmp.path).commit!(test_struct)
+-    end
++    Unicorn::Configurator.new(:config_file => tmp.path).commit!(test_struct)
+ 
+     assert test_struct.check_client_connection
+   end
+diff --git a/test/unit/test_droplet.rb b/test/unit/test_droplet.rb
+index 73cf38c..30360db 100644
+--- a/test/unit/test_droplet.rb
++++ b/test/unit/test_droplet.rb
+@@ -1,7 +1,7 @@
+-require 'test/unit'
++require 'test/test_helper'
+ require 'unicorn'
+ 
+-class TestDroplet < Test::Unit::TestCase
++class TestDroplet < Minitest::Test
+   def test_create_many_droplets
+     now = Time.now.to_i
+     tmp = (0..1024).map do |i|
+diff --git a/test/unit/test_http_parser.rb b/test/unit/test_http_parser.rb
+index 8d5b251..23984fd 100644
+--- a/test/unit/test_http_parser.rb
++++ b/test/unit/test_http_parser.rb
+@@ -11,7 +11,7 @@ require 'test/test_helper'
+ 
+ include Unicorn
+ 
+-class HttpParserTest < Test::Unit::TestCase
++class HttpParserTest < Minitest::Test
+ 
+   def test_parse_simple
+     parser = HttpParser.new
+diff --git a/test/unit/test_http_parser_ng.rb b/test/unit/test_http_parser_ng.rb
+index ab335ac..65e9ea2 100644
+--- a/test/unit/test_http_parser_ng.rb
++++ b/test/unit/test_http_parser_ng.rb
+@@ -5,7 +5,7 @@ require 'digest/md5'
+ 
+ include Unicorn
+ 
+-class HttpParserNgTest < Test::Unit::TestCase
++class HttpParserNgTest < Minitest::Test
+ 
+   def setup
+     HttpParser.keepalive_requests = HttpParser::KEEPALIVE_REQUESTS_DEFAULT
+@@ -456,13 +456,13 @@ class HttpParserNgTest < Test::Unit::TestCase
+            "#{n.to_s(16)}\r\na\r\n2\r\n..\r\n0\r\n"
+     assert_equal req, @parser.parse
+     assert_nil @parser.content_length
+-    assert_raise(HttpParserError) { @parser.filter_body('', str) }
++    assert_raises(HttpParserError) { @parser.filter_body('', str) }
+   end
+ 
+   def test_overflow_content_length
+     n = HttpParser::LENGTH_MAX + 1
+     @parser.buf << "PUT / HTTP/1.1\r\nContent-Length: #{n}\r\n\r\n"
+-    assert_raise(HttpParserError) { @parser.parse }
++    assert_raises(HttpParserError) { @parser.parse }
+   end
+ 
+   def test_bad_chunk
+@@ -472,12 +472,12 @@ class HttpParserNgTest < Test::Unit::TestCase
+     req = @parser.env
+     assert_equal req, @parser.parse
+     assert_nil @parser.content_length
+-    assert_raise(HttpParserError) { @parser.filter_body("", @parser.buf) }
++    assert_raises(HttpParserError) { @parser.filter_body("", @parser.buf) }
+   end
+ 
+   def test_bad_content_length
+     @parser.buf << "PUT / HTTP/1.1\r\nContent-Length: 7ff\r\n\r\n"
+-    assert_raise(HttpParserError) { @parser.parse }
++    assert_raises(HttpParserError) { @parser.parse }
+   end
+ 
+   def test_bad_trailers
+@@ -494,7 +494,7 @@ class HttpParserNgTest < Test::Unit::TestCase
+     assert_equal 'a..', tmp
+     assert_equal '', str
+     str << "Transfer-Encoding: identity\r\n\r\n"
+-    assert_raise(HttpParserError) { @parser.parse }
++    assert_raises(HttpParserError) { @parser.parse }
+   end
+ 
+   def test_repeat_headers
+diff --git a/test/unit/test_http_parser_xftrust.rb b/test/unit/test_http_parser_xftrust.rb
+index db8cfa9..373a5f1 100644
+--- a/test/unit/test_http_parser_xftrust.rb
++++ b/test/unit/test_http_parser_xftrust.rb
+@@ -3,7 +3,7 @@ require 'test/test_helper'
+ 
+ include Unicorn
+ 
+-class HttpParserXFTrustTest < Test::Unit::TestCase
++class HttpParserXFTrustTest < Minitest::Test
+   def setup
+     assert HttpParser.trust_x_forwarded?
+   end
+diff --git a/test/unit/test_request.rb b/test/unit/test_request.rb
+index fbda1a2..5c3b7bd 100644
+--- a/test/unit/test_request.rb
++++ b/test/unit/test_request.rb
+@@ -8,7 +8,7 @@ require 'test/test_helper'
+ 
+ include Unicorn
+ 
+-class RequestTest < Test::Unit::TestCase
++class RequestTest < Minitest::Test
+ 
+   class MockRequest < StringIO
+     alias_method :readpartial, :sysread
+diff --git a/test/unit/test_response.rb b/test/unit/test_response.rb
+index 85ac085..aa32e5b 100644
+--- a/test/unit/test_response.rb
++++ b/test/unit/test_response.rb
+@@ -12,7 +12,7 @@ require 'time'
+ 
+ include Unicorn
+ 
+-class ResponseTest < Test::Unit::TestCase
++class ResponseTest < Minitest::Test
+   include Unicorn::HttpResponse
+ 
+   def test_httpdate
+diff --git a/test/unit/test_server.rb b/test/unit/test_server.rb
+index e5b335f..273af7b 100644
+--- a/test/unit/test_server.rb
++++ b/test/unit/test_server.rb
+@@ -24,7 +24,7 @@ class TestHandler
+ end
+ 
+ 
+-class WebServerTest < Test::Unit::TestCase
++class WebServerTest < Minitest::Test
+ 
+   def setup
+     @valid_request = "GET / HTTP/1.1\r\nHost: www.zedshaw.com\r\nContent-Type: text/plain\r\n\r\n"
+diff --git a/test/unit/test_signals.rb b/test/unit/test_signals.rb
+index 443c736..4bb32a5 100644
+--- a/test/unit/test_signals.rb
++++ b/test/unit/test_signals.rb
+@@ -21,7 +21,7 @@ class Dd
+   end
+ end
+ 
+-class SignalsTest < Test::Unit::TestCase
++class SignalsTest < Minitest::Test
+ 
+   def setup
+     @bs = 1 * 1024 * 1024
+diff --git a/test/unit/test_sni_hostnames.rb b/test/unit/test_sni_hostnames.rb
+index 457afee..ef9dcb2 100644
+--- a/test/unit/test_sni_hostnames.rb
++++ b/test/unit/test_sni_hostnames.rb
+@@ -1,10 +1,10 @@
+ # -*- encoding: binary -*-
+-require "test/unit"
++require "test/test_helper"
+ require "unicorn"
+ 
+ # this tests an implementation detail, it may change so this test
+ # can be removed later.
+-class TestSniHostnames < Test::Unit::TestCase
++class TestSniHostnames < Minitest::Test
+   include Unicorn::SSLServer
+ 
+   def setup
+diff --git a/test/unit/test_socket_helper.rb b/test/unit/test_socket_helper.rb
+index 8992757..6c70833 100644
+--- a/test/unit/test_socket_helper.rb
++++ b/test/unit/test_socket_helper.rb
+@@ -3,7 +3,7 @@
+ require 'test/test_helper'
+ require 'tempfile'
+ 
+-class TestSocketHelper < Test::Unit::TestCase
++class TestSocketHelper < Minitest::Test
+   include Unicorn::SocketHelper
+   attr_reader :logger
+   GET_SLASH = "GET / HTTP/1.0\r\n\r\n".freeze
+diff --git a/test/unit/test_stream_input.rb b/test/unit/test_stream_input.rb
+index 1a07ec3..ea4d069 100644
+--- a/test/unit/test_stream_input.rb
++++ b/test/unit/test_stream_input.rb
+@@ -1,10 +1,10 @@
+ # -*- encoding: binary -*-
+ 
+-require 'test/unit'
++require 'test/test_helper'
+ require 'digest/sha1'
+ require 'unicorn'
+ 
+-class TestStreamInput < Test::Unit::TestCase
++class TestStreamInput < Minitest::Test
+   def setup
+     @rs = $/
+     @env = {}
+diff --git a/test/unit/test_tee_input.rb b/test/unit/test_tee_input.rb
+index 0c2c941..59a12cb 100644
+--- a/test/unit/test_tee_input.rb
++++ b/test/unit/test_tee_input.rb
+@@ -1,6 +1,6 @@
+ # -*- encoding: binary -*-
+ 
+-require 'test/unit'
++require 'test/test_helper'
+ require 'digest/sha1'
+ require 'unicorn'
+ 
+@@ -8,7 +8,7 @@ class TeeInput < Unicorn::TeeInput
+   attr_accessor :tmp, :len
+ end
+ 
+-class TestTeeInput < Test::Unit::TestCase
++class TestTeeInput < Minitest::Test
+ 
+   def setup
+     @rs = $/
+diff --git a/test/unit/test_upload.rb b/test/unit/test_upload.rb
+index bcce4bc..060afaa 100644
+--- a/test/unit/test_upload.rb
++++ b/test/unit/test_upload.rb
+@@ -6,7 +6,7 @@ require 'digest/md5'
+ 
+ include Unicorn
+ 
+-class UploadTest < Test::Unit::TestCase
++class UploadTest < Minitest::Test
+ 
+   def setup
+     @addr = ENV['UNICORN_TEST_ADDR'] || '127.0.0.1'
+@@ -160,7 +160,7 @@ class UploadTest < Test::Unit::TestCase
+     sock.syswrite("PUT / HTTP/1.0\r\nContent-Length: #{length}\r\n\r\n")
+ 
+     @count.times { sock.syswrite(buf) }
+-    assert_raise(Errno::ECONNRESET, Errno::EPIPE) do
++    assert_raises(Errno::ECONNRESET, Errno::EPIPE) do
+       ::Unicorn::Const::CHUNK_SIZE.times { sock.syswrite(buf) }
+     end
+     sock.gets
+diff --git a/test/unit/test_util.rb b/test/unit/test_util.rb
+index 904d51c..28a13cb 100644
+--- a/test/unit/test_util.rb
++++ b/test/unit/test_util.rb
+@@ -3,7 +3,7 @@
+ require 'test/test_helper'
+ require 'tempfile'
+ 
+-class TestUtil < Test::Unit::TestCase
++class TestUtil < Minitest::Test
+ 
+   EXPECT_FLAGS = File::WRONLY | File::APPEND
+   def test_reopen_logs_noop
+diff --git a/unicorn.gemspec b/unicorn.gemspec
+index 4619a89..c990640 100644
+--- a/unicorn.gemspec
++++ b/unicorn.gemspec
+@@ -38,6 +38,7 @@ Gem::Specification.new do |s|
+   s.add_dependency(%q<raindrops>, '~> 0.7')
+ 
+   s.add_development_dependency('isolate', '~> 3.2')
++  s.add_development_dependency('minitest', '~> 5')
+   s.add_development_dependency('wrongdoc', '~> 1.6.1')
+ 
+   s.licenses = ["GPLv2+", "Ruby 1.8"]
+-- 
+1.9.0
+
+_______________________________________________
+Unicorn mailing list - mongrel-unicorn@rubyforge.org
+http://rubyforge.org/mailman/listinfo/mongrel-unicorn
+Do not quote signatures (like this one) or top post when replying
