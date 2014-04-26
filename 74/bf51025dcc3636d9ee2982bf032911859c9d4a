@@ -1,0 +1,86 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-1.0 required=3.0 tests=ALL_TRUSTED,AWL
+ shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Delivered-To: pi@dcvr.yhbt.net
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id B90201F6D3; Sat, 26 Apr 2014 06:07:44 +0000 (UTC)
+Date: Sat, 26 Apr 2014 06:07:44 +0000
+From: Eric Wong <e@80x24.org>
+To: Ken Dreyer <ktdreyer@ktdreyer.com>
+Cc: unicorn-public@bogomips.org, mongrel-unicorn@rubyforge.org
+Subject: Re: [PATCH] tests: switch to minitest
+Message-ID: <20140426060744.GA17493@dcvr.yhbt.net>
+References: <1398482426-3245-1-git-send-email-ktdreyer@ktdreyer.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <1398482426-3245-1-git-send-email-ktdreyer@ktdreyer.com>
+List-Id: <unicorn-public@bogomips.org>
+List-Post: <unicorn-public@bogomips.org>
+
+Ken Dreyer <ktdreyer@ktdreyer.com> wrote:
+> Ruby 1.9+ uses Minitest as the backend for Test::Unit. As of Minitest 5,
+> the shim has lost some backwards compatibility. It is time to make the
+> jump to minitest.
+> 
+> Adjust the unicorn test suite to support Minitest 5's syntax.
+
+Thank you very much for taking a look at this.  I was going to do it
+myself over the summer.
+
+I ran into some problems with our tests forking + minitest/autorun
+causing some problems due to at_exit usage.
+
+We probably need to workaround, I already did something for yahns
+which we can reuse[1] in unicorn.
+
+> Minitest versions 4 and below do not support the newer Minitest::Test
+> class that arrived in version 5. For that case, use the
+> MiniTest::Unit::TestCase class as a fallback.
+
+For yahns, I did the following:
+----------- git://yhbt.net/yahns -- test/helper.rb ------------------
+gem 'minitest'
+begin # favor minitest 5
+  require 'minitest'
+  Testcase = Minitest::Test
+  mtobj = Minitest
+rescue NameError, LoadError # but support minitest 4
+  require 'minitest/unit'
+  Testcase = Minitest::Unit::TestCase
+  mtobj = MiniTest::Unit.new
+end
+
+# Not using minitest/autorun because that doesn't guard against redundant
+# extra runs with fork.  We cannot use exit! in the tests either
+# (since users/apps hosted on yahns _should_ expect exit, not exit!).
+TSTART_PID = $$
+at_exit do
+  # skipping @@after_run stuff in minitest since we don't need it
+  case $!
+  when nil, SystemExit
+    exit(mtobj.run(ARGV)) if $$ == TSTART_PID
+  end
+end
+-------------------------------- 8< -------------------------------
+I'd appreciate a second opinion on what I did with yahns above,
+but it should work with unicorn.
+
+Can you take a look at integrating+fixing those cases which fork?
+Thanks again.
+
+> Please keep me in the CC as I'm not subscribed to the unicorn email list.
+
+No problem.  Also keeping unicorn-public@bogomips.org Cc-ed since that's
+the new public-inbox[2] address and reply-all will be the norm there.
+Hopefully public-inbox can encourage more drive-by contributors like
+you :)
+
+
+[1] - Fwiw, I give myself permission to relicense any yahns GPLv3+
+      test code I wrote to (GPLv2+ || Ruby 1.8 license) for unicorn.
+[2] - http://public-inbox.org/
