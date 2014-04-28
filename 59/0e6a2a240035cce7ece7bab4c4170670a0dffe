@@ -1,0 +1,65 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=1.0 required=3.0 tests=AWL,RCVD_IN_DNSWL_BLOCKED,
+ RDNS_NONE shortcircuit=no autolearn=no version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Delivered-To: pi@dcvr.yhbt.net
+Received: from rubyforge.org (unknown [50.56.192.79]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 6C0A944C00B for <unicorn-public@bogomips.org>; Mon,
+ 28 Apr 2014 10:41:35 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 8DF0B2E222; Mon, 28 Apr 2014 10:41:35 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from dcvr.yhbt.net (dcvr.yhbt.net [64.71.152.64]) by rubyforge.org
+ (Postfix) with ESMTP id F1E202E222 for <mongrel-unicorn@rubyforge.org>; Mon,
+ 28 Apr 2014 10:41:28 +0000 (UTC)
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id DE70944C009; Mon, 28 Apr 2014 10:41:26 +0000 (UTC)
+Date: Mon, 28 Apr 2014 10:41:26 +0000
+From: Eric Wong <e@80x24.org>
+To: Henrik Nyh <henrik@barsoom.se>
+Subject: Re: Workers reaped with SIGABRT - how to debug?
+Message-ID: <20140428104126.GA5351@dcvr.yhbt.net>
+References:
+ <CADBUp+3v0za7qQDBPt4b15jiMA2GpXpxbMLw6CQY3dRkjv=UoQ@mail.gmail.com>
+ <CADBUp+1R8Mfh2rNMa1hXr2XE06dD_869Sw=5YDffR-DSH7g+7w@mail.gmail.com>
+MIME-Version: 1.0
+Content-Disposition: inline
+In-Reply-To:
+ <CADBUp+1R8Mfh2rNMa1hXr2XE06dD_869Sw=5YDffR-DSH7g+7w@mail.gmail.com>
+Cc: unicorn list <mongrel-unicorn@rubyforge.org>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+Henrik Nyh <henrik@barsoom.se> wrote:
+> It was simply that monit did a "kill -6" (SIBABRT) when the process
+> used too much memory, so we bumped that limit for now. D'oh. We've yet
+> to research why it used that much memory.
+
+Thanks for the followup.  Unfortunately the RGenGC in Ruby 2.1.x uses
+more memory than 2.0 did (but GC is faster :).
+
+Sam wrote an article about it here:
+http://samsaffron.com/archive/2014/04/08/ruby-2-1-garbage-collection-ready-for-production
+
+We (ruby-core devs) will try to reduce memory for 2.2 without
+performance regressions.
+__
+http://bogomips.org/unicorn-public/ - unicorn-public@bogomips.org
+please quote as little as necessary when replying
