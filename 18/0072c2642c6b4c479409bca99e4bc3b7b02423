@@ -1,0 +1,74 @@
+From ew@dcvr.yhbt.net  Mon Apr 28 09: 42:12 2014
+Return-Path: <ew@dcvr.yhbt.net>
+X-Original-To: pi+piham
+Delivered-To: pi+piham@dcvr.yhbt.net
+Received: by dcvr.yhbt.net (Postfix, from userid 1000) id 039D01FF48; Mon, 28
+ Apr 2014 09:42:12 +0000 (UTC)
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS15169 209.85.128.0/17
+X-Spam-Status: No, score=-2.1 required=5.0 tests=AWL,BAYES_00,
+ RCVD_IN_DNSWL_LOW shortcircuit=no autolearn=ham version=3.3.2
+X-Original-To: normalperson@yhbt.net
+Delivered-To: ew@dcvr.yhbt.net
+Received: from mail-la0-f45.google.com (mail-la0-f45.google.com
+ [209.85.215.45]) (using TLSv1 with cipher ECDHE-RSA-RC4-SHA (128/128 bits))
+ (No client certificate requested) by dcvr.yhbt.net (Postfix) with ESMTPS id
+ 0E5911FF47 for <normalperson@yhbt.net>; Mon, 28 Apr 2014 09:25:41 +0000 (UTC)
+Received: by mail-la0-f45.google.com with SMTP id pv20so360242lab.32 for
+ <normalperson@yhbt.net>; Mon, 28 Apr 2014 02:25:39 -0700 (PDT)
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=1e100.net;
+ s=20130820;
+ h=x-gm-message-state:mime-version:in-reply-to:references:from:date
+ :message-id:subject:to:cc:content-type;
+ bh=2lpb6PeSWl6hlqWOsv8j54cyDqfrfMCdBa6ESh/tBAs=;
+ b=QJRvRSCPZMxIg480HQn977MzJ6MQ6MDW6oMl28h+8g4yVL1y5zfMB04prdcfQvzgMu
+ /62nR6M4dsPeLBFJNoqfUADNlziE+BoAjWa4KxZoikPOP0Q/hV3AqWwMQCYuAUzn2wr6
+ OIzNcijfmRRaVPFGeW0V8mX/d8/V52fzJSjqdxihu5o3AK7fGyp+0fF2+ngFS0Gzy0N/
+ YJ28DlXorUk/YDMGibMvd3MBWnmoDmukMLVoAQIKH20vNoP7COKCutS8LW2m94h+IDU2
+ kRtQ/qnWIjipL1d1UlpK/qvt253UpIHeLDg1NwWql+0QPMRMRlArfMRxDWmC5fY8XrvH XkfA==
+X-Gm-Message-State:
+ ALoCoQnYSslSJQ6zxLD5P+07tG2RMdMdW5cVvjKgNkDknzgqZWBlYwJ6SRY9vV7vux/OOy15ZMjb
+X-Received: by 10.152.184.66 with SMTP id es2mr18625599lac.22.1398677139662;
+ Mon, 28 Apr 2014 02:25:39 -0700 (PDT)
+MIME-Version: 1.0
+Received: by 10.115.1.197 with HTTP; Mon, 28 Apr 2014 02:25:19 -0700 (PDT)
+X-Originating-IP: [92.33.33.90]
+In-Reply-To:
+ <CADBUp+3v0za7qQDBPt4b15jiMA2GpXpxbMLw6CQY3dRkjv=UoQ@mail.gmail.com>
+References:
+ <CADBUp+3v0za7qQDBPt4b15jiMA2GpXpxbMLw6CQY3dRkjv=UoQ@mail.gmail.com>
+From: Henrik Nyh <henrik@barsoom.se>
+Date: Mon, 28 Apr 2014 11:25:19 +0200
+Message-ID:
+ <CADBUp+1R8Mfh2rNMa1hXr2XE06dD_869Sw=5YDffR-DSH7g+7w@mail.gmail.com>
+Subject: Re: Workers reaped with SIGABRT - how to debug?
+To: unicorn list <mongrel-unicorn@rubyforge.org>
+Cc: Eric Wong <normalperson@yhbt.net>
+Content-Type: text/plain; charset=ISO-8859-1
+
+I think we have solved this issue.
+
+It was simply that monit did a "kill -6" (SIBABRT) when the process
+used too much memory, so we bumped that limit for now. D'oh. We've yet
+to research why it used that much memory.
+
+On Tue, Apr 15, 2014 at 10:00 AM, Henrik Nyh <henrik@barsoom.se> wrote:
+> We get errors like this one a few times a day:
+>
+>     Apr 13 12:16:31 app1 unicorn.log:  E, [2014-04-13T12:16:31.302011
+> #17269] ERROR -- : reaped #<Process::Status: pid 17300 SIGABRT (signal
+> 6)> worker=2
+>
+> We use Unicorn 4.8.2, Ruby 2.1.1 and a Ruby on Rails app.
+>
+> It doesn't seem to happen at any obvious time, like during or just
+> after deploys.
+>
+> We were previously on Ruby 1.9.3 with Unicorn 4.8.0. Then we had
+> almost the same issue but with SIGIOT, I believe. Then we upgraded
+> Ruby to 2.1.1. I believe that's when it changed to SIGABRT. Then we
+> upgraded Unicorn to 4.8.2 with no improvement.
+>
+> We're not sure how to debug this - any suggestions on either what the
+> problem could be, or how to debug it?
