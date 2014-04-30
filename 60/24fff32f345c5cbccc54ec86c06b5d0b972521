@@ -1,0 +1,87 @@
+Return-Path: <mongrel-unicorn-bounces@rubyforge.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: *
+X-Spam-ASN: AS33070 50.56.128.0/17
+X-Spam-Status: No, score=1.3 required=3.0 tests=RCVD_IN_DNSWL_BLOCKED,
+ RDNS_NONE,T_DKIM_INVALID shortcircuit=no autolearn=no version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Delivered-To: pi@dcvr.yhbt.net
+Received: from rubyforge.org (unknown [50.56.192.79]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id ABBEB44C009 for <unicorn-public@bogomips.org>; Wed,
+ 30 Apr 2014 14:01:31 +0000 (UTC)
+Received: from localhost.localdomain (localhost [127.0.0.1]) by rubyforge.org
+ (Postfix) with ESMTP id 748A62E256; Wed, 30 Apr 2014 14:01:31 +0000 (UTC)
+X-Original-To: mongrel-unicorn@rubyforge.org
+Delivered-To: mongrel-unicorn@rubyforge.org
+Received: from mail-qc0-f174.google.com (mail-qc0-f174.google.com
+ [209.85.216.174]) by rubyforge.org (Postfix) with ESMTP id B19862E256 for
+ <mongrel-unicorn@rubyforge.org>; Wed, 30 Apr 2014 13:54:42 +0000 (UTC)
+Received: by mail-qc0-f174.google.com with SMTP id c9so1874341qcz.33 for
+ <mongrel-unicorn@rubyforge.org>; Wed, 30 Apr 2014 06:54:41 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com;
+ s=20120113;
+ h=mime-version:sender:from:date:message-id:subject:to:content-type
+ :content-transfer-encoding; bh=6XmMt467QFzBHN4tMS9T1REeErd3cQvfPo7OsJG7j5I=;
+ b=U/9FHrXcUm9sLZgEXPDSY6XC5czg9y+asThKDTxK6s2rIrEX1mcCjg3+Ck9Yl1SbNE
+ yqZBakSAFqwZPm4XtgbLGOUgy276/NN2FDKF9sN9DQhDiOAn+fRCgn1sgRw+jMo+MjV+
+ Y951Q+BR9gdDhW8+RqThy8ITdeDUnDJ3tQEESBDU6cjPd52EDKEEy35O7es3UNCP3ZsA
+ d0yeNQB2jDAwU6bSdp2YDs/RieXsUgGEksGHwtDZjMjmGkahVK3TJJZ7zLgc3NIrxMWl
+ EdN5igCP5ciazX9kX5riSyArZFYgCsOU5B8WvwcAHg4ySvUOQuR80ks6V+r0+r0XkQ6J GBww==
+X-Received: by 10.140.108.4 with SMTP id i4mr5106404qgf.80.1398866081411;
+ Wed, 30 Apr 2014 06:54:41 -0700 (PDT)
+MIME-Version: 1.0
+Received: by 10.140.89.49 with HTTP; Wed, 30 Apr 2014 06:54:01 -0700 (PDT)
+From: =?UTF-8?Q?Br=C3=A1ulio_Bhavamitra?= <braulio@eita.org.br>
+Date: Wed, 30 Apr 2014 10:54:01 -0300
+X-Google-Sender-Auth: L1RL4HrhjKEziWFCJhcNd9t1eIQ
+Message-ID:
+ <CAJri6_urkXQy2z1jwxyyZPtdVz1s5iJ1YupL+uLms3q1dguC=g@mail.gmail.com>
+Subject: Does unicorn waits after_work to consider a worker ready?
+To: Unicorn <mongrel-unicorn@rubyforge.org>
+X-BeenThere: mongrel-unicorn@rubyforge.org
+X-Mailman-Version: 2.1.12
+Precedence: list
+List-Id: <unicorn-public@bogomips.org>
+List-Unsubscribe: <http://rubyforge.org/mailman/options/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=unsubscribe>
+List-Archive: <http://rubyforge.org/pipermail/mongrel-unicorn>
+List-Post: <unicorn-public@bogomips.org>
+List-Help: <mailto:mongrel-unicorn-request@rubyforge.org?subject=help>
+List-Subscribe: <http://rubyforge.org/mailman/listinfo/mongrel-unicorn>,
+ <mailto:mongrel-unicorn-request@rubyforge.org?subject=subscribe>
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+Sender: mongrel-unicorn-bounces@rubyforge.org
+Errors-To: mongrel-unicorn-bounces@rubyforge.org
+
+SGVsbG8gYWxsLAoKSSBoYWQgdG8gdXNlIGBzbGVlcGAgKHNlZSBodHRwczovL2dpc3QuZ2l0aHVi
+LmNvbS9icmF1bGlvYm8vMTEyOTg0ODYpCnRvIG1ha2Ugcm9sbGluZyByZXN0YXJ0IG9uIG15IHVu
+aWNvcm4gY29uZmlndXJhdGlvbi4KCkJ1dCBJJ20gd29ycmllZCBpZiB1bmljb3JuIGNvbnNpZGVy
+IHRoZSB3b3JrZXIgcmVhZHkgZm9yIHJlcXVlc3QgZXZlbgpiZWZvcmUgYWZ0ZXJfZm9yayBmaW5p
+c2hlcy4gQ291bGQgeW91IHNheSBpZiB0aGF0IGlzIHRydWU/CgpyZWdhcmRzLApicsOhdWxpbwoK
+LS0gCiJMdXRlIHBlbGEgc3VhIGlkZW9sb2dpYS4gU2VqYSB1bSBjb20gc3VhIGlkZW9sb2dpYS4g
+Vml2YSBwZWxhIHN1YQppZGVvbG9naWEuIE1vcnJhIHBvciBzdWEgaWRlb2xvZ2lhIiBQLlIuIFNh
+cmthcgoKRUlUQSAtIEVkdWNhw6fDo28sIEluZm9ybWHDp8OjbyBlIFRlY25vbG9naWFzIHBhcmEg
+QXV0b2dlc3TDo28KaHR0cDovL2NpcmFuZGFzLm5ldC9icmF1bGlvYm8KaHR0cDovL2VpdGEub3Jn
+LmJyCgoiUGFyYW1hcHVydXNoYSDDqSBtZXUgcGFpIGUgUGFyYW1hIFByYWtyaXRpIMOpIG1pbmhh
+IG3Do2UuIE8gdW5pdmVyc28gw6kKbWV1IGxhciBlIHRvZG9zIG7Ds3Mgc29tb3MgY2lkYWTDo29z
+IGRlc3RlIGNvc21vLiBFc3RlIHVuaXZlcnNvIMOpIGEKaW1hZ2luYcOnw6NvIGRhIE1lbnRlIE1h
+Y3JvY8Ozc21pY2EsIGUgdG9kYXMgYXMgZW50aWRhZGVzIGVzdMOjbyBzZW5kbwpjcmlhZGFzLCBw
+cmVzZXJ2YWRhcyBlIGRlc3RydcOtZGFzIG5hcyBmYXNlcyBkZSBleHRyb3ZlcnPDo28gZQppbnRy
+b3ZlcnPDo28gZG8gZmx1eG8gaW1hZ2luYXRpdm8gY8Ozc21pY28uIE5vIMOibWJpdG8gcGVzc29h
+bCwgcXVhbmRvCnVtYSBwZXNzb2EgaW1hZ2luYSBhbGdvIGVtIHN1YSBtZW50ZSwgbmFxdWVsZSBt
+b21lbnRvLCBlc3NhIHBlc3NvYSDDqSBhCsO6bmljYSBwcm9wcmlldMOhcmlhIGRhcXVpbG8gcXVl
+IGVsYSBpbWFnaW5hLCBlIG5pbmd1w6ltIG1haXMuIFF1YW5kbyB1bQpzZXIgaHVtYW5vIGNyaWFk
+byBtZW50YWxtZW50ZSBjYW1pbmhhIHBvciB1bSBtaWxoYXJhbCB0YW1iw6ltCmltYWdpbmFkbywg
+YSBwZXNzb2EgaW1hZ2luYWRhIG7Do28gw6kgYSBwcm9wcmllZGFkZSBkZXNzZSBtaWxoYXJhbCwg
+cG9pcwplbGUgcGVydGVuY2UgYW8gaW5kaXbDrWR1byBxdWUgbyBlc3TDoSBpbWFnaW5hbmRvLiBF
+c3RlIHVuaXZlcnNvIGZvaQpjcmlhZG8gbmEgaW1hZ2luYcOnw6NvIGRlIEJyYWhtYSwgYSBFbnRp
+ZGFkZSBTdXByZW1hLCBwb3IgaXNzbyBhCnByb3ByaWVkYWRlIGRlc3RlIHVuaXZlcnNvIMOpIGRl
+IEJyYWhtYSwgZSBuw6NvIGRvcyBtaWNyb2Nvc21vcyBxdWUKdGFtYsOpbSBmb3JhbSBjcmlhZG9z
+IHBlbGEgaW1hZ2luYcOnw6NvIGRlIEJyYWhtYS4gTmVuaHVtYSBwcm9wcmllZGFkZQpkZXN0ZSBt
+dW5kbywgbXV0w6F2ZWwgb3UgaW11dMOhdmVsLCBwZXJ0ZW5jZSBhIHVtIGluZGl2w61kdW8gZW0K
+cGFydGljdWxhcjsgdHVkbyDDqSBvIHBhdHJpbcO0bmlvIGNvbXVtIGRlIHRvZG9zLiIKUmVzdGFu
+dGUgZG8gdGV4dG8gZW0KaHR0cDovL2NpcmFuZGFzLm5ldC9icmF1bGlvYm8vYmxvZy9hLXByb2Js
+ZW1hdGljYS1kZS1ob2plLWVtLWRpYQpfXwpodHRwOi8vYm9nb21pcHMub3JnL3VuaWNvcm4tcHVi
+bGljLyAtIHVuaWNvcm4tcHVibGljQGJvZ29taXBzLm9yZwpwbGVhc2UgcXVvdGUgYXMgbGl0dGxl
+IGFzIG5lY2Vzc2FyeSB3aGVuIHJlcGx5aW5nCg==
