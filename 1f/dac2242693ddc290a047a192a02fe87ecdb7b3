@@ -1,0 +1,143 @@
+Return-Path: <brauliobo@gmail.com>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS15169 209.85.128.0/17
+X-Spam-Status: No, score=0.4 required=3.0 tests=AWL,FREEMAIL_FROM,
+ RCVD_IN_DNSWL_BLOCKED,T_DKIM_INVALID shortcircuit=no autolearn=unavailable
+ version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Delivered-To: pi@dcvr.yhbt.net
+Received: from mail-qg0-f49.google.com (mail-qg0-f49.google.com
+ [209.85.192.49]) (using TLSv1 with cipher ECDHE-RSA-RC4-SHA (128/128 bits))
+ (No client certificate requested) by dcvr.yhbt.net (Postfix) with ESMTPS id
+ 0EA4B1F6D2 for <unicorn-public@bogomips.org>; Thu,  1 May 2014 19:01:30 +0000
+ (UTC)
+Received: by mail-qg0-f49.google.com with SMTP id j5so3661127qga.36 for
+ <unicorn-public@bogomips.org>; Thu, 01 May 2014 12:01:30 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com;
+ s=20120113; h=mime-version:sender:in-reply-to:references:from:date:message-id
+ :subject:to:cc:content-type:content-transfer-encoding;
+ bh=3oQhQ2m/v+dXcDTvmD9svb9WDUHjFTvAkzcn8osd354=;
+ b=EAe/nMiegi1j5bEq0GJxz4ep/Mkj1dRwxs/uKREu14o1ZOp09RHf1GkKQETQircV7s
+ Jgq1YoS/u/KMXXVWyy159KrtDo2WUHfGINWAUdgUSJJalFJSU+eFbfl9r0+avMsDi0U0
+ KMnfsTpYXh/6S8TJ0HHGgVQvSjuk8+OZMHyus+nz6E3QAmO/fSFaFrC3zwqbvyXKq7E6
+ PaNJf5tMzx6Znu8i0jmrZPywMfJMG6fVt86RrrPPI3hXqLHjLZGdpWP2YvbpYfttgwF9
+ kSk4+B57Vm55hPDuBlIEl2vHo4nripXY6sTEC6IQn/+ckLlF+/ZaDBMoe4/FB2fhczuB hqvw==
+X-Received: by 10.224.61.200 with SMTP id u8mr16645786qah.18.1398970890181;
+ Thu, 01 May 2014 12:01:30 -0700 (PDT)
+MIME-Version: 1.0
+Sender: brauliobo@gmail.com
+Received: by 10.140.89.49 with HTTP; Thu, 1 May 2014 12:00:50 -0700 (PDT)
+In-Reply-To: <20140501181814.GA14118@dcvr.yhbt.net>
+References:
+ <CAJri6_urkXQy2z1jwxyyZPtdVz1s5iJ1YupL+uLms3q1dguC=g@mail.gmail.com>
+ <20140501013307.GA30576@dcvr.yhbt.net>
+ <CAJri6_v25+Q+mECa0jEnZ8hhBtOnz+KkM-cLRs_bg-JcR3_f_Q@mail.gmail.com>
+ <20140501181814.GA14118@dcvr.yhbt.net>
+From: =?UTF-8?Q?Br=C3=A1ulio_Bhavamitra?= <braulio@eita.org.br>
+Date: Thu, 1 May 2014 16:00:50 -0300
+X-Google-Sender-Auth: 0IfEgimf0P3bHi2ws227Wv6RYzY
+Message-ID:
+ <CAJri6_vCZ1t5XSq=mvSDnciWoQTHMeFpiyKF3Q-1z7zQzkJEWg@mail.gmail.com>
+Subject: Re: Does unicorn waits after_work to consider a worker ready?
+To: Eric Wong <normalperson@yhbt.net>
+Cc: Unicorn <mongrel-unicorn@rubyforge.org>,  unicorn-public
+ <unicorn-public@bogomips.org>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
+List-Id: <unicorn-public@bogomips.org>
+List-Post: <unicorn-public@bogomips.org>
+
+On Thu, May 1, 2014 at 3:18 PM, Eric Wong <normalperson@yhbt.net> wrote:
+> Br=C3=A1ulio Bhavamitra <braulio@eita.org.br> wrote:
+>> On Wed, Apr 30, 2014 at 10:33 PM, Eric Wong <normalperson@yhbt.net> wrot=
+e:
+>> > You do not need to sleep before warmup.
+>> Warm up requests are expensive. This sleep based on worker.nr makes
+>> warm up happen on worker by worker, not all at once.
+>
+> The worker might just be processing the expensive request in a
+> user-visible state, correct?
+>
+> Modern Linux (and I expect most OSes people use nowadays) are great at
+> dividing CPU-intensive work fairly.  Of course, if there's disk
+> intensive load, that's a different case.
+Yeah, I see that frequently on top.
+
+But if all workers are warming up at once, say 10 workers, then the
+old workers will slow down to serve requests, as CPU will be heavily used
+by the warming up workers. That's is the main reason to slow down warm up.
+
+>
+>> > The master never pushes requests to a worker.  The key to unicorn is t=
+he
+>> > workers pull requests directly from the kernel queue.  The master is
+>> > never involved with distributing requests to the worker.
+>> Nice! So the kernel "sees" that worker is sleeping and should not pass
+>> a request to it, I guess.
+>
+> Almost, but the kernel socket queueing doesn't really see.  It's more
+> like the kernel just puts food on the table continuously without caring
+> if workers are eating.  Sometimes the table overflows and food gets
+> thrown in the trash when the workers are all sleeping or full.
+Interesting... So the queue know about sleeping workers, but we have
+to prevent that all workers are sleeping at the same time.
+
+>
+>> > On a side note, your config is depressingly long and complex :<
+>> > Try to make your apps run well without needing unicorn-worker-killer,
+>> > at least...
+>> That's the ruby fate... Apps inevitably grow memory over time.
+>
+> Only if you let bugs stay around.
+>
+> If you find bugs in Ruby or the libs you use, please report and help get
+> them fixed.  Ruby 2.1 had some corner cases, true, but we need to help
+> fight against bloated apps.
+That's the ruby design, as the heap only grows, so with a request that
+loads a lot of data the heap will grow big and never shrink.
+http://izumi.plan99.net/blog/index.php/2007/10/12/how-the-ruby-heap-is-impl=
+emented/
+
+Ruby 2.1 changes that? We will soon migrate to ruby 2.1, but we are
+not ready for it yet.
+
+>
+> ...and bloated email signatures :P
+:P
+
+
+--=20
+"Lute pela sua ideologia. Seja um com sua ideologia. Viva pela sua
+ideologia. Morra por sua ideologia" P.R. Sarkar
+
+EITA - Educa=C3=A7=C3=A3o, Informa=C3=A7=C3=A3o e Tecnologias para Autogest=
+=C3=A3o
+http://cirandas.net/brauliobo
+http://eita.org.br
+
+"Paramapurusha =C3=A9 meu pai e Parama Prakriti =C3=A9 minha m=C3=A3e. O un=
+iverso =C3=A9
+meu lar e todos n=C3=B3s somos cidad=C3=A3os deste cosmo. Este universo =C3=
+=A9 a
+imagina=C3=A7=C3=A3o da Mente Macroc=C3=B3smica, e todas as entidades est=
+=C3=A3o sendo
+criadas, preservadas e destru=C3=ADdas nas fases de extrovers=C3=A3o e
+introvers=C3=A3o do fluxo imaginativo c=C3=B3smico. No =C3=A2mbito pessoal,=
+ quando
+uma pessoa imagina algo em sua mente, naquele momento, essa pessoa =C3=A9 a
+=C3=BAnica propriet=C3=A1ria daquilo que ela imagina, e ningu=C3=A9m mais. =
+Quando um
+ser humano criado mentalmente caminha por um milharal tamb=C3=A9m
+imaginado, a pessoa imaginada n=C3=A3o =C3=A9 a propriedade desse milharal,=
+ pois
+ele pertence ao indiv=C3=ADduo que o est=C3=A1 imaginando. Este universo fo=
+i
+criado na imagina=C3=A7=C3=A3o de Brahma, a Entidade Suprema, por isso a
+propriedade deste universo =C3=A9 de Brahma, e n=C3=A3o dos microcosmos que
+tamb=C3=A9m foram criados pela imagina=C3=A7=C3=A3o de Brahma. Nenhuma prop=
+riedade
+deste mundo, mut=C3=A1vel ou imut=C3=A1vel, pertence a um indiv=C3=ADduo em
+particular; tudo =C3=A9 o patrim=C3=B4nio comum de todos."
+Restante do texto em
+http://cirandas.net/brauliobo/blog/a-problematica-de-hoje-em-dia
