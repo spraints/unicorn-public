@@ -1,0 +1,118 @@
+Return-Path: <brauliobo@gmail.com>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS15169 209.85.128.0/17
+X-Spam-Status: No, score=0.4 required=3.0 tests=AWL,FREEMAIL_FROM,
+ RCVD_IN_DNSWL_BLOCKED,T_DKIM_INVALID shortcircuit=no autolearn=unavailable
+ version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Delivered-To: pi@dcvr.yhbt.net
+Received: from mail-qa0-f54.google.com (mail-qa0-f54.google.com
+ [209.85.216.54]) (using TLSv1 with cipher ECDHE-RSA-RC4-SHA (128/128 bits))
+ (No client certificate requested) by dcvr.yhbt.net (Postfix) with ESMTPS id
+ 0143420209 for <unicorn-public@bogomips.org>; Thu,  1 May 2014 15:24:17 +0000
+ (UTC)
+Received: by mail-qa0-f54.google.com with SMTP id s7so3043527qap.41 for
+ <unicorn-public@bogomips.org>; Thu, 01 May 2014 08:24:17 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com;
+ s=20120113; h=mime-version:sender:in-reply-to:references:from:date:message-id
+ :subject:to:cc:content-type:content-transfer-encoding;
+ bh=mKX3fTa/4m51/zpmFzJsv2YMCh3U6ThNKSAr/qyztP4=;
+ b=NnJiKDNbf7En48NCfKEkDbFEFUg5jXv9tTQDqFUGit/f/3lkId/CE0ppmCgIUuAZmC
+ UnhaLg4tEwz7jHFIagsasxhjDx98AkdnATFXFlRO1dSB9MOeuoYIt37aUaaC8wwMwE3E
+ kxTn/38ikRl32siDcJ/sDi7yNx9G4eD5kBeO/GMqzFn0npYwLWa+J9+6cZ9RnIUquysN
+ G9ajmjafMJRRUGQ9bX+ap3CQv80NjF0QfI9jRuP0bsoqWvDKUh+1xzc3Am4xzq5mbl2B
+ vyu76vFkmxAaWGce/f6HZshp0Df8ocz55xAjJOATiJfYclMCcI84bJBq4gfbRx2Xms8Y 0jng==
+X-Received: by 10.224.69.130 with SMTP id z2mr14512137qai.87.1398957857161;
+ Thu, 01 May 2014 08:24:17 -0700 (PDT)
+MIME-Version: 1.0
+Sender: brauliobo@gmail.com
+Received: by 10.140.89.49 with HTTP; Thu, 1 May 2014 08:23:37 -0700 (PDT)
+In-Reply-To: <20140501013307.GA30576@dcvr.yhbt.net>
+References:
+ <CAJri6_urkXQy2z1jwxyyZPtdVz1s5iJ1YupL+uLms3q1dguC=g@mail.gmail.com>
+ <20140501013307.GA30576@dcvr.yhbt.net>
+From: =?UTF-8?Q?Br=C3=A1ulio_Bhavamitra?= <braulio@eita.org.br>
+Date: Thu, 1 May 2014 12:23:37 -0300
+X-Google-Sender-Auth: h0xj6SacC8S4626UsqJAD2t8zbI
+Message-ID:
+ <CAJri6_v25+Q+mECa0jEnZ8hhBtOnz+KkM-cLRs_bg-JcR3_f_Q@mail.gmail.com>
+Subject: Re: Does unicorn waits after_work to consider a worker ready?
+To: Eric Wong <normalperson@yhbt.net>
+Cc: Unicorn <mongrel-unicorn@rubyforge.org>, unicorn-public@bogomips.org
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
+List-Id: <unicorn-public@bogomips.org>
+List-Post: <unicorn-public@bogomips.org>
+
+Hello Eric,
+
+On Wed, Apr 30, 2014 at 10:33 PM, Eric Wong <normalperson@yhbt.net> wrote:
+> Br=C3=A1ulio Bhavamitra <braulio@eita.org.br> wrote:
+>> Hello all,
+>>
+>> I had to use `sleep` (see https://gist.github.com/brauliobo/11298486)
+>> to make rolling restart on my unicorn configuration.
+>
+> Btw, rack 1.6 (when released) should have a native warmup method thanks
+> to Aman.  It's currently in rack.git.
+Nice!
+>
+>> But I'm worried if unicorn consider the worker ready for request even
+>> before after_fork finishes. Could you say if that is true?
+>
+> You do not need to sleep before warmup.
+Warm up requests are expensive. This sleep based on worker.nr makes
+warm up happen on worker by worker, not all at once.
+
+>
+> The master never pushes requests to a worker.  The key to unicorn is the
+> workers pull requests directly from the kernel queue.  The master is
+> never involved with distributing requests to the worker.
+Nice! So the kernel "sees" that worker is sleeping and should not pass
+a request to it, I guess.
+>
+>
+> On a side note, your config is depressingly long and complex :<
+> Try to make your apps run well without needing unicorn-worker-killer,
+> at least...
+That's the ruby fate... Apps inevitably grow memory over time.
+
+regards,
+br=C3=A1ulio
+
+
+--=20
+"Lute pela sua ideologia. Seja um com sua ideologia. Viva pela sua
+ideologia. Morra por sua ideologia" P.R. Sarkar
+
+EITA - Educa=C3=A7=C3=A3o, Informa=C3=A7=C3=A3o e Tecnologias para Autogest=
+=C3=A3o
+http://cirandas.net/brauliobo
+http://eita.org.br
+
+"Paramapurusha =C3=A9 meu pai e Parama Prakriti =C3=A9 minha m=C3=A3e. O un=
+iverso =C3=A9
+meu lar e todos n=C3=B3s somos cidad=C3=A3os deste cosmo. Este universo =C3=
+=A9 a
+imagina=C3=A7=C3=A3o da Mente Macroc=C3=B3smica, e todas as entidades est=
+=C3=A3o sendo
+criadas, preservadas e destru=C3=ADdas nas fases de extrovers=C3=A3o e
+introvers=C3=A3o do fluxo imaginativo c=C3=B3smico. No =C3=A2mbito pessoal,=
+ quando
+uma pessoa imagina algo em sua mente, naquele momento, essa pessoa =C3=A9 a
+=C3=BAnica propriet=C3=A1ria daquilo que ela imagina, e ningu=C3=A9m mais. =
+Quando um
+ser humano criado mentalmente caminha por um milharal tamb=C3=A9m
+imaginado, a pessoa imaginada n=C3=A3o =C3=A9 a propriedade desse milharal,=
+ pois
+ele pertence ao indiv=C3=ADduo que o est=C3=A1 imaginando. Este universo fo=
+i
+criado na imagina=C3=A7=C3=A3o de Brahma, a Entidade Suprema, por isso a
+propriedade deste universo =C3=A9 de Brahma, e n=C3=A3o dos microcosmos que
+tamb=C3=A9m foram criados pela imagina=C3=A7=C3=A3o de Brahma. Nenhuma prop=
+riedade
+deste mundo, mut=C3=A1vel ou imut=C3=A1vel, pertence a um indiv=C3=ADduo em
+particular; tudo =C3=A9 o patrim=C3=B4nio comum de todos."
+Restante do texto em
+http://cirandas.net/brauliobo/blog/a-problematica-de-hoje-em-dia
