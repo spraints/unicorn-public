@@ -1,0 +1,65 @@
+Return-Path: <normalperson@yhbt.net>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-1.7 required=3.0 tests=ALL_TRUSTED,RP_MATCHES_RCVD
+ shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Delivered-To: pi@dcvr.yhbt.net
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 3380C1F6D2; Thu,  1 May 2014 18:18:14 +0000 (UTC)
+Date: Thu, 1 May 2014 18:18:14 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: =?utf-8?Q?Br=C3=A1ulio?= Bhavamitra <braulio@eita.org.br>
+Cc: Unicorn <mongrel-unicorn@rubyforge.org>, unicorn-public@bogomips.org
+Subject: Re: Does unicorn waits after_work to consider a worker ready?
+Message-ID: <20140501181814.GA14118@dcvr.yhbt.net>
+References:
+ <CAJri6_urkXQy2z1jwxyyZPtdVz1s5iJ1YupL+uLms3q1dguC=g@mail.gmail.com>
+ <20140501013307.GA30576@dcvr.yhbt.net>
+ <CAJri6_v25+Q+mECa0jEnZ8hhBtOnz+KkM-cLRs_bg-JcR3_f_Q@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+Content-Transfer-Encoding: 8bit
+In-Reply-To:
+ <CAJri6_v25+Q+mECa0jEnZ8hhBtOnz+KkM-cLRs_bg-JcR3_f_Q@mail.gmail.com>
+List-Id: <unicorn-public@bogomips.org>
+List-Post: <unicorn-public@bogomips.org>
+
+Bráulio Bhavamitra <braulio@eita.org.br> wrote:
+> On Wed, Apr 30, 2014 at 10:33 PM, Eric Wong <normalperson@yhbt.net> wrote:
+> > You do not need to sleep before warmup.
+> Warm up requests are expensive. This sleep based on worker.nr makes
+> warm up happen on worker by worker, not all at once.
+
+The worker might just be processing the expensive request in a
+user-visible state, correct?
+
+Modern Linux (and I expect most OSes people use nowadays) are great at
+dividing CPU-intensive work fairly.  Of course, if there's disk
+intensive load, that's a different case.
+
+> > The master never pushes requests to a worker.  The key to unicorn is the
+> > workers pull requests directly from the kernel queue.  The master is
+> > never involved with distributing requests to the worker.
+> Nice! So the kernel "sees" that worker is sleeping and should not pass
+> a request to it, I guess.
+
+Almost, but the kernel socket queueing doesn't really see.  It's more
+like the kernel just puts food on the table continuously without caring
+if workers are eating.  Sometimes the table overflows and food gets
+thrown in the trash when the workers are all sleeping or full.
+
+> > On a side note, your config is depressingly long and complex :<
+> > Try to make your apps run well without needing unicorn-worker-killer,
+> > at least...
+> That's the ruby fate... Apps inevitably grow memory over time.
+
+Only if you let bugs stay around.
+
+If you find bugs in Ruby or the libs you use, please report and help get
+them fixed.  Ruby 2.1 had some corner cases, true, but we need to help
+fight against bloated apps.
+
+...and bloated email signatures :P
