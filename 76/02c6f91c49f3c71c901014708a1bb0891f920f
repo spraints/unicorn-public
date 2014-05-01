@@ -1,0 +1,49 @@
+Return-Path: <normalperson@yhbt.net>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-1.7 required=3.0 tests=ALL_TRUSTED,RP_MATCHES_RCVD
+ shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Delivered-To: pi@dcvr.yhbt.net
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 8D11744C009; Thu,  1 May 2014 01:33:07 +0000 (UTC)
+Date: Thu, 1 May 2014 01:33:07 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: =?utf-8?Q?Br=C3=A1ulio?= Bhavamitra <braulio@eita.org.br>
+Cc: mongrel-unicorn@rubyforge.org, unicorn-public@bogomips.org
+Subject: Re: Does unicorn waits after_work to consider a worker ready?
+Message-ID: <20140501013307.GA30576@dcvr.yhbt.net>
+References:
+ <CAJri6_urkXQy2z1jwxyyZPtdVz1s5iJ1YupL+uLms3q1dguC=g@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+Content-Transfer-Encoding: 8bit
+In-Reply-To:
+ <CAJri6_urkXQy2z1jwxyyZPtdVz1s5iJ1YupL+uLms3q1dguC=g@mail.gmail.com>
+List-Id: <unicorn-public@bogomips.org>
+List-Post: <unicorn-public@bogomips.org>
+
+Bráulio Bhavamitra <braulio@eita.org.br> wrote:
+> Hello all,
+> 
+> I had to use `sleep` (see https://gist.github.com/brauliobo/11298486)
+> to make rolling restart on my unicorn configuration.
+
+Btw, rack 1.6 (when released) should have a native warmup method thanks
+to Aman.  It's currently in rack.git.
+
+> But I'm worried if unicorn consider the worker ready for request even
+> before after_fork finishes. Could you say if that is true?
+
+You do not need to sleep before warmup.
+
+The master never pushes requests to a worker.  The key to unicorn is the
+workers pull requests directly from the kernel queue.  The master is
+never involved with distributing requests to the worker.
+
+
+On a side note, your config is depressingly long and complex :<
+Try to make your apps run well without needing unicorn-worker-killer,
+at least...
