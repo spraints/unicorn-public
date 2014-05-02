@@ -1,0 +1,55 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-1.0 required=3.0 tests=ALL_TRUSTED,AWL
+ shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Delivered-To: pi@dcvr.yhbt.net
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id AC58B20728; Fri,  2 May 2014 23:15:58 +0000 (UTC)
+Date: Fri, 2 May 2014 23:15:58 +0000
+From: Eric Wong <e@80x24.org>
+To: mongrel-unicorn@rubyforge.org, unicorn-public@bogomips.org
+Subject: [RFC/PATCH] http_server: handle premature grandparent death
+Message-ID: <20140502231558.GA4215@dcvr.yhbt.net>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+List-Id: <unicorn-public@bogomips.org>
+List-Post: <unicorn-public@bogomips.org>
+
+When daemonizing, it is possible for the grandparent to be
+terminated by another process before the master can notify
+it.  Do not abort the master in this case.
+
+This may fix the following issue:
+
+	https://github.com/kostya/eye/issues/49
+
+(which I was notified of privately via email)
+---
+ Will push and tag 4.8.3 this weekend (along with mailing list change).
+
+ lib/unicorn/http_server.rb | 6 +++++-
+ 1 file changed, 5 insertions(+), 1 deletion(-)
+
+diff --git a/lib/unicorn/http_server.rb b/lib/unicorn/http_server.rb
+index 21cb9a1..a0ca302 100644
+--- a/lib/unicorn/http_server.rb
++++ b/lib/unicorn/http_server.rb
+@@ -272,7 +272,11 @@ def join
+     proc_name 'master'
+     logger.info "master process ready" # test_exec.rb relies on this message
+     if @ready_pipe
+-      @ready_pipe.syswrite($$.to_s)
++      begin
++        @ready_pipe.syswrite($$.to_s)
++      rescue => e
++        logger.warn("grandparent died too soon?: #{e.message} (#{e.class})")
++      end
+       @ready_pipe = @ready_pipe.close rescue nil
+     end
+     begin
+-- 
+Eric Wong
