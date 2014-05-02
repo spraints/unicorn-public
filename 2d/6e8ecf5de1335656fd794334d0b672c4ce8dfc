@@ -1,0 +1,53 @@
+Return-Path: <normalperson@yhbt.net>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-1.7 required=3.0 tests=ALL_TRUSTED,RP_MATCHES_RCVD
+ shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Delivered-To: pi@dcvr.yhbt.net
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 128C020728; Fri,  2 May 2014 23:43:54 +0000 (UTC)
+Date: Fri, 2 May 2014 23:43:53 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: =?utf-8?Q?Br=C3=A1ulio?= Bhavamitra <braulio@eita.org.br>
+Cc: Unicorn <mongrel-unicorn@rubyforge.org>, unicorn-public
+ <unicorn-public@bogomips.org>
+Subject: Re: Does unicorn waits after_work to consider a worker ready?
+Message-ID: <20140502234353.GA5280@dcvr.yhbt.net>
+References:
+ <CAJri6_urkXQy2z1jwxyyZPtdVz1s5iJ1YupL+uLms3q1dguC=g@mail.gmail.com>
+ <20140501013307.GA30576@dcvr.yhbt.net>
+ <CAJri6_v25+Q+mECa0jEnZ8hhBtOnz+KkM-cLRs_bg-JcR3_f_Q@mail.gmail.com>
+ <20140501181814.GA14118@dcvr.yhbt.net>
+ <CAJri6_vCZ1t5XSq=mvSDnciWoQTHMeFpiyKF3Q-1z7zQzkJEWg@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+Content-Transfer-Encoding: 8bit
+In-Reply-To:
+ <CAJri6_vCZ1t5XSq=mvSDnciWoQTHMeFpiyKF3Q-1z7zQzkJEWg@mail.gmail.com>
+List-Id: <unicorn-public@bogomips.org>
+List-Post: <unicorn-public@bogomips.org>
+
+Bráulio Bhavamitra <braulio@eita.org.br> wrote:
+> That's the ruby design, as the heap only grows, so with a request that
+> loads a lot of data the heap will grow big and never shrink.
+> http://izumi.plan99.net/blog/index.php/2007/10/12/how-the-ruby-heap-is-implemented/
+
+That's ancient, I was waiting for Hongli to reply...
+
+> Ruby 2.1 changes that? We will soon migrate to ruby 2.1, but we are
+> not ready for it yet.
+
+Yes, Ruby freed object slots since the 1.9 days, I think.
+
+Anyways, I've maintained a bunch of Ruby apps and I've gotten _all_ of
+them have stable memory usage.  Often I needed to fix bugs in Ruby
+itself or other gems/libraries to get there, though!
+
+One basic rule (which I learned as a Perl hacker): do not slurp.  Limit
+the size of data you work with and break things into smaller chunks if
+necessary (e.g. data from client uploads or database/API responses).
+Things like running a "SELECT" without "LIMIT" in SQL should raise red
+flags immediately.
