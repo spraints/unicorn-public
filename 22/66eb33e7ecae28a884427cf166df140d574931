@@ -1,0 +1,123 @@
+Return-Path: <brauliobo@gmail.com>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS15169 209.85.128.0/17
+X-Spam-Status: No, score=0.4 required=3.0 tests=AWL,FREEMAIL_FROM,
+ RCVD_IN_DNSWL_BLOCKED,T_DKIM_INVALID shortcircuit=no autolearn=unavailable
+ version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Delivered-To: pi@dcvr.yhbt.net
+Received: from mail-qc0-f173.google.com (mail-qc0-f173.google.com
+ [209.85.216.173]) (using TLSv1 with cipher ECDHE-RSA-RC4-SHA (128/128 bits))
+ (No client certificate requested) by dcvr.yhbt.net (Postfix) with ESMTPS id
+ 41FFC1F6B1 for <unicorn-public@bogomips.org>; Sun,  4 May 2014 12:58:26 +0000
+ (UTC)
+Received: by mail-qc0-f173.google.com with SMTP id i8so673356qcq.32 for
+ <unicorn-public@bogomips.org>; Sun, 04 May 2014 05:58:25 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com;
+ s=20120113; h=mime-version:sender:in-reply-to:references:from:date:message-id
+ :subject:to:cc:content-type:content-transfer-encoding;
+ bh=APO1SxY0HCq4VlFfTnyB0HG8ABN+Yyl1LZNUx2Rg1WE=;
+ b=BPr/KCJam2H7vIRlV3qLeQJCZ9XVZvebefa6G8wR4w1A5ZokpW4VH5yzeagKFS+boS
+ H30/gUxY/5AXbhUq34Y80Dql4Ls3hB9GQlq+GhXUFHDSaTXpcorulk6qPpC3liLC2ZCc
+ ls1pl2Z+tewsZmbByJwZVV0J5I09LJ/YddRaN7HDK1saYWoXPbv4woAakyv+S8BzlpOE
+ 31Yled5ZeW8HVFyuOakOaoxeuMAFfJ12q0Z6+mbA1GcyDBZEd0Nanhjz3cw0N3LU9/zo
+ U/WOlz1TyzLMMxrBULQFdnCSUTm1X1tEqBByAxoHIYGeOtHBl4hlPUjcAp9N50L6nT+6 XDDA==
+X-Received: by 10.224.97.69 with SMTP id k5mr37383238qan.8.1399208305177;
+ Sun, 04 May 2014 05:58:25 -0700 (PDT)
+MIME-Version: 1.0
+Sender: brauliobo@gmail.com
+Received: by 10.140.104.71 with HTTP; Sun, 4 May 2014 05:57:44 -0700 (PDT)
+In-Reply-To: <20140502234353.GA5280@dcvr.yhbt.net>
+References:
+ <CAJri6_urkXQy2z1jwxyyZPtdVz1s5iJ1YupL+uLms3q1dguC=g@mail.gmail.com>
+ <20140501013307.GA30576@dcvr.yhbt.net>
+ <CAJri6_v25+Q+mECa0jEnZ8hhBtOnz+KkM-cLRs_bg-JcR3_f_Q@mail.gmail.com>
+ <20140501181814.GA14118@dcvr.yhbt.net>
+ <CAJri6_vCZ1t5XSq=mvSDnciWoQTHMeFpiyKF3Q-1z7zQzkJEWg@mail.gmail.com>
+ <20140502234353.GA5280@dcvr.yhbt.net>
+From: =?UTF-8?Q?Br=C3=A1ulio_Bhavamitra?= <braulio@eita.org.br>
+Date: Sun, 4 May 2014 09:57:44 -0300
+X-Google-Sender-Auth: Bm5aS47n-s4hYrFXbUp9cArBPjQ
+Message-ID:
+ <CAJri6_sQRrnESq_kKbpayh1SfuCrAvWp08+PSoMFQzwnrxVzeA@mail.gmail.com>
+Subject: Re: Does unicorn waits after_work to consider a worker ready?
+To: Eric Wong <normalperson@yhbt.net>
+Cc: Unicorn <mongrel-unicorn@rubyforge.org>,  unicorn-public
+ <unicorn-public@bogomips.org>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
+List-Id: <unicorn-public@bogomips.org>
+List-Post: <unicorn-public@bogomips.org>
+
+Thanks very much Eric.
+
+Just looked at the Unicorn's source code and the answer to the
+subject's question is yes.
+
+Also, I have made the configuration a little shorter, and made worker
+killer optional: https://gist.github.com/brauliobo/11298486
+
+regards,
+br=C3=A1ulio
+
+On Fri, May 2, 2014 at 8:43 PM, Eric Wong <normalperson@yhbt.net> wrote:
+> Br=C3=A1ulio Bhavamitra <braulio@eita.org.br> wrote:
+>> That's the ruby design, as the heap only grows, so with a request that
+>> loads a lot of data the heap will grow big and never shrink.
+>> http://izumi.plan99.net/blog/index.php/2007/10/12/how-the-ruby-heap-is-i=
+mplemented/
+>
+> That's ancient, I was waiting for Hongli to reply...
+>
+>> Ruby 2.1 changes that? We will soon migrate to ruby 2.1, but we are
+>> not ready for it yet.
+>
+> Yes, Ruby freed object slots since the 1.9 days, I think.
+>
+> Anyways, I've maintained a bunch of Ruby apps and I've gotten _all_ of
+> them have stable memory usage.  Often I needed to fix bugs in Ruby
+> itself or other gems/libraries to get there, though!
+>
+> One basic rule (which I learned as a Perl hacker): do not slurp.  Limit
+> the size of data you work with and break things into smaller chunks if
+> necessary (e.g. data from client uploads or database/API responses).
+> Things like running a "SELECT" without "LIMIT" in SQL should raise red
+> flags immediately.
+
+
+
+--=20
+"Lute pela sua ideologia. Seja um com sua ideologia. Viva pela sua
+ideologia. Morra por sua ideologia" P.R. Sarkar
+
+EITA - Educa=C3=A7=C3=A3o, Informa=C3=A7=C3=A3o e Tecnologias para Autogest=
+=C3=A3o
+http://cirandas.net/brauliobo
+http://eita.org.br
+
+"Paramapurusha =C3=A9 meu pai e Parama Prakriti =C3=A9 minha m=C3=A3e. O un=
+iverso =C3=A9
+meu lar e todos n=C3=B3s somos cidad=C3=A3os deste cosmo. Este universo =C3=
+=A9 a
+imagina=C3=A7=C3=A3o da Mente Macroc=C3=B3smica, e todas as entidades est=
+=C3=A3o sendo
+criadas, preservadas e destru=C3=ADdas nas fases de extrovers=C3=A3o e
+introvers=C3=A3o do fluxo imaginativo c=C3=B3smico. No =C3=A2mbito pessoal,=
+ quando
+uma pessoa imagina algo em sua mente, naquele momento, essa pessoa =C3=A9 a
+=C3=BAnica propriet=C3=A1ria daquilo que ela imagina, e ningu=C3=A9m mais. =
+Quando um
+ser humano criado mentalmente caminha por um milharal tamb=C3=A9m
+imaginado, a pessoa imaginada n=C3=A3o =C3=A9 a propriedade desse milharal,=
+ pois
+ele pertence ao indiv=C3=ADduo que o est=C3=A1 imaginando. Este universo fo=
+i
+criado na imagina=C3=A7=C3=A3o de Brahma, a Entidade Suprema, por isso a
+propriedade deste universo =C3=A9 de Brahma, e n=C3=A3o dos microcosmos que
+tamb=C3=A9m foram criados pela imagina=C3=A7=C3=A3o de Brahma. Nenhuma prop=
+riedade
+deste mundo, mut=C3=A1vel ou imut=C3=A1vel, pertence a um indiv=C3=ADduo em
+particular; tudo =C3=A9 o patrim=C3=B4nio comum de todos."
+Restante do texto em
+http://cirandas.net/brauliobo/blog/a-problematica-de-hoje-em-dia
