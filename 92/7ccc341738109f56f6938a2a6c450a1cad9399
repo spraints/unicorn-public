@@ -1,0 +1,64 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-1.0 required=3.0 tests=ALL_TRUSTED,AWL
+ shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 2E98F20899; Wed,  7 May 2014 19:54:45 +0000 (UTC)
+Date: Wed, 7 May 2014 19:54:45 +0000
+From: Eric Wong <e@80x24.org>
+To: meta@public-inbox.org
+Cc: "Lin Jen-Shin (godfat)" <godfat@godfat.org>, Liste Unicorn
+ <mongrel-unicorn@rubyforge.org>, =?utf-8?B?SsOpcsOpbXk=?= Lecour
+ <jeremy.lecour@gmail.com>, Alejandro Riera <ariera@gmail.com>,
+ =?utf-8?Q?Br=C3=A1ulio?= Bhavamitra <braulio@eita.org.br>,
+ unicorn-public@bogomips.org
+Subject: handling SMTP subscribers to public-inboxen
+Message-ID: <20140507195444.GA12686@dcvr.yhbt.net>
+References: <20140507080527.GA31124@dcvr.yhbt.net>
+ <CANrRGgp3SgsacSmM2Ee3=U35ZOwgikQUN1n3H3zC=g2WBc7PeA@mail.gmail.com>
+ <20140507094632.GA26422@dcvr.yhbt.net>
+ <CAA2_N1v1DXq2LL1KkqEgk=FC2uW1+wh-mmxBwYt=NTqB+XZLhw@mail.gmail.com>
+ <CAHF=L-zmTsMWyu3EMHm+=DsdbUMMUztKJ6VfGYF5+owB85mg9Q@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To:
+ <CAHF=L-zmTsMWyu3EMHm+=DsdbUMMUztKJ6VfGYF5+owB85mg9Q@mail.gmail.com>
+List-Id: <unicorn-public@bogomips.org>
+List-Post: <unicorn-public@bogomips.org>
+
+Alejandro Riera <ariera@gmail.com> wrote:
+> "Lin Jen-Shin (godfat)" <godfat@godfat.org> wrote:
+> > I guess I am too lazy/busy to dig into this, so an SMTP would be great
+> > for me. I am also ok to be listed as a public subscriber.
+> 
+> Same here, SMTP sounds great :)
+
+Copying discussion to the meta@public-inbox.org list...
+
+Thanks all for your response.  I'll set up something on the ssoma side
+which replays messages to subscribers.  This will make it easy to
+fork/migrate subscription lists to different servers.
+
+I'll probably use VERP[1] to handle bounces.  However, most of the
+normal bounce processing mechanisms (including VERP) seems to leave
+users open to malicious unsubscribes.  In other words, an attacker
+may fake bounce messages to take users off a list (VERP or not).
+The reference documentation for VERP just makes faking bounces
+trivially easy.
+
+So I think we need to make the bounce address unguessable by the
+attacker.  Perhaps using something like Crypt-VERPString[2] is
+necessary?  Keep in mind somebody sniffing your plain-text SMTP traffic
+will (and will always) be able to extract the bounce address; so this
+only increases the difficulty level to do a malicious unsubscribe.
+
+The secret key should be able to change when migrating between servers
+(or if compromised) without being a big problem, as most bounces occur
+hours/days within delivery time; not months/years afterwards.
+
+[1] http://cr.yp.to/proto/verp.txt
+[2] http://search.cpan.org/dist/Crypt-VERPString
