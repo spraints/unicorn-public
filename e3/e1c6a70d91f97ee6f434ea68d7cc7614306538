@@ -1,0 +1,76 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-1.0 required=3.0 tests=ALL_TRUSTED,AWL
+ shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 2CCD620899; Wed,  7 May 2014 09:46:32 +0000 (UTC)
+Date: Wed, 7 May 2014 09:46:32 +0000
+From: Eric Wong <e@80x24.org>
+To: =?utf-8?B?SsOpcsOpbXk=?= Lecour <jeremy.lecour@gmail.com>
+Cc: Liste Unicorn <mongrel-unicorn@rubyforge.org>,
+ unicorn-public@bogomips.org
+Subject: Re: [ANN] unicorn 4.8.3 - the end of an era
+Message-ID: <20140507094632.GA26422@dcvr.yhbt.net>
+References: <20140507080527.GA31124@dcvr.yhbt.net>
+ <CANrRGgp3SgsacSmM2Ee3=U35ZOwgikQUN1n3H3zC=g2WBc7PeA@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+Content-Transfer-Encoding: 8bit
+In-Reply-To:
+ <CANrRGgp3SgsacSmM2Ee3=U35ZOwgikQUN1n3H3zC=g2WBc7PeA@mail.gmail.com>
+List-Id: <unicorn-public@bogomips.org>
+List-Post: <unicorn-public@bogomips.org>
+
+Jérémy Lecour <jeremy.lecour@gmail.com> wrote:
+> Hi Eric and all,
+> 
+> I'm sorry if I'm the dumbest guy in the room, but I absolutely don't
+> understand what I have to do to stay in the mailing list.
+
+Sorry about the confusion, I'll try to clarify...
+
+> Would you mind explaining what a regular subscriber has to do to keep
+> receiving those emails in their inbox?
+
+You use ssoma[1] to to import mail into your inbox.  This is like how
+slrnpull works with NNTP or getmail/fetchmail works with POP.  It's
+only a one-way sync, but you can import it into an IMAP folder.
+
+Currently there's no SMTP delivery component, but I could probably set
+one up this week if there's enough demand for one.  The subscriber list
+will be public, though.
+
+[1] http://ssoma.public-inbox.org/
+
+Taken from http://unicorn.bogomips.org/ISSUES
+based on what I wrote in:
+http://bogomips.org/unicorn-public/m/20140421183728.GA27047@dcvr.yhbt.net.html
+
+	URL=git://bogomips.org/unicorn-public
+	LISTNAME=unicorn
+
+	# to initialize a maildir (this may be a new or existing maildir,
+	# ssoma will not touch existing messages)
+	# If you prefer mbox, use mbox:/path/to/mbox as the last argument
+	# You may also use imap://$MAILSERVER/INBOX for an IMAP account
+	# or imaps:// for an IMAPS account, as well.
+	ssoma add $LISTNAME $URL maildir:/path/to/maildir
+
+	# read with your favorite MUA (only using mutt as an example)
+	mutt -f /path/to/maildir # (or /path/to/mbox)
+
+	# to keep your mbox or maildir up-to-date, periodically run the following:
+	ssoma sync $LISTNAME
+
+	# your MUA may modify and delete messages from the maildir or mbox,
+	# this does not affect ssoma functionality at all
+
+	# to sync all your ssoma subscriptions
+	ssoma sync
+
+	# You may wish to sync in your cronjob
+	ssoma sync --cron
