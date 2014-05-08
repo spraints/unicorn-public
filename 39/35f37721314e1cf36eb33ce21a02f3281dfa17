@@ -1,0 +1,56 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-1.0 required=3.0 tests=ALL_TRUSTED,AWL
+ shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id F110C20899; Thu,  8 May 2014 08:43:01 +0000 (UTC)
+Date: Thu, 8 May 2014 08:43:01 +0000
+From: Eric Wong <e@80x24.org>
+To: mongrel-unicorn@rubyforge.org
+Cc: unicorn-public@bogomips.org
+Subject: subscription to new ML probably working...
+Message-ID: <20140508084301.GA2033@dcvr.yhbt.net>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+List-Id: <unicorn-public@bogomips.org>
+
+I'll migrate everybody else over around 20140514T20:00Z, otherwise you
+might get duplicate messages from being subscribed to both lists.
+If you're willing to deal with dupes for a few days, you can try
+subscribe/unsubscribe/help commands:
+
+	unicorn-public+subscribe@bogomips.org
+	unicorn-public+unsubscribe@bogomips.org
+	unicorn-public+help@bogomips.org
+	(help will tell you the rest)
+
+Stop reading here unless you're interested in implementation details :>
+
+I only have mlmmj configured to handle the +commands, outgoing SMTP,
+and bounces.  It does not receive normal list traffic like a standard
+mlmmj install.  Instead, I have it configured to replay data from ssoma
+every minute, so I used (as the mlmmj user):
+
+    NAME=unicorn-public
+    URL=git://bogomips.org/unicorn-public.git
+    ssoma add $NAME $URL "command:ssoma-replay -L $HOME/spool/$NAME"
+
+Where ssoma-replay is a tiny shell script which reads from stdin:
+------------------------------8<--------------------------
+#!/bin/sh
+MSG=$(mktemp -t ssoma-replay.orig.$USER.XXXXXX || exit 1)
+cat > "$MSG"
+exec /usr/bin/mlmmj-send "$@" -m "$MSG"
+------------------------------8<--------------------------
+This means it should be easy to have outgoing SMTP on a different server
+and allow other folks to run the same service.
+
+Other notes: mlmmj has defaults I like out-of-the-box (unlike mailman,
+ugh).  However, archive retrieval with mlmmj is rather painful,
+but we have public-inbox and ssoma :)
+
+[1] http://mlmmj.org/
