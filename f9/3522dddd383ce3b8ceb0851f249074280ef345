@@ -1,0 +1,94 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-1.0 required=3.0 tests=ALL_TRUSTED,AWL
+ shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 1595F1FF84; Tue, 13 May 2014 01:13:54 +0000 (UTC)
+Date: Tue, 13 May 2014 01:13:53 +0000
+From: Eric Wong <e@80x24.org>
+To: Ken Dreyer <ktdreyer@ktdreyer.com>
+Cc: unicorn-public@bogomips.org, mongrel-unicorn@rubyforge.org
+Subject: Re: [PATCH] tests: switch to minitest
+Message-ID: <20140513011353.GA9713@dcvr.yhbt.net>
+References: <1398482426-3245-1-git-send-email-ktdreyer@ktdreyer.com>
+ <20140426060744.GA17493@dcvr.yhbt.net>
+ <CAD3FbMVKBc4xypOXZgZbrzXpoKt92JgAH3ZpRMDbz2jRTZ8Q9A@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To:
+ <CAD3FbMVKBc4xypOXZgZbrzXpoKt92JgAH3ZpRMDbz2jRTZ8Q9A@mail.gmail.com>
+List-Id: <unicorn-public@bogomips.org>
+
+Ken Dreyer <ktdreyer@ktdreyer.com> wrote:
+> I am seeing one failure with the final assert in
+> TestSocketHelper#test_bind_listen_unix_rebind, but I don't think
+> that's a result of this, right?
+
+That's a new failure for me.  Sorry about the lack of info in my
+original response :x
+
+I'm failing on minitest 5.3.3, 4.7.5 seems fine, in fact.
+
+Below the output of "make -j8 test-unit V=1" on my machine (Ruby 2.1),
+same failures on trunk, too (with minitest 5.3.3 installed)
+
+: 
+:   1) Failure:
+: TestSocketHelper#test_bind_listen_unix_rebind [test/unit/test_socket_helper.rb:123]:
+: Failed assertion, no message given.
+
+<snip>
+
+:   1) Failure:
+: TestStreamInput#test_big_body_multi [test/unit/test_stream_input.rb:89]:
+: Failed assertion, no message given.
+: 
+: 
+:   2) Failure:
+: TestStreamInput#test_gets_long [test/unit/test_stream_input.rb:110]:
+: Failed assertion, no message given.
+: 
+make: *** [test/unit/test_stream_input.rb] Error 1
+
+<snip>
+
+:   1) Failure:
+: TestTeeInput#test_gets_short [test/unit/test_tee_input.rb:69]:
+: Failed assertion, no message given.
+: 
+: 
+:   2) Failure:
+: TestTeeInput#test_big_body_multi [test/unit/test_tee_input.rb:150]:
+: Failed assertion, no message given.
+: 
+: 
+:   3) Failure:
+: TestTeeInput#test_chunked_ping_pong [test/unit/test_tee_input.rb:216]:
+: Failed assertion, no message given.
+: 
+: 
+:   4) Failure:
+: TestTeeInput#test_chunked [test/unit/test_tee_input.rb:185]:
+: Failed assertion, no message given.
+: 
+: 
+:   5) Failure:
+: TestTeeInput#test_chunked_with_trailer [test/unit/test_tee_input.rb:244]:
+: Failed assertion, no message given.
+: 
+: 
+:   6) Failure:
+: TestTeeInput#test_gets_long [test/unit/test_tee_input.rb:50]:
+: Failed assertion, no message given.
+: 
+: 
+:   7) Failure:
+: TestTeeInput#test_read_in_full_if_content_length [test/unit/test_tee_input.rb:123]:
+: Failed assertion, no message given.
+: 
+: 12 runs, 57449 assertions, 7 failures, 0 errors, 0 skips
+make: *** [test/unit/test_tee_input.rb] Error 1
