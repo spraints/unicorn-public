@@ -1,0 +1,57 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-1.0 required=3.0 tests=ALL_TRUSTED,AWL
+ shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id C6E7B1FB80; Sun, 25 May 2014 03:52:28 +0000 (UTC)
+Date: Sun, 25 May 2014 03:52:28 +0000
+From: Eric Wong <e@80x24.org>
+To: unicorn-public@bogomips.org
+Cc: yahns-public@yhbt.net
+Subject: unicorn 5 roadmap
+Message-ID: <20140525035228.GA28753@dcvr.yhbt.net>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+List-Id: <unicorn-public@bogomips.org>
+
+unicorn is over 5 years old, things are still kicking, but
+has not changed much since it was first announced in 2009:
+   http://mid.gmane.org/20090211230457.GB22926@dcvr.yhbt.net [1]
+
+So 5 will be the next major version, but there's nothing earth
+shattering and probably nothing visible to the majority of users.
+Almost all just internal housekeeping:
+
+* (finally) remove Unicorn::HttpParser#reset
+
+* switch to minitest5 (or test-unit2?)
+
+* drop some things that were intended for Rainbows!
+  - keepalive_requests, not necessary with the MT/one-shot-based event
+    loops like yahns, this is only intended as a DoS mitigation measure for
+    single-threaded event loops (nginx) or pure-MT-based servers
+  - xftrust (long deprecated)
+
+* cleanup tests, port shell script integration tests to shunit2?
+  (or making the tests pure Ruby is probably fine, I trust the stability
+  of the Ruby language more today than I did in 2009 with the painful
+  1.8->1.9 transition)
+
+* extract terminal-friendly coverage output from yahns into a gem
+  and use it for unicorn.
+
+Tangentially related things to do:
+
+* reduce memory usage in Ruby so users may run more unicorns
+
+* improve reverse proxy support in yahns so it may be an
+  alternative to nginx for unicorn users
+
+What else?
+
+[1] Supporting the project with only email is probably the only
+    reason I haven't given up after all these years.
