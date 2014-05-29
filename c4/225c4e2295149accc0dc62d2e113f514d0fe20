@@ -1,0 +1,89 @@
+Return-Path: <normalperson@yhbt.net>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-1.7 required=3.0 tests=ALL_TRUSTED,AWL,
+ RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 17C5C1F583; Thu, 29 May 2014 20:19:06 +0000 (UTC)
+Date: Thu, 29 May 2014 20:19:05 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: unicorn-public@bogomips.org
+Subject: [PUSHED] http: remove xftrust options
+Message-ID: <20140529201905.GA5244@dcvr.yhbt.net>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+List-Id: <unicorn-public@bogomips.org>
+
+Just pushed out the dev5 branch to git://bogomips.org/unicorn
+
+* GIT-VERSION-GEN: start 5.0.0 development
+* http: remove xftrust options
+
+"http: remove xftrust options" deserves some looking at
+http://bogomips.org/unicorn.git/patch?id=5bd61b57d63ae86
+
+Particularly the comment added:
+--------------------------------------------
+Subject: [PATCH] http: remove xftrust options
+
+This has long been considered a mistake and not documented for very
+long.
+
+I considered removing X-Forwarded-Proto and X-Forwarded-SSL
+handling, too, so rack.url_scheme is always "http", but that might
+lead to compatibility issues in rare apps if Rack::Request#scheme is
+not used.
+---
+diff --git a/ext/unicorn_http/unicorn_http.rl b/ext/unicorn_http/unicorn_http.rl
+--- a/ext/unicorn_http/unicorn_http.rl
++++ b/ext/unicorn_http/unicorn_http.rl
+@@ -491,26 +460,29 @@ static void set_url_scheme(VALUE env, VALUE *server_port)
+   VALUE scheme = rb_hash_aref(env, g_rack_url_scheme);
+ 
+   if (NIL_P(scheme)) {
+-    if (trust_x_forward == Qfalse) {
+-      scheme = g_http;
++    /*
++     * would anybody be horribly opposed to removing the X-Forwarded-SSL
++     * and X-Forwarded-Proto handling from this parser?  We've had it
++     * forever and nobody has said anything against it, either.
++     * Anyways, please send comments to our public mailing list:
++     * unicorn-public@bogomips.org (no HTML mail, no subscription necessary)
++     */
++    scheme = rb_hash_aref(env, g_http_x_forwarded_ssl);
++    if (!NIL_P(scheme) && STR_CSTR_EQ(scheme, "on")) {
++      *server_port = g_port_443;
++      scheme = g_https;
+     } else {
+-      scheme = rb_hash_aref(env, g_http_x_forwarded_ssl);
+-      if (!NIL_P(scheme) && STR_CSTR_EQ(scheme, "on")) {
+-        *server_port = g_port_443;
+-        scheme = g_https;
++      scheme = rb_hash_aref(env, g_http_x_forwarded_proto);
++      if (NIL_P(scheme)) {
++        scheme = g_http;
+       } else {
+-        scheme = rb_hash_aref(env, g_http_x_forwarded_proto);
+-        if (NIL_P(scheme)) {
+-          scheme = g_http;
++        long len = RSTRING_LEN(scheme);
++        if (len >= 5 && !memcmp(RSTRING_PTR(scheme), "https", 5)) {
++          if (len != 5)
++            scheme = g_https;
++          *server_port = g_port_443;
+         } else {
+-          long len = RSTRING_LEN(scheme);
+-          if (len >= 5 && !memcmp(RSTRING_PTR(scheme), "https", 5)) {
+-            if (len != 5)
+-              scheme = g_https;
+-            *server_port = g_port_443;
+-          } else {
+-            scheme = g_http;
+-          }
++          scheme = g_http;
+         }
+       }
+     }
