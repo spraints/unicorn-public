@@ -1,0 +1,86 @@
+Return-Path: <sam.saffron@gmail.com>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS15169 209.85.128.0/17
+X-Spam-Status: No, score=0.6 required=3.0 tests=AWL,FREEMAIL_FROM
+ shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from mail-qa0-f53.google.com (mail-qa0-f53.google.com
+ [209.85.216.53]) (using TLSv1 with cipher ECDHE-RSA-RC4-SHA (128/128 bits))
+ (No client certificate requested) by dcvr.yhbt.net (Postfix) with ESMTPS id
+ 8750F44C1A6 for <unicorn-public@bogomips.org>; Fri,  6 Jun 2014 02:51:42
+ +0000 (UTC)
+Received: by mail-qa0-f53.google.com with SMTP id k15so2500550qaq.12 for
+ <unicorn-public@bogomips.org>; Thu, 05 Jun 2014 19:51:41 -0700 (PDT)
+MIME-Version: 1.0
+X-Received: by 10.140.100.198 with SMTP id s64mr2991942qge.106.1402023101581;
+ Thu, 05 Jun 2014 19:51:41 -0700 (PDT)
+Received: by 10.229.98.129 with HTTP; Thu, 5 Jun 2014 19:51:41 -0700 (PDT)
+In-Reply-To: <20140606012737.GA29097@dcvr.yhbt.net>
+References:
+ <CAJri6_vn8SSbXABnasPWLrsCX1MhGne2zct45dh42KBE07_4NA@mail.gmail.com>
+ <20140606012737.GA29097@dcvr.yhbt.net>
+Date: Fri, 6 Jun 2014 12:51:41 +1000
+Message-ID:
+ <CAAtdryP0uxHJwUDNo-qNDLGcSpxpqTfga2bzb+d88tN_yj4DKA@mail.gmail.com>
+Subject: Re: Dealing with big uploads and/or slow clients
+From: Sam Saffron <sam.saffron@gmail.com>
+To: Eric Wong <e@80x24.org>
+Cc: =?UTF-8?Q?Br=C3=A1ulio_Bhavamitra?= <braulio@eita.org.br>, 
+ unicorn-public <unicorn-public@bogomips.org>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
+List-Id: <unicorn-public@bogomips.org>
+
+Wouldn't you just use Rack Hijack for this, you can easily pull the
+socket out of the pipeline and then deal with the upload via
+eventmachine or what not.
+
+On Fri, Jun 6, 2014 at 11:27 AM, Eric Wong <e@80x24.org> wrote:
+> Br=C3=A1ulio Bhavamitra <braulio@eita.org.br> wrote:
+>> Hello all,
+>
+> Hello, please stop sending HTML email, my spam filters are configured to
+> give HTML mail high spam scores and forces moderation, so you may not
+> get a response for a long time.  Non-English signature also tends to get
+> flagged as spam.  This is an English list.  (Fwiw, we get 10-20 spams
+> each day to this list which are filtered)
+>
+>> How do you deal with big uploads and/or slow clients with unicorn? The o=
+nly
+>> solution I've found was to increase timeout, because nginx can't help to=
+o,
+>> or can?
+>
+> nginx handles slow clients extremely well.
+>
+> How big are you talking about and how much RAM do you have for your OS
+> page cache?  Big uploads are OK if you have enough memory for caching in
+> Linux (or fast SSDs).  The Linux page cache is very effective if you can
+> process the data fairly quickly.
+>
+> If your clients are very slow and uploads cannot fit in the Linux
+> page cache, lower your vm.dirty_* knobs (see kernel docs) to force
+> earlier write-out so you don't get a thundering herd of disk activity
+> when you run out of RAM.
+>
+> I don't know about caching in other OSes.
+>
+> My earliest deployments of unicorn (on a LAN) handled several terabytes
+> of uploads every day, so working with big uploads has always been
+> a priority.
+>
+> The reason unicorn+nginx works well (or at all) is the attention paid to
+> data costs:
+>
+> * Ruby processes are expensive, tens to hundreds of megabytes each
+> * client connections are cheap, several kilobytes at most
+>   (including kernel data structures)
+> * networks are slow, so most clients trickle
+>
+> Thus we spend more time buffering in places where things are cheap, and
+> spend as little time holding on to big Ruby processes as possible.
+>
+> .. And thus intense dislike of bloated HTML, top-posting and giant
+> signatures is directly tied to my software design philosophy.
+>
