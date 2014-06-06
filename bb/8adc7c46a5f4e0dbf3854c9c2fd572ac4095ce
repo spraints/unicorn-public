@@ -1,0 +1,69 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-1.0 required=3.0 tests=ALL_TRUSTED,AWL
+ shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 9FE991FA27; Fri,  6 Jun 2014 01:27:37 +0000 (UTC)
+Date: Fri, 6 Jun 2014 01:27:37 +0000
+From: Eric Wong <e@80x24.org>
+To: =?utf-8?Q?Br=C3=A1ulio?= Bhavamitra <braulio@eita.org.br>
+Cc: unicorn-public <unicorn-public@bogomips.org>
+Subject: Re: Dealing with big uploads and/or slow clients
+Message-ID: <20140606012737.GA29097@dcvr.yhbt.net>
+References:
+ <CAJri6_vn8SSbXABnasPWLrsCX1MhGne2zct45dh42KBE07_4NA@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+Content-Transfer-Encoding: 8bit
+In-Reply-To:
+ <CAJri6_vn8SSbXABnasPWLrsCX1MhGne2zct45dh42KBE07_4NA@mail.gmail.com>
+List-Id: <unicorn-public@bogomips.org>
+
+Bráulio Bhavamitra <braulio@eita.org.br> wrote:
+> Hello all,
+
+Hello, please stop sending HTML email, my spam filters are configured to
+give HTML mail high spam scores and forces moderation, so you may not
+get a response for a long time.  Non-English signature also tends to get
+flagged as spam.  This is an English list.  (Fwiw, we get 10-20 spams
+each day to this list which are filtered)
+
+> How do you deal with big uploads and/or slow clients with unicorn? The only
+> solution I've found was to increase timeout, because nginx can't help too,
+> or can?
+
+nginx handles slow clients extremely well.
+
+How big are you talking about and how much RAM do you have for your OS
+page cache?  Big uploads are OK if you have enough memory for caching in
+Linux (or fast SSDs).  The Linux page cache is very effective if you can
+process the data fairly quickly.
+
+If your clients are very slow and uploads cannot fit in the Linux
+page cache, lower your vm.dirty_* knobs (see kernel docs) to force
+earlier write-out so you don't get a thundering herd of disk activity
+when you run out of RAM.
+
+I don't know about caching in other OSes.
+
+My earliest deployments of unicorn (on a LAN) handled several terabytes
+of uploads every day, so working with big uploads has always been
+a priority.
+
+The reason unicorn+nginx works well (or at all) is the attention paid to
+data costs:
+
+* Ruby processes are expensive, tens to hundreds of megabytes each
+* client connections are cheap, several kilobytes at most
+  (including kernel data structures)
+* networks are slow, so most clients trickle
+
+Thus we spend more time buffering in places where things are cheap, and
+spend as little time holding on to big Ruby processes as possible.
+
+.. And thus intense dislike of bloated HTML, top-posting and giant
+signatures is directly tied to my software design philosophy.
