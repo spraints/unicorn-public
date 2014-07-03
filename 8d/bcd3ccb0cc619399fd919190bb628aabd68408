@@ -1,0 +1,51 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-1.9 required=3.0 tests=ALL_TRUSTED,AWL,BAYES_00,
+ URIBL_BLOCKED shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id EB29C1FEC7; Thu,  3 Jul 2014 17:24:10 +0000 (UTC)
+Date: Thu, 3 Jul 2014 17:24:10 +0000
+From: Eric Wong <e@80x24.org>
+To: Cedric Maion <cedric@maion.com>
+Cc: unicorn-public@bogomips.org
+Subject: Re: Log reopening broken on Rails 4 with config.autoflush_log =
+ false?
+Message-ID: <20140703172410.GA17685@dcvr.yhbt.net>
+References: <20140703144048.GA6674@cedric-maion.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20140703144048.GA6674@cedric-maion.com>
+List-Id: <unicorn-public@bogomips.org>
+
+Cedric Maion <cedric@maion.com> wrote:
+> On a Rails 4.0 app with 'config.autoflush_log = false', it seems to me
+> that telling unicorn to reopen log files fails (e.g., after a log
+> rotation and USR1 signal, Rails/unicorn still writes to the old rotated
+> file instead of reopening a new one).
+> 
+> Without this config option, logs does properly get reopened.
+> 
+> Is this something known?
+
+Yes, log buffering via File#sync=true is incompatible with reopening in
+multiprocess servers.  File#sync=true does not guarantee writes are
+atomic on line boundaries, so it's dangerous to assume they're logs.
+
+Even without reopening, enabling this option on a multiprocess server
+might corrupt logs (depending on the buffering implementation)
+because the synchronization is within each process rather for the
+entire OS.
+
+Looking at the rails source:
+==> railties/lib/rails/application/bootstrap.rb <==
+          f = File.open path, 'a'
+          f.binmode
+          f.sync = config.autoflush_log # if true make sure every write flushes
+
+You're not likely to notice any performance difference unless you're
+logging excessively.  Keep in mind the Linux kernel also does buffering
+and you can tune that via the sys.vm.dirty_* sysctls.
