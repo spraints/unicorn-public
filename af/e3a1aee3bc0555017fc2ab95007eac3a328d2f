@@ -1,0 +1,113 @@
+Return-Path: <cedric@maion.com>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS16276 178.32.0.0/15
+X-Spam-Status: No, score=-1.0 required=3.0 tests=AWL,BAYES_00 shortcircuit=no
+ autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from mo5.mail-out.ovh.net (18.mo5.mail-out.ovh.net [178.33.45.10])
+ by dcvr.yhbt.net (Postfix) with ESMTP id DE2841FEC7 for
+ <unicorn-public@bogomips.org>; Thu,  3 Jul 2014 14:41:00 +0000 (UTC)
+Received: from mail406.ha.ovh.net (b9.ovh.net [213.186.33.59]) by
+ mo5.mail-out.ovh.net (Postfix) with SMTP id DE79FFF9FDA for
+ <unicorn-public@bogomips.org>; Thu,  3 Jul 2014 16:40:59 +0200 (CEST)
+Received: from b0.ovh.net (HELO queueout) (213.186.33.50) by b0.ovh.net with
+ SMTP; 3 Jul 2014 16:41:35 +0200
+Received: from bri69-1-82-231-123-109.fbx.proxad.net (HELO cedric-maion.com)
+ (cedric@maion.com@82.231.123.109) by ns0.ovh.net with SMTP; 3 Jul 2014
+ 16:41:28 +0200
+Date: Thu, 3 Jul 2014 16:40:48 +0200
+From: Cedric Maion <cedric@maion.com>
+To: unicorn-public@bogomips.org
+Subject: Log reopening broken on Rails 4 with config.autoflush_log = false?
+Message-ID: <20140703144048.GA6674@cedric-maion.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+X-Ovh-Tracer-Id: 7752946760053164993
+X-Ovh-Remote: 82.231.123.109 (bri69-1-82-231-123-109.fbx.proxad.net)
+X-Ovh-Local: 213.186.33.20 (ns0.ovh.net)
+X-OVH-SPAMSTATE: OK
+X-OVH-SPAMSCORE: 0
+X-OVH-SPAMCAUSE:
+ gggruggvucftvghtrhhoucdtuddrfeejfedrudegucetufdoteggodetrfcurfhrohhfihhlvgemucfqggfjnecuuegrihhlohhuthemuceftddtnecu
+X-VR-SPAMSTATE: OK
+X-VR-SPAMSCORE: 0
+X-VR-SPAMCAUSE:
+ gggruggvucftvghtrhhoucdtuddrfeejfedrudegucetufdoteggodetrfcurfhrohhfihhlvgemucfqggfjnecuuegrihhlohhuthemuceftddtnecu
+List-Id: <unicorn-public@bogomips.org>
+
+Hi there,
+
+On a Rails 4.0 app with 'config.autoflush_log = false', it seems to me
+that telling unicorn to reopen log files fails (e.g., after a log
+rotation and USR1 signal, Rails/unicorn still writes to the old rotated
+file instead of reopening a new one).
+
+Without this config option, logs does properly get reopened.
+
+
+Is this something known?
+
+
+Example:
+
+=> First, with config.autoflush_log set to false:
+
+$ grep autoflush config/environments/production.rb
+  config.autoflush_log = false
+$ script/unicorn upgrade
+....
+$ ps -ef | grep unicorn
+10001    27332     1 79 16:28 ?        00:00:45 unicorn master -D -c /path/to/app/current/config/unicorn.rb -E production
+10001    27813 27332  9 16:29 ?        00:00:00 unicorn worker[0] -D -c /path/to/app/current/config/unicorn.rb -E production
+[...]
+$ lsof -p 27332 | grep log
+ruby    27332 app-user    1w   REG      251,0        0 7106215 /path/to/app/shared/log/unicorn.stdout.log
+ruby    27332 app-user    2w   REG      251,0     2784 7105641 /path/to/app/shared/log/unicorn.stderr.log
+ruby    27332 app-user    7w   REG      251,0    76835 7110394 /path/to/app/shared/log/production.log
+$ mv /path/to/app/shared/log/production.log /path/to/app/shared/log/production.log.old
+$ lsof -p 27332 | grep log
+ruby    27332 app-user    1w   REG      251,0        0 7106215 /path/to/app/shared/log/unicorn.stdout.log
+ruby    27332 app-user    2w   REG      251,0     2784 7105641 /path/to/app/shared/log/unicorn.stderr.log
+ruby    27332 app-user    7w   REG      251,0    76835 7110394 /path/to/app/shared/log/production.log.old
+$ kill -USR1 27332
+$ lsof -p 27332 | grep log
+ruby    27332 app-user    1w   REG      251,0        0 7106215 /path/to/app/shared/log/unicorn.stdout.log
+ruby    27332 app-user    2w   REG      251,0     3092 7105641 /path/to/app/shared/log/unicorn.stderr.log
+ruby    27332 app-user    7w   REG      251,0    76835 7110394 /path/to/app/shared/log/production.log.old
+
+=> still writing on the old production.log.old file
+
+
+=> Now, without config.autoflush_log:
+
+$ grep autoflush config/environments/production.rb
+  #config.autoflush_log = false
+$ script/unicorn upgrade
+....
+$ ps -ef | grep unicorn
+10001    28621     1 85 16:31 ?        00:00:45 unicorn master -D -c /path/to/app/current/config/unicorn.rb -E production
+10001    29100 28621 18 16:31 ?        00:00:00 unicorn worker[0] -D -c /path/to/app/current/config/unicorn.rb -E production
+[...]
+$ lsof -p 28621 | grep log
+ruby    28621 app-user    1w   REG      251,0        0 7106215 /path/to/app/shared/log/unicorn.stdout.log
+ruby    28621 app-user    2w   REG      251,0     3867 7105641 /path/to/app/shared/log/unicorn.stderr.log
+ruby    28621 app-user    7w   REG      251,0     1914 7105763 /path/to/app/shared/log/production.log
+$ mv /path/to/app/shared/log/production.log /path/to/app/shared/log/production.log.old
+$ lsof -p 28621 | grep log
+ruby    28621 app-user    1w   REG      251,0        0 7106215 /path/to/app/shared/log/unicorn.stdout.log
+ruby    28621 app-user    2w   REG      251,0     4175 7105641 /path/to/app/shared/log/unicorn.stderr.log
+ruby    28621 app-user    7w   REG      251,0     1746 7110394 /path/to/app/shared/log/production.log.old
+$ kill -USR1 28621
+$ lsof -p 28621 | grep log
+ruby    28621 app-user    1w   REG      251,0        0 7106215 /path/to/app/shared/log/unicorn.stdout.log
+ruby    28621 app-user    2w   REG      251,0     4483 7105641 /path/to/app/shared/log/unicorn.stderr.log
+ruby    28621 app-user    7w   REG      251,0        0 7105763 /path/to/app/shared/log/production.log
+
+=> now writing on newly reopened log
+
+
+Thanks,
+
+    Cedric
