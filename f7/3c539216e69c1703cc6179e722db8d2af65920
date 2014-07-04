@@ -1,0 +1,98 @@
+Return-Path: <cedric@maion.com>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS16276 178.32.0.0/15
+X-Spam-Status: No, score=-1.1 required=3.0 tests=AWL,BAYES_00,URIBL_BLOCKED
+ shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from mo5.mail-out.ovh.net (18.mo5.mail-out.ovh.net [178.33.45.10])
+ by dcvr.yhbt.net (Postfix) with ESMTP id 7D79E1FEC7 for
+ <unicorn-public@bogomips.org>; Fri,  4 Jul 2014 09:13:36 +0000 (UTC)
+Received: from mail406.ha.ovh.net (b9.ovh.net [213.186.33.59]) by
+ mo5.mail-out.ovh.net (Postfix) with SMTP id 0AE8CFFA8D2 for
+ <unicorn-public@bogomips.org>; Fri,  4 Jul 2014 11:13:27 +0200 (CEST)
+Received: from b0.ovh.net (HELO queueout) (213.186.33.50) by b0.ovh.net with
+ SMTP; 4 Jul 2014 11:14:05 +0200
+Received: from bri69-1-82-231-123-109.fbx.proxad.net (HELO cedric-maion.com)
+ (cedric@maion.com@82.231.123.109) by ns0.ovh.net with SMTP; 4 Jul 2014
+ 11:13:59 +0200
+Date: Fri, 4 Jul 2014 11:13:17 +0200
+From: Cedric Maion <cedric@maion.com>
+To: Eric Wong <e@80x24.org>
+Cc: unicorn-public@bogomips.org
+Subject: Re: Log reopening broken on Rails 4 with config.autoflush_log =
+ false?
+Message-ID: <20140704091317.GA19662@cedric-maion.com>
+References: <20140703144048.GA6674@cedric-maion.com>
+ <20140703172410.GA17685@dcvr.yhbt.net>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20140703172410.GA17685@dcvr.yhbt.net>
+X-Ovh-Tracer-Id: 8094938856427752226
+X-Ovh-Remote: 82.231.123.109 (bri69-1-82-231-123-109.fbx.proxad.net)
+X-Ovh-Local: 213.186.33.20 (ns0.ovh.net)
+X-OVH-SPAMSTATE: OK
+X-OVH-SPAMSCORE: 0
+X-OVH-SPAMCAUSE:
+ gggruggvucftvghtrhhoucdtuddrfeejfedrudehucetufdoteggodetrfcurfhrohhfihhlvgemucfqggfjnecuuegrihhlohhuthemuceftddtnecu
+X-VR-SPAMSTATE: OK
+X-VR-SPAMSCORE: 0
+X-VR-SPAMCAUSE:
+ gggruggvucftvghtrhhoucdtuddrfeejfedrudehucetufdoteggodetrfcurfhrohhfihhlvgemucfqggfjnecuuegrihhlohhuthemuceftddtnecu
+List-Id: <unicorn-public@bogomips.org>
+
+Hi Eric,
+
+Thanks for your answer (and update to the FAQ ;) ).
+
+I'm playing with autoflush_log = true and see if I find a performance
+impact (I'm logging approx 20KB per sec).
+
+sys.vm.dirty* sysctls are already changed, but with low ratios as those
+systems are also writing large files (and I don't want those pages in
+memory for too long).
+
+If a performance impact can be measured, I believe that I will turn
+autoflush_log to false again and modify Unicorn::Util#is_log? to accept
+!fp.sync ;) (I'm willing to accept occasional log lines corruption esp
+during rotation)... or just restart unicorn after rotation instead.
+
+Or, thinking out loud... keep autoflush_log to false and have unicorn
+flush logs itself regularly, outside the HTTP request path (and when
+reopening logs), to avoid blocking on IO during a log flush in the
+middle of a request? (I need to refresh myself on the sizes of the ruby
+& system IO buffers though, not sure if it's worth the pain).
+
+    Cedric
+
+On Thu, Jul 03, 2014 at 05:24:10PM +0000, Eric Wong wrote:
+>
+> Cedric Maion <cedric@maion.com> wrote:
+> > On a Rails 4.0 app with 'config.autoflush_log = false', it seems to me
+> > that telling unicorn to reopen log files fails (e.g., after a log
+> > rotation and USR1 signal, Rails/unicorn still writes to the old rotated
+> > file instead of reopening a new one).
+> >
+> > Without this config option, logs does properly get reopened.
+> >
+> > Is this something known?
+>
+> Yes, log buffering via File#sync=true is incompatible with reopening in
+> multiprocess servers.  File#sync=true does not guarantee writes are
+> atomic on line boundaries, so it's dangerous to assume they're logs.
+>
+> Even without reopening, enabling this option on a multiprocess server
+> might corrupt logs (depending on the buffering implementation)
+> because the synchronization is within each process rather for the
+> entire OS.
+>
+> Looking at the rails source:
+> ==> railties/lib/rails/application/bootstrap.rb <==
+>           f = File.open path, 'a'
+>           f.binmode
+>           f.sync = config.autoflush_log # if true make sure every write flushes
+>
+> You're not likely to notice any performance difference unless you're
+> logging excessively.  Keep in mind the Linux kernel also does buffering
+> and you can tune that via the sys.vm.dirty_* sysctls.
