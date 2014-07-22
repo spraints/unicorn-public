@@ -1,0 +1,93 @@
+Return-Path: <maillist@steelskies.com>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS30496 65.99.224.0/20
+X-Spam-Status: No, score=-0.8 required=3.0 tests=AWL,BAYES_00,URIBL_BLOCKED
+ shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from jackson.asmallorange.com (jackson.asmallorange.com
+ [65.99.237.165]) (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384
+ (256/256 bits)) (No client certificate requested) by dcvr.yhbt.net (Postfix)
+ with ESMTPS id B2DAD1F420 for <unicorn-public@bogomips.org>; Tue, 22 Jul 2014
+ 16:53:54 +0000 (UTC)
+Received: from mail-vc0-f182.google.com ([209.85.220.182]:52346) by
+ jackson.asmallorange.com with esmtpsa (TLSv1:RC4-SHA:128) (Exim 4.82)
+ (envelope-from <maillist@steelskies.com>) id 1X9dK5-0006S1-Oq for
+ unicorn-public@bogomips.org; Tue, 22 Jul 2014 12:53:53 -0400
+Received: by mail-vc0-f182.google.com with SMTP id hy4so15687020vcb.13 for
+ <unicorn-public@bogomips.org>; Tue, 22 Jul 2014 09:53:53 -0700 (PDT)
+X-Received: by 10.221.55.70 with SMTP id vx6mr41800553vcb.23.1406048033172;
+ Tue, 22 Jul 2014 09:53:53 -0700 (PDT)
+MIME-Version: 1.0
+Received: by 10.58.155.201 with HTTP; Tue, 22 Jul 2014 09:53:33 -0700 (PDT)
+In-Reply-To: <20140722163900.GA1032@dcvr.yhbt.net>
+References: <891E6723-963F-4794-A93A-0473B2B2976C@irisconnect.co.uk>
+ <20140722163900.GA1032@dcvr.yhbt.net>
+From: Jonathan del Strother <maillist@steelskies.com>
+Date: Tue, 22 Jul 2014 17:53:33 +0100
+Message-ID:
+ <CAF5DW8JMeW5=R5=C0+Q25=sDOz49JwFSK74Pt6Oek5-8Xx=A-w@mail.gmail.com>
+Subject: Re: `hash' called on unexpected T_NODE object
+To: Eric Wong <e@80x24.org>
+Cc: Philip Cunningham <philip@irisconnect.co.uk>, unicorn-public@bogomips.org
+Content-Type: text/plain; charset=UTF-8
+X-AntiAbuse: This header was added to track abuse, please include it with any
+ abuse report
+X-AntiAbuse: Primary Hostname - jackson.asmallorange.com
+X-AntiAbuse: Original Domain - bogomips.org
+X-AntiAbuse: Originator/Caller UID/GID - [47 12] / [47 12]
+X-AntiAbuse: Sender Address Domain - steelskies.com
+X-Get-Message-Sender-Via: jackson.asmallorange.com: authenticated_id:
+ maillist@steelskies.com
+X-Source: 
+X-Source-Args: 
+X-Source-Dir: 
+List-Id: <unicorn-public@bogomips.org>
+
+I also run into similar problems maybe every week or so.  For
+comparison, here's my collection of C extensions :
+
+bcrypt-ruby-3.0.1
+fast_xs-0.8.0
+ffi-1.9.3
+hiredis-0.4.5
+kgio-2.8.0
+mysql2-0.3.13
+nokogiri-1.5.11
+oily_png-1.1.1
+posix-spawn-0.3.6
+raindrops-0.12.0
+rmagick-2.13.2
+taglib-ruby-0.6.0
+thread_safe-0.3.4
+unicorn-4.6.2
+websocket-driver-0.3.2
+
+
+On 22 July 2014 17:39, Eric Wong <e@80x24.org> wrote:
+> Philip Cunningham <philip@irisconnect.co.uk> wrote:
+>> We recently experienced an issue with our staging server on Heroku.
+>> It's the first time we've seen this error and the staging server
+>> hasn't been updated in a week or so. It's not clear to me how I should
+>> investigate this further so I would appreciate any assistance you
+>> might offer. Some details are below:
+>
+>> ``` ruby version
+>> ruby 2.0.0p481 (2014-05-08 revision 45883) [x86_64-linux]
+>> ```
+>>
+>> ``` log
+>> 2014-07-22T14:47:34.306596+00:00 app[web.2]: /app/vendor/bundle/ruby/2.0.0/gems/unicorn-4.8.2/lib/unicorn/http_request.rb:80:in `parse': method `hash' called on unexpected T_NODE object (0x007fa3c36823d8 flags=0x33b21c) (NotImplementedError)
+>
+> This is either a version mismatch from objects of different Ruby versions
+> or memory corruption caused by a C extension.  Since your install
+> hasn't been touched in a week, I suspect a buggy C extension.
+>
+> Can you share a list of C extensions, in particular less popular/used
+> ones so others may have a look and see if there's any known issues?
+>
+> Just in case, can you ensure you're not carrying around any .so files
+> between different Ruby versions/installations?
+>
+> Thanks.
+>
