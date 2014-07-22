@@ -1,0 +1,134 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-2.0 required=3.0 tests=ALL_TRUSTED,AWL,BAYES_00,
+ URIBL_BLOCKED shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 2C2B31F420; Tue, 22 Jul 2014 20:56:31 +0000 (UTC)
+Date: Tue, 22 Jul 2014 20:56:31 +0000
+From: Eric Wong <e@80x24.org>
+To: Paul Henry <paul@wanelo.com>
+Cc: unicorn-public@bogomips.org
+Subject: Re: High number of TCP retransmits on Solaris
+Message-ID: <20140722205631.GA9106@dcvr.yhbt.net>
+References:
+ <CALKdqYVOyA1fFAVgEb6Z56Y3guSV7U-P_LS0YTmD3Q1BujmKCw@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To:
+ <CALKdqYVOyA1fFAVgEb6Z56Y3guSV7U-P_LS0YTmD3Q1BujmKCw@mail.gmail.com>
+List-Id: <unicorn-public@bogomips.org>
+
+Paul Henry <paul@wanelo.com> wrote:
+> Hello!
+> 
+> When using unicorn unicorn v4.8.2, we're seeing a high number of TCP
+> retransmits at a high connection rate.
+> 
+> Smartos version: 20131218T184706Z
+> 
+> Rackup file used:
+> 
+> > cat server.ru
+> run -> (env) { [200, {"Content-Type" => "text/plain"},
+> [Time.now.iso8601(6)]] }
+> 
+> To start unicorn:
+> > bundle exec unicorn -l 9292 server.ru
+> 
+> To benchmark unicorn:
+> >> Benchmark.measure { 1000.times { time=Benchmark.measure { open("http://<ip>:9292/api/v1/settings/time",
+> "Host" => "api.wanelo.com")}.real; p (time*1000).round(2) if time > 0.05 } }
+
+Thanks for including a small example to reproduce the problem on your
+end.  Is that open call is from "open-uri" in the stdlib?
+(does it attempt persistent connections?)
+
+> After the total number of connections on the system goes above 8,000
+> (16,000 is the average number of connections), we start seeing delays of
+> around 1.1 seconds.
+
+I was not able to reproduce the issue with two Linux machines over
+my (pretty bad) 100Mbps LAN.
+
+I used the script at the bottom to create a lot of client connections
+from my client machine to the machine running unicorn (but this is not
+connecting to unicorn, but a scalable server (e.g. nginx) with infinite
+persistence).
+
+> We don't see the issue over the local loopback interface, only over the
+> net. When using Webrick, we also don't see this issue.
+
+What's strange is the issue does not manifest under Webrick for you.
+Which version of Ruby is that Webrick from?
+
+strace-ing "rackup -s webrick server.ru" reveals several differences:
+
+1) webrick uses a listen backlog of only 128 (unicorn uses 1024)
+2) webrick does not disable Nagle's algorithm.
+3) webrick does not set SO_KEEPALIVE (not really needed for unicorn)
+
+So perhaps you can try config like the following to more closely match
+what webrick does:
+
+	listen 9292, backlog: 128, tcp_nodelay: false
+
+On the other hand, maybe webrick is too slow.
+
+> Our tcp initial retransmit interval is 1 second. When the interval is
+> reduced, the occasional latency goes down. We also see the retransmits in
+> netstat, about 1 - 2 every second.
+> 
+> Anything that we should look at next?
+
+Try the above config to minimize the differences between webrick
+and unicorn.
+
+If that fails, perhaps disabling SO_KEEPALIVE will work, but I'm
+a bit lost as I'm not familiar with SmartOS quirks.
+(you'll need to comment it out in lib/unicorn/socket_helper.rb)
+
+Maybe try a little mock server like this, too (should be fastest :)
+---------------------------- hello_world.rb ----------------
+require 'socket'
+s = TCPServer.new(host, port)
+# start changing knobs here:
+# s.setsockopt(:SOL_SOCKET, :SO_KEEPALIVE, 1)
+# s.setsockopt(:IPPROTOL_TCP, :TCP_NODELAY, 1)
+res = "HTTP/1.0 200 OK\r\nContent-Length: 12\r\n\r\nhello world\n"
+junk = ""
+loop do
+  c = s.accept
+  c.readpartial(1024, junk)
+  c.write(res)
+  c.close
+end
+----------------------------- many.rb --------------------------
+# opens a lot of idle connections, be careful :)
+require 'socket'
+pids = []
+host = '10.45.14.175'
+port = 7500 # not unicorn
+at_exit { pids.each { |pid| Process.kill(:TERM, pid) } }
+
+24.times do
+  pid = fork do
+    keep = []
+    begin
+      s = TCPSocket.new(host, port)
+      # put something in the socket buffers
+      s.write("GET / HTTP/1.1\r\nHost: example.com\r\n\r\n")
+      keep << s
+    rescue => e
+      $stdout.syswrite("#$$ done (#{keep.size}): #{e.message}\n")
+      sleep
+    end while true
+  end
+  pids << pid
+end
+p Process.waitall
+-- 
+EW
