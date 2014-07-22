@@ -1,0 +1,74 @@
+Return-Path: <paul@wanelo.com>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS15169 209.85.128.0/17
+X-Spam-Status: No, score=-0.4 required=3.0 tests=AWL,BAYES_00,URIBL_BLOCKED
+ shortcircuit=no autolearn=ham version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from mail-qa0-f44.google.com (mail-qa0-f44.google.com
+ [209.85.216.44]) (using TLSv1 with cipher ECDHE-RSA-RC4-SHA (128/128 bits))
+ (No client certificate requested) by dcvr.yhbt.net (Postfix) with ESMTPS id
+ 255561F420 for <unicorn-public@bogomips.org>; Tue, 22 Jul 2014 18:51:59 +0000
+ (UTC)
+Received: by mail-qa0-f44.google.com with SMTP id f12so88570qad.17 for
+ <unicorn-public@bogomips.org>; Tue, 22 Jul 2014 11:51:58 -0700 (PDT)
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=1e100.net;
+ s=20130820; h=x-gm-message-state:mime-version:date:message-id:subject:from:to
+ :content-type; bh=q042dTOGcnQ3cksYOiya0X6gUyUi5+rSJyqpPunrX2o=;
+ b=ZQsNKpO5drMfka6jnt4VTj2gbYSxjjFXeuJasQYsah7KICNmvn1ewY5X9JMaWAUvk8
+ AbgmErqpk0eTGBaShqsYGUTEMWVNAINoUjBNW10Ct+CIYhPSABBJeIHb9z+Y9ZHoOEnK
+ iZk0uheNV5UtmdKOE16RUw4HthbxAAp+uO77G8FmYyAVmPKFJKglS5kCvRp+AUi38YG0
+ QA7yL+6Vh4jBPIrXLvN2gmZP1jDFltCX4KULwcZAPAi20I5Dec7noA9NF+GfJ0Z+M9go
+ boYW6Q1KalZywPc3z0cMr3+U7JsXTPQOVtycFNAEpWU79qiK4Lbrb3eADwDxyjMVdzED Q1AQ==
+X-Gm-Message-State:
+ ALoCoQns4acBhk62LRbVEEnsnKuLzJUaHAxFmECspv26GB4HEJVZKUUOidilFGzyxx1NQUmEmlWf
+MIME-Version: 1.0
+X-Received: by 10.224.131.8 with SMTP id v8mr22319152qas.31.1406055117589;
+ Tue, 22 Jul 2014 11:51:57 -0700 (PDT)
+Received: by 10.140.47.147 with HTTP; Tue, 22 Jul 2014 11:51:57 -0700 (PDT)
+Date: Tue, 22 Jul 2014 11:51:57 -0700
+Message-ID:
+ <CALKdqYUJfLnW3azzgS7HHh2M_4HmPCanYpYC05eg9tCwWJ5NCg@mail.gmail.com>
+Subject: High number of TCP retransmits on Solaris
+From: Paul Henry <paul@wanelo.com>
+To: unicorn-public@bogomips.org
+Content-Type: text/plain; charset=UTF-8
+X-Content-Filtered-By: PublicInbox::Filter 0.0.1
+List-Id: <unicorn-public@bogomips.org>
+
+Hello!
+
+When using unicorn unicorn v4.8.2 and we're seeing a high number of TCP
+retransmits at a high connection rate.
+
+Smartos version: 20131218T184706Z
+
+Rackup file used:
+
+> cat server.ru
+run -> (env) { [200, {"Content-Type" => "text/plain"},
+[Time.now.iso8601(6)]] }
+
+To start unicorn:
+> bundle exec unicorn -l 9292 server.ru
+
+To benchmark unicorn:
+>> Benchmark.measure { 1000.times { time=Benchmark.measure { open("http://<ip>:9292/api/v1/settings/time",
+"Host" => "api.wanelo.com")}.real; p (time*1000).round(2) if time > 0.05 } }
+
+After the total number of connections on the system goes above 8,000
+(16,000 is the average number of connections), we start seeing delays of
+around 1.1 seconds.
+
+We don't see the issue over the local loopback interface, only over the
+net. When using Webrick, we don't see this issue.
+
+Our tcp initial retransmit interval is 1 second. When the interval is
+reduced, the occasional latency goes down. We also see the retransmits in
+netstat, about 1 - 2 every second.
+
+Any ideas of where to look next?
+
+Thanks!
+Paul
+
