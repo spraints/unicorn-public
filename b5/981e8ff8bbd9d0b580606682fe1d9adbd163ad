@@ -1,0 +1,65 @@
+Return-Path: <mfischer@zendesk.com>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS15169 209.85.128.0/17
+X-Spam-Status: No, score=-0.2 required=3.0 tests=AWL,BAYES_00,URIBL_BLOCKED
+ shortcircuit=no autolearn=ham version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from mail-qa0-f52.google.com (mail-qa0-f52.google.com
+ [209.85.216.52]) (using TLSv1 with cipher ECDHE-RSA-RC4-SHA (128/128 bits))
+ (No client certificate requested) by dcvr.yhbt.net (Postfix) with ESMTPS id
+ 0AE4A1F420 for <unicorn-public@bogomips.org>; Tue, 22 Jul 2014 22:07:02 +0000
+ (UTC)
+Received: by mail-qa0-f52.google.com with SMTP id j15so354198qaq.11 for
+ <unicorn-public@bogomips.org>; Tue, 22 Jul 2014 15:07:02 -0700 (PDT)
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=1e100.net;
+ s=20130820; h=x-gm-message-state:mime-version:in-reply-to:references:date
+ :message-id:subject:from:to:cc:content-type;
+ bh=ioHemJ+I7H3Brc27Csrze3zJyAUamtjBKkNqUs3C/o8=;
+ b=BM69WEhBCIPmkJQU/zNNa4H3yW8/e+/lwMTi5bNlDCBznZUMSUqEs/2zSxhfUM4fbT
+ QI+w/FGGF0zeXOy2zOxNJhIiqAeACLzXNNWopq9RNaTOoFY/el65YfP4UIibWa/gO/QN
+ QCtQNvARmYRtDT75JLH1QI0Oa6+1G8wsmeKCzOByh4wHqEh5z38AC5ZO8XffO/Z1agqb
+ v6zjeRpLHQBtiHeU9lebPx4FkO7RtxFcgxxDFdoBE6F3BlfDm7XVbrDjfyBq4WLdF8ZH
+ E/nN7EErFKrAFhPbb86RDZ0hLGkOlbqQec5p+GZVrH1hl/cIwZrEv3XyPNpnaEPvSYaA ub4g==
+X-Gm-Message-State:
+ ALoCoQn3pQzQ2UYXQMGbcvPY9voELonzd7HL+ZlNQROwXCye4n2MNTepj32uBxMWuGn9c5rHIjbO
+MIME-Version: 1.0
+X-Received: by 10.140.81.51 with SMTP id e48mr53387679qgd.31.1406066822051;
+ Tue, 22 Jul 2014 15:07:02 -0700 (PDT)
+Received: by 10.140.102.200 with HTTP; Tue, 22 Jul 2014 15:07:01 -0700 (PDT)
+In-Reply-To:
+ <CALKdqYUjp-ATMPoaVFQ98Hz=AZmUZZfTY5cwMmeQvs+NkGxQog@mail.gmail.com>
+References:
+ <CALKdqYVOyA1fFAVgEb6Z56Y3guSV7U-P_LS0YTmD3Q1BujmKCw@mail.gmail.com>
+ <20140722205631.GA9106@dcvr.yhbt.net>
+ <CALKdqYUjp-ATMPoaVFQ98Hz=AZmUZZfTY5cwMmeQvs+NkGxQog@mail.gmail.com>
+Date: Tue, 22 Jul 2014 15:07:01 -0700
+Message-ID:
+ <CABHxtY6AV+rgVa+KAQPJVETxK7-Lqyq0ZdvoNaLsYk3P28cLrQ@mail.gmail.com>
+Subject: Re: High number of TCP retransmits on Solaris
+From: Michael Fischer <mfischer@zendesk.com>
+To: Paul Henry <paul@wanelo.com>
+Cc: Eric Wong <e@80x24.org>, unicorn-public <unicorn-public@bogomips.org>
+Content-Type: text/plain; charset=UTF-8
+X-Content-Filtered-By: PublicInbox::Filter 0.0.1
+List-Id: <unicorn-public@bogomips.org>
+
+On Tue, Jul 22, 2014 at 2:56 PM, Paul Henry <paul@wanelo.com> wrote:
+
+> Thanks so much! It turned out to be a separate issue entirely, one that
+> appears only in Solaris. When you have a high rate of connections, sockets
+> sit around in the TIME_WAIT state for a default of 60s. Basically, there's
+> a bug in Solaris that causes a new connection to be routed (based on what
+> chooses the ephemeral port) to an existing TIME_WAIT connection. When the
+> new client sends a SYN, the server responds with an ACK that has an
+> incorrect sequence number (intended for the old client). This causes the
+> client to retransmit the SYN and then the server responds correctly.
+
+
+Ah, you were simply running out of IP 4-tuples on the server.   This isn't
+usually a problem in practice because client IPs are usually much more
+diverse.  (IIRC the behavior on Linux and FreeBSD is to send an RST to the
+client when this happens instead of not responding to the SYN.)
+
+--Michael
+
