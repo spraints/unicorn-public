@@ -1,0 +1,47 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-2.0 required=3.0 tests=ALL_TRUSTED,AWL,BAYES_00,
+ URIBL_BLOCKED shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id CA57E1F420; Tue, 22 Jul 2014 16:39:00 +0000 (UTC)
+Date: Tue, 22 Jul 2014 16:39:00 +0000
+From: Eric Wong <e@80x24.org>
+To: Philip Cunningham <philip@irisconnect.co.uk>
+Cc: unicorn-public@bogomips.org
+Subject: Re: `hash' called on unexpected T_NODE object
+Message-ID: <20140722163900.GA1032@dcvr.yhbt.net>
+References: <891E6723-963F-4794-A93A-0473B2B2976C@irisconnect.co.uk>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <891E6723-963F-4794-A93A-0473B2B2976C@irisconnect.co.uk>
+List-Id: <unicorn-public@bogomips.org>
+
+Philip Cunningham <philip@irisconnect.co.uk> wrote:
+> We recently experienced an issue with our staging server on Heroku.
+> It's the first time we've seen this error and the staging server
+> hasn't been updated in a week or so. It's not clear to me how I should
+> investigate this further so I would appreciate any assistance you
+> might offer. Some details are below:
+
+> ``` ruby version
+> ruby 2.0.0p481 (2014-05-08 revision 45883) [x86_64-linux]
+> ```
+> 
+> ``` log
+> 2014-07-22T14:47:34.306596+00:00 app[web.2]: /app/vendor/bundle/ruby/2.0.0/gems/unicorn-4.8.2/lib/unicorn/http_request.rb:80:in `parse': method `hash' called on unexpected T_NODE object (0x007fa3c36823d8 flags=0x33b21c) (NotImplementedError)
+
+This is either a version mismatch from objects of different Ruby versions
+or memory corruption caused by a C extension.  Since your install
+hasn't been touched in a week, I suspect a buggy C extension.
+
+Can you share a list of C extensions, in particular less popular/used
+ones so others may have a look and see if there's any known issues?
+
+Just in case, can you ensure you're not carrying around any .so files
+between different Ruby versions/installations?
+
+Thanks.
