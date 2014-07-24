@@ -1,0 +1,109 @@
+Return-Path: <brauliobo@gmail.com>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: *
+X-Spam-ASN: AS15169 209.85.128.0/17
+X-Spam-Status: No, score=1.1 required=3.0 tests=AWL,BAYES_00,FREEMAIL_FROM,
+ UNWANTED_LANGUAGE_BODY,URIBL_BLOCKED shortcircuit=no autolearn=ham
+ version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from mail-oa0-f45.google.com (mail-oa0-f45.google.com
+ [209.85.219.45]) (using TLSv1 with cipher ECDHE-RSA-RC4-SHA (128/128 bits))
+ (No client certificate requested) by dcvr.yhbt.net (Postfix) with ESMTPS id
+ B82CB1FD73 for <unicorn-public@bogomips.org>; Thu, 24 Jul 2014 17:22:42 +0000
+ (UTC)
+Received: by mail-oa0-f45.google.com with SMTP id i7so4072855oag.18 for
+ <unicorn-public@bogomips.org>; Thu, 24 Jul 2014 10:22:41 -0700 (PDT)
+X-Received: by 10.182.52.197 with SMTP id v5mr14987886obo.85.1406222561309;
+ Thu, 24 Jul 2014 10:22:41 -0700 (PDT)
+MIME-Version: 1.0
+Sender: brauliobo@gmail.com
+Received: by 10.202.68.7 with HTTP; Thu, 24 Jul 2014 10:22:01 -0700 (PDT)
+In-Reply-To: <20140724170424.GA29938@dcvr.yhbt.net>
+References:
+ <CAJri6_utbVKHeeYQd7WZG9iiVNKxD4kJ_X6fno2oX4_HChiuKA@mail.gmail.com>
+ <20140724170424.GA29938@dcvr.yhbt.net>
+From: =?UTF-8?Q?Br=C3=A1ulio_Bhavamitra?= <braulio@eita.org.br>
+Date: Thu, 24 Jul 2014 14:22:01 -0300
+X-Google-Sender-Auth: FHvQmivbZLDkyVC9xLSysGDEUI4
+Message-ID:
+ <CAJri6_u-1vaVDsCoRamuGoAqwhZxiL8gzgNJMdv6RoHaQTbUng@mail.gmail.com>
+Subject: Re: Old unicorn workers still receives requests?
+To: Eric Wong <e@80x24.org>
+Cc: unicorn-public <unicorn-public@bogomips.org>
+Content-Type: text/plain; charset=UTF-8
+X-Content-Filtered-By: PublicInbox::Filter 0.0.1
+List-Id: <unicorn-public@bogomips.org>
+
+Thanks Eric! It is not clear to me if old workers have a lower priority to
+pull requets than new workers.
+
+cheers,
+br=C3=A1ulio
+
+
+On Thu, Jul 24, 2014 at 2:04 PM, Eric Wong <e@80x24.org> wrote:
+
+> Br=C3=A1ulio Bhavamitra <braulio@eita.org.br> wrote:
+> > Hello all,
+> >
+> > I would like to know if old unicorn still receives and process requests
+> in
+> > a QUIT signal is sent to the old master.
+>
+> During heavy traffic, yes, there's a chance due to the optimization
+> in worker_loop (lib/unicorn/http_server.rb):
+>
+>       # make the following bet: if we accepted clients this round,
+>       # we're probably reasonably busy, so avoid calling select()
+>       # and do a speculative non-blocking accept() on ready listeners
+>       # before we sleep again in select().
+>       unless nr =3D=3D 0
+>         tmp =3D ready.dup
+>         redo
+>       end
+>
+> Note, "receives" requests isn't correct, workers "pull" requests from
+> a central queue in the kernel.
+>
+
+
+
+--=20
+"Lute pela sua ideologia. Seja um com sua ideologia. Viva pela sua
+ideologia. Morra por sua ideologia" P.R. Sarkar
+
+EITA - Educa=C3=A7=C3=A3o, Informa=C3=A7=C3=A3o e Tecnologias para Autogest=
+=C3=A3o
+http://cirandas.net/brauliobo
+http://eita.org.br
+
+"Paramapurusha =C3=A9 meu pai e Parama Prakriti =C3=A9 minha m=C3=A3e. O un=
+iverso =C3=A9 meu
+lar e todos n=C3=B3s somos cidad=C3=A3os deste cosmo. Este universo =C3=A9 =
+a imagina=C3=A7=C3=A3o da
+Mente Macroc=C3=B3smica, e todas as entidades est=C3=A3o sendo criadas, pre=
+servadas e
+destru=C3=ADdas nas fases de extrovers=C3=A3o e introvers=C3=A3o do fluxo i=
+maginativo
+c=C3=B3smico. No =C3=A2mbito pessoal, quando uma pessoa imagina algo em sua=
+ mente,
+naquele momento, essa pessoa =C3=A9 a =C3=BAnica propriet=C3=A1ria daquilo =
+que ela
+imagina, e ningu=C3=A9m mais. Quando um ser humano criado mentalmente camin=
+ha
+por um milharal tamb=C3=A9m imaginado, a pessoa imaginada n=C3=A3o =C3=A9 a=
+ propriedade
+desse milharal, pois ele pertence ao indiv=C3=ADduo que o est=C3=A1 imagina=
+ndo. Este
+universo foi criado na imagina=C3=A7=C3=A3o de Brahma, a Entidade Suprema, =
+por isso
+a propriedade deste universo =C3=A9 de Brahma, e n=C3=A3o dos microcosmos q=
+ue tamb=C3=A9m
+foram criados pela imagina=C3=A7=C3=A3o de Brahma. Nenhuma propriedade dest=
+e mundo,
+mut=C3=A1vel ou imut=C3=A1vel, pertence a um indiv=C3=ADduo em particular; =
+tudo =C3=A9 o
+patrim=C3=B4nio comum de todos."
+Restante do texto em
+http://cirandas.net/brauliobo/blog/a-problematica-de-hoje-em-dia
+
