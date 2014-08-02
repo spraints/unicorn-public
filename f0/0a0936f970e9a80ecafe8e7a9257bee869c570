@@ -1,0 +1,141 @@
+Return-Path: <kapil.israni@gmail.com>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS15169 209.85.128.0/17
+X-Spam-Status: No, score=-0.1 required=3.0 tests=AWL,BAYES_00,FREEMAIL_FROM,
+ MISSING_HEADERS,RCVD_IN_DNSWL_LOW shortcircuit=no autolearn=no version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from mail-qg0-f52.google.com (mail-qg0-f52.google.com
+ [209.85.192.52]) (using TLSv1 with cipher ECDHE-RSA-RC4-SHA (128/128 bits))
+ (No client certificate requested) by dcvr.yhbt.net (Postfix) with ESMTPS id
+ 790401FECA for <unicorn-public@bogomips.org>; Sat,  2 Aug 2014 07:54:24 +0000
+ (UTC)
+Received: by mail-qg0-f52.google.com with SMTP id f51so6728610qge.25 for
+ <unicorn-public@bogomips.org>; Sat, 02 Aug 2014 00:54:23 -0700 (PDT)
+X-Received: by 10.140.102.117 with SMTP id
+ v108mr15841718qge.93.1406966063554; Sat, 02 Aug 2014 00:54:23 -0700 (PDT)
+MIME-Version: 1.0
+Received: by 10.140.25.147 with HTTP; Sat, 2 Aug 2014 00:54:03 -0700 (PDT)
+In-Reply-To: <19466F7B-03C2-49BF-97E8-058AD3BE83D6@gmail.com>
+References: <19466F7B-03C2-49BF-97E8-058AD3BE83D6@gmail.com>
+From: Kapil Israni <kapil.israni@gmail.com>
+Date: Sat, 2 Aug 2014 00:54:03 -0700
+Message-ID:
+ <CAOndUSrLD4Ei7u2n7+v+Kb26D1BrwyQ0jEj5zKD8xDouLO_sag@mail.gmail.com>
+Subject: Re: Please move to github
+Cc: unicorn-public@bogomips.org
+Content-Type: text/plain; charset=UTF-8
+X-Content-Filtered-By: PublicInbox::Filter 0.0.1
+List-Id: <unicorn-public@bogomips.org>
+
+How do I unsubscribe from this email list?
+
+
+On Sat, Aug 2, 2014 at 12:51 AM, Gary Grossman <gary.grossman@gmail.com>
+wrote:
+
+> Hi Eric,
+>
+> I work with Michael, and this discussion sure got off on the
+> wrong foot... we love unicorn and use it heavily, and just
+> want to contribute back to it.
+>
+> To detail the encoding problem we were trying to fix, unicorn
+> uses rb_str_new in several places to create Ruby strings.
+> For Ruby 1.9 and later, these strings are assigned ASCII-8BIT
+> encoding.
+>
+> While the Rack specification doesn't dictate what encoding
+> should be used for strings in the environment, many
+> developers would probably expect the default external encoding
+> setting in Encoding.default_external to be used.
+>
+> Many Rails applications use UTF8 heavily. The use of ASCII-8BIT
+> in the env can lead to Encoding::CompatibilityErrors being
+> raised when a UTF8 string and ASCII-8BIT string are concatenated,
+> which happens frequently when properties like request.url are
+> referenced in erb templates. To get around these problems,
+> an app would have to force encoding on the strings in the env
+> manually. It seems a shame to do this in slower Ruby code when
+> it could be done up front by unicorn.
+>
+> We'd like to propose that unicorn use rb_external_str_new to
+> make strings instead of rb_str_new.
+>
+> Perhaps you have your reasons for continuing to use rb_str_new
+> but we figured we'd run this by you.
+>
+> Here's a proposed patch.
+>
+> Gary
+>
+> From befb01530c8d930ba53cc58b979ddf42a4c12565 Mon Sep 17 00:00:00 2001
+> From: Gary Grossman <gary.grossman@gmail.com>
+> Date: Sat, 2 Aug 2014 00:19:30 -0700
+> Subject: [PATCH] If unicorn is used with Ruby 1.9 or later, use
+>  rb_external_str_new instead of rb_str_new to create strings. The resulting
+>  strings will use the default external encoding. Continue using rb_str_new
+> for
+>  older versions of Ruby.
+>
+> Using the default external encoding instead of ASCII-8BIT for
+> strings is more in line with developer expectations and will cause
+> less unexpected bugs such as Encoding::CompatibilityErrors which
+> result when, say, a UTF8 string and ASCII-8BIT string are
+> concatenated together.
+>
+> Added a unit test to ensure that strings returned in the Rack
+> environment conform to the default external encoding.
+> ---
+>  ext/unicorn_http/ext_help.h |  6 ++++++
+>  test/unit/test_request.rb   | 13 +++++++++++++
+>  2 files changed, 19 insertions(+)
+>
+> diff --git a/ext/unicorn_http/ext_help.h b/ext/unicorn_http/ext_help.h
+> index c87c272..6806f8e 100644
+> --- a/ext/unicorn_http/ext_help.h
+> +++ b/ext/unicorn_http/ext_help.h
+> @@ -79,4 +79,10 @@ static int str_cstr_case_eq(VALUE val, const char *ptr,
+> long len)
+>  #define STR_CSTR_CASE_EQ(val, const_str) \
+>    str_cstr_case_eq(val, const_str, sizeof(const_str) - 1)
+>
+> +#ifdef HAVE_RUBY_ENCODING_H
+> +/* Use default external encoding for strings for Ruby 1.9+,
+> + * fall back to rb_str_new when unavailable */
+> +#define rb_str_new rb_external_str_new
+> +#endif
+> +
+>  #endif /* ext_help_h */
+> diff --git a/test/unit/test_request.rb b/test/unit/test_request.rb
+> index fbda1a2..0a105e0 100644
+> --- a/test/unit/test_request.rb
+> +++ b/test/unit/test_request.rb
+> @@ -179,4 +179,17 @@ class RequestTest < Test::Unit::TestCase
+>      env['rack.input'].rewind
+>      res = @lint.call(env)
+>    end
+> +
+> +  def test_encoding
+> +    if ''.respond_to?(:encoding)
+> +      client = MockRequest.new("GET http://e:3/x?y=z HTTP/1.1\r\n" \
+> +                               "Host: foo\r\n\r\n")
+> +      env = @request.read(client)
+> +      encoding = Encoding.default_external
+> +      assert_equal encoding, env['REQUEST_PATH'].encoding
+> +      assert_equal encoding, env['PATH_INFO'].encoding
+> +      assert_equal encoding, env['QUERY_STRING'].encoding
+> +    end
+> +  end
+> +
+>  end
+> --
+> 1.9.1
+>
+>
+>
+
+
+-- 
+Kapil
+
