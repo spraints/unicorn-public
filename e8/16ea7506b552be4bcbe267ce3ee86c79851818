@@ -1,0 +1,140 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-2.0 required=3.0 tests=ALL_TRUSTED,AWL,BAYES_00,
+ URIBL_BLOCKED shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 2AB231FEC8; Sat,  2 Aug 2014 08:50:41 +0000 (UTC)
+Date: Sat, 2 Aug 2014 08:50:41 +0000
+From: Eric Wong <e@80x24.org>
+To: Gary Grossman <gary.grossman@gmail.com>
+Cc: unicorn-public@bogomips.org, michael@grosser.it
+Subject: Re: Please move to github
+Message-ID: <20140802085040.GA16241@dcvr.yhbt.net>
+References: <19466F7B-03C2-49BF-97E8-058AD3BE83D6@gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <19466F7B-03C2-49BF-97E8-058AD3BE83D6@gmail.com>
+List-Id: <unicorn-public@bogomips.org>
+
+Gary Grossman <gary.grossman@gmail.com> wrote:
+> Hi Eric,
+> 
+> I work with Michael, and this discussion sure got off on the
+> wrong foot... we love unicorn and use it heavily, and just
+> want to contribute back to it.
+
+No worries, cultural differences happen.  Thanks for following up.
+
+> To detail the encoding problem we were trying to fix, unicorn
+> uses rb_str_new in several places to create Ruby strings.
+> For Ruby 1.9 and later, these strings are assigned ASCII-8BIT
+> encoding.
+> 
+> While the Rack specification doesn't dictate what encoding
+> should be used for strings in the environment, many
+> developers would probably expect the default external encoding
+> setting in Encoding.default_external to be used.
+
+Right, the Rack spec does not dictate this.  Doing this out-of-spec has
+the ability to break existing apps as well as compatibility with other
+app servers.
+
+What do other app servers do?
+
+My main concern is having more different behavior between various Rack
+servers servers, making it harder to switch between them.
+
+Another concern is breaking apps which are already working around this
+but work with non-UTF-8 encodings.
+
+The rack-devel mailing list had a discussion on this in September 2010
+and a decision was never reached. You can search the archives at:
+http://groups.google.com/group/rack-devel
+
+I've also saved the thread to a mbox at
+http://80x24.org/rack-devel-encoding-2010.mbox.gz
+since Google Groups archives are a bit painful to navigate.
+
+Disclaimer: I am not an encoding expert, so for that reason I prefer
+to let other Rack folks make the decision.
+
+> Many Rails applications use UTF8 heavily. The use of ASCII-8BIT
+> in the env can lead to Encoding::CompatibilityErrors being
+> raised when a UTF8 string and ASCII-8BIT string are concatenated,
+> which happens frequently when properties like request.url are
+> referenced in erb templates. To get around these problems,
+> an app would have to force encoding on the strings in the env
+> manually. It seems a shame to do this in slower Ruby code when
+> it could be done up front by unicorn.
+
+Yes, this existing behavior sucks on UTF-8-heavy apps.  I would rather
+not add more unicorn-only options which make switching between servers
+harder.
+
+Do you have performance measurements for doing this as pure-Ruby
+middleware vs your patch?
+
+My dislike of lock-in also applies to app servers.  Application-visible
+differences like these should be avoided so people can switch between
+servers, too.
+
+So it should be best if there were a way to do this for all Rack
+servers.
+
+> We'd like to propose that unicorn use rb_external_str_new to
+> make strings instead of rb_str_new.
+> 
+> Perhaps you have your reasons for continuing to use rb_str_new
+> but we figured we'd run this by you.
+
+If the Rack spec mandated encodings, I would do it in a heartbeat.
+
+> Subject: [PATCH] If unicorn is used with Ruby 1.9 or later, use
+>  rb_external_str_new instead of rb_str_new to create strings. The resulting
+>  strings will use the default external encoding. Continue using rb_str_new for
+>  older versions of Ruby.
+
+A better, shorter, more direct subject would be:
+
+Subject: use Encoding.default_external for header values
+
+Commit message body is fine <snip>
+
+> +#ifdef HAVE_RUBY_ENCODING_H
+> +/* Use default external encoding for strings for Ruby 1.9+,
+> + * fall back to rb_str_new when unavailable */
+> +#define rb_str_new rb_external_str_new
+> +#endif
+
+This is too heavy-handed, as some strings (buffers) may
+need to stay binary via rb_str_new.  If we were to do this, it would
+something like:
+
+#ifdef HAVE_RUBY_ENCODING_H
+#  define env_val_new(ptr,len) rb_external_str_new((ptr),(len))
+#else
+#  define env_val_new(ptr,len) rb_str_new((ptr),(len))
+#endif
+
+... And only making sure header values are set to external.
+
+Last I checked the HTTP RFCs (it's been a while) header keys are
+required to be US-ASCII-only (and our parser enforces that).
+
+> +  def test_encoding
+> +    if ''.respond_to?(:encoding)
+> +      client = MockRequest.new("GET http://e:3/x?y=z HTTP/1.1\r\n" \
+> +                               "Host: foo\r\n\r\n")
+> +      env = @request.read(client)
+> +      encoding = Encoding.default_external
+> +      assert_equal encoding, env['REQUEST_PATH'].encoding
+> +      assert_equal encoding, env['PATH_INFO'].encoding
+> +      assert_equal encoding, env['QUERY_STRING'].encoding
+> +    end
+
+This would need to test and work with (and appropriately reject)
+invalid requests with bad encodings, too.
