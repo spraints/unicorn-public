@@ -1,0 +1,121 @@
+Return-Path: <gary.grossman@gmail.com>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS15169 209.85.128.0/17
+X-Spam-Status: No, score=-2.6 required=3.0 tests=AWL,BAYES_00,FREEMAIL_FROM,
+ RCVD_IN_DNSWL_LOW shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from mail-yk0-f174.google.com (mail-yk0-f174.google.com
+ [209.85.160.174]) (using TLSv1 with cipher ECDHE-RSA-RC4-SHA (128/128 bits))
+ (No client certificate requested) by dcvr.yhbt.net (Postfix) with ESMTPS id
+ 08D751FEC8 for <unicorn-public@bogomips.org>; Sat,  2 Aug 2014 19:07:30 +0000
+ (UTC)
+Received: by mail-yk0-f174.google.com with SMTP id q9so3222001ykb.5 for
+ <unicorn-public@bogomips.org>; Sat, 02 Aug 2014 12:07:30 -0700 (PDT)
+X-Received: by 10.236.208.2 with SMTP id p2mr4786884yho.173.1407006449913;
+ Sat, 02 Aug 2014 12:07:29 -0700 (PDT)
+Received: from [172.16.0.8] (108-67-145-4.lightspeed.sntcca.sbcglobal.net.
+ [108.67.145.4]) by mx.google.com with ESMTPSA id
+ h94sm20822337yhq.35.2014.08.02.12.07.29 for <multiple recipients>
+ (version=TLSv1 cipher=ECDHE-RSA-RC4-SHA bits=128/128); Sat, 02 Aug 2014
+ 12:07:29 -0700 (PDT)
+Content-Type: text/plain; charset=us-ascii
+Mime-Version: 1.0 (Mac OS X Mail 6.6 \(1510\))
+Subject: Re: Please move to github
+From: Gary Grossman <gary.grossman@gmail.com>
+In-Reply-To: <20140802085040.GA16241@dcvr.yhbt.net>
+Date: Sat, 2 Aug 2014 12:07:28 -0700
+Cc: unicorn-public@bogomips.org, michael@grosser.it
+Content-Transfer-Encoding: 7bit
+Message-Id: <CB49C33C-DD4D-4D6A-90AF-105B8DEE3146@gmail.com>
+References: <19466F7B-03C2-49BF-97E8-058AD3BE83D6@gmail.com>
+ <20140802085040.GA16241@dcvr.yhbt.net>
+To: Eric Wong <e@80x24.org>
+X-Mailer: Apple Mail (2.1510)
+List-Id: <unicorn-public@bogomips.org>
+
+Hi Eric,
+
+Thanks for your reply and for reviewing the patch!
+
+>Right, the Rack spec does not dictate this.  Doing this out-of-spec has
+>the ability to break existing apps as well as compatibility with other
+>app servers.
+
+It's true, my patch is too naive since it's a pretty drastic change
+in behavior not behind any kind of switch.
+
+>What do other app servers do?
+
+I did a little survey. ASCII-8BIT is kind of the de facto standard
+even if it's not mandated by the Rack specification. Phusion
+Passenger, Thin and WEBrick all send mostly ASCII-8BIT strings in
+the env.
+
+>My main concern is having more different behavior between various Rack
+>servers servers, making it harder to switch between them.
+
+Very valid; Rack wouldn't be much of a standard if there were a bunch
+of variants in use.
+
+>Another concern is breaking apps which are already working around this
+>but work with non-UTF-8 encodings.
+
+We'd pretty much need to introduce some kind of configuration
+switch, at least for the short term and maybe for the long term.
+The hope would be that it could become the default setting.
+Apps that don't use UTF8 should be able to set their desired default
+external encoding appropriately.
+
+>The rack-devel mailing list had a discussion on this in September 2010
+>and a decision was never reached. You can search the archives at:
+>http://groups.google.com/group/rack-devel
+
+I came across this thread but didn't realize that was the last word
+so far when it came to Rack and encodings.
+
+This might be one of those instances where it would be helpful for
+implementation to lead specification. Unicorn is one of the leading
+servers of its genre, if not the leader. If you supported a switch
+that made the encoding regime more sane, I think other popular servers
+like Thin and Passenger would swiftly follow and it might re-energize
+the discussion about getting encodings into the Rack spec once and
+for all, and give a base for experimentation and iteration for
+getting the encodings in the spec right.
+
+There's a lot of developer pain here. Many apps probably are serving
+up encoding-related 500 errors without knowing it. There are
+stories of developers adding "# encoding" everywhere, setting
+the external/internal encoding, and then "things are fine until it
+blows up somewhere else." I heard recently that a very large company
+has stuck with Ruby 1.8.7, probably to avoid these encoding issues
+among other things. It would be nice to improve the situation.
+
+>Disclaimer: I am not an encoding expert, so for that reason I prefer
+>to let other Rack folks make the decision.
+
+I'm not an encoding expert either! Most people aren't... which is
+why it'd be nice if they didn't have to know so much about it when
+they write a Rack app!
+
+>Do you have performance measurements for doing this as pure-Ruby
+>middleware vs your patch?
+
+I don't have measurements currently but I'll get some.
+Our app is several years old and so there's a lot of stuff in
+request.env by the time we get around to forcing everything to
+UTF8 encoding. I wouldn't be surprised if the hit on
+every single request is small but significant for us.
+
+>So it should be best if there were a way to do this for all Rack
+>servers.
+
+Thanks again for reviewing the patch. I'll work on a new patch that
+incorporates your comments and has a switch for enabling/disabling
+the functionality, and I'll try to follow roughly what the spec
+group in 2010 thought would make sense in terms of encodings for
+the various strings in the env. And I'll see if I can ask the
+Rack folks to chime in.
+
+Gary
+
