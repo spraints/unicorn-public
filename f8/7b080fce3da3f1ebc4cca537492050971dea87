@@ -1,0 +1,69 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-2.0 required=3.0 tests=ALL_TRUSTED,AWL,BAYES_00
+ shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id B5BB81FEC8; Sat,  2 Aug 2014 20:15:19 +0000 (UTC)
+Date: Sat, 2 Aug 2014 20:15:19 +0000
+From: Eric Wong <e@80x24.org>
+To: Gary Grossman <gary.grossman@gmail.com>
+Cc: unicorn-public@bogomips.org, michael@grosser.it
+Subject: Re: Please move to github
+Message-ID: <20140802201518.GA2182@dcvr.yhbt.net>
+References: <19466F7B-03C2-49BF-97E8-058AD3BE83D6@gmail.com>
+ <20140802085040.GA16241@dcvr.yhbt.net>
+ <CB49C33C-DD4D-4D6A-90AF-105B8DEE3146@gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <CB49C33C-DD4D-4D6A-90AF-105B8DEE3146@gmail.com>
+List-Id: <unicorn-public@bogomips.org>
+
+Gary Grossman <gary.grossman@gmail.com> wrote:
+> We'd pretty much need to introduce some kind of configuration
+> switch, at least for the short term and maybe for the long term.
+> The hope would be that it could become the default setting.
+> Apps that don't use UTF8 should be able to set their desired default
+> external encoding appropriately.
+
+If possible, I would like to avoid an option and rely on
+Encoding.default_external in a new major version.  Too many ways to set
+the same thing is confusing and requires extra documentation overhead.
+
+> >The rack-devel mailing list had a discussion on this in September 2010
+> >and a decision was never reached. You can search the archives at:
+> >http://groups.google.com/group/rack-devel
+> 
+> I came across this thread but didn't realize that was the last word
+> so far when it came to Rack and encodings.
+> 
+> This might be one of those instances where it would be helpful for
+> implementation to lead specification. Unicorn is one of the leading
+> servers of its genre, if not the leader. If you supported a switch
+> that made the encoding regime more sane, I think other popular servers
+> like Thin and Passenger would swiftly follow and it might re-energize
+> the discussion about getting encodings into the Rack spec once and
+> for all, and give a base for experimentation and iteration for
+> getting the encodings in the spec right.
+
+I might start with WEBrick (or the Rack/WEBrick handler).  WEBrick is
+distributed with Ruby and maintained by the core team.  It's not used in
+production much, but it the reference implementation which is usable
+from all Ruby implementations.
+
+naruse (from that rack-devel thread) is also active in Ruby core and
+is very knowledgeable in these areas.
+
+> Thanks again for reviewing the patch. I'll work on a new patch that
+> incorporates your comments and has a switch for enabling/disabling
+> the functionality, and I'll try to follow roughly what the spec
+> group in 2010 thought would make sense in terms of encodings for
+> the various strings in the env. And I'll see if I can ask the
+> Rack folks to chime in.
+
+Definitely get other Rack folks to chime in, even if it is a
+unicorn-only change.  This has been a problem for years already,
+so taking more time to get things right won't hurt.
