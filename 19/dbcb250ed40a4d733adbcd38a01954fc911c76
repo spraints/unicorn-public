@@ -1,0 +1,38 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-2.0 required=3.0 tests=ALL_TRUSTED,AWL,BAYES_00,
+ URIBL_BLOCKED shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 3233E1FB36; Mon,  4 Aug 2014 19:34:46 +0000 (UTC)
+Date: Mon, 4 Aug 2014 19:34:46 +0000
+From: Eric Wong <e@80x24.org>
+To: Daniel Condomitti <daniel@condomitti.com>
+Cc: Tony Devlin <tonydevlin@gmail.com>, unicorn-public@bogomips.org
+Subject: Re: Weird Unicorn Timeout Issues (Hibernation problem?)
+Message-ID: <20140804193445.GA31366@dcvr.yhbt.net>
+References:
+ <CAKM1sPNsdcX7_-PwBtObtOC1B0qA8R555nY46-bV-NVzuHhdLA@mail.gmail.com>
+ <20140804183923.GA8732@dcvr.yhbt.net>
+ <EAC50AEA0F054615804AE66341BB5ADE@condomitti.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+Content-Transfer-Encoding: 8bit
+In-Reply-To: <EAC50AEA0F054615804AE66341BB5ADE@condomitti.com>
+List-Id: <unicorn-public@bogomips.org>
+
+Daniel Condomitti <daniel@condomitti.com> wrote:
+> It could also be that your TCP keepalive interval is higher than your
+> database server’s connection timeout. I’ve run into that in the past.
+
+That kicks in at around 2 hours by default on Linux systems.
+I'm not sure it would matter for Tony's case since he hit it
+after ~30 minutes of idle (unless he tuned the knobs himself).
+
+ref: tcp_keep* knobs in
+https://git.kernel.org/cgit/linux/kernel/git/torvalds/linux.git/tree/Documentation/networking/ip-sysctl.txt
+
+unicorn itself has no timers outside of the configurable timeout.
