@@ -1,0 +1,59 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-2.0 required=3.0 tests=ALL_TRUSTED,AWL,BAYES_00
+ shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 115CC1FB36; Mon,  4 Aug 2014 19:45:09 +0000 (UTC)
+Date: Mon, 4 Aug 2014 19:45:09 +0000
+From: Eric Wong <e@80x24.org>
+To: Tony Devlin <tonydevlin@gmail.com>
+Cc: unicorn-public@bogomips.org
+Subject: Re: Weird Unicorn Timeout Issues (Hibernation problem?)
+Message-ID: <20140804194508.GB31366@dcvr.yhbt.net>
+References:
+ <CAKM1sPNsdcX7_-PwBtObtOC1B0qA8R555nY46-bV-NVzuHhdLA@mail.gmail.com>
+ <20140804183923.GA8732@dcvr.yhbt.net>
+ <CAKM1sPPgzOt0aiPEw4SmRAgKOKGVKffnWu12aFDHXQ-zmSeMqA@mail.gmail.com>
+ <20140804191158.GB10070@dcvr.yhbt.net>
+ <CAKM1sPPUqhwmY8sDL99Ay64cFm6w=9s8FoZ+P9YEfSaBrTiyxQ@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To:
+ <CAKM1sPPUqhwmY8sDL99Ay64cFm6w=9s8FoZ+P9YEfSaBrTiyxQ@mail.gmail.com>
+List-Id: <unicorn-public@bogomips.org>
+
+Tony Devlin <tonydevlin@gmail.com> wrote:
+> Thank you Eric,
+> 
+> I will look into the other worker to see what is going on with it.  I still
+> appreciate any hints you all can give me on where I can check.   I'm also
+> looking into the OS TCP timeouts to see if what Daniel said may be a
+> problem.
+
+General rule for me is to get the problem reproducible in the smallest
+possible way.  That could mean removing features, cutting out large
+chunks of code, cutting out certain request types, reducing
+workers.
+
+More things:
+
+1) Can you make sure nginx is not trying to maintain persistent
+  connections?  nginx should respect unicorn closing the connection
+  but I haven't checked the latest versions of nginx.
+  lsof can help here, too.
+
+  unicorn currently does not do persistent connections, allowing
+  an M:N relationship between nginx instances and unicorn
+  instances[1]
+
+2) Any other odd external dependencies such as NFS mounts,
+   file locks, FIFOs, etc?
+
+
+[1] Perhaps persistent connections will be an option in the future
+    if the support/documentation overhead is worth it, as nginx
+    supports persistent connections to backends nowadays.
