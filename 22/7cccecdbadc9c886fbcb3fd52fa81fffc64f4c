@@ -1,0 +1,113 @@
+Return-Path: <tonydevlin@gmail.com>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS15169 209.85.128.0/17
+X-Spam-Status: No, score=-0.4 required=3.0 tests=AWL,BAYES_00,FREEMAIL_FROM,
+ URIBL_BLOCKED shortcircuit=no autolearn=ham version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from mail-oa0-f46.google.com (mail-oa0-f46.google.com
+ [209.85.219.46]) (using TLSv1 with cipher ECDHE-RSA-RC4-SHA (128/128 bits))
+ (No client certificate requested) by dcvr.yhbt.net (Postfix) with ESMTPS id
+ 4CCEE1FB36 for <unicorn-public@bogomips.org>; Mon,  4 Aug 2014 18:12:38 +0000
+ (UTC)
+Received: by mail-oa0-f46.google.com with SMTP id m1so5289649oag.5 for
+ <unicorn-public@bogomips.org>; Mon, 04 Aug 2014 11:12:37 -0700 (PDT)
+MIME-Version: 1.0
+X-Received: by 10.182.255.201 with SMTP id as9mr24687077obd.44.1407175956999;
+ Mon, 04 Aug 2014 11:12:36 -0700 (PDT)
+Received: by 10.182.144.230 with HTTP; Mon, 4 Aug 2014 11:12:36 -0700 (PDT)
+Date: Mon, 4 Aug 2014 14:12:36 -0400
+Message-ID:
+ <CAKM1sPNsdcX7_-PwBtObtOC1B0qA8R555nY46-bV-NVzuHhdLA@mail.gmail.com>
+Subject: Weird Unicorn Timeout Issues (Hibernation problem?)
+From: Tony Devlin <tonydevlin@gmail.com>
+To: unicorn-public@bogomips.org
+Content-Type: text/plain; charset=UTF-8
+X-Content-Filtered-By: PublicInbox::Filter 0.0.1
+List-Id: <unicorn-public@bogomips.org>
+
+Current Setup:  (the problem existed before updating nginx, unicorn and
+rails; but in an attempt to solve the problem I updated them).
+
+CentOS 6.3 (x64)
+Ruby 2.1.2p95
+Rails 4.0.0
+Nginx 1.6.0
+Unicorn 4.8.3
+
+====
+
+We have an issue where if a site is not accessed for around (average) 30
+minutes the next query will timeout, and it will timeout on all the workers
+opened.  IE:   If I have two workers, then both of those workers will
+timeout, even if the first one,
+after timeout, starts to work.  As soon as the second worker is called upon
+it will timeout.  Then everything runs perfectly good and great until the
+site is not accessed for 30 minutes or more.  Then the timeout issue starts
+all over again.
+
+This happens on our dev machine on two different applications (only apps on
+the server) and on our production machine (also running two apps).
+
+I can't figure out exactly what is going on.  I tried strace the master
+unicorn process, but I get no relevant information.   One of the
+applications is also tied to a New Relic account and it gives no
+information either.
+
+Nginx logs show this: (sorry, obfuscated certain details due to the
+internal enterprise nature)
+
+2014/08/04 11:31:21 [error] 6353#0: *339 upstream prematurely closed
+connection while reading response header from upstream, client: *.*.*.*,
+server: ****.org, request: "GET /assets/application.css HTTP/1.1",
+upstream:
+"http://unix:/var/www/sites/****/shared/sockets/.unicorn.sock.0:/assets/application.css",
+host: "****.org", referrer: "http://****.org/outages"
+
+2014/08/04 11:31:53 [error] 31058#0: *1 upstream prematurely closed
+connection while reading response header from upstream, client: *.*.*.*,
+server: ****.org, request: "GET /outages HTTP/1.1", upstream:
+"http://unix:/var/www/sites/****/shared/sockets/.unicorn.sock.0:/outages",
+host: "****.org", referrer: "http://****.org/outages"
+
+Unicorn stderr shows this: (sorry, obfuscated certain details due to the
+internal enterprise nature)
+
+E, [2014-08-04T11:31:21.620379 #11991] ERROR -- : worker=1 PID:29701
+timeout (21s > 20s), killing
+E, [2014-08-04T11:31:21.630521 #11991] ERROR -- : reaped #<Process::Status:
+pid 29701 SIGKILL (signal 9)> worker=1
+I, [2014-08-04T11:31:21.639881 #30521]  INFO -- : worker=1 ready
+
+E, [2014-08-04T11:31:53.666300 #11991] ERROR -- : worker=0 PID:29705
+timeout (21s > 20s), killing
+E, [2014-08-04T11:31:53.676984 #11991] ERROR -- : reaped #<Process::Status:
+pid 29705 SIGKILL (signal 9)> worker=0
+I, [2014-08-04T11:31:53.687157 #30528]  INFO -- : worker=0 ready
+
+Its interesting that the timeout is occurring on different stages, for
+example if you look at the two nginx errors, one timeout at
+/assets/application.css and the other at the root /outages/, I've had it be
+small gifs as well.   I'd also like to point at
+that I have changed the timeout from 30s to 60s to 300s to 20s and it
+occurs at every interval.  So it is not a "true" timeout issue.    Also the
+two apps on the server are completely different, with only Ruby and Rails
+being the same process.  The
+gems are different in both, the database is different in both, in fact one
+of them has no assets, no css and no ui files at all.  The only
+similarities are Ruby, Rails, Nginx and Unicorn.
+
+It's like there is some sort of hibernation problem with the unicorn
+workers.  The hibernation thought comes from these debug messages (I
+dropped to recording debug messages trying to locate the problem).  I get
+these every now and then:
+
+D, [2014-08-03T22:14:49.776538 #11991] DEBUG -- : waiting 11.0s after
+suspend/hibernation
+
+But then they cease to occur for days, example is that message was the last
+time that occurred (non in the logs for today).
+
+I've been trying for the past 4 days to solve this, make a large number of
+changes to no avail.  Any help would be GREATLY appreciated.
+
