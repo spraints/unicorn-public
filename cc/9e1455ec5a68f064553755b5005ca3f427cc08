@@ -1,0 +1,83 @@
+Return-Path: <honglilai@gmail.com>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS15169 209.85.128.0/17
+X-Spam-Status: No, score=-0.9 required=3.0 tests=AWL,BAYES_00,FREEMAIL_FROM,
+ URIBL_BLOCKED shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from mail-pa0-f48.google.com (mail-pa0-f48.google.com
+ [209.85.220.48]) (using TLSv1 with cipher ECDHE-RSA-RC4-SHA (128/128 bits))
+ (No client certificate requested) by dcvr.yhbt.net (Postfix) with ESMTPS id
+ EA1831FB58 for <unicorn-public@bogomips.org>; Mon,  4 Aug 2014 07:23:02 +0000
+ (UTC)
+Received: by mail-pa0-f48.google.com with SMTP id et14so9497448pad.7 for
+ <unicorn-public@bogomips.org>; Mon, 04 Aug 2014 00:23:01 -0700 (PDT)
+X-Received: by 10.70.119.2 with SMTP id kq2mr22299023pdb.66.1407136981797;
+ Mon, 04 Aug 2014 00:23:01 -0700 (PDT)
+MIME-Version: 1.0
+Sender: honglilai@gmail.com
+Received: by 10.70.40.131 with HTTP; Mon, 4 Aug 2014 00:22:21 -0700 (PDT)
+In-Reply-To:
+ <CABHxtY6PLE71oDYvVviPtsLckJUU+DxmMe+X_V8iOOfcpcq7Nw@mail.gmail.com>
+References: <19466F7B-03C2-49BF-97E8-058AD3BE83D6@gmail.com>
+ <20140802085040.GA16241@dcvr.yhbt.net>
+ <CB49C33C-DD4D-4D6A-90AF-105B8DEE3146@gmail.com>
+ <CABHxtY6PLE71oDYvVviPtsLckJUU+DxmMe+X_V8iOOfcpcq7Nw@mail.gmail.com>
+From: Hongli Lai <hongli@phusion.nl>
+Date: Mon, 4 Aug 2014 09:22:21 +0200
+X-Google-Sender-Auth: 3ArYJ1OqERty0AsvjKbokDSSoDc
+Message-ID:
+ <CAM3ce8GnCGaODj0SptDW2cTF_cQQS1eBZH1n5E5Xs7J_0DL8Zw@mail.gmail.com>
+Subject: Re: Please move to github
+To: Michael Fischer <mfischer@zendesk.com>
+Cc: Gary Grossman <gary.grossman@gmail.com>, Eric Wong <e@80x24.org>, 
+ unicorn-public <unicorn-public@bogomips.org>, Michael Grosser
+ <michael@grosser.it>
+Content-Type: text/plain; charset=UTF-8
+List-Id: <unicorn-public@bogomips.org>
+
+On Sat, Aug 2, 2014 at 9:33 PM, Michael Fischer <mfischer@zendesk.com> wrote:
+> On Sat, Aug 2, 2014 at 12:07 PM, Gary Grossman <gary.grossman@gmail.com>
+> wrote:
+>> This might be one of those instances where it would be helpful for
+>> implementation to lead specification. Unicorn is one of the leading
+>> servers of its genre, if not the leader. If you supported a switch
+>> that made the encoding regime more sane, I think other popular servers
+>> like Thin and Passenger would swiftly follow and it might re-energize
+>> the discussion about getting encodings into the Rack spec once and
+>> for all, and give a base for experimentation and iteration for
+>> getting the encodings in the spec right.
+>>
+>
+> I agree with Gary here.  It's often too easy to decide to preserve the
+> status quo because things work well enough -- and then, eventually, time
+> catches up with you and it no longer does.
+
+Hi guys. Phusion Passenger author here. I would very much support
+standardization of encoding issues. Every now and then, a user submits
+a bug report on Phusion Passenger, mentioning an encoding problem. The
+user would say that the problem occurs on Phusion Passenger but not on
+Unicorn/Thin/etc. The Rack spec doesn't say anything about encodings
+so strictly speaking it's not "our fault", but it's still hard to tell
+users that it's "their fault" or "their framework's fault" based on
+this alone. It's also not a helpful answer: users often have no idea
+what to do about the issue.
+
+At this point, I don't really care what the standard is, as long as
+it's a sane standard that everybody can follow.
+
+In my opinion, following Encoding.default_external is not helpful.
+Most users have absolutely no idea how to configure
+Encoding.default_external, or even know that it exists. I've also
+never, ever seen anybody who does *not* want default_external to be
+UTF-8. If it's not set to UTF-8, then it's always by accident (e.g.
+the user not knowing that it depends on LC_CTYPE, that LC_CTYPE is set
+differently in the shell than from an init script, or even what
+LC_CTYPE is).
+
+-- 
+Phusion | Web Application deployment, scaling, and monitoring solutions
+
+Web: http://www.phusion.nl/
+E-mail: info@phusion.nl
+Chamber of commerce no: 08173483 (The Netherlands)
