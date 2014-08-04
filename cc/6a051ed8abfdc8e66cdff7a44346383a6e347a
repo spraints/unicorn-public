@@ -1,0 +1,82 @@
+Return-Path: <daniel@condomitti.com>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS15169 209.85.128.0/17
+X-Spam-Status: No, score=-0.4 required=3.0 tests=AWL,BAYES_00,URIBL_BLOCKED
+ shortcircuit=no autolearn=ham version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from mail-qa0-f44.google.com (mail-qa0-f44.google.com
+ [209.85.216.44]) (using TLSv1 with cipher ECDHE-RSA-RC4-SHA (128/128 bits))
+ (No client certificate requested) by dcvr.yhbt.net (Postfix) with ESMTPS id
+ 4C0361FB58 for <unicorn-public@bogomips.org>; Mon,  4 Aug 2014 18:55:33 +0000
+ (UTC)
+Received: by mail-qa0-f44.google.com with SMTP id f12so7425956qad.3 for
+ <unicorn-public@bogomips.org>; Mon, 04 Aug 2014 11:55:32 -0700 (PDT)
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=1e100.net;
+ s=20130820; h=x-gm-message-state:date:from:to:cc:message-id:in-reply-to
+ :references:subject:mime-version:content-type;
+ bh=1jTDr4geHqmZThl4zDrUBd0ziswX0uBbG5wLl7U+slw=;
+ b=MX3DvGhdYH2uquAs5XIpBORg41pWAwgwHYN9kCjiAeX85nS6qc6TfLQ/H1tYbPstN1
+ ds0wyq4vnBSRKSz0cq0ShLoxs0jjibsRk9yt/EEkUekmb/bfIz38obJUBHXjCLtnrly+
+ y5JKPekPyjqpE9tAPQkrDqZPUCV1xfQlgM183xOFh6idK6+kaMqbIL9JuD7C/9mjkOIH
+ /1caCMbiDgb1UOdM23iE4n0I3tUq0sf01g2TnrMGwnFInln3ar2HxDvriaqns0nllUvV
+ PCt7ncrXuIjoWQ9pXqQaKpo0KgdbVNEJsIxauvxklSZaHBuzhE8ionee3kB4NAJRJlo7 mW1Q==
+X-Gm-Message-State:
+ ALoCoQmLPjZVVO7ZcYuI74v+MDjxh4pMjpfeEIXblmNE1s5zBP5WLp/WTqzN+Ae1/w0/EOAo1W1s
+X-Received: by 10.224.30.14 with SMTP id s14mr21444730qac.70.1407178532142;
+ Mon, 04 Aug 2014 11:55:32 -0700 (PDT)
+Received: from [192.168.11.134] (ip72-220-71-4.sd.sd.cox.net. [72.220.71.4])
+ by mx.google.com with ESMTPSA id n20sm32674033qar.38.2014.08.04.11.55.31 for
+ <multiple recipients> (version=TLSv1 cipher=RC4-SHA bits=128/128); Mon, 04
+ Aug 2014 11:55:31 -0700 (PDT)
+Date: Mon, 4 Aug 2014 11:55:29 -0700
+From: Daniel Condomitti <daniel@condomitti.com>
+To: Eric Wong <e@80x24.org>
+Cc: Tony Devlin <tonydevlin@gmail.com>, unicorn-public@bogomips.org
+Message-ID: <EAC50AEA0F054615804AE66341BB5ADE@condomitti.com>
+In-Reply-To: <20140804183923.GA8732@dcvr.yhbt.net>
+References:
+ <CAKM1sPNsdcX7_-PwBtObtOC1B0qA8R555nY46-bV-NVzuHhdLA@mail.gmail.com>
+ <20140804183923.GA8732@dcvr.yhbt.net>
+Subject: Re: Weird Unicorn Timeout Issues (Hibernation problem?)
+X-Mailer: sparrow 1.6.4 (build 1178)
+MIME-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+X-Content-Filtered-By: PublicInbox::Filter 0.0.1
+List-Id: <unicorn-public@bogomips.org>
+
+It could also be that your TCP keepalive interval is higher than your dat=
+abase server=E2=80=99s connection timeout. I=E2=80=99ve run into that in =
+the past. =20
+
+
+On Monday, August 4, 2014 at 11:39 AM, Eric Wong wrote:
+
+> Tony Devlin <tonydevlin=40gmail.com (mailto:tonydevlin=40gmail.com)> wr=
+ote:
+> > We have an issue where if a site is not accessed for around (average)=
+ 30
+> > minutes the next query will timeout, and it will timeout on all the w=
+orkers
+> > opened. IE: If I have two workers, then both of those workers will
+> > timeout, even if the first one,
+> > after timeout, starts to work. As soon as the second worker is called=
+ upon
+> > it will timeout. Then everything runs perfectly good and great until =
+the
+> > site is not accessed for 30 minutes or more. Then the timeout issue s=
+tarts
+> > all over again.
+> > =20
+> =20
+> =20
+> This sounds like the idle timeout for MySQL (or similar) kicking in.
+> What database(s) or other backends are you using=3F
+> =20
+> That said, we've had problems with hibernate/suspend in the past,
+> so I'll double check.
+> =20
+> =20
+
+
+
