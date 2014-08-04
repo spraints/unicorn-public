@@ -1,0 +1,60 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-2.0 required=3.0 tests=ALL_TRUSTED,AWL,BAYES_00,
+ URIBL_BLOCKED shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id EC5281FB36; Mon,  4 Aug 2014 08:48:06 +0000 (UTC)
+Date: Mon, 4 Aug 2014 08:48:06 +0000
+From: Eric Wong <e@80x24.org>
+To: Hongli Lai <hongli@phusion.nl>
+Cc: Michael Fischer <mfischer@zendesk.com>, Gary Grossman
+ <gary.grossman@gmail.com>, unicorn-public <unicorn-public@bogomips.org>,
+ Michael Grosser <michael@grosser.it>
+Subject: Rack encodings (was: Please move to github)
+Message-ID: <20140804084806.GA22323@dcvr.yhbt.net>
+References: <19466F7B-03C2-49BF-97E8-058AD3BE83D6@gmail.com>
+ <20140802085040.GA16241@dcvr.yhbt.net>
+ <CB49C33C-DD4D-4D6A-90AF-105B8DEE3146@gmail.com>
+ <CABHxtY6PLE71oDYvVviPtsLckJUU+DxmMe+X_V8iOOfcpcq7Nw@mail.gmail.com>
+ <CAM3ce8GnCGaODj0SptDW2cTF_cQQS1eBZH1n5E5Xs7J_0DL8Zw@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To:
+ <CAM3ce8GnCGaODj0SptDW2cTF_cQQS1eBZH1n5E5Xs7J_0DL8Zw@mail.gmail.com>
+List-Id: <unicorn-public@bogomips.org>
+
+(Long overdue Subject: change)
+
+Hongli Lai <hongli@phusion.nl> wrote:
+> Hi guys. Phusion Passenger author here. I would very much support
+> standardization of encoding issues.
+
+> At this point, I don't really care what the standard is, as long as
+> it's a sane standard that everybody can follow.
+
+Fair enough.  Would you/Phusion be comfortable taking the lead here?
+This feels like another "hot potato" issue :>
+
+> In my opinion, following Encoding.default_external is not helpful.
+> Most users have absolutely no idea how to configure
+> Encoding.default_external, or even know that it exists. I've also
+> never, ever seen anybody who does *not* want default_external to be
+> UTF-8. If it's not set to UTF-8, then it's always by accident (e.g.
+> the user not knowing that it depends on LC_CTYPE, that LC_CTYPE is set
+> differently in the shell than from an init script, or even what
+> LC_CTYPE is).
+
+Perhaps we need to educate users to set LC_CTYPE/LC_ALL/LANG so
+Encoding.default_external works as intended?  Adding another
+option to Rack will just as likely to get missed.
+
+Maybe servers could emit a big warning saying:
+
+    WARNING: Encoding.default_external is not UTF-8 ...
+
+And add a --quiet-utf8-warning option for the few folks who really do
+not want UTF-8.
