@@ -1,0 +1,97 @@
+Return-Path: <tonydevlin@gmail.com>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS15169 209.85.128.0/17
+X-Spam-Status: No, score=-1.0 required=3.0 tests=AWL,BAYES_00,FREEMAIL_FROM,
+ URIBL_BLOCKED shortcircuit=no autolearn=ham version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from mail-oa0-f54.google.com (mail-oa0-f54.google.com
+ [209.85.219.54]) (using TLSv1 with cipher ECDHE-RSA-RC4-SHA (128/128 bits))
+ (No client certificate requested) by dcvr.yhbt.net (Postfix) with ESMTPS id
+ 445791FB58 for <unicorn-public@bogomips.org>; Mon,  4 Aug 2014 20:24:58 +0000
+ (UTC)
+Received: by mail-oa0-f54.google.com with SMTP id n16so5331407oag.13 for
+ <unicorn-public@bogomips.org>; Mon, 04 Aug 2014 13:24:56 -0700 (PDT)
+MIME-Version: 1.0
+X-Received: by 10.182.236.225 with SMTP id ux1mr35138274obc.57.1407183896304;
+ Mon, 04 Aug 2014 13:24:56 -0700 (PDT)
+Received: by 10.182.144.230 with HTTP; Mon, 4 Aug 2014 13:24:56 -0700 (PDT)
+In-Reply-To: <20140804193445.GA31366@dcvr.yhbt.net>
+References:
+ <CAKM1sPNsdcX7_-PwBtObtOC1B0qA8R555nY46-bV-NVzuHhdLA@mail.gmail.com>
+ <20140804183923.GA8732@dcvr.yhbt.net>
+ <EAC50AEA0F054615804AE66341BB5ADE@condomitti.com>
+ <20140804193445.GA31366@dcvr.yhbt.net>
+Date: Mon, 4 Aug 2014 16:24:56 -0400
+Message-ID:
+ <CAKM1sPMMi+2Xs1EZfSmJbqojx2zD_EPGmze72BAsmW-WwH+umQ@mail.gmail.com>
+Subject: Re: Weird Unicorn Timeout Issues (Hibernation problem?)
+From: Tony Devlin <tonydevlin@gmail.com>
+To: Eric Wong <e@80x24.org>
+Cc: Daniel Condomitti <daniel@condomitti.com>, unicorn-public@bogomips.org
+Content-Type: text/plain; charset=UTF-8
+X-Content-Filtered-By: PublicInbox::Filter 0.0.1
+List-Id: <unicorn-public@bogomips.org>
+
+Yep, it occurs after 30 minutes of inactivity.  Down to the minute; I hit
+the site at 3:40 and tried at 4:10 and sure enough:
+
+E, [2014-08-04T16:10:52.143541 #2596] ERROR -- : worker=3D0 PID:2599 timeou=
+t
+(21s > 20s), killing
+E, [2014-08-04T16:10:52.158459 #2596] ERROR -- : reaped #<Process::Status:
+pid 2599 SIGKILL (signal 9)> worker=3D0
+I, [2014-08-04T16:10:52.181648 #3086]  INFO -- : worker=3D0 ready
+
+2014/08/04 16:10:52 [error] 1684#0: *13 upstream prematurely closed
+connection while reading response header from upstream, client: *.*.*.*,
+server: ***.org, request: "GET /outages HTTP/1.1", upstream:
+"http://unix:/var/www/sites/***/shared/sockets/.unicorn.sock.0:/outages",
+host: "***.org", referrer: "http://***.org/outages"
+
+=E2=80=8B=E2=80=8B=3D=3D=3D
+
+This occurs on both instances of unicorn workers that we have opened.  I'm
+going to reduce that to one instance, per Eric, to continue troubleshooting
+in the smallest possible way.
+
+1) It does not appear to be an nginx persistent connection issue, because
+once the worker is reaped and restarted, nginx serves the content with no
+problems.
+2) No NFS mounts, no file locks, no FIFO issues.  (note: one of the apps
+does write to files, aside from logs, but problem exists in both apps).
+
+It's also important to note that once the worker is reaped the site is
+blazingly fast, sub second responses (2s most time spent to show the
+biggest page).  Until 30 minutes of inactivity, in which case timeout issue
+and worker is reaped (rinse and repeat).
+
+For the database portion, the DBA says inactivity is killed after 3 hours.
+ Far greater time span than this issue is occurring.
+
+Have any other ideas of places I can look?  It's too consistent, it has to
+be some specific setting or functionality that does this.
+
+I checked my TCP Timeout settings just in case, but the timeout is set to
+2hrs.
+
+
+On Mon, Aug 4, 2014 at 3:34 PM, Eric Wong <e@80x24.org> wrote:
+
+> Daniel Condomitti <daniel@condomitti.com> wrote:
+> > It could also be that your TCP keepalive interval is higher than your
+> > database server=E2=80=99s connection timeout. I=E2=80=99ve run into tha=
+t in the past.
+>
+> That kicks in at around 2 hours by default on Linux systems.
+> I'm not sure it would matter for Tony's case since he hit it
+> after ~30 minutes of idle (unless he tuned the knobs himself).
+>
+> ref: tcp_keep* knobs in
+>
+> https://git.kernel.org/cgit/linux/kernel/git/torvalds/linux.git/tree/Docu=
+mentation/networking/ip-sysctl.txt
+>
+> unicorn itself has no timers outside of the configurable timeout.
+>
+
