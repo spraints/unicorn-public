@@ -1,0 +1,88 @@
+Return-Path: <tonydevlin@gmail.com>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS15169 209.85.128.0/17
+X-Spam-Status: No, score=-1.1 required=3.0 tests=AWL,BAYES_00,FREEMAIL_FROM,
+ RCVD_IN_DNSWL_BLOCKED,URIBL_BLOCKED shortcircuit=no autolearn=ham
+ version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from mail-oa0-f51.google.com (mail-oa0-f51.google.com
+ [209.85.219.51]) (using TLSv1 with cipher ECDHE-RSA-RC4-SHA (128/128 bits))
+ (No client certificate requested) by dcvr.yhbt.net (Postfix) with ESMTPS id
+ E694644C1A6 for <unicorn-public@bogomips.org>; Tue,  5 Aug 2014 14:46:21
+ +0000 (UTC)
+Received: by mail-oa0-f51.google.com with SMTP id o6so772739oag.10 for
+ <unicorn-public@bogomips.org>; Tue, 05 Aug 2014 07:46:20 -0700 (PDT)
+MIME-Version: 1.0
+X-Received: by 10.60.84.207 with SMTP id b15mr6180578oez.49.1407249980652;
+ Tue, 05 Aug 2014 07:46:20 -0700 (PDT)
+Received: by 10.182.144.230 with HTTP; Tue, 5 Aug 2014 07:46:20 -0700 (PDT)
+In-Reply-To: <20140804204600.GA13662@dcvr.yhbt.net>
+References:
+ <CAKM1sPNsdcX7_-PwBtObtOC1B0qA8R555nY46-bV-NVzuHhdLA@mail.gmail.com>
+ <20140804183923.GA8732@dcvr.yhbt.net>
+ <EAC50AEA0F054615804AE66341BB5ADE@condomitti.com>
+ <20140804193445.GA31366@dcvr.yhbt.net>
+ <CAKM1sPMMi+2Xs1EZfSmJbqojx2zD_EPGmze72BAsmW-WwH+umQ@mail.gmail.com>
+ <20140804204409.GA6392@dcvr.yhbt.net> <20140804204600.GA13662@dcvr.yhbt.net>
+Date: Tue, 5 Aug 2014 10:46:20 -0400
+Message-ID:
+ <CAKM1sPNRsES6H6ByK6bO9Djwa8WvYV6HJ-rEaHopRUYBVFfuhg@mail.gmail.com>
+Subject: Re: Weird Unicorn Timeout Issues (Hibernation problem?)
+From: Tony Devlin <tonydevlin@gmail.com>
+To: Eric Wong <e@80x24.org>
+Cc: unicorn-public@bogomips.org, Daniel Condomitti <daniel@condomitti.com>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
+X-Content-Filtered-By: PublicInbox::Filter 0.0.1
+List-Id: <unicorn-public@bogomips.org>
+
+I appreciate all your help Eric and Daniel.  I have not solved this yet,
+but I think I have narrowed it down to a Firewall timeout issue.  One app
+uses a database connection to Oracle, the other app uses a 3rd Party API
+(still on location, but across the network).  The ping times to both of
+these devices are extremely fast, however 30 minutes of inactivity across
+the Firewall seems to disconnect these connections.  At least that appears
+to be what the strace is telling me.  The place in the strace that the
+timeout occurs is consistent, every time.  For example the strace of the
+app that connects to Oracle shows this:
+
+pid  7825] write(14,
+"\0\373\0\0\6\0\0\0\0\0\21iB\376\377\377\377\377\377\377\377\1\0\0\0\0\0\0\=
+0\v\0\0\0\3^Ca\201\0\0\0\0\0\0\376\377\377\377\377\377\377\377\22\0\0\0\376=
+\377\377\377\377\377\377\377\r\0\0\0\376\377\377\377\377\377\377\377\376\37=
+7\377\377\377\377\377\377\0\0\0\0d\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\=
+0\0\0\0\0\0\0\376\377\377\377\377\377\377\377\0\0\0\0\0\0\0\0\376\377\377\3=
+77\377\377\377\377\376\377\377\377\377\377\377\377\376\377\377\377\377\377\=
+377\377\0\0\0\0\0\0\0\0\376\377\377\377\377\377\377\377\376\377\377\377\377=
+\377\377\377\22select
+1 from
+dual\1\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\1\0\0\0\0\0\0\=
+0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0",
+251) =3D 251
+[pid  7825] read(14,  <unfinished ...>
+[pid  7827] +++ killed by SIGKILL +++
+PANIC: handle_group_exit: 7827 leader 7825
+[pid  7846] +++ killed by SIGKILL +++
+PANIC: handle_group_exit: 7846 leader 7825
++++ killed by SIGKILL +++
+
+Clearly that is a database query 'select 1 from dual'.  It times out trying
+to read the response.  At the same time if I watch the lsof -p <pid>, I see
+that the database connection drops after 30 minutes.
+
+I'll update this thread again once it is solved, for historical and future
+issues (in case someone else experiences something similar).
+
+Again thank you for your help Eric!
+
+
+On Mon, Aug 4, 2014 at 4:46 PM, Eric Wong <e@80x24.org> wrote:
+
+> Eric Wong <e@80x24.org> wrote:
+> > Did you try strace-ing for 30 minutes and reproducing the error?
+>
+> You can also try setting the unicorn timeout to longer than 30
+> minutes and get a longer/stalled strace.
+>
+
