@@ -1,0 +1,58 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-2.0 required=3.0 tests=ALL_TRUSTED,AWL,BAYES_00
+ shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id CACBD1F55B; Wed,  6 Aug 2014 09:45:57 +0000 (UTC)
+Date: Wed, 6 Aug 2014 09:45:57 +0000
+From: Eric Wong <e@80x24.org>
+To: Tony Devlin <tonydevlin@gmail.com>
+Cc: unicorn-public@bogomips.org, Daniel Condomitti <daniel@condomitti.com>
+Subject: Re: Weird Unicorn Timeout Issues (Hibernation problem?)
+Message-ID: <20140806094557.GA19766@dcvr.yhbt.net>
+References:
+ <CAKM1sPNsdcX7_-PwBtObtOC1B0qA8R555nY46-bV-NVzuHhdLA@mail.gmail.com>
+ <20140804183923.GA8732@dcvr.yhbt.net>
+ <EAC50AEA0F054615804AE66341BB5ADE@condomitti.com>
+ <20140804193445.GA31366@dcvr.yhbt.net>
+ <CAKM1sPMMi+2Xs1EZfSmJbqojx2zD_EPGmze72BAsmW-WwH+umQ@mail.gmail.com>
+ <20140804204409.GA6392@dcvr.yhbt.net> <20140804204600.GA13662@dcvr.yhbt.net>
+ <CAKM1sPNRsES6H6ByK6bO9Djwa8WvYV6HJ-rEaHopRUYBVFfuhg@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To:
+ <CAKM1sPNRsES6H6ByK6bO9Djwa8WvYV6HJ-rEaHopRUYBVFfuhg@mail.gmail.com>
+List-Id: <unicorn-public@bogomips.org>
+
+Tony Devlin <tonydevlin@gmail.com> wrote:
+> pid  7825] write(14,
+> "\0\373\0\0\6\0\0\0\0\0\21iB\376\377\377\377\377\377\377\377\1\0\0\0\0\0\0\0\v\0\0\0\3^Ca\201\0\0\0\0\0\0\376\377\377\377\377\377\377\377\22\0\0\0\376\377\377\377\377\377\377\377\r\0\0\0\376\377\377\377\377\377\377\377\376\377\377\377\377\377\377\377\0\0\0\0d\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\376\377\377\377\377\377\377\377\0\0\0\0\0\0\0\0\376\377\377\377\377\377\377\377\376\377\377\377\377\377\377\377\376\377\377\377\377\377\377\377\0\0\0\0\0\0\0\0\376\377\377\377\377\377\377\377\376\377\377\377\377\377\377\377\22select
+> 1 from
+> dual\1\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\1\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0",
+> 251) = 251
+> [pid  7825] read(14,  <unfinished ...>
+> [pid  7827] +++ killed by SIGKILL +++
+
+Any update?  It looks like your DB driver is not using/respecting any
+timeout at all[1].  It is bad to not have a timeout there.  There should
+be a way to set a timeout so you can at least tell the user the DB
+connection dropped or maybe get your app to disconnect+retry once.
+
+A better looking strace would be something like:
+
+    write(fd, ...); => success
+    (poll|select|ppoll) syscall ...
+    read(fd, ...); /* only if (poll|select|ppoll) was successful[2] */
+
+This goes for configuring all connections/services for any app.
+
+[1] or if it's relying on SO_RCVTIMEO socket option(rare), that's set
+    way too high.  Any timeout set for any external connection should
+    be lower than the unicorn (last-resort) timeout feature.
+
+[2] any read() syscall after (poll|select|ppoll) should be non-blocking,
+    because (poll|select|ppoll) may spuriously wakeup.
