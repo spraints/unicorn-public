@@ -1,0 +1,82 @@
+Return-Path: <tonydevlin@gmail.com>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS15169 209.85.128.0/17
+X-Spam-Status: No, score=-1.1 required=3.0 tests=AWL,BAYES_00,FREEMAIL_FROM,
+ URIBL_BLOCKED shortcircuit=no autolearn=ham version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from mail-oi0-f42.google.com (mail-oi0-f42.google.com
+ [209.85.218.42]) (using TLSv1 with cipher ECDHE-RSA-RC4-SHA (128/128 bits))
+ (No client certificate requested) by dcvr.yhbt.net (Postfix) with ESMTPS id
+ 4ECF244C1A7 for <unicorn-public@bogomips.org>; Wed,  6 Aug 2014 14:05:04
+ +0000 (UTC)
+Received: by mail-oi0-f42.google.com with SMTP id a3so1665257oib.15 for
+ <unicorn-public@bogomips.org>; Wed, 06 Aug 2014 07:05:03 -0700 (PDT)
+MIME-Version: 1.0
+X-Received: by 10.60.52.5 with SMTP id p5mr15222388oeo.55.1407333902919; Wed,
+ 06 Aug 2014 07:05:02 -0700 (PDT)
+Received: by 10.182.144.230 with HTTP; Wed, 6 Aug 2014 07:05:02 -0700 (PDT)
+In-Reply-To: <20140806094557.GA19766@dcvr.yhbt.net>
+References:
+ <CAKM1sPNsdcX7_-PwBtObtOC1B0qA8R555nY46-bV-NVzuHhdLA@mail.gmail.com>
+ <20140804183923.GA8732@dcvr.yhbt.net>
+ <EAC50AEA0F054615804AE66341BB5ADE@condomitti.com>
+ <20140804193445.GA31366@dcvr.yhbt.net>
+ <CAKM1sPMMi+2Xs1EZfSmJbqojx2zD_EPGmze72BAsmW-WwH+umQ@mail.gmail.com>
+ <20140804204409.GA6392@dcvr.yhbt.net> <20140804204600.GA13662@dcvr.yhbt.net>
+ <CAKM1sPNRsES6H6ByK6bO9Djwa8WvYV6HJ-rEaHopRUYBVFfuhg@mail.gmail.com>
+ <20140806094557.GA19766@dcvr.yhbt.net>
+Date: Wed, 6 Aug 2014 10:05:02 -0400
+Message-ID:
+ <CAKM1sPPsb24aNA-puN=E6aYn=RqAynMaNMBiGvWqHtyaFe4cew@mail.gmail.com>
+Subject: Re: Weird Unicorn Timeout Issues (Hibernation problem?)
+From: Tony Devlin <tonydevlin@gmail.com>
+To: Eric Wong <e@80x24.org>
+Cc: unicorn-public@bogomips.org, Daniel Condomitti <daniel@condomitti.com>
+Content-Type: text/plain; charset=UTF-8
+X-Content-Filtered-By: PublicInbox::Filter 0.0.1
+List-Id: <unicorn-public@bogomips.org>
+
+Eric,
+
+The problem is a firewall that sits between the servers and the database.
+ It is an idle session timeout of 30 minutes, so it is silently killing the
+connection.  I have reached out to our Network Engineering department but
+they are saying they can not change that idle session timeout, nor create a
+special rule to allow this connection to bypass that rule.
+
+Currently, I setup a polling device that calls the applications URL every
+20 minutes.  This causes the connection between the server and DB to
+refresh it's idle timeout.  This is obviously a very hacky way to handle
+it, so I am trying to look into AR and Oracle_Enhanced to see if they have
+some sort of keepalive option for the database.  I thought it would work
+with the reaping_frequency, but apparently that does not work out as I had
+expected when you are not running in pools or a thread.  So I'm still on
+the lookout for something to handle that.
+
+
+
+
+On Wed, Aug 6, 2014 at 5:45 AM, Eric Wong <e@80x24.org> wrote:
+>
+>
+> Any update?  It looks like your DB driver is not using/respecting any
+> timeout at all[1].  It is bad to not have a timeout there.  There should
+> be a way to set a timeout so you can at least tell the user the DB
+> connection dropped or maybe get your app to disconnect+retry once.
+>
+> A better looking strace would be something like:
+>
+>     write(fd, ...); => success
+>     (poll|select|ppoll) syscall ...
+>     read(fd, ...); /* only if (poll|select|ppoll) was successful[2] */
+>
+> This goes for configuring all connections/services for any app.
+>
+> [1] or if it's relying on SO_RCVTIMEO socket option(rare), that's set
+>     way too high.  Any timeout set for any external connection should
+>     be lower than the unicorn (last-resort) timeout feature.
+>
+> [2] any read() syscall after (poll|select|ppoll) should be non-blocking,
+>     because (poll|select|ppoll) may spuriously wakeup.
+
