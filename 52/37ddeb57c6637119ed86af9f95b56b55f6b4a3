@@ -1,0 +1,118 @@
+Return-Path: <daniel@condomitti.com>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS15169 209.85.128.0/17
+X-Spam-Status: No, score=-1.4 required=3.0 tests=AWL,BAYES_00,
+ RCVD_IN_DNSWL_LOW,URIBL_BLOCKED shortcircuit=no autolearn=ham version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from mail-qg0-f41.google.com (mail-qg0-f41.google.com
+ [209.85.192.41]) (using TLSv1 with cipher ECDHE-RSA-RC4-SHA (128/128 bits))
+ (No client certificate requested) by dcvr.yhbt.net (Postfix) with ESMTPS id
+ 8DE4F1F55B for <unicorn-public@bogomips.org>; Wed,  6 Aug 2014 18:56:05 +0000
+ (UTC)
+Received: by mail-qg0-f41.google.com with SMTP id q107so3192462qgd.0 for
+ <unicorn-public@bogomips.org>; Wed, 06 Aug 2014 11:56:04 -0700 (PDT)
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=1e100.net;
+ s=20130820; h=x-gm-message-state:date:from:to:cc:message-id:in-reply-to
+ :references:subject:mime-version:content-type;
+ bh=gsY2X+h6fNBVo3B9lvIvmC+bB53U4x37GeCgYG/Djs0=;
+ b=B9jBV5DqxXd7DtKsdHS5XrI40kIcPp2MJZihnLXGMkABpBHi+Df6aOLC4kvq0lEFix
+ U9IXq3Tctq/rbUJRC+r+qJneTiLVZynLgP/+uMgq3maefYGlMr6zQJCL3aLwPJQ/FZy/
+ OWYfXHHzsRLC8vsc54OGLWMlWxZ11PdvRzwYPzQx7utjezE19Gn75dSzm3UHCPDEnQV9
+ I2XxoN3H6DYEkHsrsM77ixPuHhTu54ErXVhQmPEBcrA9su0OoStaFdZdhANYU/7xBmDV
+ tGBdp0IqFo91AT5xHe1QHcnNvyVK7+tOVpCq3fEO3kJXQ5LE4xOmoTuUvDCJmEr3MZlb R3dw==
+X-Gm-Message-State:
+ ALoCoQlpJ10tvcfUHGUK3B2XIo3AxU7G7DdBU4MCYVNx+91TGIBU2or85m7I+EFHQ0V3NqOJpm29
+X-Received: by 10.224.136.200 with SMTP id s8mr19671063qat.44.1407349600058;
+ Wed, 06 Aug 2014 11:26:40 -0700 (PDT)
+Received: from [192.168.11.134] (ip72-220-71-4.sd.sd.cox.net. [72.220.71.4])
+ by mx.google.com with ESMTPSA id b15sm1106397qac.36.2014.08.06.11.26.38 for
+ <multiple recipients> (version=TLSv1 cipher=RC4-SHA bits=128/128); Wed, 06
+ Aug 2014 11:26:39 -0700 (PDT)
+Date: Wed, 6 Aug 2014 11:26:28 -0700
+From: Daniel Condomitti <daniel@condomitti.com>
+To: Tony Devlin <tonydevlin@gmail.com>
+Cc: Eric Wong <e@80x24.org>, unicorn-public@bogomips.org
+Message-ID: <8E584028BCA3426ABB655EC529613E22@condomitti.com>
+In-Reply-To:
+ <CAKM1sPPsb24aNA-puN=E6aYn=RqAynMaNMBiGvWqHtyaFe4cew@mail.gmail.com>
+References:
+ <CAKM1sPNsdcX7_-PwBtObtOC1B0qA8R555nY46-bV-NVzuHhdLA@mail.gmail.com>
+ <20140804183923.GA8732@dcvr.yhbt.net>
+ <EAC50AEA0F054615804AE66341BB5ADE@condomitti.com>
+ <20140804193445.GA31366@dcvr.yhbt.net>
+ <CAKM1sPMMi+2Xs1EZfSmJbqojx2zD_EPGmze72BAsmW-WwH+umQ@mail.gmail.com>
+ <20140804204409.GA6392@dcvr.yhbt.net> <20140804204600.GA13662@dcvr.yhbt.net>
+ <CAKM1sPNRsES6H6ByK6bO9Djwa8WvYV6HJ-rEaHopRUYBVFfuhg@mail.gmail.com>
+ <20140806094557.GA19766@dcvr.yhbt.net>
+ <CAKM1sPPsb24aNA-puN=E6aYn=RqAynMaNMBiGvWqHtyaFe4cew@mail.gmail.com>
+Subject: Re: Weird Unicorn Timeout Issues (Hibernation problem?)
+X-Mailer: sparrow 1.6.4 (build 1178)
+MIME-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+X-Content-Filtered-By: PublicInbox::Filter 0.0.1
+List-Id: <unicorn-public@bogomips.org>
+
+This is exactly what happened to us and I should have been clearer. I was=
+n=E2=80=99t referring to the default Linux kernel settings causing the ki=
+lling the connection; it was a network device between our application ser=
+vers and the database server. It only affected certain applications as so=
+me were hit hundreds of times per second and would never be disconnected =
+and the ones that would disconnect were only hit a few times per hour. I =
+-believe- we just dropped the keepalive interval on both sides of the fir=
+ewall below its idle timeout. =20
+
+
+On Wednesday, August 6, 2014 at 7:05 AM, Tony Devlin wrote:
+
+> Eric,
+> =20
+> The problem is a firewall that sits between the servers and the databas=
+e.  It is an idle session timeout of 30 minutes, so it is silently killin=
+g the connection.  I have reached out to our Network Engineering departme=
+nt but they are saying they can not change that idle session timeout, nor=
+ create a special rule to allow this connection to bypass that rule.  =20
+> =20
+> Currently, I setup a polling device that calls the applications URL eve=
+ry 20 minutes.  This causes the connection between the server and DB to r=
+efresh it's idle timeout.  This is obviously a very hacky way to handle i=
+t, so I am trying to look into AR and Oracle=5FEnhanced to see if they ha=
+ve some sort of keepalive option for the database.  I thought it would wo=
+rk with the reaping=5Ffrequency, but apparently that does not work out as=
+ I had expected when you are not running in pools or a thread.  So I'm st=
+ill on the lookout for something to handle that. =20
+> =20
+> =20
+> =20
+> =20
+> On Wed, Aug 6, 2014 at 5:45 AM, Eric Wong <e=4080x24.org (mailto:e=4080=
+x24.org)> wrote:
+> > =20
+> > Any update=3F  It looks like your DB driver is not using/respecting a=
+ny
+> > timeout at all=5B1=5D.  It is bad to not have a timeout there.  There=
+ should
+> > be a way to set a timeout so you can at least tell the user the DB
+> > connection dropped or maybe get your app to disconnect+retry once.
+> > =20
+> > A better looking strace would be something like:
+> > =20
+> >     write(fd, ...); =3D> success
+> >     (poll=7Cselect=7Cppoll) syscall ...
+> >     read(fd, ...); /* only if (poll=7Cselect=7Cppoll) was successful=5B=
+2=5D */
+> > =20
+> > This goes for configuring all connections/services for any app.
+> > =20
+> > =5B1=5D or if it's relying on SO=5FRCVTIMEO socket option(rare), that=
+'s set
+> >     way too high.  Any timeout set for any external connection should=
+
+> >     be lower than the unicorn (last-resort) timeout feature.
+> > =20
+> > =5B2=5D any read() syscall after (poll=7Cselect=7Cppoll) should be no=
+n-blocking,
+> >     because (poll=7Cselect=7Cppoll) may spuriously wakeup. =20
+
+
