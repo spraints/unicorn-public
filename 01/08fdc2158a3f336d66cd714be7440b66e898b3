@@ -1,0 +1,81 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-2.0 required=3.0 tests=ALL_TRUSTED,AWL,BAYES_00
+ shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 686C21FD8E for <unicorn-public@bogomips.org>; Sun, 17
+ Aug 2014 02:34:04 +0000 (UTC)
+From: Eric Wong <e@80x24.org>
+To: unicorn-public@bogomips.org
+Subject: [PATCH 3/3] http_response: remove Status: header
+Date: Sun, 17 Aug 2014 02:33:55 +0000
+Message-Id: <1408242835-21114-4-git-send-email-e@80x24.org>
+X-Mailer: git-send-email 2.0.0.rc4.1.g4a28f16
+In-Reply-To: <1408242835-21114-1-git-send-email-e@80x24.org>
+References: <1408242835-21114-1-git-send-email-e@80x24.org>
+List-Id: <unicorn-public@bogomips.org>
+
+Whatever compatibility reasons which existed in 2009 likely do not exist
+now.  Other servers (e.g. thin, puma) seem to work alright without it,
+so there's no reason to waste precious bytes.
+---
+ lib/unicorn/http_response.rb | 4 +---
+ test/unit/test_response.rb   | 6 ------
+ 2 files changed, 1 insertion(+), 9 deletions(-)
+
+diff --git a/lib/unicorn/http_response.rb b/lib/unicorn/http_response.rb
+index 083951c..cc027c5 100644
+--- a/lib/unicorn/http_response.rb
++++ b/lib/unicorn/http_response.rb
+@@ -24,14 +24,12 @@ module Unicorn::HttpResponse
+   # writes the rack_response to socket as an HTTP response
+   def http_response_write(socket, status, headers, body,
+                           response_start_sent=false)
+-    status = CODES[status.to_i] || status
+     hijack = nil
+ 
+     http_response_start = response_start_sent ? '' : 'HTTP/1.1 '
+     if headers
+-      buf = "#{http_response_start}#{status}\r\n" \
++      buf = "#{http_response_start}#{CODES[status.to_i] || status}\r\n" \
+             "Date: #{httpdate}\r\n" \
+-            "Status: #{status}\r\n" \
+             "Connection: close\r\n"
+       headers.each do |key, value|
+         case key
+diff --git a/test/unit/test_response.rb b/test/unit/test_response.rb
+index 85ac085..fcddc5e 100644
+--- a/test/unit/test_response.rb
++++ b/test/unit/test_response.rb
+@@ -38,7 +38,6 @@ class ResponseTest < Test::Unit::TestCase
+     http_response_write(out,'200', {}, [])
+     assert ! out.closed?
+     assert out.length > 0, "output didn't have data"
+-    assert_equal 1, out.string.split(/\r\n/).grep(/^Status: 200 OK/).size
+   end
+ 
+   def test_response_200
+@@ -71,7 +70,6 @@ class ResponseTest < Test::Unit::TestCase
+     out = StringIO.new
+     http_response_write(out,200, {"X-Whatever" => "stuff"}, [])
+     assert ! out.closed?
+-    assert_equal 1, out.string.split(/\r\n/).grep(/^Status: 200 OK/i).size
+   end
+ 
+   def test_body_closed
+@@ -91,9 +89,5 @@ class ResponseTest < Test::Unit::TestCase
+     assert ! out.closed?
+     headers = out.string.split(/\r\n\r\n/).first.split(/\r\n/)
+     assert %r{\AHTTP/\d\.\d 666 I AM THE BEAST\z}.match(headers[0])
+-    status = headers.grep(/\AStatus:/i).first
+-    assert status
+-    assert_equal "Status: 666 I AM THE BEAST", status
+   end
+-
+ end
+-- 
+EW
+
