@@ -1,0 +1,116 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-2.0 required=3.0 tests=ALL_TRUSTED,AWL,BAYES_00
+ shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id D8CE11FD7B for <unicorn-public@bogomips.org>; Sun, 17
+ Aug 2014 02:34:03 +0000 (UTC)
+From: Eric Wong <e@80x24.org>
+To: unicorn-public@bogomips.org
+Subject: [PATCH 1/3] dev: remove isolate dependency
+Date: Sun, 17 Aug 2014 02:33:53 +0000
+Message-Id: <1408242835-21114-2-git-send-email-e@80x24.org>
+X-Mailer: git-send-email 2.0.0.rc4.1.g4a28f16
+In-Reply-To: <1408242835-21114-1-git-send-email-e@80x24.org>
+References: <1408242835-21114-1-git-send-email-e@80x24.org>
+List-Id: <unicorn-public@bogomips.org>
+
+It seems unnecessary with current versions of RubyGems
+supporting development dependencies.
+---
+ GNUmakefile              |  6 +-----
+ script/isolate_for_tests | 31 -------------------------------
+ t/GNUmakefile            |  6 +-----
+ unicorn.gemspec          |  1 -
+ 4 files changed, 2 insertions(+), 42 deletions(-)
+ delete mode 100755 script/isolate_for_tests
+
+diff --git a/GNUmakefile b/GNUmakefile
+index 00a6ace..50819fc 100644
+--- a/GNUmakefile
++++ b/GNUmakefile
+@@ -23,11 +23,7 @@ endif
+ 
+ RUBY_ENGINE := $(shell $(RUBY) -e 'puts((RUBY_ENGINE rescue "ruby"))')
+ 
+-isolate_libs := tmp/isolate/$(RUBY_ENGINE)-$(RUBY_VERSION).mk
+-$(isolate_libs): script/isolate_for_tests
+-	@$(RUBY) script/isolate_for_tests
+--include $(isolate_libs)
+-MYLIBS = $(RUBYLIB):$(ISOLATE_LIBS)
++MYLIBS = $(RUBYLIB)
+ 
+ # dunno how to implement this as concisely in Ruby, and hell, I love awk
+ awk_slow := awk '/def test_/{print FILENAME"--"$$2".n"}' 2>/dev/null
+diff --git a/script/isolate_for_tests b/script/isolate_for_tests
+deleted file mode 100755
+index 6f5dced..0000000
+--- a/script/isolate_for_tests
++++ /dev/null
+@@ -1,31 +0,0 @@
+-#!/usr/bin/env ruby
+-# scripts/Makefiles can read and eval the output of this script and
+-# use it as RUBYLIB
+-require 'rubygems'
+-require 'isolate'
+-fp = File.open(__FILE__, "rb")
+-fp.flock(File::LOCK_EX)
+-
+-ruby_engine = defined?(RUBY_ENGINE) ? RUBY_ENGINE : 'ruby'
+-opts = {
+-  :system => false,
+-  # we want "ruby-1.8.7" and not "ruby-1.8", so disable :multiruby
+-  :multiruby => false,
+-  :path => "tmp/isolate/#{ruby_engine}-#{RUBY_VERSION}",
+-}
+-
+-pid = fork do
+-  Isolate.now!(opts) do
+-    gem 'raindrops', '0.13.0'
+-    gem 'kgio', '2.9.2'
+-    gem 'rack', '1.5.2'
+-  end
+-end
+-_, status = Process.waitpid2(pid)
+-status.success? or abort status.inspect
+-lib_paths = Dir["#{opts[:path]}/gems/*-*/lib"].map { |x| File.expand_path(x) }
+-dst = "tmp/isolate/#{ruby_engine}-#{RUBY_VERSION}.mk"
+-File.open("#{dst}.#$$", "w") do |fp|
+-  fp.puts "ISOLATE_LIBS=#{lib_paths.join(':')}"
+-end
+-File.rename("#{dst}.#$$", dst)
+diff --git a/t/GNUmakefile b/t/GNUmakefile
+index 8f2668c..5f5d9bc 100644
+--- a/t/GNUmakefile
++++ b/t/GNUmakefile
+@@ -17,11 +17,7 @@ endif
+ RUBY_ENGINE := $(shell $(RUBY) -e 'puts((RUBY_ENGINE rescue "ruby"))')
+ export RUBY_ENGINE
+ 
+-isolate_libs := ../tmp/isolate/$(RUBY_ENGINE)-$(RUBY_VERSION).mk
+-$(isolate_libs): ../script/isolate_for_tests
+-	@cd .. && $(RUBY) script/isolate_for_tests
+--include $(isolate_libs)
+-MYLIBS := $(RUBYLIB):$(ISOLATE_LIBS)
++MYLIBS := $(RUBYLIB)
+ 
+ T = $(wildcard t[0-9][0-9][0-9][0-9]-*.sh)
+ 
+diff --git a/unicorn.gemspec b/unicorn.gemspec
+index c0c8092..b24b1ac 100644
+--- a/unicorn.gemspec
++++ b/unicorn.gemspec
+@@ -37,7 +37,6 @@ Gem::Specification.new do |s|
+   s.add_dependency(%q<kgio>, '~> 2.6')
+   s.add_dependency(%q<raindrops>, '~> 0.7')
+ 
+-  s.add_development_dependency('isolate', '~> 3.2')
+   s.add_development_dependency('wrongdoc', '~> 1.8')
+ 
+   s.licenses = ["GPLv2+", "Ruby 1.8"]
+-- 
+EW
+
