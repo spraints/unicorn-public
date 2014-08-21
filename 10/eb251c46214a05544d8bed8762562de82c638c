@@ -1,0 +1,61 @@
+Return-Path: <jdelstrother@gmail.com>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS15169 209.85.128.0/17
+X-Spam-Status: No, score=-2.6 required=3.0 tests=BAYES_00,FREEMAIL_FROM,
+ RCVD_IN_DNSWL_LOW shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from mail-lb0-f180.google.com (mail-lb0-f180.google.com
+ [209.85.217.180]) (using TLSv1 with cipher ECDHE-RSA-RC4-SHA (128/128 bits))
+ (No client certificate requested) by dcvr.yhbt.net (Postfix) with ESMTPS id
+ 6D84E1FD8E for <unicorn-public@bogomips.org>; Thu, 21 Aug 2014 12:05:38 +0000
+ (UTC)
+Received: by mail-lb0-f180.google.com with SMTP id v6so7857951lbi.25 for
+ <unicorn-public@bogomips.org>; Thu, 21 Aug 2014 05:05:36 -0700 (PDT)
+X-Received: by 10.152.234.236 with SMTP id
+ uh12mr48538369lac.31.1408622736167; Thu, 21 Aug 2014 05:05:36 -0700 (PDT)
+MIME-Version: 1.0
+Sender: jdelstrother@gmail.com
+Received: by 10.114.64.232 with HTTP; Thu, 21 Aug 2014 05:05:16 -0700 (PDT)
+From: Jonathan del Strother <jon.delStrother@audioboo.fm>
+Date: Thu, 21 Aug 2014 13:05:16 +0100
+X-Google-Sender-Auth: 4Qjr2LLiGHqxJXCOs4jP5T_dXMY
+Message-ID:
+ <CAF5DW8J6Dnws_S2yvJ4wZVPvPncQEtn08+n8YXvthLwSOtUdgQ@mail.gmail.com>
+Subject: Worker SIGABRT takes down all workers?
+To: unicorn-public@bogomips.org
+Content-Type: text/plain; charset=UTF-8
+List-Id: <unicorn-public@bogomips.org>
+
+Hi there,
+We're trying to figure out a problem we're having where Ruby 2.1.2 /
+ImageMagick is causing a SIGABRT in a unicorn worker process.  When it
+does so, I see this in unicorn.log :
+
+I, [2014-08-21T11:40:44.282905 #65706]  INFO -- : reaped
+#<Process::Status: pid 66787 exit 0> worker=0
+I, [2014-08-21T11:40:44.283289 #65706]  INFO -- : reaped
+#<Process::Status: pid 66801 exit 0> worker=7
+I, [2014-08-21T11:40:44.283583 #65706]  INFO -- : reaped
+#<Process::Status: pid 66790 exit 0> worker=3
+I, [2014-08-21T11:40:44.283871 #65706]  INFO -- : reaped
+#<Process::Status: pid 66793 exit 0> worker=4
+I, [2014-08-21T11:40:44.284198 #65706]  INFO -- : reaped
+#<Process::Status: pid 66794 exit 0> worker=5
+I, [2014-08-21T11:40:44.284538 #65706]  INFO -- : reaped
+#<Process::Status: pid 66798 exit 0> worker=6
+I, [2014-08-21T11:40:44.284832 #65706]  INFO -- : reaped
+#<Process::Status: pid 66788 exit 0> worker=1
+E, [2014-08-21T11:40:44.385491 #65706] ERROR -- : reaped
+#<Process::Status: pid 66789 SIGABRT (signal 6) (core dumped)>
+worker=2
+I, [2014-08-21T11:40:44.385951 #65706]  INFO -- : master complete
+I, [2014-08-21T11:40:48.073191 #72528]  INFO -- : Refreshing Gem list
+I, [2014-08-21T11:41:06.841582 #72528]  INFO -- : listening on
+addr=0.0.0.0:8090 fd=17
+
+So, as far as I can tell, the SIGABRT in a worker causes all siblings
+workers to be reaped and restarted.   Is that intended/expected?
+Shouldn't it just kill the single worker & restart that?
+
+-Jonathan
