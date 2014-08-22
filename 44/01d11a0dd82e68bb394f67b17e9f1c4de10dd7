@@ -1,0 +1,48 @@
+Return-Path: <jdelstrother@gmail.com>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS15169 209.85.128.0/17
+X-Spam-Status: No, score=-2.1 required=3.0 tests=AWL,BAYES_00,FREEMAIL_FROM,
+ URIBL_BLOCKED shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from mail-lb0-f171.google.com (mail-lb0-f171.google.com
+ [209.85.217.171]) (using TLSv1 with cipher ECDHE-RSA-RC4-SHA (128/128 bits))
+ (No client certificate requested) by dcvr.yhbt.net (Postfix) with ESMTPS id
+ 4956144C1AE for <unicorn-public@bogomips.org>; Fri, 22 Aug 2014 15:50:40
+ +0000 (UTC)
+Received: by mail-lb0-f171.google.com with SMTP id l4so9759968lbv.16 for
+ <unicorn-public@bogomips.org>; Fri, 22 Aug 2014 08:50:38 -0700 (PDT)
+X-Received: by 10.152.45.101 with SMTP id l5mr5537434lam.20.1408722638003;
+ Fri, 22 Aug 2014 08:50:38 -0700 (PDT)
+MIME-Version: 1.0
+Sender: jdelstrother@gmail.com
+Received: by 10.114.64.232 with HTTP; Fri, 22 Aug 2014 08:50:17 -0700 (PDT)
+In-Reply-To: <20140821203235.GA12050@dcvr.yhbt.net>
+References:
+ <CAF5DW8J6Dnws_S2yvJ4wZVPvPncQEtn08+n8YXvthLwSOtUdgQ@mail.gmail.com>
+ <20140821203235.GA12050@dcvr.yhbt.net>
+From: Jonathan del Strother <jon.delStrother@audioboo.fm>
+Date: Fri, 22 Aug 2014 16:50:17 +0100
+X-Google-Sender-Auth: M_vrGiaXxAYyc1HOMFQEAC8PCD0
+Message-ID:
+ <CAF5DW8+JVhCf3YzUVm467t1XXFH8EJ+7Tkkdz-5wdZAg0U2txQ@mail.gmail.com>
+Subject: Re: Worker SIGABRT takes down all workers?
+To: Eric Wong <e@80x24.org>
+Cc: unicorn-public@bogomips.org
+Content-Type: text/plain; charset=UTF-8
+List-Id: <unicorn-public@bogomips.org>
+
+On 21 August 2014 21:32, Eric Wong <e@80x24.org> wrote:
+> Jonathan del Strother <jon.delStrother@audioboo.fm> wrote:
+>> So, as far as I can tell, the SIGABRT in a worker causes all siblings
+>> workers to be reaped and restarted.   Is that intended/expected?
+>> Shouldn't it just kill the single worker & restart that?
+>
+> Not intended or expected.  I cannot reproduce it by doing:
+>
+>         kill -ABRT $WORKER_PID
+>
+
+You're quite right, sorry.  I'm running via SMF, which is detecting
+the child process's SIGABRT and deciding to restart the entire group.
+I'll look into getting SMF to ignore those.
