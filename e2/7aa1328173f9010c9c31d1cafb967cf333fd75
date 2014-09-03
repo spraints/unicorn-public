@@ -1,0 +1,97 @@
+Return-Path: <maillist@steelskies.com>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS30496 65.99.224.0/20
+X-Spam-Status: No, score=-1.0 required=3.0 tests=AWL,BAYES_00 shortcircuit=no
+ autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from jackson.asmallorange.com (jackson.asmallorange.com
+ [65.99.237.165]) (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384
+ (256/256 bits)) (No client certificate requested) by dcvr.yhbt.net (Postfix)
+ with ESMTPS id 4103E1FF3D for <unicorn-public@bogomips.org>; Wed,  3 Sep 2014
+ 10:13:44 +0000 (UTC)
+Received: from mail-lb0-f169.google.com ([209.85.217.169]:58688) by
+ jackson.asmallorange.com with esmtpsa (TLSv1:RC4-SHA:128) (Exim 4.82)
+ (envelope-from <maillist@steelskies.com>) id 1XP7ZP-0005l8-6V for
+ unicorn-public@bogomips.org; Wed, 03 Sep 2014 06:13:43 -0400
+Received: by mail-lb0-f169.google.com with SMTP id l4so9270377lbv.14 for
+ <unicorn-public@bogomips.org>; Wed, 03 Sep 2014 03:13:41 -0700 (PDT)
+X-Received: by 10.112.130.231 with SMTP id oh7mr8434727lbb.32.1409739221364;
+ Wed, 03 Sep 2014 03:13:41 -0700 (PDT)
+MIME-Version: 1.0
+Received: by 10.114.64.232 with HTTP; Wed, 3 Sep 2014 03:13:21 -0700 (PDT)
+From: Jonathan del Strother <maillist@steelskies.com>
+Date: Wed, 3 Sep 2014 11:13:21 +0100
+Message-ID:
+ <CAF5DW8JLdni=CF-RRJg-7Btf+sy2eFr_pxY1nPPG+BFrD7P5MQ@mail.gmail.com>
+Subject: fork() errors lead to a completely dead unicorn
+To: unicorn-public@bogomips.org
+Content-Type: text/plain; charset=UTF-8
+X-AntiAbuse: This header was added to track abuse, please include it with any
+ abuse report
+X-AntiAbuse: Primary Hostname - jackson.asmallorange.com
+X-AntiAbuse: Original Domain - bogomips.org
+X-AntiAbuse: Originator/Caller UID/GID - [47 12] / [47 12]
+X-AntiAbuse: Sender Address Domain - steelskies.com
+X-Get-Message-Sender-Via: jackson.asmallorange.com: authenticated_id:
+ maillist@steelskies.com
+X-Source: 
+X-Source-Args: 
+X-Source-Dir: 
+List-Id: <unicorn-public@bogomips.org>
+
+Hi - on SmartOS & Solaris, we occasionally run into problems where
+unicorn receives USR2 to reload itself, but can't fork off its workers
+due to not having enough RAM.  It then kills all of its workers and
+sits there failing to process any requests.  Unfortunately, the master
+process stays alive - if it actually died, we'd be able to
+automatically restart it.
+
+Can we do anything to handle this more elegantly?
+
+Jonathan
+
+PS: An example log file from when this occurs -
+
+I, [2014-09-03T08:51:29.034227 #7556]  INFO -- : executing
+["/app/common/bundle/ruby/2.1.0/bin/unicorn", "--env",
+"production-live", "--daemonize", "--config-file",
+"/app/code/config/unicorn.rb", {17=>#<Kgio::TCPServer:fd 17>}] (in
+/app/code)
+I, [2014-09-03T08:51:29.035223 #7556]  INFO -- : forked child re-executing...
+I, [2014-09-03T08:51:30.480393 #7556]  INFO -- : inherited
+addr=0.0.0.0:8090 fd=17
+I, [2014-09-03T08:51:30.481257 #7556]  INFO -- : Refreshing Gem list
+D, [2014-09-03T08:51:41.715061 #7556] DEBUG -- : ** [Airbrake]
+Notifier 3.1.14 ready to catch errors
+I, [2014-09-03T08:51:45.437499 #7952]  INFO -- : worker=0 ready
+I, [2014-09-03T08:51:45.471084 #7959]  INFO -- : worker=1 ready
+I, [2014-09-03T08:51:45.513301 #7960]  INFO -- : worker=2 ready
+I, [2014-09-03T08:51:45.558417 #7961]  INFO -- : worker=3 ready
+E, [2014-09-03T08:51:45.931282 #7556] ERROR -- : Not enough space -
+fork(2) (Errno::ENOMEM)
+/app/common/bundle/ruby/2.1.0/gems/unicorn-4.8.3/lib/unicorn/http_server.rb:520:in
+`fork'
+/app/common/bundle/ruby/2.1.0/gems/unicorn-4.8.3/lib/unicorn/http_server.rb:520:in
+`spawn_missing_workers'
+/app/common/bundle/ruby/2.1.0/gems/unicorn-4.8.3/lib/unicorn/http_server.rb:140:in
+`start'
+/app/common/bundle/ruby/2.1.0/gems/unicorn-4.8.3/bin/unicorn:126:in
+`<top (required)>'
+/app/common/bundle/ruby/2.1.0/bin/unicorn:23:in `load'
+/app/common/bundle/ruby/2.1.0/bin/unicorn:23:in `<main>'
+E, [2014-09-03T08:51:46.139737 #10484] ERROR -- : reaped
+#<Process::Status: pid 7556 exit 1> exec()-ed
+I, [2014-09-03T08:51:48.069452 #10484]  INFO -- : reaped
+#<Process::Status: pid 21801 exit 0> worker=1
+I, [2014-09-03T08:51:48.372431 #10484]  INFO -- : reaped
+#<Process::Status: pid 67829 exit 0> worker=3
+I, [2014-09-03T08:51:48.473412 #10484]  INFO -- : reaped
+#<Process::Status: pid 57211 exit 0> worker=0
+I, [2014-09-03T08:51:48.574279 #10484]  INFO -- : reaped
+#<Process::Status: pid 70992 exit 0> worker=2
+I, [2014-09-03T08:51:48.675085 #10484]  INFO -- : reaped
+#<Process::Status: pid 11195 exit 0> worker=5
+I, [2014-09-03T08:51:48.876051 #10484]  INFO -- : reaped
+#<Process::Status: pid 11194 exit 0> worker=4
+I, [2014-09-03T08:51:48.876341 #10484]  INFO -- : master complete
