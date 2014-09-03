@@ -1,0 +1,111 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-2.0 required=3.0 tests=ALL_TRUSTED,AWL,BAYES_00,
+ URIBL_BLOCKED shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id AB9831F45D; Wed,  3 Sep 2014 17:11:43 +0000 (UTC)
+Date: Wed, 3 Sep 2014 17:11:43 +0000
+From: Eric Wong <e@80x24.org>
+To: Jonathan del Strother <maillist@steelskies.com>
+Cc: unicorn-public@bogomips.org
+Subject: Re: fork() errors lead to a completely dead unicorn
+Message-ID: <20140903171143.GA21278@dcvr.yhbt.net>
+References:
+ <CAF5DW8JLdni=CF-RRJg-7Btf+sy2eFr_pxY1nPPG+BFrD7P5MQ@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To:
+ <CAF5DW8JLdni=CF-RRJg-7Btf+sy2eFr_pxY1nPPG+BFrD7P5MQ@mail.gmail.com>
+List-Id: <unicorn-public@bogomips.org>
+
+Jonathan del Strother <maillist@steelskies.com> wrote:
+> Hi - on SmartOS & Solaris, we occasionally run into problems where
+> unicorn receives USR2 to reload itself, but can't fork off its workers
+> due to not having enough RAM.  It then kills all of its workers and
+> sits there failing to process any requests.  Unfortunately, the master
+> process stays alive - if it actually died, we'd be able to
+> automatically restart it.
+
+I wonder if this is an SMF problem.  At the bottom of your log,
+it says "master complete", which seems to be the master which received
+the USR2.
+
+I'll walk through the log to see how things look from my end...
+
+> Can we do anything to handle this more elegantly?
+
+> PS: An example log file from when this occurs -
+> 
+> I, [2014-09-03T08:51:29.034227 #7556]  INFO -- : executing
+> ["/app/common/bundle/ruby/2.1.0/bin/unicorn", "--env",
+> "production-live", "--daemonize", "--config-file",
+
+7556 is the new child which eventually fails.
+
+> "/app/code/config/unicorn.rb", {17=>#<Kgio::TCPServer:fd 17>}] (in
+> /app/code)
+> I, [2014-09-03T08:51:29.035223 #7556]  INFO -- : forked child re-executing...
+> I, [2014-09-03T08:51:30.480393 #7556]  INFO -- : inherited
+> addr=0.0.0.0:8090 fd=17
+> I, [2014-09-03T08:51:30.481257 #7556]  INFO -- : Refreshing Gem list
+> D, [2014-09-03T08:51:41.715061 #7556] DEBUG -- : ** [Airbrake]
+> Notifier 3.1.14 ready to catch errors
+> I, [2014-09-03T08:51:45.437499 #7952]  INFO -- : worker=0 ready
+> I, [2014-09-03T08:51:45.471084 #7959]  INFO -- : worker=1 ready
+> I, [2014-09-03T08:51:45.513301 #7960]  INFO -- : worker=2 ready
+> I, [2014-09-03T08:51:45.558417 #7961]  INFO -- : worker=3 ready
+> E, [2014-09-03T08:51:45.931282 #7556] ERROR -- : Not enough space -
+> fork(2) (Errno::ENOMEM)
+
+OK, fork fails from the new child; current behavior is to exit.
+
+> /app/common/bundle/ruby/2.1.0/gems/unicorn-4.8.3/lib/unicorn/http_server.rb:520:in
+> `fork'
+> /app/common/bundle/ruby/2.1.0/gems/unicorn-4.8.3/lib/unicorn/http_server.rb:520:in
+> `spawn_missing_workers'
+> /app/common/bundle/ruby/2.1.0/gems/unicorn-4.8.3/lib/unicorn/http_server.rb:140:in
+> `start'
+> /app/common/bundle/ruby/2.1.0/gems/unicorn-4.8.3/bin/unicorn:126:in
+> `<top (required)>'
+
+OK, this should've hit the exit! case in spawn_missing_workers,
+and it does...
+
+> /app/common/bundle/ruby/2.1.0/bin/unicorn:23:in `load'
+> /app/common/bundle/ruby/2.1.0/bin/unicorn:23:in `<main>'
+> E, [2014-09-03T08:51:46.139737 #10484] ERROR -- : reaped
+> #<Process::Status: pid 7556 exit 1> exec()-ed
+
+old master which originally received USR2 is notified the new master
+(7556) died
+
+> I, [2014-09-03T08:51:48.069452 #10484]  INFO -- : reaped
+> #<Process::Status: pid 21801 exit 0> worker=1
+> I, [2014-09-03T08:51:48.372431 #10484]  INFO -- : reaped
+> #<Process::Status: pid 67829 exit 0> worker=3
+> I, [2014-09-03T08:51:48.473412 #10484]  INFO -- : reaped
+> #<Process::Status: pid 57211 exit 0> worker=0
+> I, [2014-09-03T08:51:48.574279 #10484]  INFO -- : reaped
+> #<Process::Status: pid 70992 exit 0> worker=2
+> I, [2014-09-03T08:51:48.675085 #10484]  INFO -- : reaped
+> #<Process::Status: pid 11195 exit 0> worker=5
+> I, [2014-09-03T08:51:48.876051 #10484]  INFO -- : reaped
+> #<Process::Status: pid 11194 exit 0> worker=4
+
+Workers in the old master dying looks like the SMF problem you
+encountered with SIGABRT earlier.
+
+> I, [2014-09-03T08:51:48.876341 #10484]  INFO -- : master complete
+
+But the original master does not die after this?
+
+Can you truss it and see if it's stuck on reading/unlinking the pidfile?
+That would the only thing preventing the master from actually dying,
+but the old master dying should not happen in the first place.
+
+-- 
+EW
