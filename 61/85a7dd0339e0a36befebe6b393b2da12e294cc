@@ -1,0 +1,104 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-2.1 required=3.0 tests=ALL_TRUSTED,AWL,BAYES_00
+ shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 1D3E71F7C5; Mon, 22 Sep 2014 01:05:51 +0000 (UTC)
+From: Eric Wong <e@80x24.org>
+To: unicorn-public@bogomips.org
+Cc: Eric Wong <e@80x24.org>
+Subject: [PATCH 4/4] http: reduce parser from 72 to 56 bytes on 64-bit
+Date: Mon, 22 Sep 2014 01:05:30 +0000
+Message-Id: <1411347930-16660-5-git-send-email-e@80x24.org>
+X-Mailer: git-send-email 2.1.0.242.ga948883
+In-Reply-To: <1411347930-16660-1-git-send-email-e@80x24.org>
+References: <1411347930-16660-1-git-send-email-e@80x24.org>
+List-Id: <unicorn-public@bogomips.org>
+
+This allows the parser struct to fit in one cache line on
+x86-64 systems where cache lines are 64 bytes.
+
+Using 32-bit integer lengths is safe here because these are only for
+tracking offsets within the HTTP header buffer.  We can safely limit
+HTTP headers and in-memory buffers to be less than 4GB without
+anybody complaining.
+
+HTTP bodies continue to use off_t (usually 64-bit, even on 32-bit
+systems) sizes and support as much as the OS/hardware can handle.
+---
+ ext/unicorn_http/unicorn_http.rl | 18 +++++++++---------
+ test/unit/test_http_parser_ng.rb |  6 ++++++
+ 2 files changed, 15 insertions(+), 9 deletions(-)
+
+diff --git a/ext/unicorn_http/unicorn_http.rl b/ext/unicorn_http/unicorn_http.rl
+index 9372d39..3294357 100644
+--- a/ext/unicorn_http/unicorn_http.rl
++++ b/ext/unicorn_http/unicorn_http.rl
+@@ -29,27 +29,27 @@ void init_unicorn_httpdate(void);
+ /* all of these flags need to be set for keepalive to be supported */
+ #define UH_FL_KEEPALIVE (UH_FL_KAVERSION | UH_FL_REQEOF | UH_FL_HASHEADER)
+ 
+-static size_t MAX_HEADER_LEN = 1024 * (80 + 32); /* same as Mongrel */
++static unsigned int MAX_HEADER_LEN = 1024 * (80 + 32); /* same as Mongrel */
+ 
+ /* this is only intended for use with Rainbows! */
+ static VALUE set_maxhdrlen(VALUE self, VALUE len)
+ {
+-  return SIZET2NUM(MAX_HEADER_LEN = NUM2SIZET(len));
++  return UINT2NUM(MAX_HEADER_LEN = NUM2UINT(len));
+ }
+ 
+ /* keep this small for Rainbows! since every client has one */
+ struct http_parser {
+   int cs; /* Ragel internal state */
+   unsigned int flags;
+-  size_t mark;
+-  size_t offset;
++  unsigned int mark;
++  unsigned int offset;
+   union { /* these 2 fields don't nest */
+-    size_t field;
+-    size_t query;
++    unsigned int field;
++    unsigned int query;
+   } start;
+   union {
+-    size_t field_len; /* only used during header processing */
+-    size_t dest_offset; /* only used during body processing */
++    unsigned int field_len; /* only used during header processing */
++    unsigned int dest_offset; /* only used during body processing */
+   } s;
+   VALUE buf;
+   VALUE env;
+@@ -74,7 +74,7 @@ static void parser_raise(VALUE klass, const char *msg)
+ }
+ 
+ #define REMAINING (unsigned long)(pe - p)
+-#define LEN(AT, FPC) (FPC - buffer - hp->AT)
++#define LEN(AT, FPC) (FPC - buffer - (unsigned long)hp->AT)
+ #define MARK(M,FPC) (hp->M = (FPC) - buffer)
+ #define PTR_TO(F) (buffer + hp->F)
+ #define STR_NEW(M,FPC) rb_str_new(PTR_TO(M), LEN(M, FPC))
+diff --git a/test/unit/test_http_parser_ng.rb b/test/unit/test_http_parser_ng.rb
+index 9167845..d5c8d2e 100644
+--- a/test/unit/test_http_parser_ng.rb
++++ b/test/unit/test_http_parser_ng.rb
+@@ -11,6 +11,12 @@ class HttpParserNgTest < Test::Unit::TestCase
+     @parser = HttpParser.new
+   end
+ 
++  def test_parser_max_len
++    assert_raises(RangeError) do
++      HttpParser.max_header_len = 0xffffffff + 1
++    end
++  end
++
+   def test_next_clear
+     r = "GET / HTTP/1.1\r\nHost: example.com\r\n\r\n"
+     @parser.buf << r
+-- 
+EW
+
