@@ -1,0 +1,223 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-2.1 required=3.0 tests=ALL_TRUSTED,AWL,BAYES_00
+ shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 022EE1F80A; Mon, 22 Sep 2014 01:05:50 +0000 (UTC)
+From: Eric Wong <e@80x24.org>
+To: unicorn-public@bogomips.org
+Cc: Eric Wong <e@80x24.org>
+Subject: [PATCH 3/4] http: remove the keepalive requests limit
+Date: Mon, 22 Sep 2014 01:05:29 +0000
+Message-Id: <1411347930-16660-4-git-send-email-e@80x24.org>
+X-Mailer: git-send-email 2.1.0.242.ga948883
+In-Reply-To: <1411347930-16660-1-git-send-email-e@80x24.org>
+References: <1411347930-16660-1-git-send-email-e@80x24.org>
+List-Id: <unicorn-public@bogomips.org>
+
+This was a hack for some event loops such as those found in nginx
+and some Rainbows! concurrency models.  Using epoll/kqueue with
+one-shot notification (which yahns does) avoids all fairness
+problems.
+---
+ ext/unicorn_http/unicorn_http.rl | 37 ++------------------
+ test/unit/test_http_parser_ng.rb | 74 +---------------------------------------
+ 2 files changed, 3 insertions(+), 108 deletions(-)
+
+diff --git a/ext/unicorn_http/unicorn_http.rl b/ext/unicorn_http/unicorn_http.rl
+index ecdadb0..9372d39 100644
+--- a/ext/unicorn_http/unicorn_http.rl
++++ b/ext/unicorn_http/unicorn_http.rl
+@@ -29,29 +29,6 @@ void init_unicorn_httpdate(void);
+ /* all of these flags need to be set for keepalive to be supported */
+ #define UH_FL_KEEPALIVE (UH_FL_KAVERSION | UH_FL_REQEOF | UH_FL_HASHEADER)
+ 
+-static unsigned long keepalive_requests = 100; /* same as nginx */
+-
+-/*
+- * Returns the maximum number of keepalive requests a client may make
+- * before the parser refuses to continue.
+- */
+-static VALUE ka_req(VALUE self)
+-{
+-  return ULONG2NUM(keepalive_requests);
+-}
+-
+-/*
+- * Sets the maximum number of keepalive requests a client may make.
+- * A special value of +nil+ causes this to be the maximum value
+- * possible (this is architecture-dependent).
+- */
+-static VALUE set_ka_req(VALUE self, VALUE val)
+-{
+-  keepalive_requests = NIL_P(val) ? ULONG_MAX : NUM2ULONG(val);
+-
+-  return ka_req(self);
+-}
+-
+ static size_t MAX_HEADER_LEN = 1024 * (80 + 32); /* same as Mongrel */
+ 
+ /* this is only intended for use with Rainbows! */
+@@ -64,7 +41,6 @@ static VALUE set_maxhdrlen(VALUE self, VALUE len)
+ struct http_parser {
+   int cs; /* Ragel internal state */
+   unsigned int flags;
+-  unsigned long nr_requests;
+   size_t mark;
+   size_t offset;
+   union { /* these 2 fields don't nest */
+@@ -580,7 +556,6 @@ static VALUE HttpParser_init(VALUE self)
+   http_parser_init(hp);
+   hp->buf = rb_str_new(NULL, 0);
+   hp->env = rb_hash_new();
+-  hp->nr_requests = keepalive_requests;
+ 
+   return self;
+ }
+@@ -814,15 +789,13 @@ static VALUE HttpParser_keepalive(VALUE self)
+  *    parser.next? => true or false
+  *
+  * Exactly like HttpParser#keepalive?, except it will reset the internal
+- * parser state on next parse if it returns true.  It will also respect
+- * the maximum *keepalive_requests* value and return false if that is
+- * reached.
++ * parser state on next parse if it returns true.
+  */
+ static VALUE HttpParser_next(VALUE self)
+ {
+   struct http_parser *hp = data_get(self);
+ 
+-  if ((HP_FL_ALL(hp, KEEPALIVE)) && (hp->nr_requests-- != 0)) {
++  if (HP_FL_ALL(hp, KEEPALIVE)) {
+     HP_FL_SET(hp, TO_CLEAR);
+     return Qtrue;
+   }
+@@ -984,12 +957,6 @@ void Init_unicorn_http(void)
+    */
+   rb_define_const(cHttpParser, "LENGTH_MAX", OFFT2NUM(UH_OFF_T_MAX));
+ 
+-  /* default value for keepalive_requests */
+-  rb_define_const(cHttpParser, "KEEPALIVE_REQUESTS_DEFAULT",
+-                  ULONG2NUM(keepalive_requests));
+-
+-  rb_define_singleton_method(cHttpParser, "keepalive_requests", ka_req, 0);
+-  rb_define_singleton_method(cHttpParser, "keepalive_requests=", set_ka_req, 1);
+   rb_define_singleton_method(cHttpParser, "max_header_len=", set_maxhdrlen, 1);
+ 
+   init_common_fields();
+diff --git a/test/unit/test_http_parser_ng.rb b/test/unit/test_http_parser_ng.rb
+index ab335ac..9167845 100644
+--- a/test/unit/test_http_parser_ng.rb
++++ b/test/unit/test_http_parser_ng.rb
+@@ -8,7 +8,6 @@ include Unicorn
+ class HttpParserNgTest < Test::Unit::TestCase
+ 
+   def setup
+-    HttpParser.keepalive_requests = HttpParser::KEEPALIVE_REQUESTS_DEFAULT
+     @parser = HttpParser.new
+   end
+ 
+@@ -29,25 +28,6 @@ class HttpParserNgTest < Test::Unit::TestCase
+     assert_equal false, @parser.response_start_sent
+   end
+ 
+-  def test_keepalive_requests_default_constant
+-    assert_kind_of Integer, HttpParser::KEEPALIVE_REQUESTS_DEFAULT
+-    assert HttpParser::KEEPALIVE_REQUESTS_DEFAULT >= 0
+-  end
+-
+-  def test_keepalive_requests_setting
+-    HttpParser.keepalive_requests = 0
+-    assert_equal 0, HttpParser.keepalive_requests
+-    HttpParser.keepalive_requests = nil
+-    assert HttpParser.keepalive_requests >= 0xffffffff
+-    HttpParser.keepalive_requests = 1
+-    assert_equal 1, HttpParser.keepalive_requests
+-    HttpParser.keepalive_requests = 666
+-    assert_equal 666, HttpParser.keepalive_requests
+-
+-    assert_raises(TypeError) { HttpParser.keepalive_requests = "666" }
+-    assert_raises(TypeError) { HttpParser.keepalive_requests = [] }
+-  end
+-
+   def test_connection_TE
+     @parser.buf << "GET / HTTP/1.1\r\nHost: example.com\r\nConnection: TE\r\n"
+     @parser.buf << "TE: trailers\r\n\r\n"
+@@ -71,41 +51,11 @@ class HttpParserNgTest < Test::Unit::TestCase
+       "REQUEST_METHOD" => "GET",
+       "QUERY_STRING" => ""
+     }.freeze
+-    HttpParser::KEEPALIVE_REQUESTS_DEFAULT.times do |nr|
+-      @parser.buf << req
+-      assert_equal expect, @parser.parse
+-      assert @parser.next?
+-    end
+-    @parser.buf << req
+-    assert_equal expect, @parser.parse
+-    assert ! @parser.next?
+-  end
+-
+-  def test_fewer_keepalive_requests_with_next?
+-    HttpParser.keepalive_requests = 5
+-    @parser = HttpParser.new
+-    req = "GET / HTTP/1.1\r\nHost: example.com\r\n\r\n".freeze
+-    expect = {
+-      "SERVER_NAME" => "example.com",
+-      "HTTP_HOST" => "example.com",
+-      "rack.url_scheme" => "http",
+-      "REQUEST_PATH" => "/",
+-      "SERVER_PROTOCOL" => "HTTP/1.1",
+-      "PATH_INFO" => "/",
+-      "HTTP_VERSION" => "HTTP/1.1",
+-      "REQUEST_URI" => "/",
+-      "SERVER_PORT" => "80",
+-      "REQUEST_METHOD" => "GET",
+-      "QUERY_STRING" => ""
+-    }.freeze
+-    5.times do |nr|
++    100.times do |nr|
+       @parser.buf << req
+       assert_equal expect, @parser.parse
+       assert @parser.next?
+     end
+-    @parser.buf << req
+-    assert_equal expect, @parser.parse
+-    assert ! @parser.next?
+   end
+ 
+   def test_default_keepalive_is_off
+@@ -664,28 +614,6 @@ class HttpParserNgTest < Test::Unit::TestCase
+     assert_equal "", @parser.buf
+   end
+ 
+-  def test_keepalive_requests_disabled
+-    req = "GET / HTTP/1.1\r\nHost: example.com\r\n\r\n".freeze
+-    expect = {
+-      "SERVER_NAME" => "example.com",
+-      "HTTP_HOST" => "example.com",
+-      "rack.url_scheme" => "http",
+-      "REQUEST_PATH" => "/",
+-      "SERVER_PROTOCOL" => "HTTP/1.1",
+-      "PATH_INFO" => "/",
+-      "HTTP_VERSION" => "HTTP/1.1",
+-      "REQUEST_URI" => "/",
+-      "SERVER_PORT" => "80",
+-      "REQUEST_METHOD" => "GET",
+-      "QUERY_STRING" => ""
+-    }.freeze
+-    HttpParser.keepalive_requests = 0
+-    @parser = HttpParser.new
+-    @parser.buf << req
+-    assert_equal expect, @parser.parse
+-    assert ! @parser.next?
+-  end
+-
+   def test_chunk_only
+     tmp = ""
+     assert_equal @parser, @parser.dechunk!
+-- 
+EW
+
