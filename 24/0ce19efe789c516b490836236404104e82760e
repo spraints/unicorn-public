@@ -1,0 +1,41 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-2.1 required=3.0 tests=ALL_TRUSTED,AWL,BAYES_00,
+ URIBL_BLOCKED shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id F1FD21F7C3; Sat, 27 Sep 2014 08:32:23 +0000 (UTC)
+Date: Sat, 27 Sep 2014 08:32:23 +0000
+From: Eric Wong <e@80x24.org>
+To: unicorn-public@bogomips.org
+Subject: dropping Ruby 1.8 support for unicorn 5?
+Message-ID: <20140927083221.GA1390@dcvr.yhbt.net>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+List-Id: <unicorn-public@bogomips.org>
+
+We've brought this up a few times, but I suppose we might as well drop
+1.8 support in a major version change.
+
+We may still maintain unicorn 4.x for 1.8 users indefinitely; after all,
+we only accepted a patch for 1.8.6 compatibility less than a year
+ago(!)[1].   So I'll still feel a _little_ bad for dropping 1.8 :x
+
+One big reason for this is it looks like Ruby will move towards
+deprecating old Data_* macros for superior (1.9+-only) TypedData_*
+macros in the next few years[2].  The theme for unicorn 5 is mostly
+dropping old, unused crap anyways; and not gaining new bloat.
+
+Worst case is we support 1.8 and avoid deprecation warnings through
+the use of ifdefs in the HTTP parser, but I'm no fan of ifdefs.
+
+
+[1] commit 7e9e4c740aba24096f768f578779dc1053cb8b70
+    (construct listener_fds Hash in 1.8.6 compatible way)
+
+[2] http://svn.ruby-lang.org/cgi-bin/viewvc.cgi?view=revision&revision=47717
+    This is due to type-checking issues like
+    https://bugs.ruby-lang.org/issues/10296
