@@ -1,0 +1,67 @@
+Return-Path: <valentin.mihov@gmail.com>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS15169 209.85.128.0/17
+X-Spam-Status: No, score=-1.9 required=3.0 tests=BAYES_00,FREEMAIL_FROM,
+ URIBL_BLOCKED shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from mail-yh0-f51.google.com (mail-yh0-f51.google.com
+ [209.85.213.51]) (using TLSv1 with cipher ECDHE-RSA-RC4-SHA (128/128 bits))
+ (No client certificate requested) by dcvr.yhbt.net (Postfix) with ESMTPS id
+ A478344C008 for <unicorn-public@bogomips.org>; Fri,  3 Oct 2014 18:12:42
+ +0000 (UTC)
+Received: by mail-yh0-f51.google.com with SMTP id 29so523977yhl.24 for
+ <unicorn-public@bogomips.org>; Fri, 03 Oct 2014 11:12:41 -0700 (PDT)
+X-Received: by 10.236.69.136 with SMTP id n8mr10311956yhd.93.1412359961448;
+ Fri, 03 Oct 2014 11:12:41 -0700 (PDT)
+MIME-Version: 1.0
+Received: by 10.170.185.21 with HTTP; Fri, 3 Oct 2014 11:12:21 -0700 (PDT)
+In-Reply-To: <20141003175042.GA30986@dcvr.yhbt.net>
+References:
+ <CAJri6_tdtd5tfPcrTcTBbmQKrmRYnnGJERFwSo1T6PTDsoOO_A@mail.gmail.com>
+ <20141003122222.GA11445@dcvr.yhbt.net>
+ <CAC=mCcmx1yTiU0XRP+gDJ7qHECEK9GT7ZOK57bbDG3K-OX6H4Q@mail.gmail.com>
+ <20141003175042.GA30986@dcvr.yhbt.net>
+From: Valentin Mihov <valentin.mihov@gmail.com>
+Date: Fri, 3 Oct 2014 21:12:21 +0300
+Message-ID:
+ <CAC=mCckE8pfMFT-TDH1OPknx-uZpcnrd5_78nLJXvzwpvnChDw@mail.gmail.com>
+Subject: Re: Master hooks needed
+To: Eric Wong <e@80x24.org>
+Cc: =?UTF-8?Q?Br=C3=A1ulio_Bhavamitra?= <braulio@eita.org.br>, 
+ unicorn-public <unicorn-public@bogomips.org>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
+List-Id: <unicorn-public@bogomips.org>
+
+On Fri, Oct 3, 2014 at 8:50 PM, Eric Wong <e@80x24.org> wrote:
+> Valentin Mihov <valentin.mihov@gmail.com> wrote:
+>> On Fri, Oct 3, 2014 at 3:22 PM, Eric Wong <e@80x24.org> wrote:
+>> > Br=C3=A1ulio Bhavamitra <braulio@eita.org.br> wrote:
+>> > > Both operations I currently do (server warm up and old pid kill) nee=
+d
+>> > > to be run only once, and not for every worker as before_fork does,
+>> > > that's why I had to put the condition seen above.
+>> >
+>> > rack.git also has a Rack::Builder#warmup method.  Aman originally
+>> > proposed it for unicorn, but it's useful outside of unicorn so
+>> > we moved it to Rack.
+>>
+>> Isn't it much better to do the warmup in an initializer instead in
+>> unicorn? This way you can preload_app=3Dtrue and the master will execute
+>> the warmup code and fork. Killing the old pid is probably stopping you
+>> from do that, right?
+>
+> Right, that's exactly what Rack::Builder#warmup does with
+> preload_app=3Dtrue.  If by "initializer" you mean within the application,
+> the problem was it lacked the visibility of the entire Rack middleware
+> stack which Rack::Builder has.
+>
+> ref:
+> http://bogomips.org/unicorn-public/m/571f2d6c6f4b8df644bd84f069fafa5bde3c=
+de2e
+> http://bogomips.org/unicorn-public/m/20130923105807.GA24712%40dcvr.yhbt.n=
+et
+
+I was thinking about a Rails initializer, but what you pointed to is a
+generalization of that. So, we are talking about the same thing.
