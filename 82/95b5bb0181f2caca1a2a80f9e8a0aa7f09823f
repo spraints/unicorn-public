@@ -1,0 +1,84 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-2.1 required=3.0 tests=ALL_TRUSTED,AWL,BAYES_00,
+ URIBL_BLOCKED shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id C2B1444C008; Fri,  3 Oct 2014 12:22:22 +0000 (UTC)
+Date: Fri, 3 Oct 2014 12:22:22 +0000
+From: Eric Wong <e@80x24.org>
+To: =?utf-8?Q?Br=C3=A1ulio?= Bhavamitra <braulio@eita.org.br>
+Cc: unicorn-public <unicorn-public@bogomips.org>
+Subject: Re: Master hooks needed
+Message-ID: <20141003122222.GA11445@dcvr.yhbt.net>
+References:
+ <CAJri6_tdtd5tfPcrTcTBbmQKrmRYnnGJERFwSo1T6PTDsoOO_A@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+Content-Transfer-Encoding: 8bit
+In-Reply-To:
+ <CAJri6_tdtd5tfPcrTcTBbmQKrmRYnnGJERFwSo1T6PTDsoOO_A@mail.gmail.com>
+List-Id: <unicorn-public@bogomips.org>
+
+Bráulio Bhavamitra <braulio@eita.org.br> wrote:
+> Hello all,
+> 
+> If I need to hook something after master load, I'm currently doing:
+> 
+> before_fork do |server, worker|
+>   # worker 0 is the first to init, so hold the master here
+>   if worker.nr == 0
+>      #warm up server...
+> 
+>      #kill old pid...
+>   end
+> 
+>   # other stuff for each worker
+> end
+> 
+> Both operations I currently do (server warm up and old pid kill) need
+> to be run only once, and not for every worker as before_fork does,
+> that's why I had to put the condition seen above.
+
+The above is fine if your first worker never dies.  I think you can add
+a local variable to ensure it only runs the first time worker.nr == 0 is
+started, in case a worker dies.  Something like:
+
+    first = true
+    before_fork do |server, worker|
+      # worker 0 is the first to init, so hold the master here
+      if worker.nr == 0 && first
+         first = false
+         #warm up server...
+
+         #kill old pid...
+      end
+
+      # other stuff for each worker
+    end
+
+For what it's worth, I'm not a fan of auto-killing the old PID in the
+unicorn config and regret having it in the example config.  It's only
+for the most memory-constrained configs and fragile (because anything
+with pid files is always fragile).
+
+> So hooks for master is needed, something like
+> master_after_load(server) and master_init(server).
+> 
+> What do you think?
+
+rack.git also has a Rack::Builder#warmup method.  Aman originally
+proposed it for unicorn, but it's useful outside of unicorn so
+we moved it to Rack.
+
+In general, I'm against adding new hooks/options because they tend to
+make maintainability and documentation harder for ops folks.
+I still have nightmares of some Capistrano config filled with hooks
+from years ago :x
+
+Features like these also makes migrating away from unicorn harder, so
+that is another reason we ended up adding #warmup to Rack and not
+unicorn.
