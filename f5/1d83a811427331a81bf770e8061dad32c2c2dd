@@ -1,0 +1,52 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-2.1 required=3.0 tests=ALL_TRUSTED,AWL,BAYES_00,
+ URIBL_BLOCKED shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id B863D1F7C5; Fri,  3 Oct 2014 17:50:42 +0000 (UTC)
+Date: Fri, 3 Oct 2014 17:50:42 +0000
+From: Eric Wong <e@80x24.org>
+To: Valentin Mihov <valentin.mihov@gmail.com>
+Cc: =?utf-8?Q?Br=C3=A1ulio?= Bhavamitra <braulio@eita.org.br>, unicorn-public
+ <unicorn-public@bogomips.org>
+Subject: Re: Master hooks needed
+Message-ID: <20141003175042.GA30986@dcvr.yhbt.net>
+References:
+ <CAJri6_tdtd5tfPcrTcTBbmQKrmRYnnGJERFwSo1T6PTDsoOO_A@mail.gmail.com>
+ <20141003122222.GA11445@dcvr.yhbt.net>
+ <CAC=mCcmx1yTiU0XRP+gDJ7qHECEK9GT7ZOK57bbDG3K-OX6H4Q@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+Content-Transfer-Encoding: 8bit
+In-Reply-To:
+ <CAC=mCcmx1yTiU0XRP+gDJ7qHECEK9GT7ZOK57bbDG3K-OX6H4Q@mail.gmail.com>
+List-Id: <unicorn-public@bogomips.org>
+
+Valentin Mihov <valentin.mihov@gmail.com> wrote:
+> On Fri, Oct 3, 2014 at 3:22 PM, Eric Wong <e@80x24.org> wrote:
+> > Bráulio Bhavamitra <braulio@eita.org.br> wrote:
+> > > Both operations I currently do (server warm up and old pid kill) need
+> > > to be run only once, and not for every worker as before_fork does,
+> > > that's why I had to put the condition seen above.
+> >
+> > rack.git also has a Rack::Builder#warmup method.  Aman originally
+> > proposed it for unicorn, but it's useful outside of unicorn so
+> > we moved it to Rack.
+> 
+> Isn't it much better to do the warmup in an initializer instead in
+> unicorn? This way you can preload_app=true and the master will execute
+> the warmup code and fork. Killing the old pid is probably stopping you
+> from do that, right?
+
+Right, that's exactly what Rack::Builder#warmup does with
+preload_app=true.  If by "initializer" you mean within the application,
+the problem was it lacked the visibility of the entire Rack middleware
+stack which Rack::Builder has.
+
+ref:
+http://bogomips.org/unicorn-public/m/571f2d6c6f4b8df644bd84f069fafa5bde3cde2e
+http://bogomips.org/unicorn-public/m/20130923105807.GA24712%40dcvr.yhbt.net
