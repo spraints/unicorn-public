@@ -1,0 +1,56 @@
+Return-Path: <brauliobo@gmail.com>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS15169 209.85.128.0/17
+X-Spam-Status: No, score=-0.4 required=3.0 tests=AWL,BAYES_00,FREEMAIL_FROM,
+ URIBL_BLOCKED shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from mail-ob0-f172.google.com (mail-ob0-f172.google.com
+ [209.85.214.172]) (using TLSv1 with cipher ECDHE-RSA-RC4-SHA (128/128 bits))
+ (No client certificate requested) by dcvr.yhbt.net (Postfix) with ESMTPS id
+ DE3DC1F7C5 for <unicorn-public@bogomips.org>; Fri,  3 Oct 2014 11:35:18 +0000
+ (UTC)
+Received: by mail-ob0-f172.google.com with SMTP id wo20so683824obc.31 for
+ <unicorn-public@bogomips.org>; Fri, 03 Oct 2014 04:35:17 -0700 (PDT)
+X-Received: by 10.182.29.234 with SMTP id n10mr5702175obh.67.1412336117738;
+ Fri, 03 Oct 2014 04:35:17 -0700 (PDT)
+MIME-Version: 1.0
+Sender: brauliobo@gmail.com
+Received: by 10.202.68.133 with HTTP; Fri, 3 Oct 2014 04:34:37 -0700 (PDT)
+From: =?UTF-8?Q?Br=C3=A1ulio_Bhavamitra?= <braulio@eita.org.br>
+Date: Fri, 3 Oct 2014 08:34:37 -0300
+X-Google-Sender-Auth: luxQ90T85RZVFv9anYf0vlczKRM
+Message-ID:
+ <CAJri6_tdtd5tfPcrTcTBbmQKrmRYnnGJERFwSo1T6PTDsoOO_A@mail.gmail.com>
+Subject: Master hooks needed
+To: unicorn-public <unicorn-public@bogomips.org>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
+List-Id: <unicorn-public@bogomips.org>
+
+Hello all,
+
+If I need to hook something after master load, I'm currently doing:
+
+before_fork do |server, worker|
+  # worker 0 is the first to init, so hold the master here
+  if worker.nr =3D=3D 0
+     #warm up server...
+
+     #kill old pid...
+  end
+
+  # other stuff for each worker
+end
+
+Both operations I currently do (server warm up and old pid kill) need
+to be run only once, and not for every worker as before_fork does,
+that's why I had to put the condition seen above.
+
+So hooks for master is needed, something like
+master_after_load(server) and master_init(server).
+
+What do you think?
+
+cheers,
+br=C3=A1ulio
