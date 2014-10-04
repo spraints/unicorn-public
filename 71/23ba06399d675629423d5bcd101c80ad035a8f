@@ -1,0 +1,67 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-2.1 required=3.0 tests=ALL_TRUSTED,AWL,BAYES_00,
+ URIBL_BLOCKED shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 1B4391F7D5; Sat,  4 Oct 2014 01:22:11 +0000 (UTC)
+Date: Sat, 4 Oct 2014 01:22:10 +0000
+From: Eric Wong <e@80x24.org>
+To: =?utf-8?Q?Br=C3=A1ulio?= Bhavamitra <braulio@eita.org.br>
+Cc: unicorn-public <unicorn-public@bogomips.org>
+Subject: Re: Master hooks needed
+Message-ID: <20141004012210.GA8134@dcvr.yhbt.net>
+References:
+ <CAJri6_tdtd5tfPcrTcTBbmQKrmRYnnGJERFwSo1T6PTDsoOO_A@mail.gmail.com>
+ <20141003122222.GA11445@dcvr.yhbt.net>
+ <CAJri6_s61q4-yMTp8Ev8HizDBnjGXqusmkrJODYX64TtFd+8ZA@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+Content-Transfer-Encoding: 8bit
+In-Reply-To:
+ <CAJri6_s61q4-yMTp8Ev8HizDBnjGXqusmkrJODYX64TtFd+8ZA@mail.gmail.com>
+List-Id: <unicorn-public@bogomips.org>
+
+Bráulio Bhavamitra <braulio@eita.org.br> wrote:
+> The problem is actually worser, and the worker.nr == 0 can't be used.
+> I had to do something like this:
+> 
+> master_run = true
+> 
+> before_fork do |server, worker|
+>   if master_run
+>      #warm up server...
+> 
+>      #kill old pid...
+> 
+>      #disconnect active record
+> 
+>      master_run = false
+>   end
+> 
+>   # other stuff for each worker
+> end
+> 
+> In the last example, using worker.nr == 0 would make the server crash
+> in case the worker 0 was killed/restarted.
+> 
+> Also the AR's disconnect and *many other stuff* people put on
+> before_fork should only be run once the master was preloaded, not for
+> every worker.
+
+AR disconnect! is idempotent and has been since unicorn existed.
+I suspect most other things people run in before_fork are already
+idempotent, too.
+
+> So I still think at least a hook like master_preloaded(server) is necessary.
+
+Using the local 'master_run' variable in your before_fork already
+accomplishes everything you needed, right?
+
+I try to keep unicorn as lean as possible and not bloat it with
+redundant features.  The current hooks already fulfill the minimal
+requirements for supporting apps which do not behave properly under
+preload_app=true, so I am not convinced why a new hook is necessary.
