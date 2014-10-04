@@ -1,0 +1,90 @@
+Return-Path: <brauliobo@gmail.com>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS15169 209.85.128.0/17
+X-Spam-Status: No, score=-0.9 required=3.0 tests=AWL,BAYES_00,FREEMAIL_FROM,
+ RCVD_IN_DNSWL_LOW,URIBL_BLOCKED shortcircuit=no autolearn=unavailable
+ version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from mail-ob0-f180.google.com (mail-ob0-f180.google.com
+ [209.85.214.180]) (using TLSv1 with cipher ECDHE-RSA-RC4-SHA (128/128 bits))
+ (No client certificate requested) by dcvr.yhbt.net (Postfix) with ESMTPS id
+ DE9FF1F7D6 for <unicorn-public@bogomips.org>; Sat,  4 Oct 2014 01:35:43 +0000
+ (UTC)
+Received: by mail-ob0-f180.google.com with SMTP id va2so1728824obc.39 for
+ <unicorn-public@bogomips.org>; Fri, 03 Oct 2014 18:35:43 -0700 (PDT)
+X-Received: by 10.182.102.65 with SMTP id fm1mr11194040obb.48.1412386542858;
+ Fri, 03 Oct 2014 18:35:42 -0700 (PDT)
+MIME-Version: 1.0
+Sender: brauliobo@gmail.com
+Received: by 10.202.68.133 with HTTP; Fri, 3 Oct 2014 18:35:02 -0700 (PDT)
+In-Reply-To: <20141004012210.GA8134@dcvr.yhbt.net>
+References:
+ <CAJri6_tdtd5tfPcrTcTBbmQKrmRYnnGJERFwSo1T6PTDsoOO_A@mail.gmail.com>
+ <20141003122222.GA11445@dcvr.yhbt.net>
+ <CAJri6_s61q4-yMTp8Ev8HizDBnjGXqusmkrJODYX64TtFd+8ZA@mail.gmail.com>
+ <20141004012210.GA8134@dcvr.yhbt.net>
+From: =?UTF-8?Q?Br=C3=A1ulio_Bhavamitra?= <braulio@eita.org.br>
+Date: Fri, 3 Oct 2014 22:35:02 -0300
+X-Google-Sender-Auth: I3nICckLgmGqtpsC766uj5IGHOE
+Message-ID:
+ <CAJri6_s+ofUH5CrPyeLFvoqQ3hCr9r1EY6NLnU-F2gUGTFFMNw@mail.gmail.com>
+Subject: Re: Master hooks needed
+To: Eric Wong <e@80x24.org>
+Cc: unicorn-public <unicorn-public@bogomips.org>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
+List-Id: <unicorn-public@bogomips.org>
+
+I think the hook is needed because I took too much time to figure out
+the problem and much more time to figure out the solution (this
+master_run variable). Also, I don't think this master_run solution is
+elegant.
+
+cheers,
+br=C3=A1ulio
+
+On Fri, Oct 3, 2014 at 10:22 PM, Eric Wong <e@80x24.org> wrote:
+> Br=C3=A1ulio Bhavamitra <braulio@eita.org.br> wrote:
+>> The problem is actually worser, and the worker.nr =3D=3D 0 can't be used=
+.
+>> I had to do something like this:
+>>
+>> master_run =3D true
+>>
+>> before_fork do |server, worker|
+>>   if master_run
+>>      #warm up server...
+>>
+>>      #kill old pid...
+>>
+>>      #disconnect active record
+>>
+>>      master_run =3D false
+>>   end
+>>
+>>   # other stuff for each worker
+>> end
+>>
+>> In the last example, using worker.nr =3D=3D 0 would make the server cras=
+h
+>> in case the worker 0 was killed/restarted.
+>>
+>> Also the AR's disconnect and *many other stuff* people put on
+>> before_fork should only be run once the master was preloaded, not for
+>> every worker.
+>
+> AR disconnect! is idempotent and has been since unicorn existed.
+> I suspect most other things people run in before_fork are already
+> idempotent, too.
+>
+>> So I still think at least a hook like master_preloaded(server) is necess=
+ary.
+>
+> Using the local 'master_run' variable in your before_fork already
+> accomplishes everything you needed, right?
+>
+> I try to keep unicorn as lean as possible and not bloat it with
+> redundant features.  The current hooks already fulfill the minimal
+> requirements for supporting apps which do not behave properly under
+> preload_app=3Dtrue, so I am not convinced why a new hook is necessary.
