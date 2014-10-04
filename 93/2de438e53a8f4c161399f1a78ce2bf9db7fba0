@@ -1,0 +1,129 @@
+Return-Path: <brauliobo@gmail.com>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS15169 209.85.128.0/17
+X-Spam-Status: No, score=-0.4 required=3.0 tests=AWL,BAYES_00,FREEMAIL_FROM,
+ RCVD_IN_DNSWL_BLOCKED,URIBL_BLOCKED shortcircuit=no autolearn=unavailable
+ version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from mail-oi0-f48.google.com (mail-oi0-f48.google.com
+ [209.85.218.48]) (using TLSv1 with cipher ECDHE-RSA-RC4-SHA (128/128 bits))
+ (No client certificate requested) by dcvr.yhbt.net (Postfix) with ESMTPS id
+ E269C1F7D6 for <unicorn-public@bogomips.org>; Sat,  4 Oct 2014 00:53:47 +0000
+ (UTC)
+Received: by mail-oi0-f48.google.com with SMTP id g201so1512139oib.35 for
+ <unicorn-public@bogomips.org>; Fri, 03 Oct 2014 17:53:46 -0700 (PDT)
+X-Received: by 10.60.78.233 with SMTP id e9mr10729421oex.49.1412384026727;
+ Fri, 03 Oct 2014 17:53:46 -0700 (PDT)
+MIME-Version: 1.0
+Sender: brauliobo@gmail.com
+Received: by 10.202.68.133 with HTTP; Fri, 3 Oct 2014 17:53:06 -0700 (PDT)
+In-Reply-To: <20141003122222.GA11445@dcvr.yhbt.net>
+References:
+ <CAJri6_tdtd5tfPcrTcTBbmQKrmRYnnGJERFwSo1T6PTDsoOO_A@mail.gmail.com>
+ <20141003122222.GA11445@dcvr.yhbt.net>
+From: =?UTF-8?Q?Br=C3=A1ulio_Bhavamitra?= <braulio@eita.org.br>
+Date: Fri, 3 Oct 2014 21:53:06 -0300
+X-Google-Sender-Auth: ShrvdTIHUrZsZ8nu6y4yV9EzEH0
+Message-ID:
+ <CAJri6_s61q4-yMTp8Ev8HizDBnjGXqusmkrJODYX64TtFd+8ZA@mail.gmail.com>
+Subject: Re: Master hooks needed
+To: Eric Wong <e@80x24.org>
+Cc: unicorn-public <unicorn-public@bogomips.org>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
+List-Id: <unicorn-public@bogomips.org>
+
+The problem is actually worser, and the worker.nr =3D=3D 0 can't be used.
+I had to do something like this:
+
+master_run =3D true
+
+before_fork do |server, worker|
+  if master_run
+     #warm up server...
+
+     #kill old pid...
+
+     #disconnect active record
+
+     master_run =3D false
+  end
+
+  # other stuff for each worker
+end
+
+In the last example, using worker.nr =3D=3D 0 would make the server crash
+in case the worker 0 was killed/restarted.
+
+Also the AR's disconnect and *many other stuff* people put on
+before_fork should only be run once the master was preloaded, not for
+every worker.
+
+So I still think at least a hook like master_preloaded(server) is necessary=
+.
+
+cheers,
+br=C3=A1ulio
+
+On Fri, Oct 3, 2014 at 9:22 AM, Eric Wong <e@80x24.org> wrote:
+> Br=C3=A1ulio Bhavamitra <braulio@eita.org.br> wrote:
+>> Hello all,
+>>
+>> If I need to hook something after master load, I'm currently doing:
+>>
+>> before_fork do |server, worker|
+>>   # worker 0 is the first to init, so hold the master here
+>>   if worker.nr =3D=3D 0
+>>      #warm up server...
+>>
+>>      #kill old pid...
+>>   end
+>>
+>>   # other stuff for each worker
+>> end
+>>
+>> Both operations I currently do (server warm up and old pid kill) need
+>> to be run only once, and not for every worker as before_fork does,
+>> that's why I had to put the condition seen above.
+>
+> The above is fine if your first worker never dies.  I think you can add
+> a local variable to ensure it only runs the first time worker.nr =3D=3D 0=
+ is
+> started, in case a worker dies.  Something like:
+>
+>     first =3D true
+>     before_fork do |server, worker|
+>       # worker 0 is the first to init, so hold the master here
+>       if worker.nr =3D=3D 0 && first
+>          first =3D false
+>          #warm up server...
+>
+>          #kill old pid...
+>       end
+>
+>       # other stuff for each worker
+>     end
+>
+> For what it's worth, I'm not a fan of auto-killing the old PID in the
+> unicorn config and regret having it in the example config.  It's only
+> for the most memory-constrained configs and fragile (because anything
+> with pid files is always fragile).
+>
+>> So hooks for master is needed, something like
+>> master_after_load(server) and master_init(server).
+>>
+>> What do you think?
+>
+> rack.git also has a Rack::Builder#warmup method.  Aman originally
+> proposed it for unicorn, but it's useful outside of unicorn so
+> we moved it to Rack.
+>
+> In general, I'm against adding new hooks/options because they tend to
+> make maintainability and documentation harder for ops folks.
+> I still have nightmares of some Capistrano config filled with hooks
+> from years ago :x
+>
+> Features like these also makes migrating away from unicorn harder, so
+> that is another reason we ended up adding #warmup to Rack and not
+> unicorn.
