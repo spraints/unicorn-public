@@ -1,0 +1,120 @@
+Return-Path: <brauliobo@gmail.com>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS15169 209.85.128.0/17
+X-Spam-Status: No, score=-0.6 required=3.0 tests=AWL,BAYES_00,FREEMAIL_FROM,
+ RCVD_IN_DNSWL_BLOCKED,URIBL_BLOCKED shortcircuit=no autolearn=unavailable
+ version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from mail-ob0-f180.google.com (mail-ob0-f180.google.com
+ [209.85.214.180]) (using TLSv1 with cipher ECDHE-RSA-RC4-SHA (128/128 bits))
+ (No client certificate requested) by dcvr.yhbt.net (Postfix) with ESMTPS id
+ E68521F7D6 for <unicorn-public@bogomips.org>; Sat,  4 Oct 2014 02:04:46 +0000
+ (UTC)
+Received: by mail-ob0-f180.google.com with SMTP id va2so1782314obc.11 for
+ <unicorn-public@bogomips.org>; Fri, 03 Oct 2014 19:04:46 -0700 (PDT)
+X-Received: by 10.182.38.138 with SMTP id g10mr11192747obk.21.1412388285859;
+ Fri, 03 Oct 2014 19:04:45 -0700 (PDT)
+MIME-Version: 1.0
+Sender: brauliobo@gmail.com
+Received: by 10.202.68.133 with HTTP; Fri, 3 Oct 2014 19:04:05 -0700 (PDT)
+In-Reply-To: <20141004015707.GA1951@dcvr.yhbt.net>
+References:
+ <CAJri6_tdtd5tfPcrTcTBbmQKrmRYnnGJERFwSo1T6PTDsoOO_A@mail.gmail.com>
+ <20141003122222.GA11445@dcvr.yhbt.net>
+ <CAJri6_s61q4-yMTp8Ev8HizDBnjGXqusmkrJODYX64TtFd+8ZA@mail.gmail.com>
+ <20141004012210.GA8134@dcvr.yhbt.net>
+ <CAJri6_s+ofUH5CrPyeLFvoqQ3hCr9r1EY6NLnU-F2gUGTFFMNw@mail.gmail.com>
+ <20141004015707.GA1951@dcvr.yhbt.net>
+From: =?UTF-8?Q?Br=C3=A1ulio_Bhavamitra?= <braulio@eita.org.br>
+Date: Fri, 3 Oct 2014 23:04:05 -0300
+X-Google-Sender-Auth: ggkkz8sYjK3-6LdjoKHaHxFGpRU
+Message-ID:
+ <CAJri6_sghhsfNttnN7MXQj_Jn1-XnfGt2qff3fgYbizTcJAcFA@mail.gmail.com>
+Subject: Re: Master hooks needed
+To: Eric Wong <e@80x24.org>
+Cc: unicorn-public <unicorn-public@bogomips.org>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
+List-Id: <unicorn-public@bogomips.org>
+
+Documentation is an excelent solution :)
+
+On Fri, Oct 3, 2014 at 10:57 PM, Eric Wong <e@80x24.org> wrote:
+> Br=C3=A1ulio Bhavamitra <braulio@eita.org.br> wrote:
+>> I think the hook is needed because I took too much time to figure out
+>> the problem and much more time to figure out the solution (this
+>> master_run variable). Also, I don't think this master_run solution is
+>> elegant.
+>
+> A guard variable is fairly common practice for initialization.
+> It's not always nice, but I do not consider the existing hooks
+> to be elegant, either; they're only unfortunately necessary.
+>
+> I consider having redundant features to be even worse.
+>
+> How about the following documentation change instead?
+>
+> --- a/examples/unicorn.conf.rb
+> +++ b/examples/unicorn.conf.rb
+> @@ -54,12 +54,23 @@ GC.respond_to?(:copy_on_write_friendly=3D) and
+>  # fast LAN.
+>  check_client_connection false
+>
+> +# local variable to guard against running a hook multiple times
+> +run_once =3D true
+> +
+>  before_fork do |server, worker|
+>    # the following is highly recomended for Rails + "preload_app true"
+>    # as there's no need for the master process to hold a connection
+>    defined?(ActiveRecord::Base) and
+>      ActiveRecord::Base.connection.disconnect!
+>
+> +  # Occasionally, it may be necessary to run non-idempotent code in the
+> +  # master before forking.  Keep in mind the above disconnect! example
+> +  # is idempotent and does not need a guard.
+> +  if run_once
+> +    # do_something_once_here ...
+> +    run_once =3D false # prevent from firing again
+> +  end
+> +
+>    # The following is only recommended for memory/DB-constrained
+>    # installations.  It is not needed if your system can house
+>    # twice as many worker_processes as you have configured.
+
+
+
+--=20
+"Lute pela sua ideologia. Seja um com sua ideologia. Viva pela sua
+ideologia. Morra por sua ideologia" P.R. Sarkar
+
+EITA - Educa=C3=A7=C3=A3o, Informa=C3=A7=C3=A3o e Tecnologias para Autogest=
+=C3=A3o
+http://cirandas.net/brauliobo
+http://eita.org.br
+
+"Paramapurusha =C3=A9 meu pai e Parama Prakriti =C3=A9 minha m=C3=A3e. O un=
+iverso =C3=A9
+meu lar e todos n=C3=B3s somos cidad=C3=A3os deste cosmo. Este universo =C3=
+=A9 a
+imagina=C3=A7=C3=A3o da Mente Macroc=C3=B3smica, e todas as entidades est=
+=C3=A3o sendo
+criadas, preservadas e destru=C3=ADdas nas fases de extrovers=C3=A3o e
+introvers=C3=A3o do fluxo imaginativo c=C3=B3smico. No =C3=A2mbito pessoal,=
+ quando
+uma pessoa imagina algo em sua mente, naquele momento, essa pessoa =C3=A9 a
+=C3=BAnica propriet=C3=A1ria daquilo que ela imagina, e ningu=C3=A9m mais. =
+Quando um
+ser humano criado mentalmente caminha por um milharal tamb=C3=A9m
+imaginado, a pessoa imaginada n=C3=A3o =C3=A9 a propriedade desse milharal,=
+ pois
+ele pertence ao indiv=C3=ADduo que o est=C3=A1 imaginando. Este universo fo=
+i
+criado na imagina=C3=A7=C3=A3o de Brahma, a Entidade Suprema, por isso a
+propriedade deste universo =C3=A9 de Brahma, e n=C3=A3o dos microcosmos que
+tamb=C3=A9m foram criados pela imagina=C3=A7=C3=A3o de Brahma. Nenhuma prop=
+riedade
+deste mundo, mut=C3=A1vel ou imut=C3=A1vel, pertence a um indiv=C3=ADduo em
+particular; tudo =C3=A9 o patrim=C3=B4nio comum de todos."
+Restante do texto em
+http://cirandas.net/brauliobo/blog/a-problematica-de-hoje-em-dia
