@@ -1,0 +1,65 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-2.9 required=3.0 tests=ALL_TRUSTED,BAYES_00,
+ URIBL_BLOCKED shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 3E0601F80A; Tue,  7 Oct 2014 05:08:48 +0000 (UTC)
+Date: Tue, 7 Oct 2014 05:08:48 +0000
+From: Eric Wong <e@80x24.org>
+To: Onno van der Straaten <onno.van.der.straaten@gmail.com>
+Cc: unicorn-public@bogomips.org
+Subject: Re: Unicorn not working in GitLab 7.3
+Message-ID: <20141007050848.GA338@dcvr.yhbt.net>
+References:
+ <CADKMi6JhM0Bk8Gvhh-+BFppBbXQLhv8NMeyRtrCt3j9-O6-2Zw@mail.gmail.com>
+ <CADKMi6KJ84Ck53tFXUzHz38VfW0RnnL4cbdGndZOQkuBU3T8-Q@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To:
+ <CADKMi6KJ84Ck53tFXUzHz38VfW0RnnL4cbdGndZOQkuBU3T8-Q@mail.gmail.com>
+List-Id: <unicorn-public@bogomips.org>
+
+Onno van der Straaten <onno.van.der.straaten@gmail.com> wrote:
+> On Mon, Oct 6, 2014 at 5:04 PM, Onno van der Straaten wrote:
+
+(Top-posting corrected.  Please do not send HTML email as it ends up
+ marked as spam.  You would've gotten a response much earlier if you
+ sent as plain text)
+
+> > Hi,
+> > I am using unicorn in GitLab 7.3. I found that unicorn will not serve
+> > javascript files. There is no response. Other files such as css files work
+> > fine.
+> >
+> > I have created an issue at the GitLab site as unicorn is part of his
+> > product. For your information
+> > https://github.com/gitlabhq/gitlabhq/issues/7973
+
+This doesn't seems to be a configuration error or a bug in GitLab.
+unicorn itself does not serve files, but just returns what Rack tells
+it to do.
+
+But since you're getting 60s timeouts, something seems seriously wrong
+with that config; but at least you're on Linux so maybe strace can
+help...
+
+> This is unicorn 4.6.3 btw. On the other machine it is the same
+> version 4.6.3. So maybe this issue is releated to using unicorn on CentOS.
+
+Can you try:
+
+1) configuring only single worker process
+2) strace that worker process (strace -p $PID_OF_WORKER)
+3) send only one request for a JS file to see what's happening?
+
+
+In any case, if this GitLab instance is meant for any slow/unreliable
+client connections outside your LAN, nginx should be serving static
+files.  unicorn is grossly inefficient for that (as explained on our
+website):
+
+  http://unicorn.bogomips.org/PHILOSOPHY.html
