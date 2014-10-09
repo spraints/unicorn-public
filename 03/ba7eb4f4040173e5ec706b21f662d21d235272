@@ -1,0 +1,61 @@
+Return-Path: <mfischer@zendesk.com>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS15169 209.85.128.0/17
+X-Spam-Status: No, score=-0.4 required=3.0 tests=AWL,BAYES_00,URIBL_BLOCKED
+ shortcircuit=no autolearn=ham version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from mail-qa0-f48.google.com (mail-qa0-f48.google.com
+ [209.85.216.48]) (using TLSv1 with cipher ECDHE-RSA-RC4-SHA (128/128 bits))
+ (No client certificate requested) by dcvr.yhbt.net (Postfix) with ESMTPS id
+ C43EB1F89E for <unicorn-public@bogomips.org>; Thu,  9 Oct 2014 17:59:43 +0000
+ (UTC)
+Received: by mail-qa0-f48.google.com with SMTP id dc16so547945qab.7 for
+ <unicorn-public@bogomips.org>; Thu, 09 Oct 2014 10:59:42 -0700 (PDT)
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=1e100.net;
+ s=20130820; h=x-gm-message-state:mime-version:in-reply-to:references:date
+ :message-id:subject:from:to:cc:content-type;
+ bh=WjBwAHNDIn4i2E5/l+1SaDLDASmDDsPaCxtXPmlHmLY=;
+ b=AvhXlCOMJ1uJ1jKDIe93EVqkZxHkQx8UIIemIKCq1VamDGrCTDaGyRXiRRRjSVKgN0
+ F3JvzSemw+NfokOkE+MBW9EBrDGDlCGqTrY3QUsKdsDudAaw6ty51oFmzvliYqeX+KKT
+ U64UK2C6JNdcqwtMWa08yVrFRlfBvXWRyPGgSFoANd667nyc/zgT9uq7n0m/S6vN9upK
+ T9tllK5onLELUYOuN1RjzwOdc0OIGH8P+s2RdnW+UOBeCRnrAfP83W6Om7TvtQ8Z92sG
+ wkBuXFdOeZj6kIetHg0ZUd227ai7eyXWZUYEcX7OODoVc61O7QCPEMbMfQof6CYweEag MolQ==
+X-Gm-Message-State:
+ ALoCoQmQJvI6m4+hB6I+6MJlnO9D4odebyeIDZ8Hvwgb0HT4BlFV2gsPXwoWtKZLcDikufIims2u
+MIME-Version: 1.0
+X-Received: by 10.229.65.135 with SMTP id j7mr26131275qci.22.1412877582589;
+ Thu, 09 Oct 2014 10:59:42 -0700 (PDT)
+Received: by 10.140.107.139 with HTTP; Thu, 9 Oct 2014 10:59:42 -0700 (PDT)
+In-Reply-To:
+ <CAJri6_uURN=_q8dHs+zEZryVkFQpNzaFEH8SvrXSUokhEmPTaQ@mail.gmail.com>
+References:
+ <CAJri6_sXnNp+eRFZHSNCiZYqh=nw+cSUfNa1c4AjxLAhPVRXvQ@mail.gmail.com>
+ <CABHxtY7nRPP50a+-Ok02pDW3dJWA0CJc9C5hq+8e8wP+rBt57A@mail.gmail.com>
+ <CAJri6_uURN=_q8dHs+zEZryVkFQpNzaFEH8SvrXSUokhEmPTaQ@mail.gmail.com>
+Date: Thu, 9 Oct 2014 10:59:42 -0700
+Message-ID:
+ <CABHxtY53pGMxTM-D29vZ+1oYsFHm7AvTcJLi=3xMMvOZVX-S-Q@mail.gmail.com>
+Subject: Re: Reserved workers not as webservers
+From: Michael Fischer <mfischer@zendesk.com>
+To: =?UTF-8?Q?Br=C3=A1ulio_Bhavamitra?= <braulio@eita.org.br>
+Cc: unicorn-public <unicorn-public@bogomips.org>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
+X-Content-Filtered-By: PublicInbox::Filter 0.0.1
+List-Id: <unicorn-public@bogomips.org>
+
+On Thu, Oct 9, 2014 at 10:43 AM, Br=C3=A1ulio Bhavamitra <braulio@eita.org.=
+br>
+wrote:
+
+As being forked process, I never saw a worker problem crashing master
+> or other workers.
+
+
+Process isolation is one thing, but that's not the same thing as system
+isolation.  Imagine your worker process has a memory leak and in response,
+the kernel's OOM killer decides to kill your webserver children.
+
+--Michael
+
