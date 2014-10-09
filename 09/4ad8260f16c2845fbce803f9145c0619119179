@@ -1,0 +1,51 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-2.9 required=3.0 tests=ALL_TRUSTED,BAYES_00,
+ URIBL_BLOCKED shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 42D4E1F89E; Thu,  9 Oct 2014 17:34:20 +0000 (UTC)
+Date: Thu, 9 Oct 2014 17:34:20 +0000
+From: Eric Wong <e@80x24.org>
+To: Devin Ben-Hur <dbenhur@whitepages.com>
+Cc: Michael Fischer <mfischer@zendesk.com>, =?utf-8?Q?Br=C3=A1ulio?=
+ Bhavamitra <braulio@eita.org.br>, unicorn-public
+ <unicorn-public@bogomips.org>
+Subject: Re: Reserved workers not as webservers
+Message-ID: <20141009173420.GA2787@dcvr.yhbt.net>
+References:
+ <CAJri6_sXnNp+eRFZHSNCiZYqh=nw+cSUfNa1c4AjxLAhPVRXvQ@mail.gmail.com>
+ <CABHxtY7nRPP50a+-Ok02pDW3dJWA0CJc9C5hq+8e8wP+rBt57A@mail.gmail.com>
+ <5436C281.30309@whitepages.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+Content-Transfer-Encoding: 8bit
+In-Reply-To: <5436C281.30309@whitepages.com>
+List-Id: <unicorn-public@bogomips.org>
+
+Devin Ben-Hur <dbenhur@whitepages.com> wrote:
+> Excellent points Michael.  But to Bráulio's original request, it
+> would be lovely to factor out the clean and robust process
+> management parts of unicorn (daemonization, pidfile-mgmt, pre-load,
+> fork, reap, signaling) separate from the HTTP/Rack server.
+
+I think some projects exist nowadays (and were inspired by unicorn).
+I also cannot speak to the quality of them, though.
+
+My take is that stuff ends up being fairly specific to the type of
+app used and putting an abstraction around them makes it harder to learn
+and use than the lower-level primitives Ruby provides.
+
+The ordering of some things (e.g. writing pid file, preload, binding
+sockets, hooks, timeout checks) seems subject to the needs of the
+specific server; and it's easier to figure out the ordering of those
+things when the lower-level parts are right in front of you instead of
+abstracted away in a library.
+
+Having Ruby as an abstraction around C syscalls is great since I don't
+have to worry about things like buffer overruns or error-checking every
+single syscall.  More abstraction than that ends up hiding too many
+important details, making programming and maintenance harder.
