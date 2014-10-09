@@ -1,0 +1,76 @@
+Return-Path: <brauliobo@gmail.com>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS15169 209.85.128.0/17
+X-Spam-Status: No, score=-0.8 required=3.0 tests=AWL,BAYES_00,FREEMAIL_FROM,
+ URIBL_BLOCKED shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from mail-oi0-f45.google.com (mail-oi0-f45.google.com
+ [209.85.218.45]) (using TLSv1 with cipher ECDHE-RSA-RC4-SHA (128/128 bits))
+ (No client certificate requested) by dcvr.yhbt.net (Postfix) with ESMTPS id
+ 3F6A51F89E for <unicorn-public@bogomips.org>; Thu,  9 Oct 2014 18:30:40 +0000
+ (UTC)
+Received: by mail-oi0-f45.google.com with SMTP id i138so4088340oig.18 for
+ <unicorn-public@bogomips.org>; Thu, 09 Oct 2014 11:30:39 -0700 (PDT)
+X-Received: by 10.182.47.232 with SMTP id g8mr16187330obn.85.1412879439449;
+ Thu, 09 Oct 2014 11:30:39 -0700 (PDT)
+MIME-Version: 1.0
+Sender: brauliobo@gmail.com
+Received: by 10.202.68.11 with HTTP; Thu, 9 Oct 2014 11:29:58 -0700 (PDT)
+In-Reply-To: <5436C281.30309@whitepages.com>
+References:
+ <CAJri6_sXnNp+eRFZHSNCiZYqh=nw+cSUfNa1c4AjxLAhPVRXvQ@mail.gmail.com>
+ <CABHxtY7nRPP50a+-Ok02pDW3dJWA0CJc9C5hq+8e8wP+rBt57A@mail.gmail.com>
+ <5436C281.30309@whitepages.com>
+From: =?UTF-8?Q?Br=C3=A1ulio_Bhavamitra?= <braulio@eita.org.br>
+Date: Thu, 9 Oct 2014 15:29:58 -0300
+X-Google-Sender-Auth: hNealP1SxuECbfpAFRQiIUnJj6o
+Message-ID:
+ <CAJri6_tjv7MZxrMy3fDu=khpy-e9KZBHH4i0m7yNuXtEvqDBSg@mail.gmail.com>
+Subject: Re: Reserved workers not as webservers
+To: Devin Ben-Hur <dbenhur@whitepages.com>
+Cc: Michael Fischer <mfischer@zendesk.com>, unicorn-public
+ <unicorn-public@bogomips.org>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
+List-Id: <unicorn-public@bogomips.org>
+
+On Thu, Oct 9, 2014 at 2:14 PM, Devin Ben-Hur <dbenhur@whitepages.com> wrot=
+e:
+> On 10/9/14, 9:45 AM, Michael Fischer wrote:
+>>
+>> On Thu, Oct 9, 2014 at 5:24 AM, Br=C3=A1ulio Bhavamitra <braulio@eita.or=
+g.br>
+>> wrote:
+>>
+>> I'm quite amazed of how preloading and fork and reduce memory usage.
+>>>
+>>> Making it use even less memory and restarting the app faster, the next
+>>> step would be incorporate other daemons (also part of the app, in my
+>>> case delayed_job and feed-updater) AS unicorn workers.
+>>
+>>
+>> As your friendly neighborhood service engineer, my experience is that
+>> separating the concerns (keeping asynchronous processors separate from
+>> your
+>> synchronouous web services) is worth the additional memory and processor
+>> cost.  The two usually don't scale at the same rate, and you want to kee=
+p
+>> your failure domains separate as well: you don't want a bug in the async
+>> processor cause your web server to crash as well.   And let's not even g=
+et
+>> into the programming and maintenance challenges.
+>
+>
+> Excellent points Michael.  But to Br=C3=A1ulio's original request, it wou=
+ld be
+> lovely to factor out the clean and robust process management parts of
+> unicorn (daemonization, pidfile-mgmt, pre-load, fork, reap, signaling)
+> separate from the HTTP/Rack server.  This would give us a robust supervis=
+or
+> for asynchronous workers that reduce memory footprint with CoW and respon=
+ds
+> to a well understood set of signals for management.
+
+That would be great! If unicorn's server except HTTP specific code
+could be extracted into a separate gem it would be fantastic :)
