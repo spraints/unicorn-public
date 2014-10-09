@@ -1,0 +1,67 @@
+Return-Path: <mfischer@zendesk.com>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS15169 209.85.128.0/17
+X-Spam-Status: No, score=-0.3 required=3.0 tests=AWL,BAYES_00,URIBL_BLOCKED
+ shortcircuit=no autolearn=ham version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from mail-qc0-f169.google.com (mail-qc0-f169.google.com
+ [209.85.216.169]) (using TLSv1 with cipher ECDHE-RSA-RC4-SHA (128/128 bits))
+ (No client certificate requested) by dcvr.yhbt.net (Postfix) with ESMTPS id
+ B818D1F89E for <unicorn-public@bogomips.org>; Thu,  9 Oct 2014 16:45:27 +0000
+ (UTC)
+Received: by mail-qc0-f169.google.com with SMTP id o8so544756qcw.14 for
+ <unicorn-public@bogomips.org>; Thu, 09 Oct 2014 09:45:26 -0700 (PDT)
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=1e100.net;
+ s=20130820; h=x-gm-message-state:mime-version:in-reply-to:references:date
+ :message-id:subject:from:to:cc:content-type;
+ bh=tbHToG5HClSFXCSqyvgRxmQPMV9SpXWKH5Yqs/vIAIQ=;
+ b=F4csrC/vs9jUv5/e+s+PQ4VG9ZpM/THWBKQTcvEuk6U+WGOYDtkc28KWI2Ez5RS3Rz
+ JJI5CZlCga84wWKrHnj7OvvpMV2Vr5ZXUOM4IJi8iAZxmCzJWA9LJ4ydoGfOPjWUJNsP
+ QHVsHt/XmpPusmgl9a2RTGa7urmBKUGzM/GU1InCHKb6+dpyA3sIYHWl7JVAN1UBmjS2
+ woeR0Yk+JElTGRSENm6+xY4ElzPhxPaQvLwpA8zQvOSxFwBr3Potc9gmHLxBtrnE1S9v
+ ybx6xyLbwmHyUt/3mAClLDcrei/Aqzl7NtkoYifYkWlu64A0L/ZY15/4wdObBLVERHN/ tB2g==
+X-Gm-Message-State:
+ ALoCoQnOQHrwrMOigw93Jh/khsXBmG7O8zjI7ITDVHd2LxoOjuXzfC5DUmlcjI+1bIPl4zmrsuze
+MIME-Version: 1.0
+X-Received: by 10.140.85.227 with SMTP id n90mr39067385qgd.89.1412873126773;
+ Thu, 09 Oct 2014 09:45:26 -0700 (PDT)
+Received: by 10.140.107.139 with HTTP; Thu, 9 Oct 2014 09:45:26 -0700 (PDT)
+In-Reply-To:
+ <CAJri6_sXnNp+eRFZHSNCiZYqh=nw+cSUfNa1c4AjxLAhPVRXvQ@mail.gmail.com>
+References:
+ <CAJri6_sXnNp+eRFZHSNCiZYqh=nw+cSUfNa1c4AjxLAhPVRXvQ@mail.gmail.com>
+Date: Thu, 9 Oct 2014 09:45:26 -0700
+Message-ID:
+ <CABHxtY7nRPP50a+-Ok02pDW3dJWA0CJc9C5hq+8e8wP+rBt57A@mail.gmail.com>
+Subject: Re: Reserved workers not as webservers
+From: Michael Fischer <mfischer@zendesk.com>
+To: =?UTF-8?Q?Br=C3=A1ulio_Bhavamitra?= <braulio@eita.org.br>
+Cc: unicorn-public <unicorn-public@bogomips.org>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
+X-Content-Filtered-By: PublicInbox::Filter 0.0.1
+List-Id: <unicorn-public@bogomips.org>
+
+On Thu, Oct 9, 2014 at 5:24 AM, Br=C3=A1ulio Bhavamitra <braulio@eita.org.b=
+r>
+wrote:
+
+I'm quite amazed of how preloading and fork and reduce memory usage.
+> Making it use even less memory and restarting the app faster, the next
+> step would be incorporate other daemons (also part of the app, in my
+> case delayed_job and feed-updater) AS unicorn workers.
+
+
+As your friendly neighborhood service engineer, my experience is that
+separating the concerns (keeping asynchronous processors separate from your
+synchronouous web services) is worth the additional memory and processor
+cost.  The two usually don't scale at the same rate, and you want to keep
+your failure domains separate as well: you don't want a bug in the async
+processor cause your web server to crash as well.   And let's not even get
+into the programming and maintenance challenges.
+
+There is such as thing as being too cheap. :)
+
+--Michael
+
