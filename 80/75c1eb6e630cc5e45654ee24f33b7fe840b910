@@ -1,0 +1,40 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-2.9 required=3.0 tests=ALL_TRUSTED,BAYES_00,
+ URIBL_BLOCKED shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 958791F89E; Thu,  9 Oct 2014 18:15:33 +0000 (UTC)
+Date: Thu, 9 Oct 2014 18:15:33 +0000
+From: Eric Wong <e@80x24.org>
+To: =?utf-8?Q?Br=C3=A1ulio?= Bhavamitra <braulio@eita.org.br>
+Cc: Devin Ben-Hur <dbenhur@whitepages.com>, Michael Fischer
+ <mfischer@zendesk.com>, unicorn-public@bogomips.org
+Subject: Re: Reserved workers not as webservers
+Message-ID: <20141009181533.GA8164@dcvr.yhbt.net>
+References:
+ <CAJri6_sXnNp+eRFZHSNCiZYqh=nw+cSUfNa1c4AjxLAhPVRXvQ@mail.gmail.com>
+ <CABHxtY7nRPP50a+-Ok02pDW3dJWA0CJc9C5hq+8e8wP+rBt57A@mail.gmail.com>
+ <5436C281.30309@whitepages.com> <20141009173420.GA2787@dcvr.yhbt.net>
+ <CAJri6_sZAFCT5hFdoGseTsQAwwaVi30yuQzZsFouEUExFRUUXg@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+Content-Transfer-Encoding: 8bit
+In-Reply-To:
+ <CAJri6_sZAFCT5hFdoGseTsQAwwaVi30yuQzZsFouEUExFRUUXg@mail.gmail.com>
+List-Id: <unicorn-public@bogomips.org>
+
+Bráulio Bhavamitra <braulio@eita.org.br> wrote:
+> Eric, how with a simple monkey patch will allow a worker to not
+> connect with the kernel request queue?
+
+The listen socket is inherited by default.  Closing it works.  You can
+also keep the socket open and avoid calling any accept() wrappers, that
+is like a "pop" operation on the queue:
+
+  kgio_tryaccept in unicorn, accept/accept_nonblock/sysaccept in stdlib
+
+Also, please don't top-post (or send giant sigs).  Thanks.
