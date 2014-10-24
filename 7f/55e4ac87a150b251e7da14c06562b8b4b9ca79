@@ -1,0 +1,57 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-2.9 required=3.0 tests=ALL_TRUSTED,BAYES_00,
+ NORMAL_HTTP_TO_IP,URIBL_BLOCKED shortcircuit=no autolearn=unavailable
+ version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 9E92A1FB0B; Fri, 24 Oct 2014 17:45:20 +0000 (UTC)
+Date: Fri, 24 Oct 2014 17:45:20 +0000
+From: Eric Wong <e@80x24.org>
+To: Imdad <khanimdad@gmail.com>
+Cc: unicorn-public@bogomips.org
+Subject: Re: Having issue with Unicorn
+Message-ID: <20141024174520.GA27334@dcvr.yhbt.net>
+References:
+ <CADQvUy7bRLTg0d5RyrgW1rsEFjJ2Q1Jh+bbuSDuxSN=79_eRZA@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To:
+ <CADQvUy7bRLTg0d5RyrgW1rsEFjJ2Q1Jh+bbuSDuxSN=79_eRZA@mail.gmail.com>
+List-Id: <unicorn-public@bogomips.org>
+
+Imdad <khanimdad@gmail.com> wrote:
+> I have rails4, nginx, unicorn and mona for app deployed
+> http://104.131.74.69/
+> 
+> But after deploy hitting on above link results in error, and the log says
+> 
+> root@Hailisys:~# tail -n 0 -f
+> /var/www/hailisys/shared/log/unicorn.stderr.log
+> I, [2014-10-24T17:28:53.162084 #15819]  INFO -- : executing
+> ["/var/www/hailisys/releases/6/vendor/bundle/ruby/2.1.0/bin/unicorn", "-c",
+> "/var/www/hailisys/current/config/unicorn.rb", "-D", "-E", "production",
+> {11=>#<Kgio::UNIXServer:fd 11>}] (in /var/www/hailisys/releases/28)
+
+You're working inside /releases/28 here...
+
+> /var/www/hailisys/current/vendor/bundle/ruby/2.1.0/gems/unicorn-4.8.3/lib/unicorn/http_server.rb:475:in
+> `exec': No such file or directory -
+> /var/www/hailisys/releases/6/vendor/bundle/ruby/2.1.0/bin/unicorn
+> (Errno::ENOENT)
+
+However, it's trying to run out of /releases/6, which I assume is
+old enough to be removed by now.
+
+You should be able to set working_directory in your config/unicorn.rb:
+
+	working_directory "/var/www/hailisys/current"
+
+Then SIGHUP to reload the config before sending SIGUSR2 to it.
+
+Hopefully that works.  Normally you shouldn't need to set
+working_directory if you're working out of "/current";
+but I'm not sure what your deploy environment looks like.
