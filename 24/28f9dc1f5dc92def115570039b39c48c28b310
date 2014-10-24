@@ -1,0 +1,252 @@
+Return-Path: <khanimdad@gmail.com>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS15169 209.85.128.0/17
+X-Spam-Status: No, score=-0.9 required=3.0 tests=AWL,BAYES_00,FREEMAIL_FROM,
+ NORMAL_HTTP_TO_IP,URIBL_BLOCKED shortcircuit=no autolearn=ham version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from mail-wi0-f175.google.com (mail-wi0-f175.google.com
+ [209.85.212.175]) (using TLSv1 with cipher ECDHE-RSA-RC4-SHA (128/128 bits))
+ (No client certificate requested) by dcvr.yhbt.net (Postfix) with ESMTPS id
+ AB09D1FB0C for <unicorn-public@bogomips.org>; Fri, 24 Oct 2014 18:02:44 +0000
+ (UTC)
+Received: by mail-wi0-f175.google.com with SMTP id d1so1854828wiv.8 for
+ <unicorn-public@bogomips.org>; Fri, 24 Oct 2014 11:02:43 -0700 (PDT)
+X-Received: by 10.180.98.132 with SMTP id ei4mr5680741wib.64.1414173763086;
+ Fri, 24 Oct 2014 11:02:43 -0700 (PDT)
+MIME-Version: 1.0
+Received: by 10.194.138.100 with HTTP; Fri, 24 Oct 2014 11:02:22 -0700 (PDT)
+In-Reply-To: <20141024174520.GA27334@dcvr.yhbt.net>
+References:
+ <CADQvUy7bRLTg0d5RyrgW1rsEFjJ2Q1Jh+bbuSDuxSN=79_eRZA@mail.gmail.com>
+ <20141024174520.GA27334@dcvr.yhbt.net>
+From: Imdad <khanimdad@gmail.com>
+Date: Fri, 24 Oct 2014 23:32:22 +0530
+Message-ID:
+ <CADQvUy79jAyoEVJz-t-fEnQTAq9foQeYhpOkLVKx_3oejzgzAw@mail.gmail.com>
+Subject: Re: Having issue with Unicorn
+To: Eric Wong <e@80x24.org>
+Cc: unicorn-public <unicorn-public@bogomips.org>
+Content-Type: text/plain; charset=UTF-8
+X-Content-Filtered-By: PublicInbox::Filter 0.0.1
+List-Id: <unicorn-public@bogomips.org>
+
+Thanks Eric, here is my deploy.rb and config/unicorn.rb
+NOTE: /releases/6 and /releases/28 both have same error message
+
+config/unicorn.rb
+==============
+# Set your full path to application.
+app_dir = File.expand_path('../../', __FILE__)
+shared_dir = File.expand_path('../../../shared/', __FILE__)
+
+# Set unicorn options
+worker_processes 2
+preload_app true
+timeout 30
+
+# Fill path to your app
+working_directory app_dir
+
+# Set up socket location
+listen "#{shared_dir}/sockets/unicorn.sock", :backlog => 64
+
+# Loging
+stderr_path "#{shared_dir}/log/unicorn.stderr.log"
+stdout_path "#{shared_dir}/log/unicorn.stdout.log"
+
+# Set master PID location
+pid "#{shared_dir}/pids/unicorn.pid"
+
+before_fork do |server, worker|
+  defined?(ActiveRecord::Base) and ActiveRecord::Base.connection.disconnect!
+  old_pid = "#{server.config[:pid]}.oldbin"
+  if File.exists?(old_pid) && server.pid != old_pid
+    begin
+      sig = (worker.nr + 1) >= server.worker_processes ? :QUIT : :TTOU
+      Process.kill(sig, File.read(old_pid).to_i)
+    rescue Errno::ENOENT, Errno::ESRCH
+      # someone else did our job for us
+    end
+  end
+end
+
+after_fork do |server, worker|
+  defined?(ActiveRecord::Base) and ActiveRecord::Base.establish_connection
+end
+
+before_exec do |server|
+  ENV['BUNDLE_GEMFILE'] = "#{app_dir}/Gemfile"
+end
+
+deploy.rb
+==========
+require 'mina/bundler'
+require 'mina/rails'
+require 'mina/git'
+require 'mina/rbenv'  # for rbenv support. (http://rbenv.org)
+# require 'mina/rvm'    # for rvm support. (http://rvm.io)
+# TODO: Look into this later
+#require 'mina_sidekiq/tasks'
+require 'mina/unicorn'
+
+
+# Basic settings:
+#   domain       - The hostname to SSH to.
+#   deploy_to    - Path to deploy into.
+#   repository   - Git repo to clone from. (needed by mina/git)
+#   branch       - Branch name to deploy. (needed by mina/git)
+set_default :rbenv_path, "/root/.rbenv" #{}"/root/.rbenv"
+#set_default :bundle_path, '/root/.rbenv/shims/bundle'
+#set_default :bundle_bin, 'bundle exec'
+
+set :domain, '104.131.74.69'
+
+set :deploy_to, '/var/www/hailisys'
+
+set :repository, 'https://gitlab.com/hailisys/hailisys.git'
+set :branch, 'master'
+set :user, 'root'
+set :forward_agent, true
+# MOIN: Fix Password issue
+set :term_mode, nil
+# MOIN: Could be staging, production
+set :rails_env, 'production'
+set :port, '22'
+set :unicorn_pid, "#{deploy_to}/shared/pids/unicorn.pid"
+
+# For system-wide RVM install.
+#   set :rvm_path, '/usr/local/rvm/bin/rvm'
+
+# Manually create these paths in shared/ (eg: shared/config/database.yml)
+in your server.
+# They will be linked in the 'deploy:link_shared_paths' step.
+set :shared_paths, ['config/database.yml', 'log']
+
+# Optional settings:
+#   set :user, 'foobar'    # Username in the server to SSH to.
+#   set :port, '30000'     # SSH port number.
+#   set :forward_agent, true     # SSH forward_agent.
+
+# This task is the environment that is loaded for most commands, such as
+# `mina deploy` or `mina rake`.
+task :environment do
+  # If you're using rbenv, use this to load the rbenv environment.
+  # Be sure to commit your .rbenv-version to your repository.
+  invoke :'rbenv:load'
+
+  # For those using RVM, use this to load an RVM version@gemset.
+  # invoke :'rvm:use[ruby-1.9.3-p125@default]'
+end
+
+# Put any custom mkdir's in here for when `mina setup` is ran.
+# For Rails apps, we'll make some of the shared paths that are shared
+between
+# all releases.
+
+task :setup => :environment do
+  queue! %[mkdir -p "#{deploy_to}/shared/log"]
+  queue! %[chmod g+rx,u+rwx "#{deploy_to}/shared/log"]
+
+  queue! %[mkdir -p "#{deploy_to}/shared/config"]
+  queue! %[chmod g+rx,u+rwx "#{deploy_to}/shared/config"]
+
+  queue! %[mkdir -p "#{deploy_to}/shared/pids"]
+  queue! %[chmod g+rx,u+rwx "#{deploy_to}/shared/pids"]
+
+  queue! %[mkdir -p "#{deploy_to}/shared/sockets"]
+  queue! %[chmod g+rx,u+rwx "#{deploy_to}/shared/sockets"]
+
+  queue! %[touch "#{deploy_to}/shared/config/database.yml"]
+  queue  %[echo "-----> Be sure to edit 'shared/config/database.yml'."]
+
+  # sidekiq needs a place to store its pid file and log file
+  queue! %[mkdir -p "#{deploy_to}/shared/pids/"]
+  queue! %[chmod g+rx,u+rwx "#{deploy_to}/shared/pids"]
+end
+
+desc "Deploys the current version to the server."
+task :deploy => :environment do
+  deploy do
+
+    # stop accepting new workers
+    # TODO: Look into this later
+    # invoke :'sidekiq:quiet'
+
+    # Put things that will set up an empty directory into a fully set-up
+    # instance of your project.
+    invoke :'git:clone'
+    invoke :'deploy:link_shared_paths'
+    invoke :'bundle:install'
+    invoke :'rails:db_migrate'
+    invoke :'rails:assets_precompile'
+    invoke :'deploy:cleanup'
+
+    to :launch do
+      # Passenger
+      # queue "mkdir -p #{deploy_to}/#{current_path}/tmp/"
+      # queue "touch #{deploy_to}/#{current_path}/tmp/restart.txt"
+
+      # TODO: Look into this later
+      # invoke :'sidekiq:restart'
+      invoke :'unicorn:restart'
+      #invoke :'unicorn:start'
+      #queue "touch #{deploy_to}/tmp/restart.txt"
+
+    end
+  end
+end
+
+# For help in making your deploy script, see the Mina documentation:
+#
+#  - http://nadarei.co/mina
+#  - http://nadarei.co/mina/tasks
+#  - http://nadarei.co/mina/settings
+#  - http://nadarei.co/mina/helpers
+
+Please suggest what could be wrong.
+
+
+Cheers!
+Imdad Ali Khan
+Mob (0) 9818484057
+http://www.linkedin.com/in/imdad
+
+On 24 October 2014 23:15, Eric Wong <e@80x24.org> wrote:
+
+> Imdad <khanimdad@gmail.com> wrote:
+> > I have rails4, nginx, unicorn and mona for app deployed
+> > http://104.131.74.69/
+> >
+> > But after deploy hitting on above link results in error, and the log says
+> >
+> > root@Hailisys:~# tail -n 0 -f
+> > /var/www/hailisys/shared/log/unicorn.stderr.log
+> > I, [2014-10-24T17:28:53.162084 #15819]  INFO -- : executing
+> > ["/var/www/hailisys/releases/6/vendor/bundle/ruby/2.1.0/bin/unicorn",
+> "-c",
+> > "/var/www/hailisys/current/config/unicorn.rb", "-D", "-E", "production",
+> > {11=>#<Kgio::UNIXServer:fd 11>}] (in /var/www/hailisys/releases/28)
+>
+> You're working inside /releases/28 here...
+>
+> >
+> /var/www/hailisys/current/vendor/bundle/ruby/2.1.0/gems/unicorn-4.8.3/lib/unicorn/http_server.rb:475:in
+> > `exec': No such file or directory -
+> > /var/www/hailisys/releases/6/vendor/bundle/ruby/2.1.0/bin/unicorn
+> > (Errno::ENOENT)
+>
+> However, it's trying to run out of /releases/6, which I assume is
+> old enough to be removed by now.
+>
+> You should be able to set working_directory in your config/unicorn.rb:
+>
+>         working_directory "/var/www/hailisys/current"
+>
+> Then SIGHUP to reload the config before sending SIGUSR2 to it.
+>
+> Hopefully that works.  Normally you shouldn't need to set
+> working_directory if you're working out of "/current";
+> but I'm not sure what your deploy environment looks like.
+>
+
