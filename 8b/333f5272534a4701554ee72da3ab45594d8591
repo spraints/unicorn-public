@@ -1,0 +1,95 @@
+Return-Path: <khanimdad@gmail.com>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS15169 209.85.128.0/17
+X-Spam-Status: No, score=-1.4 required=3.0 tests=AWL,BAYES_00,FREEMAIL_FROM,
+ RCVD_IN_DNSWL_LOW,URIBL_BLOCKED shortcircuit=no autolearn=ham version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from mail-wi0-f171.google.com (mail-wi0-f171.google.com
+ [209.85.212.171]) (using TLSv1 with cipher ECDHE-RSA-RC4-SHA (128/128 bits))
+ (No client certificate requested) by dcvr.yhbt.net (Postfix) with ESMTPS id
+ 52CF81FB0C for <unicorn-public@bogomips.org>; Fri, 24 Oct 2014 19:29:55 +0000
+ (UTC)
+Received: by mail-wi0-f171.google.com with SMTP id em10so2036442wid.4 for
+ <unicorn-public@bogomips.org>; Fri, 24 Oct 2014 12:29:53 -0700 (PDT)
+X-Received: by 10.181.13.20 with SMTP id eu20mr5955833wid.36.1414178993687;
+ Fri, 24 Oct 2014 12:29:53 -0700 (PDT)
+MIME-Version: 1.0
+Received: by 10.194.138.100 with HTTP; Fri, 24 Oct 2014 12:29:33 -0700 (PDT)
+In-Reply-To: <20141024191328.GA6584@dcvr.yhbt.net>
+References:
+ <CADQvUy7bRLTg0d5RyrgW1rsEFjJ2Q1Jh+bbuSDuxSN=79_eRZA@mail.gmail.com>
+ <20141024174520.GA27334@dcvr.yhbt.net>
+ <CADQvUy79jAyoEVJz-t-fEnQTAq9foQeYhpOkLVKx_3oejzgzAw@mail.gmail.com>
+ <20141024181300.GA29311@dcvr.yhbt.net>
+ <CADQvUy6nN+fDvx0+QZox1h8DfpaYiwDj2skDEMKMYdDAKUQpcg@mail.gmail.com>
+ <20141024183409.GA28506@dcvr.yhbt.net>
+ <CADQvUy7TedH_3NSX1rES3ueHSmnAMU-FsBCLMNBG8QaRS1hJmA@mail.gmail.com>
+ <20141024191328.GA6584@dcvr.yhbt.net>
+From: Imdad <khanimdad@gmail.com>
+Date: Sat, 25 Oct 2014 00:59:33 +0530
+Message-ID:
+ <CADQvUy6xB-U1m=xGYsQdX0nhE8peYRc7L5ZiJzy8TSF0JjMe8A@mail.gmail.com>
+Subject: Re: Having issue with Unicorn
+To: Eric Wong <e@80x24.org>
+Cc: unicorn-public <unicorn-public@bogomips.org>
+Content-Type: text/plain; charset=UTF-8
+X-Content-Filtered-By: PublicInbox::Filter 0.0.1
+List-Id: <unicorn-public@bogomips.org>
+
+Did following by login to server
+
+root@Hailisys:/var/www/hailisys/shared/pids# kill -HUP $(cat unicorn.pid)
+root@Hailisys:/var/www/hailisys/shared/pids# kill -USR2 $(cat unicorn.pid)
+
+
+Then did "mina deploy"
+
+-----> Launching
+-----> Restart unicorn service
+-----> Done. Deployed v30
+Connection to 104.131.74.69 closed.
+       Elapsed time: 52.96 seconds
+
+
+
+And here is my log file  (/var/www/hailisys/shared/log/unicorn.stderr.log)
+
+INFO -- : executing
+["/var/www/hailisys/releases/6/vendor/bundle/ruby/2.1.0/bin/unicorn", "-c",
+"/var/www/hailisys/current/config/unicorn.rb", "-D", "-E", "production",
+{11=>#<Kgio::UNIXServer:fd 11>}] (in /var/www/hailisys/releases/30)
+/var/www/hailisys/current/vendor/bundle/ruby/2.1.0/gems/unicorn-4.8.3/lib/unicorn/http_server.rb:475:in
+`exec': No such file or directory -
+/var/www/hailisys/releases/6/vendor/bundle/ruby/2.1.0/bin/unicorn
+(Errno::ENOENT)
+from
+/var/www/hailisys/current/vendor/bundle/ruby/2.1.0/gems/unicorn-4.8.3/lib/unicorn/http
+
+
+
+
+Cheers!
+Imdad Ali Khan
+Mob (0) 9818484057
+http://www.linkedin.com/in/imdad
+
+On 25 October 2014 00:43, Eric Wong <e@80x24.org> wrote:
+
+> Imdad <khanimdad@gmail.com> wrote:
+> > Thanks Eric, not how to do
+> >  2) SIGHUP master to reload new config # manual step to fix up config
+> >  3) proceed with SIGUSR2 as usual
+>
+> I think you need to do this fix manually by logging into your server:
+>
+>         kill -HUP $(cat /path/to/pid/file)
+>         kill -USR2 $(cat /path/to/pid/file)
+>
+> (SIGUSR2 is what you were doing before with the reexec)
+>
+> > Also not sure how did i send HTML portions
+>
+> Your initial message got through fine (HTML is given a high spam score).
+>
+
