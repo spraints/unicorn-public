@@ -1,0 +1,78 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-2.9 required=3.0 tests=ALL_TRUSTED,BAYES_00
+ shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id F2D5A1F838; Sat,  1 Nov 2014 23:59:32 +0000 (UTC)
+Date: Sat, 1 Nov 2014 23:59:32 +0000
+From: Eric Wong <e@80x24.org>
+To: unicorn-public@bogomips.org
+Subject: [PATCH] worker: remove old tmp accessor
+Message-ID: <20141101235932.GA11560@dcvr.yhbt.net>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+List-Id: <unicorn-public@bogomips.org>
+
+This has not been used since unicorn 4.0.0 over three years ago.
+This is an incompatible change, but hopefully nobody uses this in
+before_fork/after_fork hooks anywhere.
+---
+ I really hope nobody is reaching into internals like this...
+
+ lib/unicorn/worker.rb | 14 +-------------
+ 1 file changed, 1 insertion(+), 13 deletions(-)
+
+diff --git a/lib/unicorn/worker.rb b/lib/unicorn/worker.rb
+index e74a1c9..b3f8afe 100644
+--- a/lib/unicorn/worker.rb
++++ b/lib/unicorn/worker.rb
+@@ -11,7 +11,6 @@ require "raindrops"
+ class Unicorn::Worker
+   # :stopdoc:
+   attr_accessor :nr, :switched
+-  attr_writer :tmp
+   attr_reader :to_io # IO.select-compatible
+ 
+   PER_DROP = Raindrops::PAGE_SIZE / Raindrops::SIZE
+@@ -23,7 +22,7 @@ class Unicorn::Worker
+     @offset = nr % PER_DROP
+     @raindrop[@offset] = 0
+     @nr = nr
+-    @tmp = @switched = false
++    @switched = false
+     @to_io, @master = Unicorn.pipe
+   end
+ 
+@@ -101,18 +100,8 @@ class Unicorn::Worker
+     @raindrop[@offset]
+   end
+ 
+-  # only exists for compatibility
+-  def tmp # :nodoc:
+-    @tmp ||= begin
+-      tmp = Unicorn::TmpIO.new
+-      tmp.fcntl(Fcntl::F_SETFD, Fcntl::FD_CLOEXEC)
+-      tmp
+-    end
+-  end
+-
+   # called in both the master (reaping worker) and worker (SIGQUIT handler)
+   def close # :nodoc:
+-    @tmp.close if @tmp
+     @master.close if @master
+     @to_io.close if @to_io
+   end
+@@ -141,7 +130,6 @@ class Unicorn::Worker
+     uid = Etc.getpwnam(user).uid
+     gid = Etc.getgrnam(group).gid if group
+     Unicorn::Util.chown_logs(uid, gid)
+-    @tmp.chown(uid, gid) if @tmp
+     if gid && Process.egid != gid
+       Process.initgroups(user, gid)
+       Process::GID.change_privilege(gid)
+-- 
+EW
