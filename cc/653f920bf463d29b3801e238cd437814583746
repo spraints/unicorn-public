@@ -1,0 +1,195 @@
+Return-Path: <roberto.chingon@hotmail.com>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS8075 157.55.0.0/16
+X-Spam-Status: No, score=-0.2 required=3.0 tests=AWL,BAYES_00,FREEMAIL_FROM,
+ T_RP_MATCHES_RCVD,URIBL_BLOCKED shortcircuit=no autolearn=ham version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from DUB004-OMC3S14.hotmail.com (dub004-omc3s14.hotmail.com
+ [157.55.2.23]) (using TLSv1.2 with cipher ECDHE-RSA-AES256-SHA384 (256/256
+ bits)) (No client certificate requested) by dcvr.yhbt.net (Postfix) with
+ ESMTPS id D7EB21FAF9 for <unicorn-public@bogomips.org>; Fri, 14 Nov 2014
+ 09:09:14 +0000 (UTC)
+Received: from DUB126-W59 ([157.55.2.9]) by DUB004-OMC3S14.hotmail.com over
+ TLS secured channel with Microsoft SMTPSVC(7.5.7601.22751); Fri, 14 Nov 2014
+ 01:09:13 -0800
+X-TMN: [iy2TBntMBEWGkymX0QPusDlMp7G2ZCvJ]
+X-Originating-Email: [roberto.chingon@hotmail.com]
+Message-ID: <DUB126-W597224BC19E3684FA2CDC0F88C0@phx.gbl>
+Content-Type: text/plain; charset="iso-8859-1"
+From: Roberto Cordoba del Moral <roberto.chingon@hotmail.com>
+To: Eric Wong <e@80x24.org>
+CC: "unicorn-public@bogomips.org" <unicorn-public@bogomips.org>
+Subject: RE: Issue with Unicorn: Big latency when getting a request
+Date: Fri, 14 Nov 2014 10:09:13 +0100
+Importance: Normal
+In-Reply-To: <20141114071922.GA10410@dcvr.yhbt.net>
+References:
+ <DUB126-W808823D06D589D403380ECF88E0@phx.gbl>,<DUB126-W481D6320094B5240088B08F88F0@phx.gbl>,<20141113210332.GA13597@dcvr.yhbt.net>,<DUB126-W4531BE07380A736999D84DF88C0@phx.gbl>,<20141114071922.GA10410@dcvr.yhbt.net>
+MIME-Version: 1.0
+X-OriginalArrivalTime: 14 Nov 2014 09:09:13.0361 (UTC)
+ FILETIME=[A8A15810:01CFFFEA]
+Content-Transfer-Encoding: quoted-printable
+X-Content-Filtered-By: PublicInbox::Filter 0.0.1
+List-Id: <unicorn-public@bogomips.org>
+
+Hi Eric=2C
+   I=B4m not pretty sure how to crank up the verbosity of nginx although I =
+think I got it=2C because when I restart Nginx I get next logs:
+2014/11/14 10:00:10 [notice] 39156#0: using the "kqueue" event method2014/1=
+1/14 10:00:10 [warn] 39156#0: 1024 worker_connections exceed open file reso=
+urce limit: 2562014/11/14 10:00:10 [notice] 39156#0: nginx/1.6.02014/11/14 =
+10:00:10 [notice] 39156#0: built by clang 5.1 (clang-503.0.40) (based on LL=
+VM 3.4svn)2014/11/14 10:00:10 [notice] 39156#0: OS: Darwin 13.4.02014/11/14=
+ 10:00:10 [notice] 39156#0: hw.ncpu: 42014/11/14 10:00:10 [notice] 39156#0:=
+ net.inet.tcp.sendspace: 1310722014/11/14 10:00:10 [notice] 39156#0: kern.i=
+pc.somaxconn: 1282014/11/14 10:00:10 [notice] 39156#0: getrlimit(RLIMIT_NOF=
+ILE): 256:92233720368547758072014/11/14 10:00:10 [notice] 39157#0: start wo=
+rker processes2014/11/14 10:00:10 [notice] 39157#0: start worker process 39=
+158
+Besides that=2C I got nothing else in this log when I load my website.
+I think I have just one worker. Please find my nginx.conf file:
+
+#user  nobody=3Bworker_processes  1=3B
+#error_log  logs/error.log=3B#error_log  logs/error.log  notice=3B#error_lo=
+g  logs/error.log  info=3Berror_log   logs/error.log debug=3B
+#pid        logs/nginx.pid=3B
+
+events {    worker_connections  1024=3B=0A=
+=0A=
+=0A=
+=0A=
+=0A=
+=0A=
+=0A=
+=0A=
+=0A=
+=0A=
+=0A=
+=0A=
+=0A=
+=0A=
+=0A=
+=0A=
+=0A=
+=0A=
+=0A=
+=0A=
+=0A=
+=0A=
+}
+http {    include       mime.types=3B    default_type  application/octet-st=
+ream=3B
+    #log_format  main  '$remote_addr - $remote_user [$time_local] "$request=
+" '    #                  '$status $body_bytes_sent "$http_referer" '    # =
+                 '"$http_user_agent" "$http_x_forwarded_for"'=3B
+   # access_log  logs/access.log  main=3B
+    sendfile        on=3B    #tcp_nopush     on=3B
+    #keepalive_timeout  0=3B    keepalive_timeout  65=3B
+    #gzip  on=3B
+    server {        listen       80=3B        server_name  localhost=3B
+        #charset koi8-r=3B        access_log  logs/host.access.log=3B      =
+  rewrite_log on=3B        location / {            root   /Users/Rober/Proj=
+ects/yanpy/dev/yanpy/app=3B            index  index.html index.htm=3B      =
+  }
+        #error_page  404              /404.html=3B
+        # redirect server error pages to the static page /50x.html        #=
+        error_page   500 502 503 504  /50x.html=3B=0A=
+=0A=
+=0A=
+=0A=
+=0A=
+=0A=
+=0A=
+=0A=
+=0A=
+=0A=
+=0A=
+=0A=
+=0A=
+=0A=
+=0A=
+=0A=
+=0A=
+=0A=
+=0A=
+=0A=
+=0A=
+=0A=
+=0A=
+=0A=
+=0A=
+=0A=
+=0A=
+=0A=
+=0A=
+=0A=
+=0A=
+=0A=
+=0A=
+=0A=
+=0A=
+=0A=
+=0A=
+=0A=
+=0A=
+=0A=
+=0A=
+=0A=
+=0A=
+        location =3D /50x.html {            root   html=3B        }
+    }
+=0A=
+=0A=
+=0A=
+=0A=
+=0A=
+=0A=
+=0A=
+=0A=
+=0A=
+=0A=
+=0A=
+=0A=
+=0A=
+=0A=
+=0A=
+=0A=
+=0A=
+=0A=
+=0A=
+=0A=
+}
+Regarding your comment: Again=2C please do not send HTML or top-post. We ad=
+here to old-fashioned mailing list posting conventions here.
+I don=B4t know what you mean. I=B4m answering you from my outlook web mail =
+account.
+Thanks=2C Roberto.
+
+
+> Date: Fri=2C 14 Nov 2014 07:19:22 +0000
+> From: e@80x24.org
+> To: roberto.chingon@hotmail.com
+> CC: unicorn-public@bogomips.org
+> Subject: Re: Issue with Unicorn: Big latency when getting a request
+>=20
+> Roberto Cordoba del Moral <roberto.chingon@hotmail.com> wrote:
+> > Hi Eric=2C
+> >   nothing in my Nginx error.log.
+> > If I point my browser directly to my endpoint by localhost:8080/getTran=
+slationLanguages I get the results in json format in my browser inmediately=
+ (with no latencies). This is working fine.
+> > Thanks for your support.Roberto.
+>=20
+> So the issue is with nginx communicating with unicorn=2C and not unicorn
+> itself.  Can you crank up the verbosity of nginx logging and/or strace
+> an nginx worker to see what's going on?
+>=20
+> (only configure nginx to use one worker to guarantee you're stracing
+> right one).
+>=20
+>=20
+> Again=2C please do not send HTML or top-post.  We adhere to old-fashioned
+> mailing list posting conventions here.  Thanks.
+ 		 	   		  =
+
