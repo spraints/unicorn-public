@@ -1,0 +1,69 @@
+Return-Path: <roberto.chingon@hotmail.com>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS8075 157.55.0.0/16
+X-Spam-Status: No, score=-0.8 required=3.0 tests=AWL,BAYES_00,FREEMAIL_FROM,
+ T_RP_MATCHES_RCVD,URIBL_BLOCKED shortcircuit=no autolearn=ham version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from DUB004-OMC3S8.hotmail.com (dub004-omc3s8.hotmail.com
+ [157.55.2.17]) (using TLSv1.2 with cipher ECDHE-RSA-AES256-SHA384 (256/256
+ bits)) (No client certificate requested) by dcvr.yhbt.net (Postfix) with
+ ESMTPS id 5579F1FAF9 for <unicorn-public@bogomips.org>; Fri, 14 Nov 2014
+ 11:15:40 +0000 (UTC)
+Received: from DUB126-W92 ([157.55.2.7]) by DUB004-OMC3S8.hotmail.com over
+ TLS secured channel with Microsoft SMTPSVC(7.5.7601.22751); Fri, 14 Nov 2014
+ 03:15:38 -0800
+X-TMN: [Rw42wXX0HpSvgkgKxJkgxk+ed9fOBkIA]
+X-Originating-Email: [roberto.chingon@hotmail.com]
+Message-ID: <DUB126-W929421D7EAFC4EFD801A53F88C0@phx.gbl>
+Content-Type: text/plain; charset="iso-8859-1"
+From: Roberto Cordoba del Moral <roberto.chingon@hotmail.com>
+To: Eric Wong <e@80x24.org>
+CC: "unicorn-public@bogomips.org" <unicorn-public@bogomips.org>
+Subject: RE: Issue with Unicorn: Big latency when getting a request
+Date: Fri, 14 Nov 2014 12:15:38 +0100
+Importance: Normal
+In-Reply-To: <20141114110306.GA21328@dcvr.yhbt.net>
+References:
+ <20141113210332.GA13597@dcvr.yhbt.net>,<DUB126-W4531BE07380A736999D84DF88C0@phx.gbl>,<20141114071922.GA10410@dcvr.yhbt.net>,<DUB126-W597224BC19E3684FA2CDC0F88C0@phx.gbl>,<DUB126-W466F54DFDA0FC42E8AB27BF88C0@phx.gbl>,<20141114100208.GA7416@dcvr.yhbt.net>,<DUB126-W9519F731D096B8E3CEF4FF88C0@phx.gbl>,<DUB126-W9CD3FCC431C95BE111D82F88C0@phx.gbl>,<20141114102857.GA13910@dcvr.yhbt.net>,<DUB126-W58ADB3EED5FCA9D2EE0D36F88C0@phx.gbl>,<20141114110306.GA21328@dcvr.yhbt.net>
+MIME-Version: 1.0
+X-OriginalArrivalTime: 14 Nov 2014 11:15:38.0983 (UTC)
+ FILETIME=[52036770:01CFFFFC]
+Content-Transfer-Encoding: quoted-printable
+X-Content-Filtered-By: PublicInbox::Filter 0.0.1
+List-Id: <unicorn-public@bogomips.org>
+
+Hi Eric=2C
+   the research has given an unexpected turn.
+I have confirmed the issue is only happening with Google Chrome. With Safar=
+i never happens.
+It has to be something related to cookies or cache with Chrome.
+
+> Date: Fri=2C 14 Nov 2014 11:03:06 +0000
+> From: e@80x24.org
+> To: roberto.chingon@hotmail.com
+> CC: unicorn-public@bogomips.org
+> Subject: Re: Issue with Unicorn: Big latency when getting a request
+>=20
+> Roberto Cordoba del Moral <roberto.chingon@hotmail.com> wrote:
+> > I=B4m getting this warn message when starting NGINX
+> >=20
+> > nginx: [warn] 1024 worker_connections exceed open file resource limit: =
+256
+> > Could it be related to this?
+>=20
+> Probably not.  You could try "ulimit -n 1024" before starting nginx
+> (assuming you have proper permissions).
+>=20
+> You'd have to really do something strange in your client scripts to have
+> a browser open more than 256 connections to a single page load.  I seem
+> to remember browsers (by default) will only open 4-8 connections to a
+> single host at once.
+>=20
+> Try increasing worker_processes in unicorn (not nginx).
+> Or try Thin/Puma=2C since WEBrick works.
+>=20
+> unicorn is _not_ a good choice if you're doing any long-lived
+> HTTP connections or any slow request processing.
+ 		 	   		  =
+
