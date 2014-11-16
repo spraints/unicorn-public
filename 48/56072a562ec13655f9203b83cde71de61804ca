@@ -1,0 +1,128 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-1.6 required=3.0 tests=ALL_TRUSTED,AWL,BAYES_00,
+ MSGID_RANDY shortcircuit=no autolearn=no version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 3B8FB1F461 for <unicorn-public@bogomips.org>; Sun, 16
+ Nov 2014 08:32:16 +0000 (UTC)
+From: Eric Wong <e@80x24.org>
+To: unicorn-public@bogomips.org
+Subject: [RFC] http: TypedData C-API conversion
+Date: Sun, 16 Nov 2014 08:32:16 +0000
+Message-Id: <typed-data-c-api@1.9.x>
+X-Mailer: git-send-email 2.2.0.rc2.1.g1758c97.dirty
+List-Id: <unicorn-public@bogomips.org>
+
+This provides some extra type safety if combined with other C
+extensions, as well as allowing us to account for memory usage of
+the HTTP parser in ObjectSpace.
+
+Note: this means we are finally dropping Ruby 1.8 support as
+TypedData requires Ruby 1.9 and later.  Future changes will
+require Ruby 1.9.2 and later (which is already EOL), but still
+in use at some places.  This compiles with warnings on Ruby 1.9.2,
+but is warning-free on modern Ruby versions.
+
+This also currently leaks memory under 1.9.2-p330 x86_64-linux if
+test_memory_leak is enabled in test/unit/test_http_parser.rb
+Since 1.9.2 is EOL and 1.9.3+ all work fine (including trunk),
+I'm not going to spend more time with this problem.
+
+Also, keep in mind this type of memory leak wouldn't affect unicorn
+as we only ever allocate a single parser.  This leak would only
+affect other (concurrent) HTTP servers using this parser, and only
+under Ruby 1.9.2.
+---
+ So with this, I'm strongly considering making unicorn 5 depend
+ on Ruby 1.9.3+, and not just Ruby 1.9.2+.
+
+ ext/unicorn_http/unicorn_http.rl | 35 +++++++++++++++++++++++------------
+ test/unit/test_http_parser.rb    | 10 ++++++++++
+ 2 files changed, 33 insertions(+), 12 deletions(-)
+
+diff --git a/ext/unicorn_http/unicorn_http.rl b/ext/unicorn_http/unicorn_http.rl
+index 3294357..16741e0 100644
+--- a/ext/unicorn_http/unicorn_http.rl
++++ b/ext/unicorn_http/unicorn_http.rl
+@@ -417,11 +417,31 @@ post_exec: /* "_out:" also goes here */
+   assert(hp->offset <= len && "offset longer than length");
+ }
+ 
++static void hp_mark(void *ptr)
++{
++  struct http_parser *hp = ptr;
++
++  rb_gc_mark(hp->buf);
++  rb_gc_mark(hp->env);
++  rb_gc_mark(hp->cont);
++}
++
++static size_t hp_memsize(const void *ptr)
++{
++  return sizeof(struct http_parser);
++}
++
++static const rb_data_type_t hp_type = {
++  "unicorn_http",
++  { hp_mark, (void(*))(void *)-1, hp_memsize, /* reserved */ },
++  /* parent, data, [ flags ] */
++};
++
+ static struct http_parser *data_get(VALUE self)
+ {
+   struct http_parser *hp;
+ 
+-  Data_Get_Struct(self, struct http_parser, hp);
++  TypedData_Get_Struct(self, struct http_parser, &hp_type, hp);
+   assert(hp && "failed to extract http_parser struct");
+   return hp;
+ }
+@@ -527,21 +547,12 @@ static void finalize_header(struct http_parser *hp)
+     rb_hash_aset(hp->env, g_query_string, rb_str_new(NULL, 0));
+ }
+ 
+-static void hp_mark(void *ptr)
+-{
+-  struct http_parser *hp = ptr;
+-
+-  rb_gc_mark(hp->buf);
+-  rb_gc_mark(hp->env);
+-  rb_gc_mark(hp->cont);
+-}
+-
+ static VALUE HttpParser_alloc(VALUE klass)
+ {
+   struct http_parser *hp;
+-  return Data_Make_Struct(klass, struct http_parser, hp_mark, -1, hp);
+-}
+ 
++  return TypedData_Make_Struct(klass, struct http_parser, &hp_type, hp);
++}
+ 
+ /**
+  * call-seq:
+diff --git a/test/unit/test_http_parser.rb b/test/unit/test_http_parser.rb
+index 2251dcf..2785df7 100644
+--- a/test/unit/test_http_parser.rb
++++ b/test/unit/test_http_parser.rb
+@@ -851,4 +851,14 @@ class HttpParserTest < Test::Unit::TestCase
+          File.readable?(LINUX_PROC_PID_STATUS) &&
+          !defined?(RUBY_ENGINE)
+ 
++  def test_memsize
++    require 'objspace'
++    if ObjectSpace.respond_to?(:memsize_of)
++      n = ObjectSpace.memsize_of(Unicorn::HttpParser.new)
++      assert_kind_of Integer, n
++      assert_operator n, :<=, 56 # need to update this when 128-bit machines
++    end
++  rescue LoadError
++    # not all Ruby implementations have objspace
++  end
+ end
+-- 
+EW
+
