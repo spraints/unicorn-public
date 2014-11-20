@@ -1,0 +1,39 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-2.9 required=3.0 tests=ALL_TRUSTED,BAYES_00
+ shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 27B7A1F45F; Thu, 20 Nov 2014 21:59:24 +0000 (UTC)
+Date: Thu, 20 Nov 2014 21:59:24 +0000
+From: Eric Wong <e@80x24.org>
+To: Jim Zhan <cjzhan2000@gmail.com>
+Cc: unicorn-public@bogomips.org
+Subject: Re: Unicorn configuration to increase max header size
+Message-ID: <20141120215923.GA24676@dcvr.yhbt.net>
+References:
+ <CAD6h1mit6Rhh=9Pi0F7OFTZC+Wg7A3uY1zdv4Cz8shrqJ6tr8w@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To:
+ <CAD6h1mit6Rhh=9Pi0F7OFTZC+Wg7A3uY1zdv4Cz8shrqJ6tr8w@mail.gmail.com>
+List-Id: <unicorn-public@bogomips.org>
+
+Jim Zhan <cjzhan2000@gmail.com> wrote:
+> We are using Unicorn as the http server for one of our ruby applications
+> and we recently encountered an issue that some browsers won't limit the
+> cookie size so we will get requests with http header greater than 8k and
+> users are receiving "400-bad request". Is there a way to increase the
+> maximum allowed header size? I searched online but didn't find a lot of
+> useful information on it.
+
+This is subject to change in the next major release, but you can
+change it in unicorn 4.x using:
+
+  Unicorn::HttpRequest.max_header_len = <number>
+
+However, the default is already 112K, so I'm wondering if the 8K is
+the result of your nginx configuration or similar.
