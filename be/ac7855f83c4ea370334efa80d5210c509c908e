@@ -1,0 +1,89 @@
+Return-Path: <cjzhan2000@gmail.com>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS15169 209.85.128.0/17
+X-Spam-Status: No, score=-0.6 required=3.0 tests=AWL,BAYES_00,
+ FREEMAIL_ENVFROM_END_DIGIT,FREEMAIL_FROM,RCVD_IN_DNSWL_BLOCKED,URIBL_BLOCKED
+ shortcircuit=no autolearn=no version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from mail-ob0-f171.google.com (mail-ob0-f171.google.com
+ [209.85.214.171]) (using TLSv1 with cipher ECDHE-RSA-RC4-SHA (128/128 bits))
+ (No client certificate requested) by dcvr.yhbt.net (Postfix) with ESMTPS id
+ DF5011F464 for <unicorn-public@bogomips.org>; Thu, 20 Nov 2014 23:35:27 +0000
+ (UTC)
+Received: by mail-ob0-f171.google.com with SMTP id uz6so3173728obc.30 for
+ <unicorn-public@bogomips.org>; Thu, 20 Nov 2014 15:35:27 -0800 (PST)
+MIME-Version: 1.0
+X-Received: by 10.182.65.135 with SMTP id x7mr919518obs.44.1416526526941;
+ Thu, 20 Nov 2014 15:35:26 -0800 (PST)
+Received: by 10.202.185.135 with HTTP; Thu, 20 Nov 2014 15:35:26 -0800 (PST)
+In-Reply-To: <20141120215923.GA24676@dcvr.yhbt.net>
+References:
+ <CAD6h1mit6Rhh=9Pi0F7OFTZC+Wg7A3uY1zdv4Cz8shrqJ6tr8w@mail.gmail.com>
+ <20141120215923.GA24676@dcvr.yhbt.net>
+Date: Thu, 20 Nov 2014 15:35:26 -0800
+Message-ID:
+ <CAD6h1mi0=2b-iScdD39yeMq7xcyHV7t_esVMHH9MZMDmThFPqQ@mail.gmail.com>
+Subject: Re: Unicorn configuration to increase max header size
+From: Jim Zhan <cjzhan2000@gmail.com>
+To: Eric Wong <e@80x24.org>
+Cc: unicorn-public@bogomips.org
+Content-Type: text/plain; charset=UTF-8
+X-Content-Filtered-By: PublicInbox::Filter 0.0.1
+List-Id: <unicorn-public@bogomips.org>
+
+Hi Eric,
+
+Thank you for the quick reply. I checked out hosts and we are using Unicorn
+3.4.1. Unfortunately there is only one setting for client_body_buffer_size.
+So how does this parameter work? Will it only put a limitation on the body
+itself or it applied proportionally to header and body (e.g., header 8k,
+body 104k, etc).
+
+We did experiments using curl by sending header exceeding 8k manually and I
+am getting 404. So it's unicorn itself, not nginx that has the 8k header
+size limitation.
+
+The command we used for the experiment:
+curl -v -H "$(./http-header-pumper.bat 8000)" <service_url>
+
+The script we used to generate header:
+#!/bin/bash
+
+printf "x-header-pump: "
+for ((i=0; i<$1; i++))
+do
+   let "n = $i % 10"
+   if [ $n = 0 ]; then
+      printf "_"
+   else
+      printf "%d" $n
+   fi
+done
+
+Thank you and I am looking forward to hearing from you soon on the issue!
+
+Rgds,
+Jim Zhan
+
+
+
+On Thu, Nov 20, 2014 at 1:59 PM, Eric Wong <e@80x24.org> wrote:
+
+> Jim Zhan <cjzhan2000@gmail.com> wrote:
+> > We are using Unicorn as the http server for one of our ruby applications
+> > and we recently encountered an issue that some browsers won't limit the
+> > cookie size so we will get requests with http header greater than 8k and
+> > users are receiving "400-bad request". Is there a way to increase the
+> > maximum allowed header size? I searched online but didn't find a lot of
+> > useful information on it.
+>
+> This is subject to change in the next major release, but you can
+> change it in unicorn 4.x using:
+>
+>   Unicorn::HttpRequest.max_header_len = <number>
+>
+> However, the default is already 112K, so I'm wondering if the 8K is
+> the result of your nginx configuration or similar.
+>
+
