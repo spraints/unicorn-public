@@ -1,0 +1,67 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-2.9 required=3.0 tests=ALL_TRUSTED,BAYES_00,
+ URIBL_BLOCKED shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id BCA8E1F45F; Fri, 21 Nov 2014 00:31:37 +0000 (UTC)
+Date: Fri, 21 Nov 2014 00:31:37 +0000
+From: Eric Wong <e@80x24.org>
+To: Jim Zhan <cjzhan2000@gmail.com>
+Cc: unicorn-public@bogomips.org
+Subject: Re: Unicorn configuration to increase max header size
+Message-ID: <20141121003137.GA31484@dcvr.yhbt.net>
+References:
+ <CAD6h1mit6Rhh=9Pi0F7OFTZC+Wg7A3uY1zdv4Cz8shrqJ6tr8w@mail.gmail.com>
+ <20141120215923.GA24676@dcvr.yhbt.net>
+ <CAD6h1mi0=2b-iScdD39yeMq7xcyHV7t_esVMHH9MZMDmThFPqQ@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To:
+ <CAD6h1mi0=2b-iScdD39yeMq7xcyHV7t_esVMHH9MZMDmThFPqQ@mail.gmail.com>
+List-Id: <unicorn-public@bogomips.org>
+
+Jim Zhan <cjzhan2000@gmail.com> wrote:
+> Hi Eric,
+> 
+> Thank you for the quick reply. I checked out hosts and we are using Unicorn
+> 3.4.1. Unfortunately there is only one setting for client_body_buffer_size.
+> So how does this parameter work? Will it only put a limitation on the body
+> itself or it applied proportionally to header and body (e.g., header 8k,
+> body 104k, etc).
+
+client_body_buffer_size in unicorn is only for request bodies (uploads),
+and not relevant to header sizes.
+
+> We did experiments using curl by sending header exceeding 8k manually and I
+> am getting 404. So it's unicorn itself, not nginx that has the 8k header
+> size limitation.
+
+I suspect you're hitting the nginx large_client_header_buffers default
+limit of 8K:
+
+  http://nginx.org/en/docs/http/ngx_http_core_module.html#large_client_header_buffers
+
+I checked the unicorn source, and ext/unicorn_http/global_variables.h
+defines the maximum field value as 80K, 10 times more than what you're
+seeing:
+
+	DEF_MAX_LENGTH(FIELD_VALUE, 80 * 1024);
+
+This value was inherited from Mongrel many years ago and never changed.
+
+> The command we used for the experiment:
+> curl -v -H "$(./http-header-pumper.bat 8000)" <service_url>
+
+I just tried your script with the following config.ru to hit unicorn
+directly (no nginx), and I got the expected lobster response.
+
+$ unicorn -E none config.ru
+----------- config.ru -----------
+require 'rack/lobster'
+use Rack::ContentLength
+run Rack::Lobster.new
+--------------------------------
