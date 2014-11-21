@@ -1,0 +1,90 @@
+Return-Path: <cjzhan2000@gmail.com>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS15169 209.85.128.0/17
+X-Spam-Status: No, score=-0.7 required=3.0 tests=AWL,BAYES_00,
+ FREEMAIL_ENVFROM_END_DIGIT,FREEMAIL_FROM,RCVD_IN_DNSWL_BLOCKED,URIBL_BLOCKED
+ shortcircuit=no autolearn=no version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from mail-ob0-f171.google.com (mail-ob0-f171.google.com
+ [209.85.214.171]) (using TLSv1 with cipher ECDHE-RSA-RC4-SHA (128/128 bits))
+ (No client certificate requested) by dcvr.yhbt.net (Postfix) with ESMTPS id
+ 9F52B1F45F for <unicorn-public@bogomips.org>; Fri, 21 Nov 2014 01:34:00 +0000
+ (UTC)
+Received: by mail-ob0-f171.google.com with SMTP id uz6so3255422obc.2 for
+ <unicorn-public@bogomips.org>; Thu, 20 Nov 2014 17:34:00 -0800 (PST)
+MIME-Version: 1.0
+X-Received: by 10.202.102.65 with SMTP id a62mr128756oic.108.1416533639882;
+ Thu, 20 Nov 2014 17:33:59 -0800 (PST)
+Received: by 10.202.185.135 with HTTP; Thu, 20 Nov 2014 17:33:59 -0800 (PST)
+In-Reply-To: <20141121003137.GA31484@dcvr.yhbt.net>
+References:
+ <CAD6h1mit6Rhh=9Pi0F7OFTZC+Wg7A3uY1zdv4Cz8shrqJ6tr8w@mail.gmail.com>
+ <20141120215923.GA24676@dcvr.yhbt.net>
+ <CAD6h1mi0=2b-iScdD39yeMq7xcyHV7t_esVMHH9MZMDmThFPqQ@mail.gmail.com>
+ <20141121003137.GA31484@dcvr.yhbt.net>
+Date: Thu, 20 Nov 2014 17:33:59 -0800
+Message-ID:
+ <CAD6h1mh-uOATyYK07ouJmH5=AHEAv0MZTGGq5zHt5X+3AyXFfg@mail.gmail.com>
+Subject: Re: Unicorn configuration to increase max header size
+From: Jim Zhan <cjzhan2000@gmail.com>
+To: Eric Wong <e@80x24.org>
+Cc: unicorn-public@bogomips.org
+Content-Type: text/plain; charset=UTF-8
+X-Content-Filtered-By: PublicInbox::Filter 0.0.1
+List-Id: <unicorn-public@bogomips.org>
+
+Thank you. Will check out tomorrow on our production hosts based on your
+comments and directions.
+
+
+On Thu, Nov 20, 2014 at 4:31 PM, Eric Wong <e@80x24.org> wrote:
+
+> Jim Zhan <cjzhan2000@gmail.com> wrote:
+> > Hi Eric,
+> >
+> > Thank you for the quick reply. I checked out hosts and we are using
+> Unicorn
+> > 3.4.1. Unfortunately there is only one setting for
+> client_body_buffer_size.
+> > So how does this parameter work? Will it only put a limitation on the
+> body
+> > itself or it applied proportionally to header and body (e.g., header 8k,
+> > body 104k, etc).
+>
+> client_body_buffer_size in unicorn is only for request bodies (uploads),
+> and not relevant to header sizes.
+>
+> > We did experiments using curl by sending header exceeding 8k manually
+> and I
+> > am getting 404. So it's unicorn itself, not nginx that has the 8k header
+> > size limitation.
+>
+> I suspect you're hitting the nginx large_client_header_buffers default
+> limit of 8K:
+>
+>
+> http://nginx.org/en/docs/http/ngx_http_core_module.html#large_client_header_buffers
+>
+> I checked the unicorn source, and ext/unicorn_http/global_variables.h
+> defines the maximum field value as 80K, 10 times more than what you're
+> seeing:
+>
+>         DEF_MAX_LENGTH(FIELD_VALUE, 80 * 1024);
+>
+> This value was inherited from Mongrel many years ago and never changed.
+>
+> > The command we used for the experiment:
+> > curl -v -H "$(./http-header-pumper.bat 8000)" <service_url>
+>
+> I just tried your script with the following config.ru to hit unicorn
+> directly (no nginx), and I got the expected lobster response.
+>
+> $ unicorn -E none config.ru
+> ----------- config.ru -----------
+> require 'rack/lobster'
+> use Rack::ContentLength
+> run Rack::Lobster.new
+> --------------------------------
+>
+
