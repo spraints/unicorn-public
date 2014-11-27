@@ -1,0 +1,57 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-2.9 required=3.0 tests=ALL_TRUSTED,BAYES_00
+ shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id D48521FA80; Thu, 27 Nov 2014 22:46:31 +0000 (UTC)
+Date: Thu, 27 Nov 2014 22:46:31 +0000
+From: Eric Wong <e@80x24.org>
+To: unicorn-public@bogomips.org
+Subject: [PATCH] http_server: save 450+ bytes of memory on x86-64
+Message-ID: <20141127224631.GA31363@dcvr.yhbt.net>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+List-Id: <unicorn-public@bogomips.org>
+
+Replacing the Regexp argument to a rarely-called String#split with a
+literal String can save a little memory.  The removed Regexp memsize
+is 469 bytes on Ruby 2.1:
+
+	ObjectSpace.memsize_of(/,/) => 469
+
+Is slightly smaller at 453 bytes on 2.2.0dev (r48474).
+These numbers do not include the 40-byte object overhead.
+
+Nevertheless, this is a waste for non-performance-critical code
+during the socket inheritance phase.  A literal string has less
+overhead at 88 bytes:
+
+	* 48 bytes for table entry in the frozen string table
+	* 40 bytes for the object itself
+
+The downside of using a literal string for the String#split argument
+is a 40-byte string object gets allocated on every call, but this
+piece of code is only called once in a process lifetime.
+---
+ lib/unicorn/http_server.rb | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/lib/unicorn/http_server.rb b/lib/unicorn/http_server.rb
+index 819a0a8..69bf362 100644
+--- a/lib/unicorn/http_server.rb
++++ b/lib/unicorn/http_server.rb
+@@ -770,7 +770,7 @@ class Unicorn::HttpServer
+   def inherit_listeners!
+     # inherit sockets from parents, they need to be plain Socket objects
+     # before they become Kgio::UNIXServer or Kgio::TCPServer
+-    inherited = ENV['UNICORN_FD'].to_s.split(/,/).map do |fd|
++    inherited = ENV['UNICORN_FD'].to_s.split(',').map do |fd|
+       io = Socket.for_fd(fd.to_i)
+       set_server_sockopt(io, listener_opts[sock_name(io)])
+       prevent_autoclose(io)
+-- 
+EW
