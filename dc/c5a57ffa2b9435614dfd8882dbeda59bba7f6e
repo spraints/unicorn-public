@@ -1,0 +1,91 @@
+Return-Path: <jeremy.lecour@gmail.com>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS15169 209.85.128.0/17
+X-Spam-Status: No, score=-0.7 required=3.0 tests=AWL,BAYES_00,FREEMAIL_FROM,
+ URIBL_BLOCKED shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from mail-lb0-f177.google.com (mail-lb0-f177.google.com
+ [209.85.217.177]) (using TLSv1 with cipher ECDHE-RSA-RC4-SHA (128/128 bits))
+ (No client certificate requested) by dcvr.yhbt.net (Postfix) with ESMTPS id
+ 03EA71F5D9 for <unicorn-public@bogomips.org>; Tue,  2 Dec 2014 11:22:20 +0000
+ (UTC)
+Received: by mail-lb0-f177.google.com with SMTP id b6so805373lbj.22 for
+ <unicorn-public@bogomips.org>; Tue, 02 Dec 2014 03:22:18 -0800 (PST)
+X-Received: by 10.112.14.69 with SMTP id n5mr61371488lbc.34.1417519338186;
+ Tue, 02 Dec 2014 03:22:18 -0800 (PST)
+MIME-Version: 1.0
+Received: by 10.112.145.199 with HTTP; Tue, 2 Dec 2014 03:21:58 -0800 (PST)
+From: =?UTF-8?B?SsOpcsOpbXkgTGVjb3Vy?= <jeremy.lecour@gmail.com>
+Date: Tue, 2 Dec 2014 12:21:58 +0100
+Message-ID:
+ <CANrRGgq5SNDVSjTEO7GTLEaDA=cSjO23uR+GoXvzfAfvJDD0Yw@mail.gmail.com>
+Subject: worker freeze and strace interpretation
+To: unicorn-public@bogomips.org
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
+List-Id: <unicorn-public@bogomips.org>
+
+Hi,
+
+I've been trying to debug a weird situation on a Rails app (4.1) using
+Unicorn (4.8.3).
+Sometimes, some requests are hanging and I can't find why.
+
+
+I've hooked "strace" to the workers and I have a lot of lines with
+"Resource temporarily unavailable" and I wonder if it's normal.
+
+Here is a snippet :
+
+11587 write(7, "\27\3\3\1\253\36\274d\263\340\375\250d\374~X\364\306^\227{F=
+\357~\223\347\245M\351-\360\301"...,
+432 <unfinished ...>
+11581 read(3,  <unfinished ...>
+11587 <... write resumed> )             =3D 432 <0.000016>
+11581 <... read resumed> 0x7f5b04878cc0, 1024) =3D -1 EAGAIN (Resource
+temporarily unavailable) <0.000012>
+11581 read(5,  <unfinished ...>
+11587 write(7, "\27\3\3\t`+\22zIY\242\252L\346?n\245!\347c\251\341\fo\202Is=
+\346\23\10\320\34"...,
+2405 <unfinished ...>
+11581 <... read resumed> "!", 1024)     =3D 1 <0.000016>
+11587 <... write resumed> )             =3D 2405 <0.000015>
+11581 read(5, 0x7f5b04878cc0, 1024)     =3D -1 EAGAIN (Resource
+temporarily unavailable) <0.000014>
+11587 read(7,  <unfinished ...>
+11581 poll([{fd=3D3, events=3DPOLLIN}], 1, 100 <unfinished ...>
+11587 <... read resumed> 0x7f5af47c0123, 5) =3D -1 EAGAIN (Resource
+temporarily unavailable) <0.000009>
+11587 futex(0x7f5b04885054, FUTEX_WAKE_OP_PRIVATE, 1, 1,
+0x7f5b04885050, {FUTEX_OP_SET, 0, FUTEX_OP_CMP_GT, 1}) =3D 1 <0.000005>
+1184  <... futex resumed> )             =3D 0 <0.000226>
+11587 futex(0x7f5b0488508c, FUTEX_WAIT_PRIVATE, 231, NULL <unfinished ...>
+1184  futex(0x7f5b0488508c, FUTEX_WAKE_OP_PRIVATE, 1, 1,
+0x7f5b04885088, {FUTEX_OP_SET, 0, FUTEX_OP_CMP_GT, 1} <unfinished ...>
+11587 <... futex resumed> )             =3D -1 EAGAIN (Resource
+temporarily unavailable) <0.000015>
+1184  <... futex resumed> )             =3D 0 <0.000009>
+11587 futex(0x7f5b04885020, FUTEX_WAIT_PRIVATE, 2, NULL <unfinished ...>
+1184  futex(0x7f5b04885020, FUTEX_WAKE_PRIVATE, 1 <unfinished ...>
+11587 <... futex resumed> )             =3D -1 EAGAIN (Resource
+temporarily unavailable) <0.000007>
+1184  <... futex resumed> )             =3D 0 <0.000008>
+
+
+
+Is there a better way to hook into a worker process when the request
+is hanging, to see what it is doing ?
+
+
+
+Also, I didn't find a way to instrument how a worker handles a request.
+I was looking for a debug message when a new request is taken and when
+it is returned.
+
+
+Thanks for any help.
+
+--=20
+J=C3=A9r=C3=A9my Lecour :
+http://jeremy.wordpress.com - http://twitter.com/jlecour
