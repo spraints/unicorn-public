@@ -1,0 +1,168 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-2.9 required=3.0 tests=ALL_TRUSTED,BAYES_00
+ shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 81E971F5D9; Tue,  2 Dec 2014 18:58:54 +0000 (UTC)
+Date: Tue, 2 Dec 2014 18:58:54 +0000
+From: Eric Wong <e@80x24.org>
+To: =?utf-8?B?SsOpcsOpbXk=?= Lecour <jeremy.lecour@gmail.com>
+Cc: unicorn-public@bogomips.org
+Subject: Re: worker freeze and strace interpretation
+Message-ID: <20141202185854.GA15690@dcvr.yhbt.net>
+References:
+ <CANrRGgq5SNDVSjTEO7GTLEaDA=cSjO23uR+GoXvzfAfvJDD0Yw@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+Content-Transfer-Encoding: 8bit
+In-Reply-To:
+ <CANrRGgq5SNDVSjTEO7GTLEaDA=cSjO23uR+GoXvzfAfvJDD0Yw@mail.gmail.com>
+List-Id: <unicorn-public@bogomips.org>
+
+Jérémy Lecour <jeremy.lecour@gmail.com> wrote:
+> Hi,
+> 
+> I've been trying to debug a weird situation on a Rails app (4.1) using
+> Unicorn (4.8.3).
+> Sometimes, some requests are hanging and I can't find why.
+> 
+> 
+> I've hooked "strace" to the workers and I have a lot of lines with
+> "Resource temporarily unavailable" and I wonder if it's normal.
+
+Depends on the FD, but from yours, yes, EAGAIN is common for
+non-blocking IO.
+
+> Here is a snippet :
+> 
+> 11587 write(7, "\27\3\3\1\253\36\274d\263\340\375\250d\374~X\364\306^\227{F\357~\223\347\245M\351-\360\301"...,
+> 432 <unfinished ...>
+> 11581 read(3,  <unfinished ...>
+
+lsof -p $PID will tell you what FD=3 is, but it looks to me 11581 is the
+timer thread.
+
+That means 11587 could be the main thread which handles your app.
+I'm more curious to know what FD=7 is (some encrypted service your
+app connects to?)
+
+> 11587 <... write resumed> )             = 432 <0.000016>
+> 11581 <... read resumed> 0x7f5b04878cc0, 1024) = -1 EAGAIN (Resource
+> temporarily unavailable) <0.000012>
+
+1024 matches CCP_READ_BUFF_SIZE in the MRI sources (thread_pthread.c)
+in recent-ish versions of Ruby, so yes,
+
+> 11581 read(5,  <unfinished ...>
+> 11587 write(7, "\27\3\3\t`+\22zIY\242\252L\346?n\245!\347c\251\341\fo\202Is\346\23\10\320\34"...,
+> 2405 <unfinished ...>
+> 11581 <... read resumed> "!", 1024)     = 1 <0.000016>
+
+Yep, "!" is the character the MRI timer thread uses to communicate.
+
+> 11587 <... write resumed> )             = 2405 <0.000015>
+> 11581 read(5, 0x7f5b04878cc0, 1024)     = -1 EAGAIN (Resource
+> temporarily unavailable) <0.000014>
+
+Hmm, FD=5...  I suspect that's the other timer thread pipe.
+Which version of Ruby are you using?  Newere ones have two
+timer thread pipes.
+
+> 11587 read(7,  <unfinished ...>
+> 11581 poll([{fd=3, events=POLLIN}], 1, 100 <unfinished ...>
+> 11587 <... read resumed> 0x7f5af47c0123, 5) = -1 EAGAIN (Resource
+> temporarily unavailable) <0.000009>
+
+OK, now FD=7 is probably the most interesting to your process.
+
+> 11587 futex(0x7f5b04885054, FUTEX_WAKE_OP_PRIVATE, 1, 1,
+> 0x7f5b04885050, {FUTEX_OP_SET, 0, FUTEX_OP_CMP_GT, 1}) = 1 <0.000005>
+> 1184  <... futex resumed> )             = 0 <0.000226>
+
+However, 1184 is a thread we haven't seen before.  The TID
+is far off from 11581 and 11587, so it could've been spawned after TID
+wraparound.
+
+Just to confirm, is 11587 or 1184 the PID you saw in "ps" output?
+(and unicorn logs, in the time period you were stracing)
+
+(Of course, PIDs and TIDs get recycled over time, so they're only valid
+ in the context while these straced processes was running)
+
+> 11587 futex(0x7f5b0488508c, FUTEX_WAIT_PRIVATE, 231, NULL <unfinished ...>
+> 1184  futex(0x7f5b0488508c, FUTEX_WAKE_OP_PRIVATE, 1, 1,
+> 0x7f5b04885088, {FUTEX_OP_SET, 0, FUTEX_OP_CMP_GT, 1} <unfinished ...>
+> 11587 <... futex resumed> )             = -1 EAGAIN (Resource
+> temporarily unavailable) <0.000015>
+> 1184  <... futex resumed> )             = 0 <0.000009>
+> 11587 futex(0x7f5b04885020, FUTEX_WAIT_PRIVATE, 2, NULL <unfinished ...>
+> 1184  futex(0x7f5b04885020, FUTEX_WAKE_PRIVATE, 1 <unfinished ...>
+> 11587 <... futex resumed> )             = -1 EAGAIN (Resource
+> temporarily unavailable) <0.000007>
+> 1184  <... futex resumed> )             = 0 <0.000008>
+
+Anything more after this?
+
+So I'm curious for your process, what FD=7 is, and what TID=1184 is
+doing.  That above futex calls looks like normal thread switching
+behavior in MRI with no interesting syscalls going on for network I/O.
+
+There could be some CPU-intensive stuff going on but no interesting
+syscalls, so maybe we need to check CPU usage for this process in "top",
+too.
+
+> Is there a better way to hook into a worker process when the request
+> is hanging, to see what it is doing ?
+
+Maybe, but I usually don't need more than strace + lsof
+(use lsof to figure out which FD is which).
+
+If I need more, I prefer to I sprinkle warn() calls in the application
+to figure out what and where things are going.  This can aid in
+the strace, as you'll see your warn() calls become:
+
+	write(2, "warning...", ...)
+
+calls in strace.
+
+unicorn always sets "$stderr.sync = true" immediately to ensure any
+warnings are flushed to the OS so it's visible in strace immediately.
+
+In C programs and C extensions, I may also use to write() on an invalid
+(out-of-bounds too large or negative) FD to view the location in strace.
+
+	int preserve_errno = errno; /* avoid errno-side effects */
+	write(-1, "message", msg_len);
+	errno = preserve_errno;
+
+> Also, I didn't find a way to instrument how a worker handles a request.
+> I was looking for a debug message when a new request is taken and when
+> it is returned.
+
+You can strace earlier and look for the following syscalls, in order:
+
+- accept() (or accept4() on recent Linux) succeeding and
+  returning the client FD
+
+- read() succeeding on the client FD returned by accept()
+  You'll see "something like "GET /... HTTP/1.0" from nginx, you may
+  want to use "-s 16384" or some bigger number for big requests
+
+  There's usually only one read() for small requests when talking
+  to nginx.
+
+- possibly lots of application processing here
+  You might see more read() calls to the client FD if you're
+  handling uploads
+
+- write()s on the client FD you saw your HTTP requests with
+  earlier.  You should see your HTTP response here, something
+  like: write(FD, "HTTP/1.1 200 OK\r\n ...", ...)
+
+- shutdown() + close() on the client FD.
+
+Hope that helps.
