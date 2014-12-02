@@ -1,0 +1,59 @@
+Return-Path: <jeremy.lecour@gmail.com>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS15169 209.85.128.0/17
+X-Spam-Status: No, score=-0.8 required=3.0 tests=AWL,BAYES_00,FREEMAIL_FROM,
+ URIBL_BLOCKED shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from mail-lb0-f182.google.com (mail-lb0-f182.google.com
+ [209.85.217.182]) (using TLSv1 with cipher ECDHE-RSA-RC4-SHA (128/128 bits))
+ (No client certificate requested) by dcvr.yhbt.net (Postfix) with ESMTPS id
+ 135EB1FACB for <unicorn-public@bogomips.org>; Tue,  2 Dec 2014 21:04:50 +0000
+ (UTC)
+Received: by mail-lb0-f182.google.com with SMTP id f15so12314196lbj.13 for
+ <unicorn-public@bogomips.org>; Tue, 02 Dec 2014 13:04:48 -0800 (PST)
+X-Received: by 10.112.38.4 with SMTP id c4mr1213784lbk.46.1417554288207; Tue,
+ 02 Dec 2014 13:04:48 -0800 (PST)
+MIME-Version: 1.0
+Received: by 10.112.145.199 with HTTP; Tue, 2 Dec 2014 13:04:28 -0800 (PST)
+In-Reply-To: <20141202185854.GA15690@dcvr.yhbt.net>
+References:
+ <CANrRGgq5SNDVSjTEO7GTLEaDA=cSjO23uR+GoXvzfAfvJDD0Yw@mail.gmail.com>
+ <20141202185854.GA15690@dcvr.yhbt.net>
+From: =?UTF-8?B?SsOpcsOpbXkgTGVjb3Vy?= <jeremy.lecour@gmail.com>
+Date: Tue, 2 Dec 2014 22:04:28 +0100
+Message-ID:
+ <CANrRGgrXdw+GGZvqv3DfJ0iqYqG6x0JjwdTJSmQeWzRu4Bb8Cg@mail.gmail.com>
+Subject: Re: worker freeze and strace interpretation
+To: Eric Wong <e@80x24.org>
+Cc: unicorn-public@bogomips.org
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
+List-Id: <unicorn-public@bogomips.org>
+
+On Tue, Dec 2, 2014 at 7:58 PM, Eric Wong <e@80x24.org> wrote:
+> Hope that helps.
+
+Man, your answer is detailed. Thanks.
+
+The PID 11587 was indeed for the worker process.
+
+FD 7 might be a connection to NewRelic over HTTPS.
+
+This app is doing a lot : connections to Redis, MySQL, Memcached, =E2=80=A6
+It uses Ruby 2.1.5.
+
+
+If those EAGAIN are probably expected, I wouldn't dig deeper.
+I'm definitely not in my comfort zone here and wanted to be sure that
+there were not an elephant in the room that I couldn't see.
+
+I'll try to put some warn() in the code at the beginning and end of
+the request cycle to see if something shows up.
+
+
+Thank you very much for your time and help.
+
+--=20
+J=C3=A9r=C3=A9my Lecour :
+http://jeremy.wordpress.com - http://twitter.com/jlecour
