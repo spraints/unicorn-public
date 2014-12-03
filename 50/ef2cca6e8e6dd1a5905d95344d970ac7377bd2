@@ -1,0 +1,61 @@
+Return-Path: <fxn@hashref.com>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS15169 209.85.128.0/17
+X-Spam-Status: No, score=-1.2 required=3.0 tests=AWL,BAYES_00,URIBL_BLOCKED
+ shortcircuit=no autolearn=ham version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from mail-wi0-f182.google.com (mail-wi0-f182.google.com
+ [209.85.212.182]) (using TLSv1 with cipher ECDHE-RSA-RC4-SHA (128/128 bits))
+ (No client certificate requested) by dcvr.yhbt.net (Postfix) with ESMTPS id
+ 3FD9E1F5D9 for <unicorn-public@bogomips.org>; Wed,  3 Dec 2014 12:42:58 +0000
+ (UTC)
+Received: by mail-wi0-f182.google.com with SMTP id h11so24268691wiw.3 for
+ <unicorn-public@bogomips.org>; Wed, 03 Dec 2014 04:42:57 -0800 (PST)
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=1e100.net;
+ s=20130820;
+ h=x-gm-message-state:mime-version:in-reply-to:references:from:date
+ :message-id:subject:to:content-type;
+ bh=3WUOimVOCILZnFP7HDDKe3SjRYn+EeFI8hoQKpp1DW4=;
+ b=T+OAl7lfhrhRi3zx6YBjqeZHaUmksHt5J9V+X311SS/exFI6SAqFtJ9d9+MnBkvKWz
+ wvvh25pZx/plELP/rUkUaWVP9ut8Vwd3cmDFmtLybjGbJ2/HV0Kh+/3dIcnMqfsDQmQ7
+ xteBsQGn5Tr9eIkig/8OpmrggAapaKtlrLbmU5FS0r67vYFKUhy9Xn7ujImxS95z0nf2
+ qQArtrWAE58MEY8xEOlcNHJGS9j/neL6YH+rcUQdl/DkHqe6WBtCzNmZZV0ZNkpcUNF2
+ lJsVbdRMzqy8fXtvA3y6HL7dPNhyXPuqxm2jvTax4xkeOsG0eI9fz6Ti33O69OUzVEQy 33GQ==
+X-Gm-Message-State:
+ ALoCoQlxQpo45vKck/9ko5dEasmVD8nS1ZdCmgYr5+tj5JR9Z6BzUzgdRU6TS5ATTf4OwEkrC/uk
+X-Received: by 10.180.109.46 with SMTP id hp14mr52161869wib.54.1417610576879;
+ Wed, 03 Dec 2014 04:42:56 -0800 (PST)
+MIME-Version: 1.0
+Received: by 10.27.130.10 with HTTP; Wed, 3 Dec 2014 04:42:16 -0800 (PST)
+In-Reply-To:
+ <CAAtdryPyLu0LBk9Gh_O3it-BXq_A_B-RnftRmVM=SKB7AcydCQ@mail.gmail.com>
+References:
+ <CAJri6_uarn+vrr_TN07SzyFzR07hDN-z79rBcDe=8VPxOL4mVQ@mail.gmail.com>
+ <CAM3ce8HK_bDu1WbnZxGvZJPPw4eLvbBKWrhRoQNf96FDKBkaYQ@mail.gmail.com>
+ <CAAtdryPyLu0LBk9Gh_O3it-BXq_A_B-RnftRmVM=SKB7AcydCQ@mail.gmail.com>
+From: Xavier Noria <fxn@hashref.com>
+Date: Wed, 3 Dec 2014 13:42:16 +0100
+Message-ID:
+ <CAM=YcdgW34s0aZp9QaPRW8cdu57acSvkuL+K94Mh250Of=CaRQ@mail.gmail.com>
+Subject: Re: No, passenger 5.0 is not faster than unicorn :)
+To: unicorn-public <unicorn-public@bogomips.org>
+Content-Type: text/plain; charset=UTF-8
+X-Content-Filtered-By: PublicInbox::Filter 0.0.1
+List-Id: <unicorn-public@bogomips.org>
+
+I've often found Cache-Control: public to be of limited use in practice
+because you cannot invalidate that cache by hand. (Sometimes that's fine of
+course.)
+
+While the reverse proxy cache could provide a mechanism for explicit
+expiration, there may be caches between your servers and the client, a
+corporate cache for example. Those other ones are out of your control.
+
+I suggested an extension for Rack::Cache called r-maxage that got merged:
+
+    https://github.com/rtomayko/rack-cache/pull/55
+
+With that directive you trade the benefits of caching in intermediate
+proxies with more expiration control locally.
+
