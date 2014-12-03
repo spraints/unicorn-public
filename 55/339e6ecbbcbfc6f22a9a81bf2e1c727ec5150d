@@ -1,0 +1,109 @@
+Return-Path: <sam.saffron@gmail.com>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS15169 209.85.128.0/17
+X-Spam-Status: No, score=-0.5 required=3.0 tests=AWL,BAYES_00,FREEMAIL_FROM,
+ URIBL_BLOCKED shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from mail-vc0-f182.google.com (mail-vc0-f182.google.com
+ [209.85.220.182]) (using TLSv1 with cipher ECDHE-RSA-RC4-SHA (128/128 bits))
+ (No client certificate requested) by dcvr.yhbt.net (Postfix) with ESMTPS id
+ BC92E1F5D9 for <unicorn-public@bogomips.org>; Wed,  3 Dec 2014 11:05:35 +0000
+ (UTC)
+Received: by mail-vc0-f182.google.com with SMTP id hq12so6727680vcb.13 for
+ <unicorn-public@bogomips.org>; Wed, 03 Dec 2014 03:05:35 -0800 (PST)
+MIME-Version: 1.0
+X-Received: by 10.52.252.3 with SMTP id zo3mr1990745vdc.51.1417604735045;
+ Wed, 03 Dec 2014 03:05:35 -0800 (PST)
+Received: by 10.31.177.4 with HTTP; Wed, 3 Dec 2014 03:05:34 -0800 (PST)
+In-Reply-To:
+ <CAM3ce8HK_bDu1WbnZxGvZJPPw4eLvbBKWrhRoQNf96FDKBkaYQ@mail.gmail.com>
+References:
+ <CAJri6_uarn+vrr_TN07SzyFzR07hDN-z79rBcDe=8VPxOL4mVQ@mail.gmail.com>
+ <CAM3ce8HK_bDu1WbnZxGvZJPPw4eLvbBKWrhRoQNf96FDKBkaYQ@mail.gmail.com>
+Date: Wed, 3 Dec 2014 22:05:34 +1100
+Message-ID:
+ <CAAtdryPyLu0LBk9Gh_O3it-BXq_A_B-RnftRmVM=SKB7AcydCQ@mail.gmail.com>
+Subject: Re: No, passenger 5.0 is not faster than unicorn :)
+From: Sam Saffron <sam.saffron@gmail.com>
+To: Hongli Lai <hongli@phusion.nl>
+Cc: =?UTF-8?Q?Br=C3=A1ulio_Bhavamitra?= <braulio@eita.org.br>, 
+ unicorn-public <unicorn-public@bogomips.org>, Hitendra Hugo Melo
+ <hitendra@riseup.net>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
+List-Id: <unicorn-public@bogomips.org>
+
+Yeah, anonymous caching is super critical, we monkey it in here:
+https://github.com/discourse/discourse/blob/master/lib/middleware/anonymous=
+_cache.rb
+to be honest this really should be part of rails.
+
+On Wed, Dec 3, 2014 at 10:00 PM, Hongli Lai <hongli@phusion.nl> wrote:
+> Unicorn *is* in general very good and very efficient, no doubt about that=
+.
+> Eric Wong has made great design choices and is an excellent programmer.
+>
+> Having said that, in certain specific cases there's still room for
+> improvement. That's why we focused so much on microoptimizations and
+> specific optimizations like turbocaching. Have you followed Phusion
+> Passenger's Server Optimization Guide?
+> https://www.phusionpassenger.com/documentation/ServerOptimizationGuide.ht=
+ml
+>
+> Also, you have to ensure that your Rails app sets the correct caching
+> headers. By default, Rails sets "Cache-Control: private, no-store" so tha=
+t
+> the turbocache cannot kick in. You should see very different results if y=
+ou
+> add "headers['Cache-Control'] =3D 'public'" to your Rails app. If you nee=
+d
+> any help with this, please feel free to contact me off-list. I'd be happy
+> to help. We have also a benchmarking kit so that you can double check the
+> results; email me if you're interested in this.
+>
+> As Sam said, most of the time will be spent in the Rails app. But
+> turbocaching is one notable exception: it's the one feature that can spee=
+d
+> things up even if your app is slow - provided that you set HTTP caching
+> headers correctly.
+>
+> Unicorn is excellent at what it does: it's a minimal server with a specif=
+ic
+> I/O model that is supposed to be used behind a buffering reverse proxy.
+> There is nothing wrong with that, and for the workloads that it's designe=
+d
+> for, it's great. Phusion Passenger has merely chosen a non-generalist
+> approach that aims to squeeze additional performance from specific cases.
+> Of course, nothing's a silver bullet. Like any tool, it only works if you
+> use it correctly.
+>
+> On Wed, Dec 3, 2014 at 10:50 AM, Br=C3=A1ulio Bhavamitra <braulio@eita.or=
+g.br>
+> wrote:
+>
+>> Hello all,
+>>
+>> I've just tested a one instance each (one worker with unicorn and
+>> --max-pool-size 1 passenger 5) on the rails app I work.
+>>
+>> And the results are just as I expected, no miracle at all: Unicorn is
+>> still the fatest!
+>> (the difference is only a few milliseconds less per request)
+>>
+>> The blocking design of unicorn is proving itself very efficient.
+>>
+>> cheers!
+>> br=C3=A1ulio
+>>
+>>
+>
+>
+> --
+> Phusion | Web Application deployment, scaling, and monitoring solutions
+>
+> Web: http://www.phusion.nl/
+> E-mail: info@phusion.nl
+> Chamber of commerce no: 08173483 (The Netherlands)
+>
+>
