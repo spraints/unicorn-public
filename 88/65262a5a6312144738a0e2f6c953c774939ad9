@@ -1,0 +1,57 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-2.9 required=3.0 tests=ALL_TRUSTED,BAYES_00,
+ URIBL_BLOCKED shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id BC6371F7B4; Fri,  5 Dec 2014 22:16:34 +0000 (UTC)
+Date: Fri, 5 Dec 2014 22:16:34 +0000
+From: Eric Wong <e@80x24.org>
+To: =?utf-8?Q?Br=C3=A1ulio?= Bhavamitra <braulio@eita.org.br>
+Cc: unicorn-public <unicorn-public@bogomips.org>
+Subject: Re: Show request details on timeout killing
+Message-ID: <20141205221634.GA4772@dcvr.yhbt.net>
+References:
+ <CAJri6_ti2Agk56q9ePj5hgWhmm-Gz1uS0xNp7zO_JRDZpYz3Xw@mail.gmail.com>
+ <20141205010614.GB1104@dcvr.yhbt.net>
+ <CAJri6_vPrzo32oyKpE86LT5NkMy8RfMiDhq9xvYgJkr2H4q7hQ@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+Content-Transfer-Encoding: 8bit
+In-Reply-To:
+ <CAJri6_vPrzo32oyKpE86LT5NkMy8RfMiDhq9xvYgJkr2H4q7hQ@mail.gmail.com>
+List-Id: <unicorn-public@bogomips.org>
+
+Bráulio Bhavamitra <braulio@eita.org.br> wrote:
+> Rails/nginx already log many request on production.log/access.log, but
+> I can't know which of them timeouted.
+
+Can't Rails log when a request starts and finishes?
+(I haven't touched Rails in years)
+
+Look for starts on PIDs without finishes.
+
+Something along the lines of the following middlware (totally untested):
+
+    class LogBeforeAfter
+      def initialize(app)
+        @app = app
+      end
+
+      def call(env)
+        env["rack.logger"].info("#$$ start #{env['PATH_INFO']}")
+        response = @app.call(env)
+        env["rack.logger"].info("#$$   end #{env['PATH_INFO']}")
+        response
+      end
+    end
+
+    -------------- config.ru ---------------
+    use LogBeforeAfter
+    # other middlewares...
+    run YourApp.new
+
+See Rack::CommonLogger source for more examples/detail.
