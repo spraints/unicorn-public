@@ -1,0 +1,49 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-2.9 required=3.0 tests=ALL_TRUSTED,BAYES_00,
+ URIBL_BLOCKED shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 9A8D71F4FB; Fri,  5 Dec 2014 01:06:16 +0000 (UTC)
+Date: Fri, 5 Dec 2014 01:06:14 +0000
+From: Eric Wong <e@80x24.org>
+To: =?utf-8?Q?Br=C3=A1ulio?= Bhavamitra <braulio@eita.org.br>
+Cc: unicorn-public <unicorn-public@bogomips.org>
+Subject: Re: Show request details on timeout killing
+Message-ID: <20141205010614.GB1104@dcvr.yhbt.net>
+References:
+ <CAJri6_ti2Agk56q9ePj5hgWhmm-Gz1uS0xNp7zO_JRDZpYz3Xw@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+Content-Transfer-Encoding: 8bit
+In-Reply-To:
+ <CAJri6_ti2Agk56q9ePj5hgWhmm-Gz1uS0xNp7zO_JRDZpYz3Xw@mail.gmail.com>
+List-Id: <unicorn-public@bogomips.org>
+
+Bráulio Bhavamitra <braulio@eita.org.br> wrote:
+> Hello all,
+> 
+> Currently, unicorn kills a worker that reached timeout with the
+> following message:
+> E, [2014-12-04T19:12:23.646053 #32612] ERROR -- : worker=4 PID:11911
+> timeout (61s > 60s), killing
+> 
+> How can I see which URL was being processed by that worker?
+
+I suggest adding better logging to your app, perhaps to log when
+requests start.
+
+> I need to identify the problematic request.
+
+And to use application-level timeouts, see:
+
+	http://unicorn.bogomips.org/Application_Timeouts.html
+
+The SIGKILL timeout in unicorn is only a last resort when the Ruby VM
+is broken beyond repair and cannot respond to any signals[1].
+
+[1] SIGKILL and SIGSTOP are special signals which the kernel
+    enforces, Ruby has no chance to block/catch/ignore them.
