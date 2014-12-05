@@ -1,0 +1,70 @@
+Return-Path: <brauliobo@gmail.com>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS15169 209.85.128.0/17
+X-Spam-Status: No, score=-1.4 required=3.0 tests=AWL,BAYES_00,FREEMAIL_FROM,
+ RCVD_IN_DNSWL_LOW,URIBL_BLOCKED shortcircuit=no autolearn=unavailable
+ version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from mail-oi0-f49.google.com (mail-oi0-f49.google.com
+ [209.85.218.49]) (using TLSv1 with cipher ECDHE-RSA-RC4-SHA (128/128 bits))
+ (No client certificate requested) by dcvr.yhbt.net (Postfix) with ESMTPS id
+ EEC0A1F7B5 for <unicorn-public@bogomips.org>; Fri,  5 Dec 2014 21:59:28 +0000
+ (UTC)
+Received: by mail-oi0-f49.google.com with SMTP id i138so1082942oig.8 for
+ <unicorn-public@bogomips.org>; Fri, 05 Dec 2014 13:59:28 -0800 (PST)
+X-Received: by 10.202.187.66 with SMTP id l63mr63115oif.13.1417816767871;
+ Fri, 05 Dec 2014 13:59:27 -0800 (PST)
+MIME-Version: 1.0
+Sender: brauliobo@gmail.com
+Received: by 10.202.85.68 with HTTP; Fri, 5 Dec 2014 13:58:47 -0800 (PST)
+In-Reply-To: <20141205010614.GB1104@dcvr.yhbt.net>
+References:
+ <CAJri6_ti2Agk56q9ePj5hgWhmm-Gz1uS0xNp7zO_JRDZpYz3Xw@mail.gmail.com>
+ <20141205010614.GB1104@dcvr.yhbt.net>
+From: =?UTF-8?Q?Br=C3=A1ulio_Bhavamitra?= <braulio@eita.org.br>
+Date: Fri, 5 Dec 2014 18:58:47 -0300
+X-Google-Sender-Auth: ppu4OjzuVfcZOMRzd3xlld4Gk-U
+Message-ID:
+ <CAJri6_vPrzo32oyKpE86LT5NkMy8RfMiDhq9xvYgJkr2H4q7hQ@mail.gmail.com>
+Subject: Re: Show request details on timeout killing
+To: Eric Wong <e@80x24.org>
+Cc: unicorn-public <unicorn-public@bogomips.org>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
+List-Id: <unicorn-public@bogomips.org>
+
+Ok Eric, the problem is that some requests are in a infinite loop,
+consuming a lot of resources.
+
+Rails/nginx already log many request on production.log/access.log, but
+I can't know which of them timeouted.
+
+cheers,
+br=C3=A1ulio
+
+On Thu, Dec 4, 2014 at 10:06 PM, Eric Wong <e@80x24.org> wrote:
+> Br=C3=A1ulio Bhavamitra <braulio@eita.org.br> wrote:
+>> Hello all,
+>>
+>> Currently, unicorn kills a worker that reached timeout with the
+>> following message:
+>> E, [2014-12-04T19:12:23.646053 #32612] ERROR -- : worker=3D4 PID:11911
+>> timeout (61s > 60s), killing
+>>
+>> How can I see which URL was being processed by that worker?
+>
+> I suggest adding better logging to your app, perhaps to log when
+> requests start.
+>
+>> I need to identify the problematic request.
+>
+> And to use application-level timeouts, see:
+>
+>         http://unicorn.bogomips.org/Application_Timeouts.html
+>
+> The SIGKILL timeout in unicorn is only a last resort when the Ruby VM
+> is broken beyond repair and cannot respond to any signals[1].
+>
+> [1] SIGKILL and SIGSTOP are special signals which the kernel
+>     enforces, Ruby has no chance to block/catch/ignore them.
