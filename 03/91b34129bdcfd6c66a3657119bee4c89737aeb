@@ -1,0 +1,102 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-2.9 required=3.0 tests=ALL_TRUSTED,AWL,BAYES_00
+ shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 0C7011F8A1; Sun, 21 Dec 2014 11:17:57 +0000 (UTC)
+Date: Sun, 21 Dec 2014 11:17:56 +0000
+From: Eric Wong <e@80x24.org>
+To: unicorn-public@bogomips.org
+Subject: [PATCH] remove SSL support
+Message-ID: <20141221111756.GA5351@dcvr.yhbt.net>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+List-Id: <unicorn-public@bogomips.org>
+
+We implemented barely-advertised support for SSL for two reasons:
+
+1) to detect corruption on LANs beyond what TCP offers
+2) to support other servers based on unicorn (never happened)
+
+Since this feature is largely not useful for unicorn itself,
+there's no reason to penalize unicorn 5.x users with bloat.
+
+In our defense, SSL support appeared in version 4.2.0 :)
+---
+ Note: generated with "git format-patch -D" to ease review
+
+ lib/unicorn/configurator.rb     |   2 -
+ lib/unicorn/http_server.rb      |   3 --
+ lib/unicorn/ssl_client.rb       |  11 -----
+ lib/unicorn/ssl_configurator.rb | 104 ----------------------------------------
+ lib/unicorn/ssl_server.rb       |  42 ----------------
+ test/unit/test_sni_hostnames.rb |  47 ------------------
+ 6 files changed, 209 deletions(-)
+ delete mode 100644 lib/unicorn/ssl_client.rb
+ delete mode 100644 lib/unicorn/ssl_configurator.rb
+ delete mode 100644 lib/unicorn/ssl_server.rb
+ delete mode 100644 test/unit/test_sni_hostnames.rb
+
+diff --git a/lib/unicorn/configurator.rb b/lib/unicorn/configurator.rb
+index 5962418..d14e608 100644
+--- a/lib/unicorn/configurator.rb
++++ b/lib/unicorn/configurator.rb
+@@ -1,6 +1,5 @@
+ # -*- encoding: binary -*-
+ require 'logger'
+-require 'unicorn/ssl_configurator'
+ 
+ # Implements a simple DSL for configuring a \Unicorn server.
+ #
+@@ -13,7 +12,6 @@ require 'unicorn/ssl_configurator'
+ # See the link:/TUNING.html document for more information on tuning unicorn.
+ class Unicorn::Configurator
+   include Unicorn
+-  include Unicorn::SSLConfigurator
+ 
+   # :stopdoc:
+   attr_accessor :set, :config_file, :after_reload
+diff --git a/lib/unicorn/http_server.rb b/lib/unicorn/http_server.rb
+index 69bf362..a523fce 100644
+--- a/lib/unicorn/http_server.rb
++++ b/lib/unicorn/http_server.rb
+@@ -1,5 +1,4 @@
+ # -*- encoding: binary -*-
+-require "unicorn/ssl_server"
+ 
+ # This is the process manager of Unicorn. This manages worker
+ # processes which in turn handle the I/O and application process.
+@@ -21,7 +20,6 @@ class Unicorn::HttpServer
+   attr_reader :pid, :logger
+   include Unicorn::SocketHelper
+   include Unicorn::HttpResponse
+-  include Unicorn::SSLServer
+ 
+   # backwards compatibility with 1.x
+   Worker = Unicorn::Worker
+@@ -618,7 +616,6 @@ class Unicorn::HttpServer
+     self.timeout /= 2.0 # halve it for select()
+     @config = nil
+     build_app! unless preload_app
+-    ssl_enable!
+     @after_fork = @listener_opts = @orig_app = nil
+     readers = LISTENERS.dup
+     readers << worker
+diff --git a/lib/unicorn/ssl_client.rb b/lib/unicorn/ssl_client.rb
+deleted file mode 100644
+index a8c79e3..0000000
+diff --git a/lib/unicorn/ssl_configurator.rb b/lib/unicorn/ssl_configurator.rb
+deleted file mode 100644
+index 34f09ec..0000000
+diff --git a/lib/unicorn/ssl_server.rb b/lib/unicorn/ssl_server.rb
+deleted file mode 100644
+index c00c3ae..0000000
+diff --git a/test/unit/test_sni_hostnames.rb b/test/unit/test_sni_hostnames.rb
+deleted file mode 100644
+index 457afee..0000000
+-- 
+EW
