@@ -1,0 +1,59 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-2.9 required=3.0 tests=ALL_TRUSTED,AWL,BAYES_00,
+ URIBL_BLOCKED shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 1C6061F8A1; Sun, 21 Dec 2014 10:43:11 +0000 (UTC)
+Date: Sun, 21 Dec 2014 10:43:10 +0000
+From: Eric Wong <e@80x24.org>
+To: unicorn-public@bogomips.org
+Subject: [PATCH] t/t0002-parser-error.sh: relax test for rack 1.6.0
+Message-ID: <20141221104310.GA30572@dcvr.yhbt.net>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+List-Id: <unicorn-public@bogomips.org>
+
+This overly zealous test was broken by:
+rack commit be28c6a2ac152fe4adfbef71f3db9f4200df89e8
+("update HTTP status codes to IETF RFC 7231")
+---
+ t/t0002-parser-error.sh | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/t/t0002-parser-error.sh b/t/t0002-parser-error.sh
+index 9fa5a31..9dc1cd2 100755
+--- a/t/t0002-parser-error.sh
++++ b/t/t0002-parser-error.sh
+@@ -42,7 +42,7 @@ t_begin "send a huge Request URI (REQUEST_PATH > (12 * 1024))" && {
+ }
+ 
+ t_begin "response should be a 414 (REQUEST_PATH)" && {
+-	grep -F 'HTTP/1.1 414 Request-URI Too Long' $tmp
++	grep -F 'HTTP/1.1 414 ' $tmp
+ }
+ 
+ t_begin "send a huge Request URI (QUERY_STRING > (10 * 1024))" && {
+@@ -63,7 +63,7 @@ t_begin "send a huge Request URI (QUERY_STRING > (10 * 1024))" && {
+ }
+ 
+ t_begin "response should be a 414 (QUERY_STRING)" && {
+-	grep -F 'HTTP/1.1 414 Request-URI Too Long' $tmp
++	grep -F 'HTTP/1.1 414 ' $tmp
+ }
+ 
+ t_begin "send a huge Request URI (FRAGMENT > 1024)" && {
+@@ -84,7 +84,7 @@ t_begin "send a huge Request URI (FRAGMENT > 1024)" && {
+ }
+ 
+ t_begin "response should be a 414 (FRAGMENT)" && {
+-	grep -F 'HTTP/1.1 414 Request-URI Too Long' $tmp
++	grep -F 'HTTP/1.1 414 ' $tmp
+ }
+ 
+ t_begin "server stderr should be clean" && check_stderr
+-- 
+EW
