@@ -1,0 +1,56 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-2.8 required=3.0 tests=ALL_TRUSTED,AWL,BAYES_00,
+ URIBL_BLOCKED shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id A22981F7E9; Sun, 28 Dec 2014 07:17:25 +0000 (UTC)
+Date: Sun, 28 Dec 2014 07:17:25 +0000
+From: Eric Wong <e@80x24.org>
+To: unicorn-public@bogomips.org
+Subject: [PATCH] tmpio: drop the "size" method
+Message-ID: <20141228071725.GA30694@dcvr.yhbt.net>
+References: <typed-data-c-api@1.9.x> <20141228070655.GA28587@dcvr.yhbt.net>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20141228070655.GA28587@dcvr.yhbt.net>
+List-Id: <unicorn-public@bogomips.org>
+
+Eric Wong <e@80x24.org> wrote:
+> But there ought to be tiny gains made from dropping 1.8 support,
+> so I'll probably go ahead and do it...
+
+Tiny stuff like this:
+----------------------------8<-------------------------
+From: Eric Wong <e@80x24.org>
+Subject: [PATCH] tmpio: drop the "size" method
+
+It is redundant given the existence of File#size in Ruby 1.9+
+
+This saves 1440 bytes of bytecode on x86-64 under 2.2.0,
+and at least another 120 bytes for the method entry,
+hash table entry, and method definition overhead.
+---
+ lib/unicorn/tmpio.rb | 5 -----
+ 1 file changed, 5 deletions(-)
+
+diff --git a/lib/unicorn/tmpio.rb b/lib/unicorn/tmpio.rb
+index 2da05a2..c97979a 100644
+--- a/lib/unicorn/tmpio.rb
++++ b/lib/unicorn/tmpio.rb
+@@ -21,9 +21,4 @@ class Unicorn::TmpIO < File
+     fp.sync = true
+     fp
+   end
+-
+-  # for easier env["rack.input"] compatibility with Rack <= 1.1
+-  def size
+-    stat.size
+-  end unless File.method_defined?(:size)
+ end
+-- 
+EW
+
