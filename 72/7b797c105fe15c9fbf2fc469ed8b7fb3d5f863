@@ -1,0 +1,188 @@
+Return-Path: <aprice@flipgive.com>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS15169 74.125.0.0/16
+X-Spam-Status: No, score=-1.1 required=3.0 tests=AWL,BAYES_00,
+ RCVD_IN_DNSWL_BLOCKED,URIBL_BLOCKED shortcircuit=no autolearn=ham
+ version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from mail-we0-f178.google.com (mail-we0-f178.google.com
+ [74.125.82.178]) (using TLSv1 with cipher ECDHE-RSA-RC4-SHA (128/128 bits))
+ (No client certificate requested) by dcvr.yhbt.net (Postfix) with ESMTPS id
+ 0C04C1FA6C for <unicorn-public@bogomips.org>; Tue, 30 Dec 2014 20:02:19 +0000
+ (UTC)
+Received: by mail-we0-f178.google.com with SMTP id p10so1513874wes.9 for
+ <unicorn-public@bogomips.org>; Tue, 30 Dec 2014 12:02:17 -0800 (PST)
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=1e100.net;
+ s=20130820; h=x-gm-message-state:mime-version:in-reply-to:references:date
+ :message-id:subject:from:to:cc:content-type;
+ bh=JIJtsb6yw2LTYPQuaUU1Auf5dltsem7PSk397ViLbUk=;
+ b=P3mf2ZEysFYrddTkzfDhflBRalelevOIFzH7B21xeSbs3ZTIBdXsemJNK8T7wufisF
+ tPhe+GBhBbEDmWY8soH3XSlZzSMBjz/O+fiHCRY0mMAiuD89ZnVwZuC8Z3v937nNavbL
+ lKDBX74/vsn2VitnvOqgeRk5JjcVSmISKpTlq1VkWX3Q+/H97o2w2asXQvbywcccrrch
+ H2w2V0iLX775YRutzbyc3m2eAZIFgxrit3+lLBDswy+h2ljyaudU3gl+0qfLtVyn85BY
+ vb2AsW1kX1gKYNLaMv7APGc+WbXszEZ4L11uTKwpDEQyFFXp0YhhrC1GvY5cRXNZdZ6f A1Ng==
+X-Gm-Message-State:
+ ALoCoQlsl+aU9WaZ2NJz3YZsGLE3KZRYvQbCnN2YZfkMVKtQWDn2ux5OpmEAIenPcz0hk25WO3e6
+MIME-Version: 1.0
+X-Received: by 10.180.20.106 with SMTP id m10mr109826166wie.1.1419969737623;
+ Tue, 30 Dec 2014 12:02:17 -0800 (PST)
+Received: by 10.194.71.244 with HTTP; Tue, 30 Dec 2014 12:02:17 -0800 (PST)
+In-Reply-To: <20141230181203.GA5686@dcvr.yhbt.net>
+References:
+ <CA+sHtzrdVatZz2UDSdHNNrsdR+PaFqC8BA0V3swrC3gengVu=g@mail.gmail.com>
+ <20141230181203.GA5686@dcvr.yhbt.net>
+Date: Tue, 30 Dec 2014 15:02:17 -0500
+Message-ID:
+ <CA+sHtzqc3CpujvrdqAqnWS9g=iGTnHhMYTkEKr=950UnqxoukA@mail.gmail.com>
+Subject: Re: Unicorn workers timing out intermittently
+From: Aaron Price <aprice@flipgive.com>
+To: Eric Wong <e@80x24.org>
+Cc: unicorn-public@bogomips.org
+Content-Type: text/plain; charset=UTF-8
+X-Content-Filtered-By: PublicInbox::Filter 0.0.1
+List-Id: <unicorn-public@bogomips.org>
+
+Thank for your help, Eric.
+
+I was able to pinpoint the issue, and I've posted the solution.
+
+The issue was that I wasn't closing a database connection for code being
+run in custom Rack middleware. Which is why the logs didn't show anything.
+
+http://serverfault.com/questions/655430/unicorn-workers-timing-out-intermittently/655478#655478
+
+Thanks again.
+
+
+On Tue, Dec 30, 2014 at 1:12 PM, Eric Wong <e@80x24.org> wrote:
+
+> Aaron Price <aprice@flipgive.com> wrote:
+> > Hey guys,
+> >
+> > I'm having the following issue and I was hoping you might be able to shed
+> > some light on the issue. Maybe give some suggestions on how to debug the
+> > actual problem.
+> >
+> >
+> http://serverfault.com/questions/655430/unicorn-workers-timing-out-intermittently
+>
+> (quoting the problem in full to save folks from having to load the page)
+>
+> >    I'm getting intermittent timeouts from unicorn workers for seemingly
+> no
+> >    reason, and I'd like some help to debug the actual problem. It's worse
+> >    because it works about 10 - 20 requests then 1 will timeout, then
+> >    another 10 - 20 requests and the same thing will happen again.
+> >
+> >    I've created a dev environment to illustrate this particular problem,
+> >    so there is NO traffic except mine.
+> >
+> >    The stack is Ubuntu 14.04, Rails 3.2.21, PostgreSQL 9.3.4, Unicorn
+> >    4.8.3, Nginx 1.6.2.
+> >
+> >    The Problem
+> >
+> >    I'll describe in detail the time that it doesn't work.
+> >
+> >    I request a url through the browser.
+> > Started GET
+> "/offers.xml?q%5bupdated_at_greater_than_or_equal_to%5d=2014-12-28T1
+> > 8:01:16Z&q%5bupdated_at_less_than_or_equal_to%5d=2014-12-28T19:30:21Z"
+> for 127.0
+> > .0.1 at 2014-12-30 15:58:59 +0000
+> > Completed 200 OK in 10.3ms (Views: 0.0ms | ActiveRecord: 2.1ms)
+> >
+> >    As you can see, the request completed successfully with a 200 response
+> >    status in just 10.3ms.
+> >
+> >    However, the browser hangs for about 30 seconds and Unicorn kills the
+> >    worker:
+> > E, [2014-12-30T15:59:30.267605 #13678] ERROR -- : worker=0 PID:14594
+> timeout (31
+> > s > 30s), killing
+> > E, [2014-12-30T15:59:30.279000 #13678] ERROR -- : reaped
+> #<Process::Status: pid
+> > 14594 SIGKILL (signal 9)> worker=0
+> > I, [2014-12-30T15:59:30.355085 #23533]  INFO -- : worker=0 ready
+> >
+> >    And the following error in the Nginx logs:
+> > 2014/12/30 15:59:30 [error] 23463#0: *27 upstream prematurely closed
+> connection
+> > while reading response header from upstream, client: 127.0.0.1, server:
+> localhos
+> > t, request: "GET
+> /offers.xml?q%5bupdated_at_greater_than_or_equal_to%5d=2014-12-
+> >
+> 28T18:01:16Z&q%5bupdated_at_less_than_or_equal_to%5d=2014-12-28T19:30:21Z
+> HTTP/1
+> > .1", upstream: "http://unix:
+> /app/shared/tmp/sockets/unicorn.sock:/offers.xml?q%5
+> >
+> bupdated_at_greater_than_or_equal_to%5d=2014-12-28T18:01:16Z&q%5bupdated_at_less
+> > _than_or_equal_to%5d=2014-12-28T19:30:21Z", host: "localhost", referrer:
+> "http:/
+> >
+> /localhost/offers.xml?q%5bupdated_at_greater_than_or_equal_to%5d=2014-12-28T18:0
+> > 1:16Z&q%5bupdated_at_less_than_or_equal_to%5d=2014-12-28T19:30:21Z"
+>
+> OK, the problem should be reproducible hitting unicorn directly (easy to
+> configure a TCP listener) and eliminating nginx as a possible
+> point-of-failure.  Also, I suggest using curl so you can script and see
+> everything going on more easily at the protocol/syscall level.
+>
+> >    Again. There's no load on the server at all. The only requests going
+> >    through are my own and every 10 - 20 requests at random have this same
+> >    problem.
+>
+> OK, the main culprit is usually external connections acting up.  Postgres,
+> external monitoring services, network failures, etc...
+>
+> >    It doesn't look like unicorn is eating memory at all. I know this
+> >    because I'm using watch -n 0.5 free -m and this is the result.
+>
+> What does the CPU usage look like?
+>
+> >              total       used       free     shared    buffers     cached
+> > Mem:          1995        765       1229          0         94        405
+> > -/+ buffers/cache:        264       1730
+> > Swap:          511          0        511
+> >
+> >    So the server isn't running out of memory.
+> >
+> >    Is there anything further I can do to debug this issue? or any insight
+> >    into what's happening?
+>
+> Basically, minimize and isolate things.  Use a single worker, strace
+> that worker ("strace -f -p $PID_OF_WORKER") and send a request to it
+> using curl.
+>
+> Is the Postgres doing OK?  How is the network connection to that?
+> What other external resources (monitoring services, memcached, redis,
+> etc...) might you be hitting?  You'll see blocking (on things like
+> read*/write*/select/poll/recvmsg/sendmsg) on strace.
+>
+> You can map numeric file descriptors to ports via:
+>  lsof -p $PID_OF_WORKER
+>
+> Also, is your server running out of entropy?  (You'll see blocking on
+> reading /dev/random via strace) and you may also see low values in
+> /proc/sys/kernel/random/entropy_avail
+>
+
+
+
+-- 
+*Aaron Price*
+Sr. Web Developer
+FlipGive
+P: (416) 583-2510
+
+312 Adelaide St. West, Suite 301
+Toronto, ON, M5V 1R2
+www.flipgive.com
+
+Follow us on: Facebook <http://www.facebook.com/FlipGive> | Twitter
+<http://twitter.com/FlipGive> | LinkedIn
+<http://www.linkedin.com/company/FlipGive>
+
