@@ -1,0 +1,120 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-2.8 required=3.0 tests=ALL_TRUSTED,AWL,BAYES_00,
+ URIBL_BLOCKED shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 90B621FA6C; Tue, 30 Dec 2014 18:12:03 +0000 (UTC)
+Date: Tue, 30 Dec 2014 18:12:03 +0000
+From: Eric Wong <e@80x24.org>
+To: Aaron Price <aprice@flipgive.com>
+Cc: unicorn-public@bogomips.org
+Subject: Re: Unicorn workers timing out intermittently
+Message-ID: <20141230181203.GA5686@dcvr.yhbt.net>
+References:
+ <CA+sHtzrdVatZz2UDSdHNNrsdR+PaFqC8BA0V3swrC3gengVu=g@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To:
+ <CA+sHtzrdVatZz2UDSdHNNrsdR+PaFqC8BA0V3swrC3gengVu=g@mail.gmail.com>
+List-Id: <unicorn-public@bogomips.org>
+
+Aaron Price <aprice@flipgive.com> wrote:
+> Hey guys,
+> 
+> I'm having the following issue and I was hoping you might be able to shed
+> some light on the issue. Maybe give some suggestions on how to debug the
+> actual problem.
+> 
+> http://serverfault.com/questions/655430/unicorn-workers-timing-out-intermittently
+
+(quoting the problem in full to save folks from having to load the page)
+
+>    I'm getting intermittent timeouts from unicorn workers for seemingly no
+>    reason, and I'd like some help to debug the actual problem. It's worse
+>    because it works about 10 - 20 requests then 1 will timeout, then
+>    another 10 - 20 requests and the same thing will happen again.
+> 
+>    I've created a dev environment to illustrate this particular problem,
+>    so there is NO traffic except mine.
+> 
+>    The stack is Ubuntu 14.04, Rails 3.2.21, PostgreSQL 9.3.4, Unicorn
+>    4.8.3, Nginx 1.6.2.
+> 
+>    The Problem
+> 
+>    I'll describe in detail the time that it doesn't work.
+> 
+>    I request a url through the browser.
+> Started GET "/offers.xml?q%5bupdated_at_greater_than_or_equal_to%5d=2014-12-28T1
+> 8:01:16Z&q%5bupdated_at_less_than_or_equal_to%5d=2014-12-28T19:30:21Z" for 127.0
+> .0.1 at 2014-12-30 15:58:59 +0000
+> Completed 200 OK in 10.3ms (Views: 0.0ms | ActiveRecord: 2.1ms)
+> 
+>    As you can see, the request completed successfully with a 200 response
+>    status in just 10.3ms.
+> 
+>    However, the browser hangs for about 30 seconds and Unicorn kills the
+>    worker:
+> E, [2014-12-30T15:59:30.267605 #13678] ERROR -- : worker=0 PID:14594 timeout (31
+> s > 30s), killing
+> E, [2014-12-30T15:59:30.279000 #13678] ERROR -- : reaped #<Process::Status: pid
+> 14594 SIGKILL (signal 9)> worker=0
+> I, [2014-12-30T15:59:30.355085 #23533]  INFO -- : worker=0 ready
+> 
+>    And the following error in the Nginx logs:
+> 2014/12/30 15:59:30 [error] 23463#0: *27 upstream prematurely closed connection
+> while reading response header from upstream, client: 127.0.0.1, server: localhos
+> t, request: "GET /offers.xml?q%5bupdated_at_greater_than_or_equal_to%5d=2014-12-
+> 28T18:01:16Z&q%5bupdated_at_less_than_or_equal_to%5d=2014-12-28T19:30:21Z HTTP/1
+> .1", upstream: "http://unix:/app/shared/tmp/sockets/unicorn.sock:/offers.xml?q%5
+> bupdated_at_greater_than_or_equal_to%5d=2014-12-28T18:01:16Z&q%5bupdated_at_less
+> _than_or_equal_to%5d=2014-12-28T19:30:21Z", host: "localhost", referrer: "http:/
+> /localhost/offers.xml?q%5bupdated_at_greater_than_or_equal_to%5d=2014-12-28T18:0
+> 1:16Z&q%5bupdated_at_less_than_or_equal_to%5d=2014-12-28T19:30:21Z"
+
+OK, the problem should be reproducible hitting unicorn directly (easy to
+configure a TCP listener) and eliminating nginx as a possible
+point-of-failure.  Also, I suggest using curl so you can script and see
+everything going on more easily at the protocol/syscall level.
+
+>    Again. There's no load on the server at all. The only requests going
+>    through are my own and every 10 - 20 requests at random have this same
+>    problem.
+
+OK, the main culprit is usually external connections acting up.  Postgres,
+external monitoring services, network failures, etc...
+
+>    It doesn't look like unicorn is eating memory at all. I know this
+>    because I'm using watch -n 0.5 free -m and this is the result.
+
+What does the CPU usage look like?
+
+>              total       used       free     shared    buffers     cached
+> Mem:          1995        765       1229          0         94        405
+> -/+ buffers/cache:        264       1730
+> Swap:          511          0        511
+> 
+>    So the server isn't running out of memory.
+> 
+>    Is there anything further I can do to debug this issue? or any insight
+>    into what's happening?
+
+Basically, minimize and isolate things.  Use a single worker, strace
+that worker ("strace -f -p $PID_OF_WORKER") and send a request to it
+using curl.
+
+Is the Postgres doing OK?  How is the network connection to that?
+What other external resources (monitoring services, memcached, redis,
+etc...) might you be hitting?  You'll see blocking (on things like
+read*/write*/select/poll/recvmsg/sendmsg) on strace.
+
+You can map numeric file descriptors to ports via:
+ lsof -p $PID_OF_WORKER
+
+Also, is your server running out of entropy?  (You'll see blocking on
+reading /dev/random via strace) and you may also see low values in
+/proc/sys/kernel/random/entropy_avail
