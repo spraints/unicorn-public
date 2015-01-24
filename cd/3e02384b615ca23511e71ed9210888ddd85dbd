@@ -1,0 +1,49 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-2.9 required=3.0 tests=ALL_TRUSTED,BAYES_00,
+ URIBL_BLOCKED shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 6671863381C; Sat, 24 Jan 2015 23:30:59 +0000 (UTC)
+Date: Sat, 24 Jan 2015 23:30:59 +0000
+From: Eric Wong <e@80x24.org>
+To: Joe Williams <williams.joe@gmail.com>
+Cc: unicorn-public@bogomips.org
+Subject: Re: global variable in after_fork
+Message-ID: <20150124233059.GA5453@dcvr.yhbt.net>
+References:
+ <CAJtkKzZ35_7tMFx5dNQbHASGEjYiE5pL7EWHDnhLQ4P8zPCJ7Q@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To:
+ <CAJtkKzZ35_7tMFx5dNQbHASGEjYiE5pL7EWHDnhLQ4P8zPCJ7Q@mail.gmail.com>
+List-Id: <unicorn-public@bogomips.org>
+
+Joe Williams <williams.joe@gmail.com> wrote:
+> I am attempting to do something like the following:
+> 
+> after_fork do |server, worker|
+>   $unicorn_uptime = Time.now.to_i.to_s
+>   $unicorn_uptime.freeze
+> <snip>
+> 
+> Unfortunately the variable comes up nil when later accessed. Anyone have
+> thoughts on what I am missing?
+
+I tried your after_fork hook with the following config.ru
+and it prints out $unicorn_uptime fine:
+
+-------------------- config.ru --------------------------
+use Rack::ContentLength
+use Rack::ContentType, 'text/plain'
+run lambda { |env| [ 200, {}, [ "#$unicorn_uptime\n"] ] }
+---------------------------------------------------------
+
+Perhaps you have something else in your app clobbering globals?
+
+Also, please don't send any HTML parts in mail, it is spammy and wastes
+bandwidth/storage.  Your message would've been seen much sooner if it
+hadn't been flagged as spam.  Thanks.
