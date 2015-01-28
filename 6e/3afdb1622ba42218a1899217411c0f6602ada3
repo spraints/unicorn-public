@@ -1,0 +1,78 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-2.9 required=3.0 tests=ALL_TRUSTED,BAYES_00
+ shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 5D4C81F40E for <unicorn-public@bogomips.org>; Wed, 28
+ Jan 2015 18:44:01 +0000 (UTC)
+From: Eric Wong <e@80x24.org>
+To: unicorn-public@bogomips.org
+Subject: [PATCH] http: -Wshorten-64-to-32 warnings on clang
+Date: Wed, 28 Jan 2015 18:44:01 +0000
+Message-Id: <1422470641-5066-1-git-send-email-e@80x24.org>
+List-Id: <unicorn-public@bogomips.org>
+
+Tested on x86_64, clang version 3.5-1ubuntu1 (trunk) (LLVM 3.5)
+These warnings were introduced on
+commit 4b2782a926d8f131b1e7382be35e3abb77bf4be5
+("http: reduce parser from 72 to 56 bytes on 64-bit")
+and did not affect any releases.
+
+These length checks should not be necessary in reality because
+HTTP header sizes never come close to 4GB in size.
+
+Fixup a minor coding style (inherited from Mongrel) violation
+while we're at it (tabs => spaces).
+---
+ ext/unicorn_http/unicorn_http.rl | 22 +++++++++++++++++-----
+ 1 file changed, 17 insertions(+), 5 deletions(-)
+
+diff --git a/ext/unicorn_http/unicorn_http.rl b/ext/unicorn_http/unicorn_http.rl
+index 3294357..de83652 100644
+--- a/ext/unicorn_http/unicorn_http.rl
++++ b/ext/unicorn_http/unicorn_http.rl
+@@ -69,13 +69,25 @@ static void parser_raise(VALUE klass, const char *msg)
+   VALUE exc = rb_exc_new2(klass, msg);
+   VALUE bt = rb_ary_new();
+ 
+-	rb_funcall(exc, id_set_backtrace, 1, bt);
+-	rb_exc_raise(exc);
++  rb_funcall(exc, id_set_backtrace, 1, bt);
++  rb_exc_raise(exc);
++}
++
++static inline unsigned int ulong2uint(unsigned long n)
++{
++  unsigned int i = (unsigned int)n;
++
++  if (sizeof(unsigned int) != sizeof(unsigned long)) {
++    if ((unsigned long)i != n) {
++      rb_raise(rb_eRangeError, "too large to be 32-bit uint: %lu", n);
++    }
++  }
++  return i;
+ }
+ 
+ #define REMAINING (unsigned long)(pe - p)
+-#define LEN(AT, FPC) (FPC - buffer - (unsigned long)hp->AT)
+-#define MARK(M,FPC) (hp->M = (FPC) - buffer)
++#define LEN(AT, FPC) (ulong2uint(FPC - buffer) - hp->AT)
++#define MARK(M,FPC) (hp->M = ulong2uint((FPC) - buffer))
+ #define PTR_TO(F) (buffer + hp->F)
+ #define STR_NEW(M,FPC) rb_str_new(PTR_TO(M), LEN(M, FPC))
+ #define STRIPPED_STR_NEW(M,FPC) stripped_str_new(PTR_TO(M), LEN(M, FPC))
+@@ -411,7 +423,7 @@ http_parser_execute(struct http_parser *hp, char *buffer, size_t len)
+ post_exec: /* "_out:" also goes here */
+   if (hp->cs != http_parser_error)
+     hp->cs = cs;
+-  hp->offset = p - buffer;
++  hp->offset = ulong2uint(p - buffer);
+ 
+   assert(p <= pe && "buffer overflow after parsing execute");
+   assert(hp->offset <= len && "offset longer than length");
+-- 
+EW
+
