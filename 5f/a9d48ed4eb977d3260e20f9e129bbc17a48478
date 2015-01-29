@@ -1,0 +1,72 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-2.9 required=3.0 tests=ALL_TRUSTED,AWL,BAYES_00,
+ URIBL_BLOCKED shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 0481A633802; Thu, 29 Jan 2015 20:00:14 +0000 (UTC)
+Date: Thu, 29 Jan 2015 20:00:14 +0000
+From: Eric Wong <e@80x24.org>
+To: Antony Gelberg <antony.gelberg@gmail.com>
+Cc: unicorn-public@bogomips.org
+Subject: Re: Timeouts longer than expected.
+Message-ID: <20150129200014.GA29223@dcvr.yhbt.net>
+References:
+ <CADbCqvFZAJGLNHMKAQcMLTcpSuRWtv=CYweASZBJmR_BkwmBXw@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To:
+ <CADbCqvFZAJGLNHMKAQcMLTcpSuRWtv=CYweASZBJmR_BkwmBXw@mail.gmail.com>
+List-Id: <unicorn-public@bogomips.org>
+
+Antony Gelberg <antony.gelberg@gmail.com> wrote:
+> Hi all.  We use unicorn in production across four servers, behind
+> nginx and HAProxy (to load balance).  We set a 300s timeout in the
+> config file.  On an average day, we see something like:
+> 
+> E, [2015-01-22T17:01:24.335600 #4311] ERROR -- : worker=2 PID:21101
+> timeout (301s > 300s), killing
+> 
+> in our logs, ~60 times.  However, one day we noticed that production
+> had gone down with all the unicorns showing entries like the
+> following:
+> 
+> E, [2015-01-22T12:35:15.643020 #4311] ERROR -- : worker=1 PID:4605
+> timeout (451s > 300s), killing
+> 
+> (note the 451s before it was killed).
+
+What other log entries appear in the 8 minutes leading up to the 451s
+line?
+
+Which version of unicorn is this?
+
+There were some bugs fixed in ancient unicorn versions; and current
+versions are still affected by big NTP adjustments due to the lack of
+monotonic clock API in older Rubies.
+
+I have a patch queued up for 5.x to use the monotonic clock, but
+requires Ruby 2.1+ to be useful:
+http://bogomips.org/unicorn-public/m/20150118033916.GA4478%40dcvr.yhbt.net.html
+
+Maybe there's another sleep calculation bug, though.  Not many people
+rely on giant timeouts and probably never notice it.
+
+I'll take a closer look at the master sleep calculations (in
+murder_lazy_workers) in a week or so and see if there's another problem
+lurking in the current versions.
+
+> Any clues how we can better-understand the root cause, even if it's
+> something we'll put in place for the future?  We lack visibility here.
+
+I'd use an in-process timeout to get backtraces.  The
+Application_Timeouts doc in the source and online has more
+tips on dealing with timeouts in general.
+
+  http://unicorn.bogomips.org/Application_Timeouts.html
+
+Also curious: you have users willing to wait 5 minutes for an
+HTTP response?  Yikes!
