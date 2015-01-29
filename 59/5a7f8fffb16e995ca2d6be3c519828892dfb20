@@ -1,0 +1,49 @@
+Return-Path: <antony.gelberg@gmail.com>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS15169 209.85.128.0/17
+X-Spam-Status: No, score=-2.6 required=3.0 tests=BAYES_00,FREEMAIL_FROM,
+ RCVD_IN_DNSWL_LOW shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from mail-qg0-f45.google.com (mail-qg0-f45.google.com
+ [209.85.192.45]) (using TLSv1 with cipher ECDHE-RSA-RC4-SHA (128/128 bits))
+ (No client certificate requested) by dcvr.yhbt.net (Postfix) with ESMTPS id
+ 499B3633801 for <unicorn-public@bogomips.org>; Thu, 29 Jan 2015 13:07:24
+ +0000 (UTC)
+Received: by mail-qg0-f45.google.com with SMTP id q107so27631481qgd.4 for
+ <unicorn-public@bogomips.org>; Thu, 29 Jan 2015 05:07:23 -0800 (PST)
+X-Received: by 10.224.75.7 with SMTP id w7mr1054481qaj.6.1422536843397; Thu,
+ 29 Jan 2015 05:07:23 -0800 (PST)
+MIME-Version: 1.0
+Received: by 10.140.16.132 with HTTP; Thu, 29 Jan 2015 05:06:52 -0800 (PST)
+From: Antony Gelberg <antony.gelberg@gmail.com>
+Date: Thu, 29 Jan 2015 15:06:52 +0200
+Message-ID:
+ <CADbCqvFZAJGLNHMKAQcMLTcpSuRWtv=CYweASZBJmR_BkwmBXw@mail.gmail.com>
+Subject: Timeouts longer than expected.
+To: unicorn-public@bogomips.org
+Content-Type: text/plain; charset=UTF-8
+List-Id: <unicorn-public@bogomips.org>
+
+Hi all.  We use unicorn in production across four servers, behind
+nginx and HAProxy (to load balance).  We set a 300s timeout in the
+config file.  On an average day, we see something like:
+
+E, [2015-01-22T17:01:24.335600 #4311] ERROR -- : worker=2 PID:21101
+timeout (301s > 300s), killing
+
+in our logs, ~60 times.  However, one day we noticed that production
+had gone down with all the unicorns showing entries like the
+following:
+
+E, [2015-01-22T12:35:15.643020 #4311] ERROR -- : worker=1 PID:4605
+timeout (451s > 300s), killing
+
+(note the 451s before it was killed).
+
+Any clues how we can better-understand the root cause, even if it's
+something we'll put in place for the future?  We lack visibility here.
+
+Thanks in advance,
+
+Antony
