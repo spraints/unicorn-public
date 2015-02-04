@@ -1,0 +1,79 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-2.9 required=3.0 tests=ALL_TRUSTED,BAYES_00
+ shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id B08A81F7C2 for <unicorn-public@bogomips.org>; Wed,  4
+ Feb 2015 20:16:33 +0000 (UTC)
+From: Eric Wong <e@80x24.org>
+To: unicorn-public@bogomips.org
+Subject: [PATCH] GNUmakefile: fix clean gem build + reduce build cruft
+Date: Wed,  4 Feb 2015 20:16:33 +0000
+Message-Id: <1423080993-14896-1-git-send-email-e@80x24.org>
+List-Id: <unicorn-public@bogomips.org>
+
+Ensure we have a NEWS file for building the gem beforehand.
+We don't need to polute lib/ with object files, either.
+---
+ GNUmakefile | 14 +++++++-------
+ 1 file changed, 7 insertions(+), 7 deletions(-)
+
+diff --git a/GNUmakefile b/GNUmakefile
+index 4c40dc9..8bd63ee 100644
+--- a/GNUmakefile
++++ b/GNUmakefile
+@@ -57,10 +57,7 @@ $(ext)/Makefile: $(ext)/extconf.rb $(c_files)
+ 	cd $(@D) && $(RUBY) extconf.rb
+ $(ext)/unicorn_http.$(DLEXT): $(ext)/Makefile
+ 	$(MAKE) -C $(@D)
+-lib/unicorn_http.$(DLEXT): $(ext)/unicorn_http.$(DLEXT)
+-	@mkdir -p lib
+-	install -m644 $< $@
+-http: lib/unicorn_http.$(DLEXT)
++http: $(ext)/unicorn_http.$(DLEXT)
+ 
+ test-install: $(test_prefix)/.stamp
+ $(test_prefix)/.stamp: $(inst_deps)
+@@ -85,6 +82,7 @@ test-unit: $(wildcard test/unit/test_*.rb)
+ $(slow_tests): $(test_prefix)/.stamp
+ 	@$(MAKE) $(shell $(awk_slow) $@)
+ 
++# ensure we can require just the HTTP parser without the rest of unicorn
+ test-require: $(ext)/unicorn_http.$(DLEXT)
+ 	$(RUBY) --disable-gems -I$(ext) -runicorn_http -e Unicorn
+ 
+@@ -134,7 +132,6 @@ $(T): $(test_prefix)/.stamp
+ 
+ install: $(bins) $(ext)/unicorn_http.c
+ 	$(prep_setup_rb)
+-	$(RM) lib/unicorn_http.$(DLEXT)
+ 	$(RM) -r .install-tmp
+ 	mkdir .install-tmp
+ 	cp -p bin/* .install-tmp
+@@ -150,7 +147,7 @@ prep_setup_rb := @-$(RM) $(setup_rb_files);$(MAKE) -C $(ext) clean
+ clean:
+ 	-$(MAKE) -C $(ext) clean
+ 	-$(MAKE) -C Documentation clean
+-	$(RM) $(ext)/Makefile lib/unicorn_http.$(DLEXT)
++	$(RM) $(ext)/Makefile
+ 	$(RM) $(setup_rb_files) $(t_log)
+ 	$(RM) -r $(test_prefix) man
+ 
+@@ -160,7 +157,10 @@ man html:
+ pkg_extra := GIT-VERSION-FILE lib/unicorn/version.rb LATEST NEWS \
+              $(ext)/unicorn_http.c $(man1_paths)
+ 
+-.manifest: $(ext)/unicorn_http.c man
++NEWS:
++	$(OLDDOC) prepare
++
++.manifest: $(ext)/unicorn_http.c man NEWS
+ 	(git ls-files && for i in $@ $(pkg_extra); do echo $$i; done) | \
+ 	  LC_ALL=C sort > $@+
+ 	cmp $@+ $@ || mv $@+ $@
+-- 
+EW
+
