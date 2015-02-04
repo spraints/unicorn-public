@@ -1,0 +1,80 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-2.9 required=3.0 tests=ALL_TRUSTED,BAYES_00
+ shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 2ABD21F7C2 for <unicorn-public@bogomips.org>; Wed,  4
+ Feb 2015 20:16:29 +0000 (UTC)
+From: Eric Wong <e@80x24.org>
+To: unicorn-public@bogomips.org
+Subject: [PATCH] http: standalone require + reduction in binary size
+Date: Wed,  4 Feb 2015 20:16:28 +0000
+Message-Id: <1423080988-14855-1-git-send-email-e@80x24.org>
+List-Id: <unicorn-public@bogomips.org>
+
+This allows requiring just the C extension part of "unicorn_http",
+without requiring the rest of unicorn, allowing other HTTP servers
+using the same parser to be slimmer.
+
+On my x86-64 Debian 7.0 system:
+
+    text	   data	    bss	    dec	    hex	filename
+   44026	   1976	    488	  46490	   b59a	lib/unicorn_http.so
+   43930	   1976	    456	  46362	   b51a	lib/unicorn_http.so
+---
+ GNUmakefile                      | 5 ++++-
+ ext/unicorn_http/httpdate.c      | 2 +-
+ ext/unicorn_http/unicorn_http.rl | 2 +-
+ 3 files changed, 6 insertions(+), 3 deletions(-)
+
+diff --git a/GNUmakefile b/GNUmakefile
+index d7f0118..4c40dc9 100644
+--- a/GNUmakefile
++++ b/GNUmakefile
+@@ -85,10 +85,13 @@ test-unit: $(wildcard test/unit/test_*.rb)
+ $(slow_tests): $(test_prefix)/.stamp
+ 	@$(MAKE) $(shell $(awk_slow) $@)
+ 
++test-require: $(ext)/unicorn_http.$(DLEXT)
++	$(RUBY) --disable-gems -I$(ext) -runicorn_http -e Unicorn
++
+ test-integration: $(test_prefix)/.stamp
+ 	$(MAKE) -C t
+ 
+-check: test test-integration
++check: test-require test test-integration
+ test-all: check
+ 
+ TEST_OPTS = -v
+diff --git a/ext/unicorn_http/httpdate.c b/ext/unicorn_http/httpdate.c
+index bf54fdd..0a1045f 100644
+--- a/ext/unicorn_http/httpdate.c
++++ b/ext/unicorn_http/httpdate.c
+@@ -66,7 +66,7 @@ static VALUE httpdate(VALUE self)
+ 
+ void init_unicorn_httpdate(void)
+ {
+-	VALUE mod = rb_const_get(rb_cObject, rb_intern("Unicorn"));
++	VALUE mod = rb_define_module("Unicorn");
+ 	mod = rb_define_module_under(mod, "HttpResponse");
+ 
+ 	buf = rb_str_new(0, buf_capa - 1);
+diff --git a/ext/unicorn_http/unicorn_http.rl b/ext/unicorn_http/unicorn_http.rl
+index de83652..932d259 100644
+--- a/ext/unicorn_http/unicorn_http.rl
++++ b/ext/unicorn_http/unicorn_http.rl
+@@ -926,7 +926,7 @@ void Init_unicorn_http(void)
+ {
+   VALUE mUnicorn, cHttpParser;
+ 
+-  mUnicorn = rb_const_get(rb_cObject, rb_intern("Unicorn"));
++  mUnicorn = rb_define_module("Unicorn");
+   cHttpParser = rb_define_class_under(mUnicorn, "HttpParser", rb_cObject);
+   eHttpParserError =
+          rb_define_class_under(mUnicorn, "HttpParserError", rb_eIOError);
+-- 
+EW
+
