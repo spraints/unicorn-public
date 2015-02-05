@@ -1,0 +1,66 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-2.9 required=3.0 tests=ALL_TRUSTED,BAYES_00
+ shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 5B99C1F7CD for <unicorn-public@bogomips.org>; Thu,  5
+ Feb 2015 18:01:25 +0000 (UTC)
+From: Eric Wong <e@80x24.org>
+To: unicorn-public@bogomips.org
+Subject: [PATCH] use require_relative to reduce syscalls at startup
+Date: Thu,  5 Feb 2015 18:01:24 +0000
+Message-Id: <1423159284-31112-3-git-send-email-e@80x24.org>
+List-Id: <unicorn-public@bogomips.org>
+
+require_relative appeared in Ruby 1.9.2 to speed up load times by
+avoiding needless open() syscalls.  This has no effect if you're using
+RUBYLIB or the '-I' option when running ruby(1), but avoids searching
+paths in other gems.
+
+This does not affect unicorn greatly as unicorn does not activate many
+gems, but still leads to reducing ~45 syscalls during startup.
+---
+ lib/unicorn.rb       | 16 +++++-----------
+ lib/unicorn/const.rb |  2 +-
+ 2 files changed, 6 insertions(+), 12 deletions(-)
+
+diff --git a/lib/unicorn.rb b/lib/unicorn.rb
+index cfa1656..dd02761 100644
+--- a/lib/unicorn.rb
++++ b/lib/unicorn.rb
+@@ -104,14 +104,8 @@ module Unicorn
+   # :startdoc:
+ end
+ # :enddoc:
+-require 'unicorn/const'
+-require 'unicorn/socket_helper'
+-require 'unicorn/stream_input'
+-require 'unicorn/tee_input'
+-require 'unicorn/http_request'
+-require 'unicorn/configurator'
+-require 'unicorn/tmpio'
+-require 'unicorn/util'
+-require 'unicorn/http_response'
+-require 'unicorn/worker'
+-require 'unicorn/http_server'
++
++%w(const socket_helper stream_input tee_input http_request configurator
++   tmpio util http_response worker http_server).each do |s|
++  require_relative "unicorn/#{s}"
++end
+diff --git a/lib/unicorn/const.rb b/lib/unicorn/const.rb
+index 51d7394..26fa62b 100644
+--- a/lib/unicorn/const.rb
++++ b/lib/unicorn/const.rb
+@@ -41,4 +41,4 @@ module Unicorn::Const
+ 
+   # :startdoc:
+ end
+-require 'unicorn/version'
++require_relative 'version'
+-- 
+EW
+
