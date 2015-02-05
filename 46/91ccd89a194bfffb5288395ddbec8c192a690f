@@ -1,0 +1,108 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-2.9 required=3.0 tests=ALL_TRUSTED,BAYES_00,
+ URIBL_BLOCKED shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 01E4E1F7C2 for <unicorn-public@bogomips.org>; Thu,  5
+ Feb 2015 18:01:24 +0000 (UTC)
+From: Eric Wong <e@80x24.org>
+To: unicorn-public@bogomips.org
+Subject: [PATCH] remove 1.8, <= 1.9.1 fallback for missing IO#autoclose=
+Date: Thu,  5 Feb 2015 18:01:22 +0000
+Message-Id: <1423159284-31112-1-git-send-email-e@80x24.org>
+List-Id: <unicorn-public@bogomips.org>
+
+We're requiring Ruby 1.9.3+, so we can safely depend
+on IO#autoclose= being available in 1.9+ and shave off
+some bloat.
+---
+ lib/unicorn/http_server.rb   |  9 +++------
+ lib/unicorn/socket_helper.rb | 14 +-------------
+ 2 files changed, 4 insertions(+), 19 deletions(-)
+
+diff --git a/lib/unicorn/http_server.rb b/lib/unicorn/http_server.rb
+index e0c0370..8a295f0 100644
+--- a/lib/unicorn/http_server.rb
++++ b/lib/unicorn/http_server.rb
+@@ -156,9 +156,6 @@ class Unicorn::HttpServer
+ 
+     LISTENERS.delete_if do |io|
+       if dead_names.include?(sock_name(io))
+-        IO_PURGATORY.delete_if do |pio|
+-          pio.fileno == io.fileno && (pio.close rescue nil).nil? # true
+-        end
+         (io.close rescue nil).nil? # true
+       else
+         set_server_sockopt(io, listener_opts[sock_name(io)])
+@@ -239,7 +236,7 @@ class Unicorn::HttpServer
+     begin
+       io = bind_listen(address, opt)
+       unless Kgio::TCPServer === io || Kgio::UNIXServer === io
+-        prevent_autoclose(io)
++        io.autoclose = false
+         io = server_cast(io)
+       end
+       logger.info "listening on addr=#{sock_name(io)} fd=#{io.fileno}"
+@@ -453,7 +450,7 @@ class Unicorn::HttpServer
+       (3..1024).each do |io|
+         next if listener_fds.include?(io)
+         io = IO.for_fd(io) rescue next
+-        prevent_autoclose(io)
++        io.autoclose = false
+         io.fcntl(Fcntl::F_SETFD, Fcntl::FD_CLOEXEC)
+       end
+ 
+@@ -770,7 +767,7 @@ class Unicorn::HttpServer
+     inherited = ENV['UNICORN_FD'].to_s.split(',').map do |fd|
+       io = Socket.for_fd(fd.to_i)
+       set_server_sockopt(io, listener_opts[sock_name(io)])
+-      prevent_autoclose(io)
++      io.autoclose = false
+       logger.info "inherited addr=#{sock_name(io)} fd=#{fd}"
+       server_cast(io)
+     end
+diff --git a/lib/unicorn/socket_helper.rb b/lib/unicorn/socket_helper.rb
+index 2ecf438..a4247ac 100644
+--- a/lib/unicorn/socket_helper.rb
++++ b/lib/unicorn/socket_helper.rb
+@@ -5,10 +5,6 @@ require 'socket'
+ module Unicorn
+   module SocketHelper
+ 
+-    # prevents IO objects in here from being GC-ed
+-    # kill this when we drop 1.8 support
+-    IO_PURGATORY = []
+-
+     # internal interface, only used by Rainbows!/Zbatery
+     DEFAULTS = {
+       # The semantics for TCP_DEFER_ACCEPT changed in Linux 2.6.32+
+@@ -36,14 +32,6 @@ module Unicorn
+       [ af_name, nil ].pack('a16a240')
+     end if RUBY_PLATFORM =~ /freebsd/ && Socket.const_defined?(:SO_ACCEPTFILTER)
+ 
+-    def prevent_autoclose(io)
+-      if io.respond_to?(:autoclose=)
+-        io.autoclose = false
+-      else
+-        IO_PURGATORY << io
+-      end
+-    end
+-
+     def set_tcp_sockopt(sock, opt)
+       # just in case, even LANs can break sometimes.  Linux sysadmins
+       # can lower net.ipv4.tcp_keepalive_* sysctl knobs to very low values.
+@@ -161,7 +149,7 @@ module Unicorn
+         sock.setsockopt(:SOL_SOCKET, :SO_REUSEPORT, 1)
+       end
+       sock.bind(Socket.pack_sockaddr_in(port, addr))
+-      prevent_autoclose(sock)
++      sock.autoclose = false
+       Kgio::TCPServer.for_fd(sock.fileno)
+     end
+ 
+-- 
+EW
+
