@@ -1,0 +1,93 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-2.9 required=3.0 tests=ALL_TRUSTED,BAYES_00,
+ URIBL_BLOCKED shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 2FDD81F7C7 for <unicorn-public@bogomips.org>; Thu,  5
+ Feb 2015 18:01:25 +0000 (UTC)
+From: Eric Wong <e@80x24.org>
+To: unicorn-public@bogomips.org
+Subject: [PATCH] favor IO#close_on_exec= over fcntl in 1.9+
+Date: Thu,  5 Feb 2015 18:01:23 +0000
+Message-Id: <1423159284-31112-2-git-send-email-e@80x24.org>
+List-Id: <unicorn-public@bogomips.org>
+
+IO#close_on_exec* methods are available since Ruby 1.9.1.  It
+allows us to use less bytecode as it requires fewer operands and
+avoids constant lookups.
+---
+ lib/unicorn.rb             | 3 +--
+ lib/unicorn/http_server.rb | 9 +++------
+ lib/unicorn/util.rb        | 1 +
+ 3 files changed, 5 insertions(+), 8 deletions(-)
+
+diff --git a/lib/unicorn.rb b/lib/unicorn.rb
+index 638b846..cfa1656 100644
+--- a/lib/unicorn.rb
++++ b/lib/unicorn.rb
+@@ -1,5 +1,4 @@
+ # -*- encoding: binary -*-
+-require 'fcntl'
+ require 'etc'
+ require 'stringio'
+ require 'rack'
+@@ -100,7 +99,7 @@ module Unicorn
+ 
+   # remove this when we only support Ruby >= 2.0
+   def self.pipe # :nodoc:
+-    Kgio::Pipe.new.each { |io| io.fcntl(Fcntl::F_SETFD, Fcntl::FD_CLOEXEC) }
++    Kgio::Pipe.new.each { |io| io.close_on_exec = true }
+   end
+   # :startdoc:
+ end
+diff --git a/lib/unicorn/http_server.rb b/lib/unicorn/http_server.rb
+index 8a295f0..95a8ffe 100644
+--- a/lib/unicorn/http_server.rb
++++ b/lib/unicorn/http_server.rb
+@@ -434,10 +434,7 @@ class Unicorn::HttpServer
+     self.reexec_pid = fork do
+       listener_fds = {}
+       LISTENERS.each do |sock|
+-        # IO#close_on_exec= will be available on any future version of
+-        # Ruby that sets FD_CLOEXEC by default on new file descriptors
+-        # ref: http://redmine.ruby-lang.org/issues/5041
+-        sock.close_on_exec = false if sock.respond_to?(:close_on_exec=)
++        sock.close_on_exec = false
+         listener_fds[sock.fileno] = sock
+       end
+       ENV['UNICORN_FD'] = listener_fds.keys.join(',')
+@@ -451,7 +448,7 @@ class Unicorn::HttpServer
+         next if listener_fds.include?(io)
+         io = IO.for_fd(io) rescue next
+         io.autoclose = false
+-        io.fcntl(Fcntl::F_SETFD, Fcntl::FD_CLOEXEC)
++        io.close_on_exec = true
+       end
+ 
+       # exec(command, hash) works in at least 1.9.1+, but will only be
+@@ -607,7 +604,7 @@ class Unicorn::HttpServer
+     WORKERS.clear
+ 
+     after_fork.call(self, worker) # can drop perms and create listeners
+-    LISTENERS.each { |sock| sock.fcntl(Fcntl::F_SETFD, Fcntl::FD_CLOEXEC) }
++    LISTENERS.each { |sock| sock.close_on_exec = true }
+ 
+     worker.user(*user) if user.kind_of?(Array) && ! worker.switched
+     self.timeout /= 2.0 # halve it for select()
+diff --git a/lib/unicorn/util.rb b/lib/unicorn/util.rb
+index 94c4e37..c7784bd 100644
+--- a/lib/unicorn/util.rb
++++ b/lib/unicorn/util.rb
+@@ -1,5 +1,6 @@
+ # -*- encoding: binary -*-
+ 
++require 'fcntl'
+ module Unicorn::Util
+ 
+ # :stopdoc:
+-- 
+EW
+
