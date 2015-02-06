@@ -1,0 +1,224 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-2.9 required=3.0 tests=ALL_TRUSTED,BAYES_00,
+ URIBL_BLOCKED shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 783471F6A8; Fri,  6 Feb 2015 20:15:39 +0000 (UTC)
+Date: Fri, 6 Feb 2015 20:15:39 +0000
+From: Eric Wong <e@80x24.org>
+To: unicorn-public@bogomips.org
+Subject: [PATCH] doc: update support status for Ruby versions
+Message-ID: <20150206201539.GA25151@dcvr.yhbt.net>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+List-Id: <unicorn-public@bogomips.org>
+
+unicorn 5 will not support Ruby 1.8 anymore.
+
+Drop mentions of Rubinius, too, it's too difficult to support due to
+the proprietary and registration-required nature of its bug tracker.
+The smaller memory footprint and CoW-friendly memory allocator in
+mainline Ruby is a better fit for unicorn, anyways.
+
+Since Ruby 1.9+ bundles RubyGems and gem startup is faster nowadays,
+we'll just depend on that instead of not loading RubyGems.
+
+Drop the local.mk.sample file, too, since it's way out-of-date
+and probably isn't useful (I have not used it in a while).
+---
+ HACKING                         | 23 +++-------------
+ KNOWN_ISSUES                    | 20 +++++++-------
+ README                          |  3 ++-
+ Sandbox                         |  2 +-
+ lib/unicorn/configurator.rb     |  2 --
+ lib/unicorn/http_server.rb      |  4 +--
+ local.mk.sample                 | 59 -----------------------------------------
+ t/README                        |  2 +-
+ test/unit/test_socket_helper.rb |  4 +--
+ 9 files changed, 22 insertions(+), 97 deletions(-)
+ delete mode 100644 local.mk.sample
+
+diff --git a/HACKING b/HACKING
+index 9b4da1b..6c5f897 100644
+--- a/HACKING
++++ b/HACKING
+@@ -19,13 +19,6 @@ RubyGems.
+ Users of GNU-based systems (such as GNU/Linux) usually have GNU make
+ installed as "make" instead of "gmake".
+ 
+-Since we don't load RubyGems by default, loading Rack properly requires
+-setting up RUBYLIB to point to where Rack is located.  Not loading
+-RubyGems drastically lowers the time to run the full test suite.  You
+-may setup a "local.mk" file in the top-level working directory to setup
+-your RUBYLIB and any other environment variables.  A "local.mk.sample"
+-file is provided for reference.
+-
+ Running the entire test suite with 4 tests in parallel:
+ 
+   gmake -j4 check
+@@ -70,10 +63,9 @@ becomes unavailable.
+ 
+ === Ruby/C Compatibility
+ 
+-We target Ruby 1.8.6+, 1.9 and will target Rubinius as it becomes
+-production-ready.  We need the Ruby implementation to support fork,
+-exec, pipe, UNIX signals, access to integer file descriptors and
+-ability to use unlinked files.
++We target mainline Ruby 1.9.3 and later.  We need the Ruby
++implementation to support fork, exec, pipe, UNIX signals, access to
++integer file descriptors and ability to use unlinked files.
+ 
+ All of our C code is OS-independent and should run on compilers
+ supported by the versions of Ruby we target.
+@@ -123,13 +115,6 @@ You can build the Unicorn gem with the following command:
+ 
+ It is easy to install the contents of your git working directory:
+ 
+-Via RubyGems (RubyGems 1.3.5+ recommended for prerelease versions):
++Via RubyGems
+ 
+   gmake install-gem
+-
+-Without RubyGems (via setup.rb):
+-
+-  gmake install
+-
+-It is not at all recommended to mix a RubyGems installation with an
+-installation done without RubyGems, however.
+diff --git a/KNOWN_ISSUES b/KNOWN_ISSUES
+index 38263e7..69e4f57 100644
+--- a/KNOWN_ISSUES
++++ b/KNOWN_ISSUES
+@@ -17,16 +17,6 @@ acceptable solution.  Those issues are documented here.
+   have builtin workarounds for Kernel#rand and OpenSSL::Random users,
+   but applications may use other PRNGs.
+ 
+-* Under some versions of Ruby 1.8, it is necessary to call +srand+ in an
+-  after_fork hook to get correct random number generation.  We have a builtin
+-  workaround for this starting with \Unicorn 3.6.1
+-
+-  See http://redmine.ruby-lang.org/issues/show/4338
+-
+-* On Ruby 1.8 prior to Ruby 1.8.7-p248, *BSD platforms have a broken
+-  stdio that causes failure for file uploads larger than 112K.  Upgrade
+-  your version of Ruby or continue using Unicorn 1.x/3.4.x.
+-
+ * For notes on sandboxing tools such as Bundler or Isolate,
+   see the {Sandbox}[link:Sandbox.html] page.
+ 
+@@ -44,6 +34,16 @@ acceptable solution.  Those issues are documented here.
+ 
+ == Known Issues (Old)
+ 
++* Under some versions of Ruby 1.8, it is necessary to call +srand+ in an
++  after_fork hook to get correct random number generation.  We have a builtin
++  workaround for this starting with \Unicorn 3.6.1
++
++  See http://redmine.ruby-lang.org/issues/show/4338
++
++* On Ruby 1.8 prior to Ruby 1.8.7-p248, *BSD platforms have a broken
++  stdio that causes failure for file uploads larger than 112K.  Upgrade
++  your version of Ruby or continue using Unicorn 1.x/3.4.x.
++
+ * Under Ruby 1.9.1, methods like Array#shuffle and Array#sample will
+   segfault if called after forking.  Upgrade to Ruby 1.9.2 or call
+   "Kernel.rand" in your after_fork hook to reinitialize the random
+diff --git a/README b/README
+index 02d01e1..f084d0c 100644
+--- a/README
++++ b/README
+@@ -12,7 +12,8 @@ both the the request and response in between \Unicorn and slow clients.
+   cut out everything that is better supported by the operating system,
+   {nginx}[http://nginx.net/] or {Rack}[http://rack.github.io/].
+ 
+-* Compatible with Ruby 1.8 and later.  Rubinius support is in-progress.
++* Compatible with Ruby 1.9.3 and later.
++  unicorn 4.8.x will remain supported for Ruby 1.8 users.
+ 
+ * Process management: \Unicorn will reap and restart workers that
+   die from broken apps.  There is no need to manage multiple processes
+diff --git a/Sandbox b/Sandbox
+index 3c7f226..f662b27 100644
+--- a/Sandbox
++++ b/Sandbox
+@@ -86,7 +86,7 @@ For now workarounds include doing one of the following:
+ 
+ 3. Explicitly setting RUBYLIB or $LOAD_PATH to include any gem path
+    where the unicorn gem is installed
+-   (e.g. /usr/lib/ruby/gems/1.9.1/gems/unicorn-VERSION/lib)
++   (e.g. /usr/lib/ruby/gems/1.9.3/gems/unicorn-VERSION/lib)
+ 
+ === RUBYOPT pollution from SIGUSR2 upgrades
+ 
+diff --git a/lib/unicorn/configurator.rb b/lib/unicorn/configurator.rb
+index d14e608..69b4644 100644
+--- a/lib/unicorn/configurator.rb
++++ b/lib/unicorn/configurator.rb
+@@ -306,8 +306,6 @@ class Unicorn::Configurator
+   #   to receive IPv4 queries on dual-stack systems.  A separate IPv4-only
+   #   listener is required if this is true.
+   #
+-  #   This option is only available for Ruby 1.9.2 and later.
+-  #
+   #   Enabling this option for the IPv6-only listener and having a
+   #   separate IPv4 listener is recommended if you wish to support IPv6
+   #   on the same TCP port.  Otherwise, the value of \env[\"REMOTE_ADDR\"]
+diff --git a/lib/unicorn/http_server.rb b/lib/unicorn/http_server.rb
+index 95a8ffe..895f56d 100644
+--- a/lib/unicorn/http_server.rb
++++ b/lib/unicorn/http_server.rb
+@@ -67,7 +67,7 @@ class Unicorn::HttpServer
+   # you can set the following in your Unicorn config file, HUP and then
+   # continue with the traditional USR2 + QUIT upgrade steps:
+   #
+-  #   Unicorn::HttpServer::START_CTX[0] = "/home/bofh/1.9.2/bin/unicorn"
++  #   Unicorn::HttpServer::START_CTX[0] = "/home/bofh/2.2.0/bin/unicorn"
+   START_CTX = {
+     :argv => ARGV.map { |arg| arg.dup },
+     0 => $0.dup,
+@@ -453,7 +453,7 @@ class Unicorn::HttpServer
+ 
+       # exec(command, hash) works in at least 1.9.1+, but will only be
+       # required in 1.9.4/2.0.0 at earliest.
+-      cmd << listener_fds if RUBY_VERSION >= "1.9.1"
++      cmd << listener_fds
+       logger.info "executing #{cmd.inspect} (in #{Dir.pwd})"
+       before_exec.call(self)
+       exec(*cmd)
+diff --git a/local.mk.sample b/local.mk.sample
+deleted file mode 100644
+index 25bca5d..0000000
+diff --git a/t/README b/t/README
+index 095f106..bcaf3ce 100644
+--- a/t/README
++++ b/t/README
+@@ -10,7 +10,7 @@ comfortable writing integration tests with.
+ 
+ == Requirements
+ 
+-* {Ruby 1.8 or 1.9}[http://www.ruby-lang.org/] (duh!)
++* {Ruby 1.9.3+}[https://www.ruby-lang.org/] (duh!)
+ * {GNU make}[http://www.gnu.org/software/make/]
+ * {socat}[http://www.dest-unreach.org/socat/]
+ * {curl}[http://curl.haxx.se/]
+diff --git a/test/unit/test_socket_helper.rb b/test/unit/test_socket_helper.rb
+index dd6881c..994b990 100644
+--- a/test/unit/test_socket_helper.rb
++++ b/test/unit/test_socket_helper.rb
+@@ -182,8 +182,8 @@ class TestSocketHelper < Test::Unit::TestCase
+     sock = bind_listen "[#@test6_addr]:#{port}", :ipv6only => true
+     cur = sock.getsockopt(:IPPROTO_IPV6, :IPV6_V6ONLY).unpack('i')[0]
+     assert_equal 1, cur
+-    rescue Errno::EAFNOSUPPORT
+-  end if RUBY_VERSION >= "1.9.2"
++  rescue Errno::EAFNOSUPPORT
++  end
+ 
+   def test_reuseport
+     port = unused_port @test_addr
+-- 
+EW
