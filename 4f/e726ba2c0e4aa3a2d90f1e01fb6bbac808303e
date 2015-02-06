@@ -1,0 +1,37 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-2.9 required=3.0 tests=ALL_TRUSTED,BAYES_00
+ shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id B1CDB1F6A8; Fri,  6 Feb 2015 22:34:27 +0000 (UTC)
+From: Eric Wong <e@80x24.org>
+To: unicorn-public@bogomips.org
+Cc: Eric Wong <e@80x24.org>
+Subject: [PATCH] test_socket_helper: do not depend on SO_REUSEPORT
+Date: Fri,  6 Feb 2015 22:34:22 +0000
+Message-Id: <1423262062-13176-1-git-send-email-e@80x24.org>
+List-Id: <unicorn-public@bogomips.org>
+
+Older Rubies (2.0) may not define SO_REUSEPORT even if the
+kernel and libc support it
+---
+ test/unit/test_socket_helper.rb | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/test/unit/test_socket_helper.rb b/test/unit/test_socket_helper.rb
+index 8b09198..7526e82 100644
+--- a/test/unit/test_socket_helper.rb
++++ b/test/unit/test_socket_helper.rb
+@@ -193,5 +193,5 @@ class TestSocketHelper < Test::Unit::TestCase
+     assert_operator cur, :>, 0
+   rescue Errno::ENOPROTOOPT
+     # kernel does not support SO_REUSEPORT (older Linux)
+-  end
++  end if defined?(Socket::SO_REUSEPORT)
+ end
+-- 
+EW
+
