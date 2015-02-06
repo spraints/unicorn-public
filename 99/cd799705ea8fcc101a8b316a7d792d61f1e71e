@@ -1,0 +1,206 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-2.9 required=3.0 tests=ALL_TRUSTED,BAYES_00
+ shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 99BD11F6A8; Fri,  6 Feb 2015 22:17:29 +0000 (UTC)
+From: Eric Wong <e@80x24.org>
+To: unicorn-public@bogomips.org
+Cc: Eric Wong <e@80x24.org>
+Subject: [PATCH] fix uninstalled testing and reduce require paths
+Date: Fri,  6 Feb 2015 22:17:26 +0000
+Message-Id: <1423261046-28980-1-git-send-email-e@80x24.org>
+List-Id: <unicorn-public@bogomips.org>
+
+This fixes a bug introduced in
+commit fe83ead4eae6f011fa15f506cd80cb4256813a92
+(GNUmakefile: fix clean gem build + reduce build cruft)
+which broke clean Ruby installations without an existing
+unicorn gem installed :x
+---
+ GNUmakefile                      | 10 +++++++---
+ test/exec/test_exec.rb           |  2 +-
+ test/unit/test_http_parser.rb    |  2 +-
+ test/unit/test_http_parser_ng.rb |  2 +-
+ test/unit/test_request.rb        |  2 +-
+ test/unit/test_response.rb       |  2 +-
+ test/unit/test_server.rb         |  2 +-
+ test/unit/test_signals.rb        |  2 +-
+ test/unit/test_socket_helper.rb  |  2 +-
+ test/unit/test_upload.rb         |  2 +-
+ test/unit/test_util.rb           |  2 +-
+ 11 files changed, 17 insertions(+), 13 deletions(-)
+
+diff --git a/GNUmakefile b/GNUmakefile
+index 8bd63ee..2995a6b 100644
+--- a/GNUmakefile
++++ b/GNUmakefile
+@@ -59,13 +59,17 @@ $(ext)/unicorn_http.$(DLEXT): $(ext)/Makefile
+ 	$(MAKE) -C $(@D)
+ http: $(ext)/unicorn_http.$(DLEXT)
+ 
++# only used for tests
++http-install: $(ext)/unicorn_http.$(DLEXT)
++	install -m644 $< lib/
++
+ test-install: $(test_prefix)/.stamp
+ $(test_prefix)/.stamp: $(inst_deps)
+ 	mkdir -p $(test_prefix)/.ccache
+ 	tar cf - $(inst_deps) GIT-VERSION-GEN | \
+ 	  (cd $(test_prefix) && tar xf -)
+ 	$(MAKE) -C $(test_prefix) clean
+-	$(MAKE) -C $(test_prefix) http shebang RUBY="$(RUBY)"
++	$(MAKE) -C $(test_prefix) http-install shebang RUBY="$(RUBY)"
+ 	> $@
+ 
+ # this is only intended to be run within $(test_prefix)
+@@ -119,14 +123,14 @@ run_test = $(quiet_pre) \
+ %.n: arg = $(subst .n,,$(subst --, -n ,$@))
+ %.n: t = $(subst .n,$(log_suffix),$@)
+ %.n: export PATH := $(test_prefix)/bin:$(PATH)
+-%.n: export RUBYLIB := $(test_prefix):$(test_prefix)/lib:$(MYLIBS)
++%.n: export RUBYLIB := $(test_prefix)/lib:$(MYLIBS)
+ %.n: $(test_prefix)/.stamp
+ 	$(run_test)
+ 
+ $(T): arg = $@
+ $(T): t = $(subst .rb,$(log_suffix),$@)
+ $(T): export PATH := $(test_prefix)/bin:$(PATH)
+-$(T): export RUBYLIB := $(test_prefix):$(test_prefix)/lib:$(MYLIBS)
++$(T): export RUBYLIB := $(test_prefix)/lib:$(MYLIBS)
+ $(T): $(test_prefix)/.stamp
+ 	$(run_test)
+ 
+diff --git a/test/exec/test_exec.rb b/test/exec/test_exec.rb
+index 10a1bae..6deb96b 100644
+--- a/test/exec/test_exec.rb
++++ b/test/exec/test_exec.rb
+@@ -2,7 +2,7 @@
+ 
+ # Copyright (c) 2009 Eric Wong
+ FLOCK_PATH = File.expand_path(__FILE__)
+-require 'test/test_helper'
++require './test/test_helper'
+ 
+ do_test = true
+ $unicorn_bin = ENV['UNICORN_TEST_BIN'] || "unicorn"
+diff --git a/test/unit/test_http_parser.rb b/test/unit/test_http_parser.rb
+index 2251dcf..431ede5 100644
+--- a/test/unit/test_http_parser.rb
++++ b/test/unit/test_http_parser.rb
+@@ -7,7 +7,7 @@
+ # Additional work donated by contributors.  See git history
+ # for more information.
+ 
+-require 'test/test_helper'
++require './test/test_helper'
+ 
+ include Unicorn
+ 
+diff --git a/test/unit/test_http_parser_ng.rb b/test/unit/test_http_parser_ng.rb
+index d5c8d2e..0c81072 100644
+--- a/test/unit/test_http_parser_ng.rb
++++ b/test/unit/test_http_parser_ng.rb
+@@ -1,6 +1,6 @@
+ # -*- encoding: binary -*-
+ 
+-require 'test/test_helper'
++require './test/test_helper'
+ require 'digest/md5'
+ 
+ include Unicorn
+diff --git a/test/unit/test_request.rb b/test/unit/test_request.rb
+index fbda1a2..f0ccaf7 100644
+--- a/test/unit/test_request.rb
++++ b/test/unit/test_request.rb
+@@ -4,7 +4,7 @@
+ # You can redistribute it and/or modify it under the same terms as Ruby 1.8 or
+ # the GPLv2+ (GPLv3+ preferred)
+ 
+-require 'test/test_helper'
++require './test/test_helper'
+ 
+ include Unicorn
+ 
+diff --git a/test/unit/test_response.rb b/test/unit/test_response.rb
+index bdca9f5..d0f0c79 100644
+--- a/test/unit/test_response.rb
++++ b/test/unit/test_response.rb
+@@ -7,7 +7,7 @@
+ # Additional work donated by contributors.  See git history
+ # for more information.
+ 
+-require 'test/test_helper'
++require './test/test_helper'
+ require 'time'
+ 
+ include Unicorn
+diff --git a/test/unit/test_server.rb b/test/unit/test_server.rb
+index 9c92bab..8b3afad 100644
+--- a/test/unit/test_server.rb
++++ b/test/unit/test_server.rb
+@@ -7,7 +7,7 @@
+ # Additional work donated by contributors.  See git history
+ # for more information.
+ 
+-require 'test/test_helper'
++require './test/test_helper'
+ 
+ include Unicorn
+ 
+diff --git a/test/unit/test_signals.rb b/test/unit/test_signals.rb
+index 443c736..4592819 100644
+--- a/test/unit/test_signals.rb
++++ b/test/unit/test_signals.rb
+@@ -6,7 +6,7 @@
+ #
+ # Ensure we stay sane in the face of signals being sent to us
+ 
+-require 'test/test_helper'
++require './test/test_helper'
+ 
+ include Unicorn
+ 
+diff --git a/test/unit/test_socket_helper.rb b/test/unit/test_socket_helper.rb
+index 994b990..8b09198 100644
+--- a/test/unit/test_socket_helper.rb
++++ b/test/unit/test_socket_helper.rb
+@@ -1,6 +1,6 @@
+ # -*- encoding: binary -*-
+ 
+-require 'test/test_helper'
++require './test/test_helper'
+ require 'tempfile'
+ 
+ class TestSocketHelper < Test::Unit::TestCase
+diff --git a/test/unit/test_upload.rb b/test/unit/test_upload.rb
+index bcce4bc..5de02e4 100644
+--- a/test/unit/test_upload.rb
++++ b/test/unit/test_upload.rb
+@@ -1,7 +1,7 @@
+ # -*- encoding: binary -*-
+ 
+ # Copyright (c) 2009 Eric Wong
+-require 'test/test_helper'
++require './test/test_helper'
+ require 'digest/md5'
+ 
+ include Unicorn
+diff --git a/test/unit/test_util.rb b/test/unit/test_util.rb
+index 904d51c..4d17a16 100644
+--- a/test/unit/test_util.rb
++++ b/test/unit/test_util.rb
+@@ -1,6 +1,6 @@
+ # -*- encoding: binary -*-
+ 
+-require 'test/test_helper'
++require './test/test_helper'
+ require 'tempfile'
+ 
+ class TestUtil < Test::Unit::TestCase
+-- 
+EW
+
