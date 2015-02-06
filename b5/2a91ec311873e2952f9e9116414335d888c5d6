@@ -1,0 +1,48 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-2.9 required=3.0 tests=ALL_TRUSTED,AWL,BAYES_00
+ shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 6B9BB1F6A8 for <unicorn-public@bogomips.org>; Fri,  6
+ Feb 2015 22:50:21 +0000 (UTC)
+From: Eric Wong <e@80x24.org>
+To: unicorn-public@bogomips.org
+Subject: [PATCH] favor "a.b(&:c)" form over "a.b { |x| x.c }"
+Date: Fri,  6 Feb 2015 22:50:21 +0000
+Message-Id: <1423263021-2378-1-git-send-email-e@80x24.org>
+List-Id: <unicorn-public@bogomips.org>
+
+The former is shorter Ruby code and also generates smaller
+bytecode.
+---
+ lib/unicorn/http_server.rb | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/lib/unicorn/http_server.rb b/lib/unicorn/http_server.rb
+index 895f56d..c44a71e 100644
+--- a/lib/unicorn/http_server.rb
++++ b/lib/unicorn/http_server.rb
+@@ -69,7 +69,7 @@ class Unicorn::HttpServer
+   #
+   #   Unicorn::HttpServer::START_CTX[0] = "/home/bofh/2.2.0/bin/unicorn"
+   START_CTX = {
+-    :argv => ARGV.map { |arg| arg.dup },
++    :argv => ARGV.map(&:dup),
+     0 => $0.dup,
+   }
+   # We favor ENV['PWD'] since it is (usually) symlink aware for Capistrano
+@@ -483,7 +483,7 @@ class Unicorn::HttpServer
+   end
+ 
+   def after_fork_internal
+-    SELF_PIPE.each { |io| io.close }.clear # this is master-only, now
++    SELF_PIPE.each(&:close).clear # this is master-only, now
+     @ready_pipe.close if @ready_pipe
+     Unicorn::Configurator::RACKUP.clear
+     @ready_pipe = @init_listeners = @before_exec = @before_fork = nil
+-- 
+EW
+
