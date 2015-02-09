@@ -1,0 +1,133 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-2.9 required=3.0 tests=ALL_TRUSTED,BAYES_00
+ shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id EAA741F7DD for <unicorn-public@bogomips.org>; Mon,  9
+ Feb 2015 09:12:10 +0000 (UTC)
+From: Eric Wong <e@80x24.org>
+To: unicorn-public@bogomips.org
+Subject: [PATCH 2/2] reduce and localize constant string use
+Date: Mon,  9 Feb 2015 09:12:10 +0000
+Message-Id: <1423473130-14754-2-git-send-email-e@80x24.org>
+In-Reply-To: <1423473130-14754-1-git-send-email-e@80x24.org>
+References: <1423473130-14754-1-git-send-email-e@80x24.org>
+List-Id: <unicorn-public@bogomips.org>
+
+Literal String#freeze avoids allocations since Ruby 2.1 via the
+opt_str_freeze instruction, so we can start relying on it in
+some places as Ruby 2.1 adoption increases.  The 100-continue
+handling is a good place to start since it is an uncommonly-used
+code path which benefits from size reduction and the negative
+performance impact is restricted to a handful of users.
+
+HTTP_RESPONSE_START can safely live in http_request.rb as its
+usage does not cross namespace boundaries
+
+The goal is to eventually eliminate Unicorn::Const entirely.
+---
+ lib/unicorn/const.rb        | 17 +----------------
+ lib/unicorn/http_request.rb |  5 ++++-
+ lib/unicorn/http_server.rb  | 18 ++++++++++--------
+ 3 files changed, 15 insertions(+), 25 deletions(-)
+
+diff --git a/lib/unicorn/const.rb b/lib/unicorn/const.rb
+index e24b511..33ab4ac 100644
+--- a/lib/unicorn/const.rb
++++ b/lib/unicorn/const.rb
+@@ -1,12 +1,6 @@
+ # -*- encoding: binary -*-
+ 
+-# :enddoc:
+-# Frequently used constants when constructing requests or responses.
+-# Many times the constant just refers to a string with the same
+-# contents.  Using these constants gave about a 3% to 10% performance
+-# improvement over using the strings directly.  Symbols did not really
+-# improve things much compared to constants.
+-module Unicorn::Const
++module Unicorn::Const # :nodoc:
+   # default TCP listen host address (0.0.0.0, all interfaces)
+   DEFAULT_HOST = "0.0.0.0"
+ 
+@@ -23,14 +17,5 @@ module Unicorn::Const
+   # temporary file for reading (112 kilobytes).  This is the default
+   # value of client_body_buffer_size.
+   MAX_BODY = 1024 * 112
+-
+-  # :stopdoc:
+-  EXPECT_100_RESPONSE = "HTTP/1.1 100 Continue\r\n\r\n"
+-  EXPECT_100_RESPONSE_SUFFIXED = "100 Continue\r\n\r\nHTTP/1.1 "
+-
+-  HTTP_RESPONSE_START = ['HTTP', '/1.1 ']
+-  HTTP_EXPECT = "HTTP_EXPECT"
+-
+-  # :startdoc:
+ end
+ require_relative 'version'
+diff --git a/lib/unicorn/http_request.rb b/lib/unicorn/http_request.rb
+index 6b20431..9888430 100644
+--- a/lib/unicorn/http_request.rb
++++ b/lib/unicorn/http_request.rb
+@@ -26,8 +26,11 @@ class Unicorn::HttpParser
+ 
+   # :stopdoc:
+   # A frozen format for this is about 15% faster
++  # Drop these frozen strings when Ruby 2.2 becomes more prevalent,
++  # 2.2+ optimizes hash assignments when used with literal string keys
+   REMOTE_ADDR = 'REMOTE_ADDR'.freeze
+   RACK_INPUT = 'rack.input'.freeze
++  HTTP_RESPONSE_START = [ 'HTTP', '/1.1 ']
+   @@input_class = Unicorn::TeeInput
+   @@check_client_connection = false
+ 
+@@ -86,7 +89,7 @@ class Unicorn::HttpParser
+     # detect if the socket is valid by writing a partial response:
+     if @@check_client_connection && headers?
+       @response_start_sent = true
+-      Unicorn::Const::HTTP_RESPONSE_START.each { |c| socket.write(c) }
++      HTTP_RESPONSE_START.each { |c| socket.write(c) }
+     end
+ 
+     e[RACK_INPUT] = 0 == content_length ?
+diff --git a/lib/unicorn/http_server.rb b/lib/unicorn/http_server.rb
+index c44a71e..f0216d0 100644
+--- a/lib/unicorn/http_server.rb
++++ b/lib/unicorn/http_server.rb
+@@ -546,12 +546,15 @@ class Unicorn::HttpServer
+     rescue
+   end
+ 
+-  def expect_100_response
+-    if @request.response_start_sent
+-      Unicorn::Const::EXPECT_100_RESPONSE_SUFFIXED
+-    else
+-      Unicorn::Const::EXPECT_100_RESPONSE
+-    end
++  def e100_response_write(client, env)
++    # We use String#freeze to avoid allocations under Ruby 2.1+
++    # Not many users hit this code path, so it's better to reduce the
++    # constant table sizes even for 1.9.3-2.0 users who'll hit extra
++    # allocations here.
++    client.write(@request.response_start_sent ?
++                 "100 Continue\r\n\r\nHTTP/1.1 ".freeze :
++                 "HTTP/1.1 100 Continue\r\n\r\n".freeze)
++    env.delete('HTTP_EXPECT'.freeze)
+   end
+ 
+   # once a client is accepted, it is processed in its entirety here
+@@ -561,8 +564,7 @@ class Unicorn::HttpServer
+     return if @request.hijacked?
+ 
+     if 100 == status.to_i
+-      client.write(expect_100_response)
+-      env.delete(Unicorn::Const::HTTP_EXPECT)
++      e100_response_write(client, env)
+       status, headers, body = @app.call(env)
+       return if @request.hijacked?
+     end
+-- 
+EW
+
