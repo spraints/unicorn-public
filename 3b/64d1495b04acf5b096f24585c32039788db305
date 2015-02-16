@@ -1,0 +1,47 @@
+Return-Path: <sstewartgallus00@mylangara.bc.ca>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS271 209.87.28.0/23
+X-Spam-Status: No, score=-0.5 required=3.0 tests=AWL,BAYES_00,
+ T_MANY_HDRS_LCASE,URIBL_BLOCKED shortcircuit=no autolearn=unavailable
+ version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from message.langara.bc.ca (message.langara.bc.ca [209.87.29.115])
+ by dcvr.yhbt.net (Postfix) with ESMTP id 421401F848 for
+ <unicorn-public@bogomips.org>; Mon, 16 Feb 2015 02:19:03 +0000 (UTC)
+MIME-version: 1.0
+Content-transfer-encoding: 7BIT
+Content-disposition: inline
+Content-type: text/plain; charset=us-ascii
+Received: from langara.bc.ca ([127.0.0.1]) by message.langara.bc.ca (Sun
+ Java(tm) System Messaging Server 6.3-6.03 (built Mar 14 2008; 32bit)) with
+ ESMTP id <0NJU0068PEFQ1U70@message.langara.bc.ca> for
+ unicorn-public@bogomips.org; Sun, 15 Feb 2015 18:19:02 -0800 (PST)
+Received: from [23.16.76.169] by message.langara.bc.ca (mshttpd); Mon, 16 Feb
+ 2015 02:19:02 +0000 (GMT)
+From: Steven Stewart-Gallus <sstewartgallus00@mylangara.bc.ca>
+To: unicorn-public@bogomips.org
+Message-id: <fc15a0f85b70.54e15396@langara.bc.ca>
+Date: Mon, 16 Feb 2015 02:19:02 +0000 (GMT)
+X-Mailer: Sun Java(tm) System Messenger Express 6.3-6.03 (built Mar 14 2008;
+ 32bit)
+Content-language: en
+Subject: Bug, Unicorn can drop signals in extreme conditions
+X-Accept-Language: en
+Priority: normal
+List-Id: <unicorn-public@bogomips.org>
+
+Hello,
+
+While reading the article at
+http://www.sitepoint.com/the-self-pipe-trick-explained/ I realized
+that the signal handling code shown there and of the same type in your
+application is broken.  As you have a single nonblocking pipe in your
+application you can drop signals entirely (and not just fold multiple
+signals of the same type into one).  The simplest fix is to use a pipe
+for each individual type of signal or to just use pselect or similar.
+I'm pretty sure that there is a way to use a single pipe but it seems
+complicated and very difficult to implement correctly.
+
+Thank you,
+Steven Stewart-Gallus
