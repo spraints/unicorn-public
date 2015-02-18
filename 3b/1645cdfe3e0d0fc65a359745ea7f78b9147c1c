@@ -1,0 +1,80 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-2.8 required=3.0 tests=ALL_TRUSTED,AWL,BAYES_00,
+ URIBL_BLOCKED shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 8F7FD63381B; Wed, 18 Feb 2015 09:15:17 +0000 (UTC)
+Date: Wed, 18 Feb 2015 09:15:17 +0000
+From: Eric Wong <e@80x24.org>
+To: Steven Stewart-Gallus <sstewartgallus00@mylangara.bc.ca>
+Cc: unicorn-public@bogomips.org, Jesse Storimer <jstorimer@gmail.com>
+Subject: Re: Bug, Unicorn can drop signals in extreme conditions
+Message-ID: <20150218091517.GA21920@dcvr.yhbt.net>
+References: <fc15a0f85b70.54e15396@langara.bc.ca>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <fc15a0f85b70.54e15396@langara.bc.ca>
+List-Id: <unicorn-public@bogomips.org>
+
+Steven Stewart-Gallus <sstewartgallus00@mylangara.bc.ca> wrote:
+> Hello,
+> 
+> While reading the article at
+> http://www.sitepoint.com/the-self-pipe-trick-explained/ I realized
+> that the signal handling code shown there and of the same type in your
+> application is broken.  As you have a single nonblocking pipe in your
+> application you can drop signals entirely (and not just fold multiple
+> signals of the same type into one).  The simplest fix is to use a pipe
+> for each individual type of signal or to just use pselect or similar.
+> I'm pretty sure that there is a way to use a single pipe but it seems
+> complicated and very difficult to implement correctly.
+
+(I've Cc-ed Jesse for this)
+
+I wasn't sure exactly what you were referring to, but now I see where
+the sitepoint.com article makes calls in the wrong order:
+
+     self_writer.write_nonblock('.') # XXX may fail!
+     SIGNAL_QUEUE << signal
+
+In contrast, unicorn enqueues the signal before attempting to write to
+the pipe, so we don't care at all if the write fails.  It doesn't matter
+if the non-blocking write fails due to the pipe being full at all; as
+any existing data in the pipe is sufficient to cause the reader to wake
+up.
+
+The correct order would be:
+
+     SIGNAL_QUEUE << signal
+     self_writer.write_nonblock('.') # we don't care if this fails
+
+Furthermore, this avoids a race condition in multi-threaded situations.
+Order is critical, even outside of signal handlers, this ordering of
+events is fundamental to correct usage of things like condition
+variables and waitqueues.
+
+
+Btw, MRI 1.9.3+ also uses the self-pipe trick internally, too (see
+thread_pthread.c) for signals and thread switching.  Current versions
+use two pipes, one for high-priority wakeups, and one for low-priority
+wakeups.
+
+And on a related note, using pselect/ppoll/epoll_pwait/signalfd-style
+syscalls which affect the signal mask is not feasible with runtimes
+which already implement a high-level signal handling API.  I ripped out
+signalfd support from sleepy_penguin a few years back because it would
+always conflict with the signal handling API in Ruby itself...
+
+And eventfd is cheaper and usable in place of a self-pipe from Ruby, of
+course(*), but I haven't convinced ruby-core it's worth the maintenance
+effort for thread_pthread.c; so a conservative project like unicorn
+won't use it, yet.
+
+Anyways, thanks for bringing this to our attention.
+
+
+(*) I use it in yet another horribly-named server :)
