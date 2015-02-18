@@ -1,0 +1,50 @@
+Return-Path: <sstewartgallus00@mylangara.bc.ca>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS271 209.87.28.0/23
+X-Spam-Status: No, score=-1.4 required=3.0 tests=AWL,BAYES_00 shortcircuit=no
+ autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from message.langara.bc.ca (message.langara.bc.ca [209.87.29.115])
+ by dcvr.yhbt.net (Postfix) with ESMTP id 549931F7C2 for
+ <unicorn-public@bogomips.org>; Wed, 18 Feb 2015 17:27:40 +0000 (UTC)
+MIME-version: 1.0
+Content-transfer-encoding: 7BIT
+Content-disposition: inline
+Content-type: text/plain; charset=us-ascii
+Received: from langara.bc.ca ([127.0.0.1]) by message.langara.bc.ca (Sun
+ Java(tm) System Messaging Server 6.3-6.03 (built Mar 14 2008; 32bit)) with
+ ESMTP id <0NJZ00F669U3FP20@message.langara.bc.ca> for
+ unicorn-public@bogomips.org; Wed, 18 Feb 2015 09:27:39 -0800 (PST)
+Received: from [23.16.76.169] by message.langara.bc.ca (mshttpd); Wed, 18 Feb
+ 2015 17:27:39 +0000 (GMT)
+From: Steven Stewart-Gallus <sstewartgallus00@mylangara.bc.ca>
+To: Eric Wong <e@80x24.org>
+Cc: unicorn-public@bogomips.org, Jesse Storimer <jstorimer@gmail.com>
+Message-id: <fc17b4534812.54e4cb8b@langara.bc.ca>
+Date: Wed, 18 Feb 2015 17:27:39 +0000 (GMT)
+X-Mailer: Sun Java(tm) System Messenger Express 6.3-6.03 (built Mar 14 2008;
+ 32bit)
+Content-language: en
+Subject: Re: Bug, Unicorn can drop signals in extreme conditions
+X-Accept-Language: en
+Priority: normal
+In-reply-to: <20150218091517.GA21920@dcvr.yhbt.net>
+References: <fc15a0f85b70.54e15396@langara.bc.ca>
+ <20150218091517.GA21920@dcvr.yhbt.net>
+List-Id: <unicorn-public@bogomips.org>
+
+Hello,
+
+Okay, my apologies, I misunderstood the signal handling code.  I
+thought you were doing something like
+self_writer.write_nonblock(signal) instead.  This is what I thought of
+initially because I was still thinking in the context of C (where
+signals are not deferred and allocating new space on a queue in a
+signal handler would be unsafe) instead of in the context of Ruby
+where Ruby's signals are deferred.  Incidentally, MRI's signal handler
+implementation in signal.c appears to be broken in several ways but
+that is a separate topic for a separate place.
+
+Thank you,
+Steven Stewart-Gallus
