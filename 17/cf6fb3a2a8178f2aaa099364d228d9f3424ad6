@@ -1,0 +1,65 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-2.9 required=3.0 tests=ALL_TRUSTED,BAYES_00
+ shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 618DA1FD2B for <unicorn-public@bogomips.org>; Mon,  2
+ Mar 2015 20:32:52 +0000 (UTC)
+From: Eric Wong <e@80x24.org>
+To: unicorn-public@bogomips.org
+Subject: [PATCH] http: remove deprecated reset method
+Date: Mon,  2 Mar 2015 20:32:52 +0000
+Message-Id: <1425328372-18709-1-git-send-email-e@80x24.org>
+List-Id: <unicorn-public@bogomips.org>
+
+We use the `clear' method everywhere nowadays.
+---
+ ext/unicorn_http/unicorn_http.rl | 22 ----------------------
+ 1 file changed, 22 deletions(-)
+
+diff --git a/ext/unicorn_http/unicorn_http.rl b/ext/unicorn_http/unicorn_http.rl
+index 932d259..03b4726 100644
+--- a/ext/unicorn_http/unicorn_http.rl
++++ b/ext/unicorn_http/unicorn_http.rl
+@@ -618,27 +618,6 @@ static VALUE HttpParser_dechunk_bang(VALUE self)
+   return self;
+ }
+ 
+-/**
+- * call-seq:
+- *    parser.reset => nil
+- *
+- * Resets the parser to it's initial state so that you can reuse it
+- * rather than making new ones.
+- *
+- * This method is deprecated and to be removed in Unicorn 4.x
+- */
+-static VALUE HttpParser_reset(VALUE self)
+-{
+-  static int warned;
+-
+-  if (!warned) {
+-    rb_warn("Unicorn::HttpParser#reset is deprecated; "
+-            "use Unicorn::HttpParser#clear instead");
+-  }
+-  HttpParser_clear(self);
+-  return Qnil;
+-}
+-
+ static void advance_str(VALUE str, off_t nr)
+ {
+   long len = RSTRING_LEN(str);
+@@ -939,7 +918,6 @@ void Init_unicorn_http(void)
+   rb_define_alloc_func(cHttpParser, HttpParser_alloc);
+   rb_define_method(cHttpParser, "initialize", HttpParser_init, 0);
+   rb_define_method(cHttpParser, "clear", HttpParser_clear, 0);
+-  rb_define_method(cHttpParser, "reset", HttpParser_reset, 0);
+   rb_define_method(cHttpParser, "dechunk!", HttpParser_dechunk_bang, 0);
+   rb_define_method(cHttpParser, "parse", HttpParser_parse, 0);
+   rb_define_method(cHttpParser, "add_parse", HttpParser_add_parse, 1);
+-- 
+EW
+
