@@ -1,0 +1,130 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-2.9 required=3.0 tests=ALL_TRUSTED,AWL,BAYES_00
+ shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 18D781FD2B; Mon,  2 Mar 2015 20:34:28 +0000 (UTC)
+Date: Mon, 2 Mar 2015 20:34:28 +0000
+From: Eric Wong <e@80x24.org>
+To: unicorn-public@bogomips.org
+Subject: [RFC] http: remove experimental dechunk! method
+Message-ID: <20150302203427.GA18811@dcvr.yhbt.net>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+List-Id: <unicorn-public@bogomips.org>
+
+It was never used anywhere AFAIK and wastes precious bytes.
+---
+ RFC since this didn't go through a deprecation period, but it's
+ never been documented or heavily publicized (but that goes for
+ this entire project :P)
+
+ ext/unicorn_http/unicorn_http.rl | 29 ---------------------------
+ test/unit/test_http_parser_ng.rb | 43 ----------------------------------------
+ 2 files changed, 72 deletions(-)
+
+diff --git a/ext/unicorn_http/unicorn_http.rl b/ext/unicorn_http/unicorn_http.rl
+index 03b4726..4254540 100644
+--- a/ext/unicorn_http/unicorn_http.rl
++++ b/ext/unicorn_http/unicorn_http.rl
+@@ -590,34 +590,6 @@ static VALUE HttpParser_clear(VALUE self)
+   return self;
+ }
+ 
+-/**
+- * call-seq:
+- *    parser.dechunk! => parser
+- *
+- * Resets the parser to a state suitable for dechunking response bodies
+- *
+- */
+-static VALUE HttpParser_dechunk_bang(VALUE self)
+-{
+-  struct http_parser *hp = data_get(self);
+-
+-  http_parser_init(hp);
+-
+-  /*
+-   * we don't care about trailers in dechunk-only mode,
+-   * but if we did we'd set UH_FL_HASTRAILER and clear hp->env
+-   */
+-  if (0) {
+-    rb_funcall(hp->env, id_clear, 0);
+-    hp->flags = UH_FL_HASTRAILER;
+-  }
+-
+-  hp->flags |= UH_FL_HASBODY | UH_FL_INBODY | UH_FL_CHUNKED;
+-  hp->cs = http_parser_en_ChunkedBody;
+-
+-  return self;
+-}
+-
+ static void advance_str(VALUE str, off_t nr)
+ {
+   long len = RSTRING_LEN(str);
+@@ -918,7 +890,6 @@ void Init_unicorn_http(void)
+   rb_define_alloc_func(cHttpParser, HttpParser_alloc);
+   rb_define_method(cHttpParser, "initialize", HttpParser_init, 0);
+   rb_define_method(cHttpParser, "clear", HttpParser_clear, 0);
+-  rb_define_method(cHttpParser, "dechunk!", HttpParser_dechunk_bang, 0);
+   rb_define_method(cHttpParser, "parse", HttpParser_parse, 0);
+   rb_define_method(cHttpParser, "add_parse", HttpParser_add_parse, 1);
+   rb_define_method(cHttpParser, "headers", HttpParser_headers, 2);
+diff --git a/test/unit/test_http_parser_ng.rb b/test/unit/test_http_parser_ng.rb
+index 0c81072..efd82e1 100644
+--- a/test/unit/test_http_parser_ng.rb
++++ b/test/unit/test_http_parser_ng.rb
+@@ -619,47 +619,4 @@ class HttpParserNgTest < Test::Unit::TestCase
+     assert_equal expect, env2
+     assert_equal "", @parser.buf
+   end
+-
+-  def test_chunk_only
+-    tmp = ""
+-    assert_equal @parser, @parser.dechunk!
+-    assert_nil @parser.filter_body(tmp, "6\r\n")
+-    assert_equal "", tmp
+-    assert_nil @parser.filter_body(tmp, "abcdef")
+-    assert_equal "abcdef", tmp
+-    assert_nil @parser.filter_body(tmp, "\r\n")
+-    assert_equal "", tmp
+-    src = "0\r\n\r\n"
+-    assert_equal src.object_id, @parser.filter_body(tmp, src).object_id
+-    assert_equal "", tmp
+-  end
+-
+-  def test_chunk_only_bad_align
+-    tmp = ""
+-    assert_equal @parser, @parser.dechunk!
+-    assert_nil @parser.filter_body(tmp, "6\r\na")
+-    assert_equal "a", tmp
+-    assert_nil @parser.filter_body(tmp, "bcde")
+-    assert_equal "bcde", tmp
+-    assert_nil @parser.filter_body(tmp, "f\r")
+-    assert_equal "f", tmp
+-    src = "\n0\r\n\r\n"
+-    assert_equal src.object_id, @parser.filter_body(tmp, src).object_id
+-    assert_equal "", tmp
+-  end
+-
+-  def test_chunk_only_reset_ok
+-    tmp = ""
+-    assert_equal @parser, @parser.dechunk!
+-    src = "1\r\na\r\n0\r\n\r\n"
+-    assert_nil @parser.filter_body(tmp, src)
+-    assert_equal "a", tmp
+-    assert_equal src.object_id, @parser.filter_body(tmp, src).object_id
+-
+-    assert_equal @parser, @parser.dechunk!
+-    src = "0\r\n\r\n"
+-    assert_equal src.object_id, @parser.filter_body(tmp, src).object_id
+-    assert_equal "", tmp
+-    assert_equal src, @parser.filter_body(tmp, src)
+-  end
+ end
+-- 
+EW
