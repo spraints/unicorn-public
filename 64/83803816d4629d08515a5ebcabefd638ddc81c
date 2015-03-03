@@ -1,0 +1,91 @@
+Return-Path: <mfischer@zendesk.com>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14135 216.205.24.0/21
+X-Spam-Status: No, score=-0.8 required=3.0 tests=AWL,BAYES_00,
+ RCVD_IN_DNSWL_LOW,URIBL_BLOCKED,URIBL_DBL_ABUSE_REDIR shortcircuit=no
+ autolearn=ham version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from us-smtp-delivery-110.mimecast.com
+ (us-smtp-delivery-110.mimecast.com [216.205.24.110]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 25E5F1F49F for <unicorn-public@bogomips.org>; Tue,  3
+ Mar 2015 22:32:07 +0000 (UTC)
+Subject: Re: Request Queueing after deploy + USR2 restart
+Received: from mail-qc0-f178.google.com (mail-qc0-f178.google.com
+ [209.85.216.178]) (Using TLS) by us-mta-13.us.mimecast.lan; Tue, 03 Mar 2015
+ 17:32:04 -0500
+Received: by qcwb13 with SMTP id b13so33253413qcw.6 for
+ <unicorn-public@bogomips.org>; Tue, 03 Mar 2015 14:32:04 -0800 (PST)
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=1e100.net;
+ s=20130820; h=x-gm-message-state:mime-version:in-reply-to:references:date
+ :message-id:subject:from:to:cc:content-type;
+ bh=tO8yB05uZnXOuw91oL68oLe+WnGmVSK9aYo6zxLgodg=;
+ b=NmZV0sd/tbuvWEJr+ClgJzSg4uVCEvV92oH6mgMZOM7q1DANvcBHr9d/0ANuxH2psm
+ 3LGRuEdjFQRGPtGc1FsWIE3vci61hS5hdxVhkeqG3/G6XbO0MCINLnO5CtVwIKSy3GPA
+ ndBccAc8aKSI1k66JZ+zWIJ2a50MXoKMSJ24fIgawcdSbCBIxDopRpoHgOx3NjuHRZcm
+ o8KPB5S0GxDLnRpUtTa2oPWFEAJ4wBWm4CSrr5bOgHdU36qNFhuAYlXMKHXp58byF1Vr
+ CIhbc1wQQhFTLcDUTMxPHJZ7mPr46xrlOzFZ9P9mU0UETGXDnDlLwSw0qRUtL78Yedwg 5WWw==
+X-Gm-Message-State:
+ ALoCoQnq4B363pkvo3EHFcmN0mCzgMgdzWGFkOfgHudNtURV3/jKotvpYgLppoqRLWzoqJXIiUKlm2k6UIRd3023AClRGH4mwPY8jB1Y6XT2YEKmNufFpDkHlGIjdPDiX78WbFvTkEgb5ZhLCm08Vm/UZy8ItD/jZ3b5h6XARyreWD+ofzQvRbQ=
+X-Received: by 10.229.131.138 with SMTP id x10mr1870957qcs.25.1425421924202;
+ Tue, 03 Mar 2015 14:32:04 -0800 (PST)
+MIME-Version: 1.0
+X-Received: by 10.229.131.138 with SMTP id x10mr1870947qcs.25.1425421924115;
+ Tue, 03 Mar 2015 14:32:04 -0800 (PST)
+Received: by 10.140.48.97 with HTTP; Tue, 3 Mar 2015 14:32:04 -0800 (PST)
+In-Reply-To:
+ <CAGchx-+qiqGzEW3PWiOgJPQtk6HfdP-t0iohYnXft14zFE7Brg@mail.gmail.com>
+References:
+ <CAGchx-+qiqGzEW3PWiOgJPQtk6HfdP-t0iohYnXft14zFE7Brg@mail.gmail.com>
+Date: Tue, 3 Mar 2015 14:32:04 -0800
+Message-ID:
+ <CABHxtY6Hjpx1y0iXBTDJXbgWpihaZxho1B=CAk+kF8PL2BbCGQ@mail.gmail.com>
+From: Michael Fischer <mfischer@zendesk.com>
+To: Sarkis Varozian <svarozian@gmail.com>
+Cc: unicorn-public <unicorn-public@bogomips.org>
+X-MC-Unique: CGwyfbENTwGC5axnRp7LyQ-1
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
+X-Content-Filtered-By: PublicInbox::Filter 0.0.1
+List-Id: <unicorn-public@bogomips.org>
+
+If the response times are falling a minute or so after the reload, I'd
+chalk it up to a cold CPU cache.  You will probably want to stagger your
+reloads across backends to minimize the impact.
+
+--Michael
+
+On Tue, Mar 3, 2015 at 2:24 PM, Sarkis Varozian <svarozian@gmail.com> wrote=
+:
+
+> We have a rails application with the following unicorn.rb:
+> http://goo.gl/qZ5NLn
+>
+> When we deploy to the application, a USR2 signal is sent to the unicorn
+> master which spins up a new master and we use the before_fork in the
+> unicorn.rb config above to send signals to the old master as the new
+> workers come online.
+>
+> I've been trying to debug a weird issue that manifests as "Request
+> Queueing" in our Newrelic APM. The graph shows what happens after a
+> deployment (represented by the vertical lines). Here is the graph:
+> http://goo.gl/iFZPMv . As you see from the graph, it is inconsistent -
+> there is always a latency spike - however, at times Request Queueing is
+> higher than previous deploys.
+>
+> Any ideas on what exactly is going on here? Any suggestions on
+> tools/profilers to use to get to the bottom of this? Should we expect thi=
+s
+> to happen on each deploy?
+>
+> Thanks,
+>
+> --
+> *Sarkis Varozian*
+> svarozian@gmail.com
+>
+>
+>
+
+
+
