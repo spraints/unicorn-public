@@ -1,0 +1,54 @@
+Return-Path: <svarozian@gmail.com>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS15169 209.85.128.0/17
+X-Spam-Status: No, score=0.3 required=3.0 tests=AWL,BAYES_00,FREEMAIL_FROM,
+ RCVD_IN_DNSWL_BLOCKED,URIBL_BLOCKED,URIBL_DBL_ABUSE_REDIR shortcircuit=no
+ autolearn=ham version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from mail-ig0-f170.google.com (mail-ig0-f170.google.com
+ [209.85.213.170]) (using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256
+ (128/128 bits)) (No client certificate requested) by dcvr.yhbt.net (Postfix)
+ with ESMTPS id A6B771F49F for <unicorn-public@bogomips.org>; Tue,  3 Mar 2015
+ 22:24:43 +0000 (UTC)
+Received: by igbhl2 with SMTP id hl2so29484950igb.0 for
+ <unicorn-public@bogomips.org>; Tue, 03 Mar 2015 14:24:43 -0800 (PST)
+MIME-Version: 1.0
+X-Received: by 10.50.79.230 with SMTP id m6mr5485159igx.33.1425421483032;
+ Tue, 03 Mar 2015 14:24:43 -0800 (PST)
+Received: by 10.107.43.73 with HTTP; Tue, 3 Mar 2015 14:24:42 -0800 (PST)
+Date: Tue, 3 Mar 2015 14:24:42 -0800
+Message-ID:
+ <CAGchx-+qiqGzEW3PWiOgJPQtk6HfdP-t0iohYnXft14zFE7Brg@mail.gmail.com>
+Subject: Request Queueing after deploy + USR2 restart
+From: Sarkis Varozian <svarozian@gmail.com>
+To: unicorn-public@bogomips.org
+Content-Type: text/plain; charset=UTF-8
+X-Content-Filtered-By: PublicInbox::Filter 0.0.1
+List-Id: <unicorn-public@bogomips.org>
+
+We have a rails application with the following unicorn.rb:
+http://goo.gl/qZ5NLn
+
+When we deploy to the application, a USR2 signal is sent to the unicorn
+master which spins up a new master and we use the before_fork in the
+unicorn.rb config above to send signals to the old master as the new
+workers come online.
+
+I've been trying to debug a weird issue that manifests as "Request
+Queueing" in our Newrelic APM. The graph shows what happens after a
+deployment (represented by the vertical lines). Here is the graph:
+http://goo.gl/iFZPMv . As you see from the graph, it is inconsistent -
+there is always a latency spike - however, at times Request Queueing is
+higher than previous deploys.
+
+Any ideas on what exactly is going on here? Any suggestions on
+tools/profilers to use to get to the bottom of this? Should we expect this
+to happen on each deploy?
+
+Thanks,
+
+-- 
+*Sarkis Varozian*
+svarozian@gmail.com
+
