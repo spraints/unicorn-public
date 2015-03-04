@@ -1,0 +1,170 @@
+Return-Path: <mfischer@zendesk.com>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14135 216.205.24.0/21
+X-Spam-Status: No, score=-0.4 required=3.0 tests=AWL,BAYES_00,URIBL_BLOCKED,
+ URIBL_DBL_ABUSE_REDIR shortcircuit=no autolearn=ham version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from us-smtp-delivery-110.mimecast.com
+ (us-smtp-delivery-110.mimecast.com [216.205.24.110]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id D74CA1F49F for <unicorn-public@bogomips.org>; Wed,  4
+ Mar 2015 20:17:10 +0000 (UTC)
+Subject: Re: Request Queueing after deploy + USR2 restart
+Received: from mail-qc0-f177.google.com (mail-qc0-f177.google.com
+ [209.85.216.177]) (Using TLS) by us-mta-3.us.mimecast.lan; Wed, 04 Mar 2015
+ 15:17:08 -0500
+Received: by qcxr5 with SMTP id r5so39500805qcx.10 for
+ <unicorn-public@bogomips.org>; Wed, 04 Mar 2015 12:17:08 -0800 (PST)
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=1e100.net;
+ s=20130820; h=x-gm-message-state:mime-version:in-reply-to:references:date
+ :message-id:subject:from:to:cc:content-type;
+ bh=IJ+U43O5dK/nt1zfcJx/e7maz24CQ8Mm0oV4GgEa9uY=;
+ b=IyN32EYa/81N/sZ9Rq/51/zKyxDwXW8vBV1OsYxlhVtG1LJwmGmFHVjW0YCpi0OlDQ
+ WiAVr8e4N5huvnkW52FU3eVCFQ6RZUSV4G3ZXu+z+4nDgUdDxEQK/au5pafAKUGdgCqy
+ 7jdnozC8SNaEL/indWfniepT3cgg2E1vW0JUlfoTT5M9hHXW0U+DrommCC3HaajkAdO3
+ EqBey9+SbSBgJIIqdAVSJnh63GNn4+OWjKYGQy/NbBhY2obEoUnL71CBXbbgy/fV3Rwk
+ t9lXK/GZXthqqKM0OSzL6qm5hLVVD0rdbDXbMZy4PMxhu7nEBM4o7MiZSaGXT/txnTsx O/Vw==
+X-Gm-Message-State:
+ ALoCoQlmJG92eeZr2ZJUYiFSwgkKxi2p3veSdlarP3Xzsd9B6+GFRWuRO+Z6C44W8HHh58l4adepURAkoU7zcJMHOKRPBRjyQdhSS8TARabUi3vn2Z/FCGiC0ivuWDI+1nWyc4iHSDSe3jsz4x0lNG7UzwQlIKUpW6LfLeFc7mS2x1YmAqQtc2Y=
+X-Received: by 10.55.22.32 with SMTP id g32mr6293654qkh.4.1425500228159; Wed,
+ 04 Mar 2015 12:17:08 -0800 (PST)
+MIME-Version: 1.0
+X-Received: by 10.55.22.32 with SMTP id g32mr6293642qkh.4.1425500228040; Wed,
+ 04 Mar 2015 12:17:08 -0800 (PST)
+Received: by 10.140.48.97 with HTTP; Wed, 4 Mar 2015 12:17:07 -0800 (PST)
+In-Reply-To:
+ <CAGchx-JsOJD2m1ubTJEOeuK2EgP+NuyT=rD+--LPg6+vPnit8Q@mail.gmail.com>
+References:
+ <CAGchx-+qiqGzEW3PWiOgJPQtk6HfdP-t0iohYnXft14zFE7Brg@mail.gmail.com>
+ <CABHxtY6Hjpx1y0iXBTDJXbgWpihaZxho1B=CAk+kF8PL2BbCGQ@mail.gmail.com>
+ <CAGchx-KX-UPcxMfidfxqgsDLy11HEOg3Dsca0-QvpekHBs5kkA@mail.gmail.com>
+ <CABHxtY5XU_cyda8JzZYJZCYB3GNfusS7z4jSP9k6V15AKNutFg@mail.gmail.com>
+ <CAGchx-JsOJD2m1ubTJEOeuK2EgP+NuyT=rD+--LPg6+vPnit8Q@mail.gmail.com>
+Date: Wed, 4 Mar 2015 12:17:07 -0800
+Message-ID:
+ <CABHxtY79JHQ-Ba4tFNY5ZUDRzG-Y5NvCowXK6XCsi6rH_eScZQ@mail.gmail.com>
+From: Michael Fischer <mfischer@zendesk.com>
+To: Sarkis Varozian <svarozian@gmail.com>
+Cc: unicorn-public <unicorn-public@bogomips.org>
+X-MC-Unique: jtmeyP2UTF24OuN_qNVT3w-1
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
+X-Content-Filtered-By: PublicInbox::Filter 0.0.1
+List-Id: <unicorn-public@bogomips.org>
+
+I'm not exactly sure how preload_app works, but I suspect your app is
+lazy-loading a number of Ruby libraries while handling the first few
+requests that weren't automatically loaded during the preload process.
+
+Eric, your thoughts?
+
+--Michael
+
+On Wed, Mar 4, 2015 at 11:58 AM, Sarkis Varozian <svarozian@gmail.com>
+wrote:
+
+> Yes, preload_app is set to true, I have not made any changes to the
+> unicorn.rb from OP: http://goo.gl/qZ5NLn
+>
+> Hmmmm, you may be onto something - Here is the i/o metrics from the serve=
+r
+> with the highest response times: http://goo.gl/0HyUYt (in this graph:
+> http://goo.gl/x7KcKq)
+>
+> Looks like it may be i/o related as you suspect - is there much I can do
+> to alleviate that?
+>
+> On Wed, Mar 4, 2015 at 11:51 AM, Michael Fischer <mfischer@zendesk.com>
+> wrote:
+>
+>> What does your I/O latency look like during this interval?  (iostat -xk
+>> 10, look at the busy %).  I'm willing to bet the request queueing is
+>> strongly correlated with I/O load.
+>>
+>> Also is preload_app set to true?  This should help.
+>>
+>> --Michael
+>>
+>> On Wed, Mar 4, 2015 at 11:48 AM, Sarkis Varozian <svarozian@gmail.com>
+>> wrote:
+>>
+>>> Michael,
+>>>
+>>> Thanks for this - I have since changed the way we are restarting the
+>>> unicorn servers after a deploy by changing capistrano task to do:
+>>>
+>>> in :sequence, wait: 30
+>>>
+>>> We have 4 backends and the above will restart them sequentially, waitin=
+g
+>>> 30s (which I think should be more than enough time), however, I still g=
+et
+>>> the following latency spikes after a deploy: http://goo.gl/tYnLUJ
+>>>
+>>> This is what the individual servers look like for the same time
+>>> interval: http://goo.gl/x7KcKq
+>>>
+>>>
+>>>
+>>> On Tue, Mar 3, 2015 at 2:32 PM, Michael Fischer <mfischer@zendesk.com>
+>>> wrote:
+>>>
+>>>> If the response times are falling a minute or so after the reload, I'd
+>>>> chalk it up to a cold CPU cache.  You will probably want to stagger yo=
+ur
+>>>> reloads across backends to minimize the impact.
+>>>>
+>>>> --Michael
+>>>>
+>>>> On Tue, Mar 3, 2015 at 2:24 PM, Sarkis Varozian <svarozian@gmail.com>
+>>>> wrote:
+>>>>
+>>>>> We have a rails application with the following unicorn.rb:
+>>>>> http://goo.gl/qZ5NLn
+>>>>>
+>>>>> When we deploy to the application, a USR2 signal is sent to the unico=
+rn
+>>>>> master which spins up a new master and we use the before_fork in the
+>>>>> unicorn.rb config above to send signals to the old master as the new
+>>>>> workers come online.
+>>>>>
+>>>>> I've been trying to debug a weird issue that manifests as "Request
+>>>>> Queueing" in our Newrelic APM. The graph shows what happens after a
+>>>>> deployment (represented by the vertical lines). Here is the graph:
+>>>>> http://goo.gl/iFZPMv . As you see from the graph, it is inconsistent =
+-
+>>>>> there is always a latency spike - however, at times Request Queueing =
+is
+>>>>> higher than previous deploys.
+>>>>>
+>>>>> Any ideas on what exactly is going on here? Any suggestions on
+>>>>> tools/profilers to use to get to the bottom of this? Should we expect
+>>>>> this
+>>>>> to happen on each deploy?
+>>>>>
+>>>>> Thanks,
+>>>>>
+>>>>> --
+>>>>> *Sarkis Varozian*
+>>>>> svarozian@gmail.com
+>>>>>
+>>>>>
+>>>>>
+>>>>
+>>>
+>>>
+>>> --
+>>> *Sarkis Varozian*
+>>> svarozian@gmail.com
+>>>
+>>
+>>
+>
+>
+> --
+> *Sarkis Varozian*
+> svarozian@gmail.com
+>
+
+
+
