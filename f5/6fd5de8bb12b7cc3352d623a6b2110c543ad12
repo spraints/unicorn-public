@@ -1,0 +1,110 @@
+Return-Path: <svarozian@gmail.com>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS15169 209.85.128.0/17
+X-Spam-Status: No, score=-1.0 required=3.0 tests=AWL,BAYES_00,FREEMAIL_FROM,
+ URIBL_BLOCKED shortcircuit=no autolearn=ham version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from mail-ie0-f174.google.com (mail-ie0-f174.google.com
+ [209.85.223.174]) (using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256
+ (128/128 bits)) (No client certificate requested) by dcvr.yhbt.net (Postfix)
+ with ESMTPS id 0C9361F54E for <unicorn-public@bogomips.org>; Wed,  4 Mar 2015
+ 20:40:53 +0000 (UTC)
+Received: by iecrl12 with SMTP id rl12so70485597iec.2 for
+ <unicorn-public@bogomips.org>; Wed, 04 Mar 2015 12:40:52 -0800 (PST)
+MIME-Version: 1.0
+X-Received: by 10.50.79.229 with SMTP id m5mr41177689igx.23.1425501652234;
+ Wed, 04 Mar 2015 12:40:52 -0800 (PST)
+Received: by 10.107.43.73 with HTTP; Wed, 4 Mar 2015 12:40:52 -0800 (PST)
+In-Reply-To: <20150304203514.GA17826@dcvr.yhbt.net>
+References:
+ <CAGchx-+qiqGzEW3PWiOgJPQtk6HfdP-t0iohYnXft14zFE7Brg@mail.gmail.com>
+ <CABHxtY6Hjpx1y0iXBTDJXbgWpihaZxho1B=CAk+kF8PL2BbCGQ@mail.gmail.com>
+ <CAGchx-KX-UPcxMfidfxqgsDLy11HEOg3Dsca0-QvpekHBs5kkA@mail.gmail.com>
+ <CABHxtY5XU_cyda8JzZYJZCYB3GNfusS7z4jSP9k6V15AKNutFg@mail.gmail.com>
+ <CAGchx-JsOJD2m1ubTJEOeuK2EgP+NuyT=rD+--LPg6+vPnit8Q@mail.gmail.com>
+ <CABHxtY79JHQ-Ba4tFNY5ZUDRzG-Y5NvCowXK6XCsi6rH_eScZQ@mail.gmail.com>
+ <CAGchx-JUBAcaRwaMknZF+rtB+3dTZ+1jQUw5H1Nb=8YmFQRaBg@mail.gmail.com>
+ <20150304203514.GA17826@dcvr.yhbt.net>
+Date: Wed, 4 Mar 2015 12:40:52 -0800
+Message-ID:
+ <CAGchx-LEN7iLzJTEzY7pWgGA-KP9wQ6-YjCoVSdLrNhYXj0VnA@mail.gmail.com>
+Subject: Re: Request Queueing after deploy + USR2 restart
+From: Sarkis Varozian <svarozian@gmail.com>
+To: Eric Wong <e@80x24.org>
+Cc: Michael Fischer <mfischer@zendesk.com>, unicorn-public
+ <unicorn-public@bogomips.org>
+Content-Type: text/plain; charset=UTF-8
+X-Content-Filtered-By: PublicInbox::Filter 0.0.1
+List-Id: <unicorn-public@bogomips.org>
+
+Eric,
+
+Thanks for the quick reply.
+
+We are on Ruby 2.1.5p273 and unicorn 4.8.3. I believe our problem is the
+lazy loading - at least thats what all signs point to. I am going to try
+and mock request some url endpoints. Currently, I can only think of '/', as
+most other parts of the app require a session and auth. I'll report back
+with results.
+
+
+
+On Wed, Mar 4, 2015 at 12:35 PM, Eric Wong <e@80x24.org> wrote:
+
+> Sarkis Varozian <svarozian@gmail.com> wrote:
+> > On Wed, Mar 4, 2015 at 12:17 PM, Michael Fischer <mfischer@zendesk.com>
+> > wrote:
+> >
+> > > I'm not exactly sure how preload_app works, but I suspect your app is
+> > > lazy-loading a number of Ruby libraries while handling the first few
+> > > requests that weren't automatically loaded during the preload process.
+> > >
+> > > Eric, your thoughts?
+>
+> (top-posting corrected)
+>
+> Yeah, preload_app won't help startup speed if much of the app is
+> autoloaded.
+>
+> Sarkis: which Ruby version are you running?  IIRC, 1.9.2 had terrible
+> startup performance compared to 1.9.3 and later in case you're stuck on
+> 1.9.2
+>
+> > That does make sense - I was looking at another suggestion from a user
+> here
+> > (Braulio) of running a "warmup" using rack MockRequest:
+> > https://gist.github.com/brauliobo/11298486#file-unicorn-conf-rb-L77
+> >
+> > The only issue I am having with the above solution is it is happening in
+> > the before_fork block - shouldn't I warmup the connection in after_fork?
+>
+> If preload_app is true, you can warmup in before_fork; otherwise it
+> needs to be after_fork.
+>
+> > If
+> > I follow the above gist properly it warms up the server with the old
+> > activerecord base connection and then its turned off, then turned back on
+> > in after_fork. I think I am not understanding the sequence of events
+> > there...
+>
+> With preload_app and warmup, you need to ensure any stream connections
+> (DB, memcached, redis, etc..) do not get shared between processes, so
+> it's standard practice to disconnect in the parent and reconnect in the
+> child.
+>
+> > If this is the case, I should warmup and also check/kill the old
+> > master in the after_fork block after the new db, redis, neo4j connections
+> > are all created. Thoughts?
+>
+> I've been leaving killing the master outside of the unicorn hooks
+> and doing it as a separate step; seemed too fragile to do it in
+> hooks from my perspective.
+>
+
+
+
+-- 
+*Sarkis Varozian*
+svarozian@gmail.com
+
