@@ -1,0 +1,173 @@
+Return-Path: <svarozian@gmail.com>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS15169 209.85.128.0/17
+X-Spam-Status: No, score=-1.0 required=3.0 tests=AWL,BAYES_00,FREEMAIL_FROM,
+ URIBL_BLOCKED,URIBL_DBL_ABUSE_REDIR shortcircuit=no autolearn=ham
+ version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from mail-ie0-f177.google.com (mail-ie0-f177.google.com
+ [209.85.223.177]) (using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256
+ (128/128 bits)) (No client certificate requested) by dcvr.yhbt.net (Postfix)
+ with ESMTPS id 945B21F49F for <unicorn-public@bogomips.org>; Wed,  4 Mar 2015
+ 20:24:33 +0000 (UTC)
+Received: by iecrd18 with SMTP id rd18so70339180iec.8 for
+ <unicorn-public@bogomips.org>; Wed, 04 Mar 2015 12:24:33 -0800 (PST)
+MIME-Version: 1.0
+X-Received: by 10.107.167.3 with SMTP id q3mr14671423ioe.18.1425500672992;
+ Wed, 04 Mar 2015 12:24:32 -0800 (PST)
+Received: by 10.107.43.73 with HTTP; Wed, 4 Mar 2015 12:24:32 -0800 (PST)
+In-Reply-To:
+ <CABHxtY79JHQ-Ba4tFNY5ZUDRzG-Y5NvCowXK6XCsi6rH_eScZQ@mail.gmail.com>
+References:
+ <CAGchx-+qiqGzEW3PWiOgJPQtk6HfdP-t0iohYnXft14zFE7Brg@mail.gmail.com>
+ <CABHxtY6Hjpx1y0iXBTDJXbgWpihaZxho1B=CAk+kF8PL2BbCGQ@mail.gmail.com>
+ <CAGchx-KX-UPcxMfidfxqgsDLy11HEOg3Dsca0-QvpekHBs5kkA@mail.gmail.com>
+ <CABHxtY5XU_cyda8JzZYJZCYB3GNfusS7z4jSP9k6V15AKNutFg@mail.gmail.com>
+ <CAGchx-JsOJD2m1ubTJEOeuK2EgP+NuyT=rD+--LPg6+vPnit8Q@mail.gmail.com>
+ <CABHxtY79JHQ-Ba4tFNY5ZUDRzG-Y5NvCowXK6XCsi6rH_eScZQ@mail.gmail.com>
+Date: Wed, 4 Mar 2015 12:24:32 -0800
+Message-ID:
+ <CAGchx-JUBAcaRwaMknZF+rtB+3dTZ+1jQUw5H1Nb=8YmFQRaBg@mail.gmail.com>
+Subject: Re: Request Queueing after deploy + USR2 restart
+From: Sarkis Varozian <svarozian@gmail.com>
+To: Michael Fischer <mfischer@zendesk.com>
+Cc: unicorn-public <unicorn-public@bogomips.org>
+Content-Type: text/plain; charset=UTF-8
+X-Content-Filtered-By: PublicInbox::Filter 0.0.1
+List-Id: <unicorn-public@bogomips.org>
+
+That does make sense - I was looking at another suggestion from a user here
+(Braulio) of running a "warmup" using rack MockRequest:
+https://gist.github.com/brauliobo/11298486#file-unicorn-conf-rb-L77
+
+The only issue I am having with the above solution is it is happening in
+the before_fork block - shouldn't I warmup the connection in after_fork? If
+I follow the above gist properly it warms up the server with the old
+activerecord base connection and then its turned off, then turned back on
+in after_fork. I think I am not understanding the sequence of events
+there... If this is the case, I should warmup and also check/kill the old
+master in the after_fork block after the new db, redis, neo4j connections
+are all created. Thoughts?
+
+On Wed, Mar 4, 2015 at 12:17 PM, Michael Fischer <mfischer@zendesk.com>
+wrote:
+
+> I'm not exactly sure how preload_app works, but I suspect your app is
+> lazy-loading a number of Ruby libraries while handling the first few
+> requests that weren't automatically loaded during the preload process.
+>
+> Eric, your thoughts?
+>
+> --Michael
+>
+> On Wed, Mar 4, 2015 at 11:58 AM, Sarkis Varozian <svarozian@gmail.com>
+> wrote:
+>
+>> Yes, preload_app is set to true, I have not made any changes to the
+>> unicorn.rb from OP: http://goo.gl/qZ5NLn
+>>
+>> Hmmmm, you may be onto something - Here is the i/o metrics from the
+>> server with the highest response times: http://goo.gl/0HyUYt (in this
+>> graph: http://goo.gl/x7KcKq)
+>>
+>> Looks like it may be i/o related as you suspect - is there much I can do
+>> to alleviate that?
+>>
+>> On Wed, Mar 4, 2015 at 11:51 AM, Michael Fischer <mfischer@zendesk.com>
+>> wrote:
+>>
+>>> What does your I/O latency look like during this interval?  (iostat -xk
+>>> 10, look at the busy %).  I'm willing to bet the request queueing is
+>>> strongly correlated with I/O load.
+>>>
+>>> Also is preload_app set to true?  This should help.
+>>>
+>>> --Michael
+>>>
+>>> On Wed, Mar 4, 2015 at 11:48 AM, Sarkis Varozian <svarozian@gmail.com>
+>>> wrote:
+>>>
+>>>> Michael,
+>>>>
+>>>> Thanks for this - I have since changed the way we are restarting the
+>>>> unicorn servers after a deploy by changing capistrano task to do:
+>>>>
+>>>> in :sequence, wait: 30
+>>>>
+>>>> We have 4 backends and the above will restart them sequentially,
+>>>> waiting 30s (which I think should be more than enough time), however, I
+>>>> still get the following latency spikes after a deploy:
+>>>> http://goo.gl/tYnLUJ
+>>>>
+>>>> This is what the individual servers look like for the same time
+>>>> interval: http://goo.gl/x7KcKq
+>>>>
+>>>>
+>>>>
+>>>> On Tue, Mar 3, 2015 at 2:32 PM, Michael Fischer <mfischer@zendesk.com>
+>>>> wrote:
+>>>>
+>>>>> If the response times are falling a minute or so after the reload, I'd
+>>>>> chalk it up to a cold CPU cache.  You will probably want to stagger your
+>>>>> reloads across backends to minimize the impact.
+>>>>>
+>>>>> --Michael
+>>>>>
+>>>>> On Tue, Mar 3, 2015 at 2:24 PM, Sarkis Varozian <svarozian@gmail.com>
+>>>>> wrote:
+>>>>>
+>>>>>> We have a rails application with the following unicorn.rb:
+>>>>>> http://goo.gl/qZ5NLn
+>>>>>>
+>>>>>> When we deploy to the application, a USR2 signal is sent to the
+>>>>>> unicorn
+>>>>>> master which spins up a new master and we use the before_fork in the
+>>>>>> unicorn.rb config above to send signals to the old master as the new
+>>>>>> workers come online.
+>>>>>>
+>>>>>> I've been trying to debug a weird issue that manifests as "Request
+>>>>>> Queueing" in our Newrelic APM. The graph shows what happens after a
+>>>>>> deployment (represented by the vertical lines). Here is the graph:
+>>>>>> http://goo.gl/iFZPMv . As you see from the graph, it is inconsistent
+>>>>>> -
+>>>>>> there is always a latency spike - however, at times Request Queueing
+>>>>>> is
+>>>>>> higher than previous deploys.
+>>>>>>
+>>>>>> Any ideas on what exactly is going on here? Any suggestions on
+>>>>>> tools/profilers to use to get to the bottom of this? Should we expect
+>>>>>> this
+>>>>>> to happen on each deploy?
+>>>>>>
+>>>>>> Thanks,
+>>>>>>
+>>>>>> --
+>>>>>> *Sarkis Varozian*
+>>>>>> svarozian@gmail.com
+>>>>>>
+>>>>>>
+>>>>>>
+>>>>>
+>>>>
+>>>>
+>>>> --
+>>>> *Sarkis Varozian*
+>>>> svarozian@gmail.com
+>>>>
+>>>
+>>>
+>>
+>>
+>> --
+>> *Sarkis Varozian*
+>> svarozian@gmail.com
+>>
+>
+>
+
+
+-- 
+*Sarkis Varozian*
+svarozian@gmail.com
+
