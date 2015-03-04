@@ -1,0 +1,132 @@
+Return-Path: <svarozian@gmail.com>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS15169 209.85.128.0/17
+X-Spam-Status: No, score=-0.9 required=3.0 tests=AWL,BAYES_00,FREEMAIL_FROM,
+ URIBL_BLOCKED,URIBL_DBL_ABUSE_REDIR shortcircuit=no autolearn=ham
+ version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from mail-ig0-f176.google.com (mail-ig0-f176.google.com
+ [209.85.213.176]) (using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256
+ (128/128 bits)) (No client certificate requested) by dcvr.yhbt.net (Postfix)
+ with ESMTPS id E8B811F49F for <unicorn-public@bogomips.org>; Wed,  4 Mar 2015
+ 19:50:33 +0000 (UTC)
+Received: by igdh15 with SMTP id h15so39514539igd.4 for
+ <unicorn-public@bogomips.org>; Wed, 04 Mar 2015 11:50:33 -0800 (PST)
+MIME-Version: 1.0
+X-Received: by 10.107.166.146 with SMTP id
+ p140mr13968411ioe.61.1425498633405; Wed, 04 Mar 2015 11:50:33 -0800 (PST)
+Received: by 10.107.43.73 with HTTP; Wed, 4 Mar 2015 11:50:33 -0800 (PST)
+In-Reply-To:
+ <CAJri6_sqNgf+wBQuoO+acJ=H9NpxKWGHkCrozd7tvd8Xy34Jvw@mail.gmail.com>
+References:
+ <CAGchx-+qiqGzEW3PWiOgJPQtk6HfdP-t0iohYnXft14zFE7Brg@mail.gmail.com>
+ <CAJri6_sqNgf+wBQuoO+acJ=H9NpxKWGHkCrozd7tvd8Xy34Jvw@mail.gmail.com>
+Date: Wed, 4 Mar 2015 11:50:33 -0800
+Message-ID:
+ <CAGchx-LZMkRX+sYLgzcKGm6CDjRVNLESPw2EH8p7YgizT_GA5A@mail.gmail.com>
+Subject: Re: Request Queueing after deploy + USR2 restart
+From: Sarkis Varozian <svarozian@gmail.com>
+To: =?UTF-8?Q?Br=C3=A1ulio_Bhavamitra?= <braulio@eita.org.br>
+Cc: unicorn-public <unicorn-public@bogomips.org>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
+X-Content-Filtered-By: PublicInbox::Filter 0.0.1
+List-Id: <unicorn-public@bogomips.org>
+
+I tried this out by just using '/' as a warmup url. It looks like it did
+not do much in helping the situation. I want to believe it is because our
+homepage isn't doing a "heavy" enough call to get the server warmed up.
+Looking into the gist a bit further, I noticed that you are disconnecting
+the db connection after warming up:
+https://gist.github.com/brauliobo/11298486#file-unicorn-conf-rb-L85-L86
+
+Does the above matter? Should I be looking to do a more db intensive
+request as the "warmup" request?
+
+2015-03-03 14:47 GMT-08:00 Br=C3=A1ulio Bhavamitra <braulio@eita.org.br>:
+
+> Maybe a warm up could help the new servers?
+> https://gist.github.com/brauliobo/11298486#file-unicorn-conf-rb-L77
+>
+> How is the CPU usage during USR2?
+>
+> On Tue, Mar 3, 2015 at 7:24 PM, Sarkis Varozian <svarozian@gmail.com>
+> wrote:
+>
+>> We have a rails application with the following unicorn.rb:
+>> http://goo.gl/qZ5NLn
+>>
+>> When we deploy to the application, a USR2 signal is sent to the unicorn
+>> master which spins up a new master and we use the before_fork in the
+>> unicorn.rb config above to send signals to the old master as the new
+>> workers come online.
+>>
+>> I've been trying to debug a weird issue that manifests as "Request
+>> Queueing" in our Newrelic APM. The graph shows what happens after a
+>> deployment (represented by the vertical lines). Here is the graph:
+>> http://goo.gl/iFZPMv . As you see from the graph, it is inconsistent -
+>> there is always a latency spike - however, at times Request Queueing is
+>> higher than previous deploys.
+>>
+>> Any ideas on what exactly is going on here? Any suggestions on
+>> tools/profilers to use to get to the bottom of this? Should we expect th=
+is
+>> to happen on each deploy?
+>>
+>> Thanks,
+>>
+>> --
+>> *Sarkis Varozian*
+>> svarozian@gmail.com
+>>
+>>
+>>
+>
+>
+> --
+> "Lute pela sua ideologia. Seja um com sua ideologia. Viva pela sua
+> ideologia. Morra por sua ideologia" P.R. Sarkar
+>
+> EITA - Educa=C3=A7=C3=A3o, Informa=C3=A7=C3=A3o e Tecnologias para Autoge=
+st=C3=A3o
+> http://cirandas.net/brauliobo
+> http://eita.org.br
+>
+> "Paramapurusha =C3=A9 meu pai e Parama Prakriti =C3=A9 minha m=C3=A3e. O =
+universo =C3=A9 meu
+> lar e todos n=C3=B3s somos cidad=C3=A3os deste cosmo. Este universo =C3=
+=A9 a imagina=C3=A7=C3=A3o da
+> Mente Macroc=C3=B3smica, e todas as entidades est=C3=A3o sendo criadas, p=
+reservadas e
+> destru=C3=ADdas nas fases de extrovers=C3=A3o e introvers=C3=A3o do fluxo=
+ imaginativo
+> c=C3=B3smico. No =C3=A2mbito pessoal, quando uma pessoa imagina algo em s=
+ua mente,
+> naquele momento, essa pessoa =C3=A9 a =C3=BAnica propriet=C3=A1ria daquil=
+o que ela
+> imagina, e ningu=C3=A9m mais. Quando um ser humano criado mentalmente cam=
+inha
+> por um milharal tamb=C3=A9m imaginado, a pessoa imaginada n=C3=A3o =C3=A9=
+ a propriedade
+> desse milharal, pois ele pertence ao indiv=C3=ADduo que o est=C3=A1 imagi=
+nando. Este
+> universo foi criado na imagina=C3=A7=C3=A3o de Brahma, a Entidade Suprema=
+, por isso
+> a propriedade deste universo =C3=A9 de Brahma, e n=C3=A3o dos microcosmos=
+ que tamb=C3=A9m
+> foram criados pela imagina=C3=A7=C3=A3o de Brahma. Nenhuma propriedade de=
+ste mundo,
+> mut=C3=A1vel ou imut=C3=A1vel, pertence a um indiv=C3=ADduo em particular=
+; tudo =C3=A9 o
+> patrim=C3=B4nio comum de todos."
+> Restante do texto em
+> http://cirandas.net/brauliobo/blog/a-problematica-de-hoje-em-dia
+>
+
+
+
+--=20
+*Sarkis Varozian*
+svarozian@gmail.com
+
