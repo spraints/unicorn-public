@@ -1,0 +1,114 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-2.9 required=3.0 tests=ALL_TRUSTED,BAYES_00,
+ URIBL_BLOCKED shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 62F791F49F; Thu,  5 Mar 2015 21:12:13 +0000 (UTC)
+Date: Thu, 5 Mar 2015 21:12:13 +0000
+From: Eric Wong <e@80x24.org>
+To: Sarkis Varozian <svarozian@gmail.com>
+Cc: =?utf-8?Q?Br=C3=A1ulio?= Bhavamitra <braulio@eita.org.br>, Michael
+ Fischer <mfischer@zendesk.com>, unicorn-public <unicorn-public@bogomips.org>
+Subject: Re: Request Queueing after deploy + USR2 restart
+Message-ID: <20150305211213.GA21611@dcvr.yhbt.net>
+References:
+ <CAGchx-KX-UPcxMfidfxqgsDLy11HEOg3Dsca0-QvpekHBs5kkA@mail.gmail.com>
+ <CABHxtY5XU_cyda8JzZYJZCYB3GNfusS7z4jSP9k6V15AKNutFg@mail.gmail.com>
+ <CAGchx-JsOJD2m1ubTJEOeuK2EgP+NuyT=rD+--LPg6+vPnit8Q@mail.gmail.com>
+ <CABHxtY79JHQ-Ba4tFNY5ZUDRzG-Y5NvCowXK6XCsi6rH_eScZQ@mail.gmail.com>
+ <CAGchx-JUBAcaRwaMknZF+rtB+3dTZ+1jQUw5H1Nb=8YmFQRaBg@mail.gmail.com>
+ <20150304203514.GA17826@dcvr.yhbt.net>
+ <CAGchx-LEN7iLzJTEzY7pWgGA-KP9wQ6-YjCoVSdLrNhYXj0VnA@mail.gmail.com>
+ <CAGchx-LV6q3Ku+3akpdmwVbWozJ2C3651616+PC5OXD-TUd5YQ@mail.gmail.com>
+ <CAJri6_twFUFzJ3vFtCysy59apsgf+m_sMfGo39h=Jf36By50Dw@mail.gmail.com>
+ <CAGchx-JeYkVjKh2_B7a7oGSb_PDf2i=6KjwrhUXG_ckcrJEDeA@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To:
+ <CAGchx-JeYkVjKh2_B7a7oGSb_PDf2i=6KjwrhUXG_ckcrJEDeA@mail.gmail.com>
+List-Id: <unicorn-public@bogomips.org>
+
+Sarkis Varozian <svarozian@gmail.com> wrote:
+> Braulio,
+> 
+> Are you referring to the vertical grey line? That is the deployment event.
+> The part that spikes in the first graph is request queue which is a bit
+> different on newrelic:
+> http://blog.newrelic.com/2013/01/22/understanding-new-relic-queuing/
+
+I'm not about to open images/graphs, but managed to read that.
+
+Now I'm still unsure if they are actually using raindrops or not to
+measure your stats, but at least they mention it in that post.
+
+Setting the timestamp header in nginx is a good idea, but you need to be
+completely certain clocks are synchronized between machines for accuracy
+(no using monotonic clock between multiple hosts, either, must be
+real-time).
+
+Have you tried using raindrops standalone to confirm queueing in the
+kernel?
+
+raindrops inspects the listen queue in the kernel directly, so it's
+as accurate as possible as far as the local machine is concerned.
+(it will not measure internal network latency).
+
+I recommend checking raindrops (or inspecting /proc/net/{unix,tcp} or
+running "ss -lx" / "ss -lt" to check listen queues).
+
+You can also simulate TCP socket queueing in a standalone Ruby
+script by doing something like:
+
+    -----------------------------8<---------------------------
+    require 'socket'
+    host = '127.0.0.1'
+    port = 1234
+    re = Regexp.escape("#{host}:#{port}")
+    check = lambda do |desc|
+      puts desc
+      # use "ss -lx" instead for UNIXServer/UNIXSocket
+      puts `ss -lt`.split(/\n/).grep(/LISTEN\s.*\b#{re}\b/io)
+      puts
+    end
+
+    puts "Creating new server"
+    s = TCPServer.new(host, port)
+
+    check.call "2nd column should initially be zero:"
+
+    puts "Queueing up one client:"
+    c1 = TCPSocket.new(host, port)
+    check.call "2nd column should be one, since accept is not yet called:"
+
+    puts "Accepting one client to clear the queue"
+    a1 = s.accept
+    check.call "2nd column should be back to zero after calling accept:"
+
+    puts "Queueing up two clients:"
+    c2 = TCPSocket.new(host, port)
+    c3 = TCPSocket.new(host, port)
+    check.call "2nd column should show two queued clients"
+
+    a2 = s.accept
+    check.call "2nd column should be down to one after calling accept:"
+    -----------------------------8<---------------------------
+
+Disclaimer: I'm a Free Software extremist and would not touch
+New Relic with a ten-foot pole...
+
+> We are using HAProxy to load balance (round robin) to 4 physical hosts
+> running unicorn with 6 workers.
+
+I assume there's nginx somewhere?  Where is it?
+
+If not, you're not protected from slow uploads with giant request
+bodies.  I'm not up-to-date about current haproxy versions, but AFAIK
+only nginx buffers request bodies in full.
+
+With nginx, I'm not sure what the point of haproxy is if you're just
+going to do round-robin; nginx already does round-robin.  I'd only
+use haproxy for a "smarter" load balancing scheme.
