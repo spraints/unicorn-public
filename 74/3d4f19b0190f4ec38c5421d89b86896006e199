@@ -1,0 +1,308 @@
+Return-Path: <brauliobo@gmail.com>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-1.0 required=3.0 tests=AWL,BAYES_00,FREEMAIL_FROM
+ shortcircuit=no autolearn=ham version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from mail-oi0-f44.google.com (mail-oi0-f44.google.com
+ [209.85.218.44]) (using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256
+ (128/128 bits)) (No client certificate requested) by dcvr.yhbt.net (Postfix)
+ with ESMTPS id 41CD81F54E for <unicorn-public@bogomips.org>; Thu,  5 Mar 2015
+ 17:32:28 +0000 (UTC)
+Received: by oigi138 with SMTP id i138so12980198oig.4 for
+ <unicorn-public@bogomips.org>; Thu, 05 Mar 2015 09:32:27 -0800 (PST)
+X-Received: by 10.60.23.37 with SMTP id j5mr7718208oef.25.1425576747676; Thu,
+ 05 Mar 2015 09:32:27 -0800 (PST)
+MIME-Version: 1.0
+Sender: brauliobo@gmail.com
+Received: by 10.202.87.3 with HTTP; Thu, 5 Mar 2015 09:31:47 -0800 (PST)
+In-Reply-To:
+ <CAGchx-JeYkVjKh2_B7a7oGSb_PDf2i=6KjwrhUXG_ckcrJEDeA@mail.gmail.com>
+References:
+ <CAGchx-+qiqGzEW3PWiOgJPQtk6HfdP-t0iohYnXft14zFE7Brg@mail.gmail.com>
+ <CABHxtY6Hjpx1y0iXBTDJXbgWpihaZxho1B=CAk+kF8PL2BbCGQ@mail.gmail.com>
+ <CAGchx-KX-UPcxMfidfxqgsDLy11HEOg3Dsca0-QvpekHBs5kkA@mail.gmail.com>
+ <CABHxtY5XU_cyda8JzZYJZCYB3GNfusS7z4jSP9k6V15AKNutFg@mail.gmail.com>
+ <CAGchx-JsOJD2m1ubTJEOeuK2EgP+NuyT=rD+--LPg6+vPnit8Q@mail.gmail.com>
+ <CABHxtY79JHQ-Ba4tFNY5ZUDRzG-Y5NvCowXK6XCsi6rH_eScZQ@mail.gmail.com>
+ <CAGchx-JUBAcaRwaMknZF+rtB+3dTZ+1jQUw5H1Nb=8YmFQRaBg@mail.gmail.com>
+ <20150304203514.GA17826@dcvr.yhbt.net>
+ <CAGchx-LEN7iLzJTEzY7pWgGA-KP9wQ6-YjCoVSdLrNhYXj0VnA@mail.gmail.com>
+ <CAGchx-LV6q3Ku+3akpdmwVbWozJ2C3651616+PC5OXD-TUd5YQ@mail.gmail.com>
+ <CAJri6_twFUFzJ3vFtCysy59apsgf+m_sMfGo39h=Jf36By50Dw@mail.gmail.com>
+ <CAGchx-JeYkVjKh2_B7a7oGSb_PDf2i=6KjwrhUXG_ckcrJEDeA@mail.gmail.com>
+From: =?UTF-8?Q?Br=C3=A1ulio_Bhavamitra?= <braulio@eita.org.br>
+Date: Thu, 5 Mar 2015 14:31:47 -0300
+X-Google-Sender-Auth: m8F9qsqFbdCOd5R2OWUVCbo1d6I
+Message-ID:
+ <CAJri6_svnT-XF546uUc25zRwSOWr8ZtdLAh7T1gHWLp9SC4_SQ@mail.gmail.com>
+Subject: Re: Request Queueing after deploy + USR2 restart
+To: Sarkis Varozian <svarozian@gmail.com>
+Cc: Eric Wong <e@80x24.org>, Michael Fischer <mfischer@zendesk.com>, 
+ unicorn-public <unicorn-public@bogomips.org>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
+X-Content-Filtered-By: PublicInbox::Filter 0.0.1
+List-Id: <unicorn-public@bogomips.org>
+
+I would try to reproduce this locally with a production env and `ab -n 200
+-c 2 http://localhost:3000/`
+
+
+
+On Thu, Mar 5, 2015 at 2:28 PM, Sarkis Varozian <svarozian@gmail.com> wrote=
+:
+
+> Braulio,
+>
+> Are you referring to the vertical grey line? That is the deployment event=
+.
+> The part that spikes in the first graph is request queue which is a bit
+> different on newrelic:
+> http://blog.newrelic.com/2013/01/22/understanding-new-relic-queuing/
+>
+> We are using HAProxy to load balance (round robin) to 4 physical hosts
+> running unicorn with 6 workers.
+>
+> I have not tried to reproduce this on 1 master - I assume this would be
+> the same.
+>
+> I do in fact do the sleep now:
+> https://gist.github.com/sarkis/1aa296044b1dfd3695ab#file-unicorn-rb-L37 -
+> the deployment results above had the 1 second sleep in there.
+>
+> On Thu, Mar 5, 2015 at 9:13 AM, Br=C3=A1ulio Bhavamitra <braulio@eita.org=
+.br>
+> wrote:
+>
+>> In the graphs you posted, what is the grey part? It is not described in
+>> the legend and it seems the problem is entirely there. What reverse prox=
+y
+>> are you using?
+>>
+>> Can you reproduce this with a single master instance?
+>>
+>> Could you try this sleep:
+>> https://gist.github.com/brauliobo/11298486#file-unicorn-conf-rb-L91
+>>
+>>
+>> On Thu, Mar 5, 2015 at 2:07 PM, Sarkis Varozian <svarozian@gmail.com>
+>> wrote:
+>>
+>>> Hey All,
+>>>
+>>> So I changed up my unicorn.rb a bit from my original post:
+>>> https://gist.github.com/sarkis/1aa296044b1dfd3695ab
+>>>
+>>> I'm also still sending the USR2 signals on deploy staggered with 30
+>>> second delay via capistrano:
+>>>
+>>> on roles(:web), in: :sequence, wait: 30
+>>>
+>>> As you can see I am now doing a warup via rack MockRequest (I hoped thi=
+s
+>>> would warmup the master). However, this is what a deploy looks like on
+>>> newrelic:
+>>>
+>>>
+>>> https://www.dropbox.com/s/beh7nc8npdfijqp/Screenshot%202015-03-05%2009.=
+05.15.png?dl=3D0
+>>>
+>>>
+>>> https://www.dropbox.com/s/w08gpvp7mpik3vs/Screenshot%202015-03-05%2009.=
+06.51.png?dl=3D0
+>>>
+>>> I'm running out of ideas to get rid of thse latency spikes. Would you
+>>> guys recommend I try anything else at this point?
+>>>
+>>>
+>>>
+>>> On Wed, Mar 4, 2015 at 12:40 PM, Sarkis Varozian <svarozian@gmail.com>
+>>> wrote:
+>>>
+>>>> Eric,
+>>>>
+>>>> Thanks for the quick reply.
+>>>>
+>>>> We are on Ruby 2.1.5p273 and unicorn 4.8.3. I believe our problem is
+>>>> the lazy loading - at least thats what all signs point to. I am going =
+to
+>>>> try and mock request some url endpoints. Currently, I can only think o=
+f
+>>>> '/', as most other parts of the app require a session and auth. I'll r=
+eport
+>>>> back with results.
+>>>>
+>>>>
+>>>>
+>>>> On Wed, Mar 4, 2015 at 12:35 PM, Eric Wong <e@80x24.org> wrote:
+>>>>
+>>>>> Sarkis Varozian <svarozian@gmail.com> wrote:
+>>>>> > On Wed, Mar 4, 2015 at 12:17 PM, Michael Fischer <
+>>>>> mfischer@zendesk.com>
+>>>>> > wrote:
+>>>>> >
+>>>>> > > I'm not exactly sure how preload_app works, but I suspect your ap=
+p
+>>>>> is
+>>>>> > > lazy-loading a number of Ruby libraries while handling the first
+>>>>> few
+>>>>> > > requests that weren't automatically loaded during the preload
+>>>>> process.
+>>>>> > >
+>>>>> > > Eric, your thoughts?
+>>>>>
+>>>>> (top-posting corrected)
+>>>>>
+>>>>> Yeah, preload_app won't help startup speed if much of the app is
+>>>>> autoloaded.
+>>>>>
+>>>>> Sarkis: which Ruby version are you running?  IIRC, 1.9.2 had terrible
+>>>>> startup performance compared to 1.9.3 and later in case you're stuck =
+on
+>>>>> 1.9.2
+>>>>>
+>>>>> > That does make sense - I was looking at another suggestion from a
+>>>>> user here
+>>>>> > (Braulio) of running a "warmup" using rack MockRequest:
+>>>>> > https://gist.github.com/brauliobo/11298486#file-unicorn-conf-rb-L77
+>>>>> >
+>>>>> > The only issue I am having with the above solution is it is
+>>>>> happening in
+>>>>> > the before_fork block - shouldn't I warmup the connection in
+>>>>> after_fork?
+>>>>>
+>>>>> If preload_app is true, you can warmup in before_fork; otherwise it
+>>>>> needs to be after_fork.
+>>>>>
+>>>>> > If
+>>>>> > I follow the above gist properly it warms up the server with the ol=
+d
+>>>>> > activerecord base connection and then its turned off, then turned
+>>>>> back on
+>>>>> > in after_fork. I think I am not understanding the sequence of event=
+s
+>>>>> > there...
+>>>>>
+>>>>> With preload_app and warmup, you need to ensure any stream connection=
+s
+>>>>> (DB, memcached, redis, etc..) do not get shared between processes, so
+>>>>> it's standard practice to disconnect in the parent and reconnect in t=
+he
+>>>>> child.
+>>>>>
+>>>>> > If this is the case, I should warmup and also check/kill the old
+>>>>> > master in the after_fork block after the new db, redis, neo4j
+>>>>> connections
+>>>>> > are all created. Thoughts?
+>>>>>
+>>>>> I've been leaving killing the master outside of the unicorn hooks
+>>>>> and doing it as a separate step; seemed too fragile to do it in
+>>>>> hooks from my perspective.
+>>>>>
+>>>>
+>>>>
+>>>>
+>>>> --
+>>>> *Sarkis Varozian*
+>>>> svarozian@gmail.com
+>>>>
+>>>
+>>>
+>>>
+>>> --
+>>> *Sarkis Varozian*
+>>> svarozian@gmail.com
+>>>
+>>
+>>
+>>
+>> --
+>> "Lute pela sua ideologia. Seja um com sua ideologia. Viva pela sua
+>> ideologia. Morra por sua ideologia" P.R. Sarkar
+>>
+>> EITA - Educa=C3=A7=C3=A3o, Informa=C3=A7=C3=A3o e Tecnologias para Autog=
+est=C3=A3o
+>> http://cirandas.net/brauliobo
+>> http://eita.org.br
+>>
+>> "Paramapurusha =C3=A9 meu pai e Parama Prakriti =C3=A9 minha m=C3=A3e. O=
+ universo =C3=A9 meu
+>> lar e todos n=C3=B3s somos cidad=C3=A3os deste cosmo. Este universo =C3=
+=A9 a imagina=C3=A7=C3=A3o da
+>> Mente Macroc=C3=B3smica, e todas as entidades est=C3=A3o sendo criadas, =
+preservadas e
+>> destru=C3=ADdas nas fases de extrovers=C3=A3o e introvers=C3=A3o do flux=
+o imaginativo
+>> c=C3=B3smico. No =C3=A2mbito pessoal, quando uma pessoa imagina algo em =
+sua mente,
+>> naquele momento, essa pessoa =C3=A9 a =C3=BAnica propriet=C3=A1ria daqui=
+lo que ela
+>> imagina, e ningu=C3=A9m mais. Quando um ser humano criado mentalmente ca=
+minha
+>> por um milharal tamb=C3=A9m imaginado, a pessoa imaginada n=C3=A3o =C3=
+=A9 a propriedade
+>> desse milharal, pois ele pertence ao indiv=C3=ADduo que o est=C3=A1 imag=
+inando. Este
+>> universo foi criado na imagina=C3=A7=C3=A3o de Brahma, a Entidade Suprem=
+a, por isso
+>> a propriedade deste universo =C3=A9 de Brahma, e n=C3=A3o dos microcosmo=
+s que tamb=C3=A9m
+>> foram criados pela imagina=C3=A7=C3=A3o de Brahma. Nenhuma propriedade d=
+este mundo,
+>> mut=C3=A1vel ou imut=C3=A1vel, pertence a um indiv=C3=ADduo em particula=
+r; tudo =C3=A9 o
+>> patrim=C3=B4nio comum de todos."
+>> Restante do texto em
+>> http://cirandas.net/brauliobo/blog/a-problematica-de-hoje-em-dia
+>>
+>
+>
+>
+> --
+> *Sarkis Varozian*
+> svarozian@gmail.com
+>
+
+
+
+--=20
+"Lute pela sua ideologia. Seja um com sua ideologia. Viva pela sua
+ideologia. Morra por sua ideologia" P.R. Sarkar
+
+EITA - Educa=C3=A7=C3=A3o, Informa=C3=A7=C3=A3o e Tecnologias para Autogest=
+=C3=A3o
+http://cirandas.net/brauliobo
+http://eita.org.br
+
+"Paramapurusha =C3=A9 meu pai e Parama Prakriti =C3=A9 minha m=C3=A3e. O un=
+iverso =C3=A9 meu
+lar e todos n=C3=B3s somos cidad=C3=A3os deste cosmo. Este universo =C3=A9 =
+a imagina=C3=A7=C3=A3o da
+Mente Macroc=C3=B3smica, e todas as entidades est=C3=A3o sendo criadas, pre=
+servadas e
+destru=C3=ADdas nas fases de extrovers=C3=A3o e introvers=C3=A3o do fluxo i=
+maginativo
+c=C3=B3smico. No =C3=A2mbito pessoal, quando uma pessoa imagina algo em sua=
+ mente,
+naquele momento, essa pessoa =C3=A9 a =C3=BAnica propriet=C3=A1ria daquilo =
+que ela
+imagina, e ningu=C3=A9m mais. Quando um ser humano criado mentalmente camin=
+ha
+por um milharal tamb=C3=A9m imaginado, a pessoa imaginada n=C3=A3o =C3=A9 a=
+ propriedade
+desse milharal, pois ele pertence ao indiv=C3=ADduo que o est=C3=A1 imagina=
+ndo. Este
+universo foi criado na imagina=C3=A7=C3=A3o de Brahma, a Entidade Suprema, =
+por isso
+a propriedade deste universo =C3=A9 de Brahma, e n=C3=A3o dos microcosmos q=
+ue tamb=C3=A9m
+foram criados pela imagina=C3=A7=C3=A3o de Brahma. Nenhuma propriedade dest=
+e mundo,
+mut=C3=A1vel ou imut=C3=A1vel, pertence a um indiv=C3=ADduo em particular; =
+tudo =C3=A9 o
+patrim=C3=B4nio comum de todos."
+Restante do texto em
+http://cirandas.net/brauliobo/blog/a-problematica-de-hoje-em-dia
+
