@@ -1,0 +1,45 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-2.9 required=3.0 tests=ALL_TRUSTED,BAYES_00
+ shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 7C59E63383B for <unicorn-public@bogomips.org>; Thu,
+ 12 Mar 2015 22:32:42 +0000 (UTC)
+From: Eric Wong <e@80x24.org>
+To: unicorn-public@bogomips.org
+Subject: [PATCH] doc: document UNICORN_FD in manpage
+Date: Thu, 12 Mar 2015 22:32:42 +0000
+Message-Id: <1426199562-13009-1-git-send-email-e@80x24.org>
+List-Id: <unicorn-public@bogomips.org>
+
+Due to the prevalence of socket activation in modern init systems,
+we shall document UNICORN_FD (previously an implementation detail)
+in the manpage.
+---
+ Documentation/unicorn.1.txt | 7 +++++++
+ 1 file changed, 7 insertions(+)
+
+diff --git a/Documentation/unicorn.1.txt b/Documentation/unicorn.1.txt
+index 376a6c6..b03962e 100644
+--- a/Documentation/unicorn.1.txt
++++ b/Documentation/unicorn.1.txt
+@@ -163,6 +163,13 @@ set in the old master process are inherited by the new master process.
+ Unicorn only uses (and will overwrite) the UNICORN_FD environment
+ variable internally when doing transparent upgrades.
+ 
++UNICORN_FD is a comma-delimited list of one or more file descriptors
++used to implement USR2 upgrades.  Init systems may bind listen sockets
++itself and spawn unicorn with UNICORN_FD set to the file descriptor
++numbers of the listen socket(s).  The unicorn CONFIG_FILE must still
++have the inherited listen socket parameters defined as in a normal
++startup, otherwise the socket will be closed.
++
+ # SEE ALSO
+ 
+ * unicorn_rails(1)
+-- 
+2.3.2.209.gd67f9d5
+
