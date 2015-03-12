@@ -1,0 +1,91 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-2.9 required=3.0 tests=ALL_TRUSTED,BAYES_00,
+ URIBL_BLOCKED shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id DCAAA1FD47; Thu, 12 Mar 2015 01:45:15 +0000 (UTC)
+Date: Thu, 12 Mar 2015 01:45:15 +0000
+From: Eric Wong <e@80x24.org>
+To: Kevin Yank <kyank@avalanche.com.au>
+Cc: unicorn-public@bogomips.org
+Subject: Re: On USR2, new master runs with same PID
+Message-ID: <20150312014515.GA10605@dcvr.yhbt.net>
+References: <2C0638F8-338C-4B06-B641-0DCF48D4D16A@avalanche.com.au>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+Content-Transfer-Encoding: 8bit
+In-Reply-To: <2C0638F8-338C-4B06-B641-0DCF48D4D16A@avalanche.com.au>
+List-Id: <unicorn-public@bogomips.org>
+
+Kevin Yank <kyank@avalanche.com.au> wrote:
+> Having recently migrated our Rails app to MRI 2.2.0 (which may or may
+> not be related), we’re experiencing problems with our Unicorn
+> zero-downtime restarts.
+> 
+> When I send USR2 to the master process (PID 19216 in this example), I
+> get the following in the Unicorn log:
+>
+> I, [2015-03-11T23:47:33.992274 #6848]  INFO -- : executing ["/srv/ourapp/shared/bundle/ruby/2.2.0/bin/unicorn", "/srv/ourapp/current/config.ru", "-Dc", "/srv/ourapp/shared/config/unicorn.rb", {10=>#<Kgio::UNIXServer:/srv/ourapp/shared/sockets/unicorn.sock>}] (in /srv/ourapp/releases/a0e8b5df474ad5129200654f92a76af00a750f47)
+> I, [2015-03-11T23:47:36.504235 #6848]  INFO -- : inherited addr=/srv/ourapp/shared/sockets/unicorn.sock fd=10
+> /srv/ourapp/shared/bundle/ruby/2.2.0/gems/unicorn-4.8.1/lib/unicorn/http_server.rb:206:in `pid=': Already running on PID:19216 (or pid=/srv/ourapp/shared/pids/unicorn.pid is stale) (ArgumentError)
+
+Nothing suspicious until the above line...
+
+<snip>
+
+> And when I check, indeed, there is now unicorn.pid and
+> unicorn.pid.oldbin, both containing 19216.
+> 
+> What could cause this situation to arise?
+
+Any chance you have a process manager or something else creating the
+(non-.oldbin) pid file behind unicorn's back?
+
+Can you check your process table to ensure there's not multiple
+unicorn instances running off the same config and pid files, too?
+
+Also, were there other activity (another USR2 or HUP) in the logs
+a few seconds beforehand?
+
+What kind of filesystem / kernel is the pid file on?
+A network FS or anything without the consistency guarantees provided
+by POSIX would not work for pid files.
+
+pid files are unfortunately prone to to nasty race conditions,
+but I'm not sure what you're seeing happens very often.
+
+Likewise, the check for stale Unix domain socket paths at startup is
+inevitably racy, too, but the window is usually small enough to be
+unnoticeable.  But yes, just in case, check the process table to make
+sure there aren't multiple, non-related masters running on off the
+same paths.
+
+<snip>
+
+> before_fork do |server, worker|
+>   ActiveRecord::Base.connection.disconnect!
+
+-------------------8<-------------------
+>   sleep 10
+> 
+>   old_pid = "#{server.config[:pid]}.oldbin"
+>   if File.exists?(old_pid) && server.pid != old_pid
+>     begin
+>       Process.kill("QUIT", File.read(old_pid).to_i)
+>     rescue Errno::ENOENT, Errno::ESRCH
+>       # someone else did our job for us
+>     end
+>   end
+-------------------8<-------------------
+
+I'd get rid of that hunk starting with the "sleep 10" (at least while
+debugging this issue).  If you did a USR2 previously, maybe it could
+affect the current USR2 upgrade process.  Sleeping so long in the master
+like that is pretty bad it throws off timing and delays signal handling.
+
+That's a pretty fragile config and I regret ever including it in the
+example config files
