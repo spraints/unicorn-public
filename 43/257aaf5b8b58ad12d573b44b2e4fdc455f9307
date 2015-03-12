@@ -1,0 +1,47 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-2.9 required=3.0 tests=ALL_TRUSTED,BAYES_00
+ shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id A8DCF63385B for <unicorn-public@bogomips.org>; Thu,
+ 12 Mar 2015 22:32:49 +0000 (UTC)
+From: Eric Wong <e@80x24.org>
+To: unicorn-public@bogomips.org
+Subject: [PATCH] doc: document Etc.nprocessors for worker_processes
+Date: Thu, 12 Mar 2015 22:32:49 +0000
+Message-Id: <1426199569-13051-1-git-send-email-e@80x24.org>
+List-Id: <unicorn-public@bogomips.org>
+
+Ruby 2.2 has Etc.nprocessors, and using that (directly or as a
+factor) for setting worker_processes is often (but not always)
+appropriate.
+---
+ TUNING | 9 ++++++---
+ 1 file changed, 6 insertions(+), 3 deletions(-)
+
+diff --git a/TUNING b/TUNING
+index 542ebdc..6a6d7db 100644
+--- a/TUNING
++++ b/TUNING
+@@ -17,9 +17,12 @@ See Unicorn::Configurator for details on the config file format.
+   \Unicorn is NOT for serving slow clients, that is the job of nginx.
+ 
+ * worker_processes should be *at* *least* the number of CPU cores on
+-  a dedicated server.  If your application has occasionally slow
+-  responses that are /not/ CPU-intensive, you may increase this to
+-  workaround those inefficiencies.
++  a dedicated server (unless you do not have enough memory).
++  If your application has occasionally slow responses that are /not/
++  CPU-intensive, you may increase this to workaround those inefficiencies.
++
++* Under Ruby 2.2 or later, Etc.nprocessors may be used to determine
++  the number of CPU cores present.
+ 
+ * worker_processes may be increased for Unicorn::OobGC users to provide
+   more consistent response times.
+-- 
+2.3.2.209.gd67f9d5
+
