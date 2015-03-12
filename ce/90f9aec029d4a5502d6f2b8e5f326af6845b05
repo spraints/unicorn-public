@@ -1,0 +1,161 @@
+Return-Path: <kyank@avalanche.com.au>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS15169 209.85.128.0/17
+X-Spam-Status: No, score=-2.6 required=3.0 tests=BAYES_00,RCVD_IN_DNSWL_LOW,
+ URIBL_BLOCKED shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from mail-pd0-f172.google.com (mail-pd0-f172.google.com
+ [209.85.192.172]) (using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256
+ (128/128 bits)) (No client certificate requested) by dcvr.yhbt.net (Postfix)
+ with ESMTPS id 3B9FE633826 for <unicorn-public@bogomips.org>; Thu, 12 Mar
+ 2015 01:05:06 +0000 (UTC)
+Received: by pdbfl12 with SMTP id fl12so15554388pdb.5 for
+ <unicorn-public@bogomips.org>; Wed, 11 Mar 2015 18:05:05 -0700 (PDT)
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=1e100.net;
+ s=20130820; h=x-gm-message-state:from:content-type:content-transfer-encoding
+ :subject:message-id:date:to:mime-version;
+ bh=/oYjRdIEn2qgCgpdeOnmXUFqmALcwVr4ymHNg1BgFlo=;
+ b=cA9C5iI02gIhFhO5JAbFJmQDXVuBuM7TRUpnupDNvbfAJi6fjsjjNk6XRt1h4milf+
+ yQdCqWyThNqtJCvdohtT5UjZ4DSL5xWJPJrso+yERP0UsNswgT8SU2++4CNC7vC/4FnE
+ Pisr4ZtmJTN9p9zpdkwEnLCLlTpb19tfIPn5HkfX8kTQaVFGzgdT+GPGQ7WOtBvYdDid
+ FcY9RwU2Ix1PDLj2lrmKbbxtAHgFIBEDhTmtctmORy2XDhP1XC6nk4iwd6Ww2h2T7TpH
+ HK11NZ0dBGuCASCOJtkZmlUvaYpRy2frOcbDy3KHpnJP2qiFvLvRy5bjuk7Z3lD7ak/k bWtA==
+X-Gm-Message-State:
+ ALoCoQm31KxCqBk4gUoESxzxNlsL9gn56oMZU7P+ELddufVhgzDXaEx3Cv6eBAT0E2bRFAxJKQBU6v4SF3pIx2cXNwdGkpbZ85dJ0WyqOJub1p+DQvOhHPbGcuLQ2nQZEv2EN71Lvy6yaCSyioICeY5oDn479k6pTpfmqDKAWpgfhwG61fgOqSHSoka3YruQPtIgw/9VEMJk
+X-Received: by 10.70.101.137 with SMTP id fg9mr43558003pdb.101.1426122305488;
+ Wed, 11 Mar 2015 18:05:05 -0700 (PDT)
+Received: from [192.168.0.11] (203-217-74-216.dyn.iinet.net.au.
+ [203.217.74.216]) by mx.google.com with ESMTPSA id
+ pm9sm7897991pdb.59.2015.03.11.18.05.03 for <unicorn-public@bogomips.org>
+ (version=TLSv1 cipher=ECDHE-RSA-RC4-SHA bits=128/128); Wed, 11 Mar 2015
+ 18:05:04 -0700 (PDT)
+From: Kevin Yank <kyank@avalanche.com.au>
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: quoted-printable
+Subject: On USR2, new master runs with same PID
+Message-Id: <2C0638F8-338C-4B06-B641-0DCF48D4D16A@avalanche.com.au>
+Date: Thu, 12 Mar 2015 12:04:56 +1100
+To: unicorn-public@bogomips.org
+Mime-Version: 1.0 (Mac OS X Mail 8.2 \(2087\))
+X-Mailer: Apple Mail (2.2087)
+List-Id: <unicorn-public@bogomips.org>
+
+Having recently migrated our Rails app to MRI 2.2.0 (which may or may =
+not be related), we=E2=80=99re experiencing problems with our Unicorn =
+zero-downtime restarts.
+
+When I send USR2 to the master process (PID 19216 in this example), I =
+get the following in the Unicorn log:
+
+I, [2015-03-11T23:47:33.992274 #6848]  INFO -- : executing =
+["/srv/ourapp/shared/bundle/ruby/2.2.0/bin/unicorn", =
+"/srv/ourapp/current/config.ru", "-Dc", =
+"/srv/ourapp/shared/config/unicorn.rb", =
+{10=3D>#<Kgio::UNIXServer:/srv/ourapp/shared/sockets/unicorn.sock>}] (in =
+/srv/ourapp/releases/a0e8b5df474ad5129200654f92a76af00a750f47)
+I, [2015-03-11T23:47:36.504235 #6848]  INFO -- : inherited =
+addr=3D/srv/ourapp/shared/sockets/unicorn.sock fd=3D10
+=
+/srv/ourapp/shared/bundle/ruby/2.2.0/gems/unicorn-4.8.1/lib/unicorn/http_s=
+erver.rb:206:in `pid=3D': Already running on PID:19216 (or =
+pid=3D/srv/ourapp/shared/pids/unicorn.pid is stale) (ArgumentError)
+  from =
+/srv/ourapp/shared/bundle/ruby/2.2.0/gems/unicorn-4.8.1/lib/unicorn/http_s=
+erver.rb:134:in `start'
+  from =
+/srv/ourapp/shared/bundle/ruby/2.2.0/gems/unicorn-4.8.1/bin/unicorn:126:in=
+ `<top (required)>'
+  from /srv/ourapp/shared/bundle/ruby/2.2.0/bin/unicorn:23:in `load'
+  from /srv/ourapp/shared/bundle/ruby/2.2.0/bin/unicorn:23:in `<main>'
+E, [2015-03-11T23:47:36.519549 #19216] ERROR -- : reaped =
+#<Process::Status: pid 6848 exit 1> exec()-ed
+E, [2015-03-11T23:47:36.520296 #19216] ERROR -- : master loop error: =
+Already running on PID:19216 (or pid=3D/srv/ourapp/shared/pids/unicorn.pid=
+ is stale) (ArgumentError)
+E, [2015-03-11T23:47:36.520496 #19216] ERROR -- : =
+/srv/ourapp/shared/bundle/ruby/2.2.0/gems/unicorn-4.8.1/lib/unicorn/http_s=
+erver.rb:206:in `pid=3D'
+E, [2015-03-11T23:47:36.520650 #19216] ERROR -- : =
+/srv/ourapp/shared/bundle/ruby/2.2.0/gems/unicorn-4.8.1/lib/unicorn/http_s=
+erver.rb:404:in `reap_all_workers'
+E, [2015-03-11T23:47:36.520790 #19216] ERROR -- : =
+/srv/ourapp/shared/bundle/ruby/2.2.0/gems/unicorn-4.8.1/lib/unicorn/http_s=
+erver.rb:279:in `join'
+E, [2015-03-11T23:47:36.520928 #19216] ERROR -- : =
+/srv/ourapp/shared/bundle/ruby/2.2.0/gems/unicorn-4.8.1/bin/unicorn:126:in=
+ `<top (required)>'
+E, [2015-03-11T23:47:36.521115 #19216] ERROR -- : =
+/srv/ourapp/shared/bundle/ruby/2.2.0/bin/unicorn:23:in `load'
+E, [2015-03-11T23:47:36.521254 #19216] ERROR -- : =
+/srv/ourapp/shared/bundle/ruby/2.2.0/bin/unicorn:23:in `<main>=E2=80=99
+
+And when I check, indeed, there is now unicorn.pid and =
+unicorn.pid.oldbin, both containing 19216.
+
+What could cause this situation to arise?
+
+
+Here=E2=80=99s my unicorn.rb FWIW:
+
+# Set your full path to application.
+app_path =3D "/srv/ourapp/current"
+
+# Set unicorn options
+worker_processes 3
+preload_app true
+timeout 30
+listen "/srv/ourapp/shared/sockets/unicorn.sock", :backlog =3D> 64
+
+# Spawn unicorn master worker for user deploy (group: deploy)
+user 'deploy', 'deploy'
+
+# Fill path to your app
+working_directory app_path
+
+# Should be 'production' by default, otherwise use other env
+rails_env =3D ENV['RAILS_ENV'] || 'production'
+
+# Log everything to one file
+stderr_path "/srv/ourapp/shared/log/unicorn.log"
+stdout_path "/srv/ourapp/shared/log/unicorn.log"
+
+# Set master PID location
+pid "/srv/ourapp/shared/pids/unicorn.pid"
+
+before_exec do |server|
+  ENV["BUNDLE_GEMFILE"] =3D "#{app_path}/Gemfile"
+end
+
+before_fork do |server, worker|
+  ActiveRecord::Base.connection.disconnect!
+
+  sleep 10
+
+  old_pid =3D "#{server.config[:pid]}.oldbin"
+  if File.exists?(old_pid) && server.pid !=3D old_pid
+    begin
+      Process.kill("QUIT", File.read(old_pid).to_i)
+    rescue Errno::ENOENT, Errno::ESRCH
+      # someone else did our job for us
+    end
+  end
+end
+
+after_fork do |server, worker|
+  ActiveRecord::Base.establish_connection
+
+  Sidekiq.configure_client do |config|
+    config.redis =3D { namespace: 'sidekiq' }
+  end
+end
+
+
+--
+Kevin Yank
+Chief Technology Officer, Avalanche Technology Group
+http://avalanche.com.au/
+
+ph: +61 4 2241 0083
+
+
