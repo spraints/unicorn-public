@@ -1,0 +1,82 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-2.9 required=3.0 tests=ALL_TRUSTED,BAYES_00,
+ URIBL_BLOCKED shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 8828B1F5CD; Thu, 12 Mar 2015 06:45:41 +0000 (UTC)
+Date: Thu, 12 Mar 2015 06:45:41 +0000
+From: Eric Wong <e@80x24.org>
+To: Kevin Yank <kyank@avalanche.com.au>
+Cc: unicorn-public@bogomips.org
+Subject: Re: On USR2, new master runs with same PID
+Message-ID: <20150312064541.GA8863@dcvr.yhbt.net>
+References: <2C0638F8-338C-4B06-B641-0DCF48D4D16A@avalanche.com.au>
+ <20150312014515.GA10605@dcvr.yhbt.net>
+ <DFD60515-B333-4597-8DFE-D690C8DA9E8B@avalanche.com.au>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+Content-Transfer-Encoding: 8bit
+In-Reply-To: <DFD60515-B333-4597-8DFE-D690C8DA9E8B@avalanche.com.au>
+List-Id: <unicorn-public@bogomips.org>
+
+Kevin Yank <kyank@avalanche.com.au> wrote:
+> It’s possible; I’m using eye (https://github.com/kostya/eye) as a
+
+Aha!  I forgot about that one, try upgrading to unicorn 4.8.3 which
+fixed this issue last year.  ref:
+
+http://bogomips.org/unicorn-public/m/20140504023338.GA583@dcvr.yhbt.net.html
+http://bogomips.org/unicorn-public/m/20140502231558.GA4215@dcvr.yhbt.net.html
+
+<snip>
+
+> unicorn master
+> `- unicorn master 
+> `- unicorn worker[2]
+> |  `- unicorn worker[2]
+> `- unicorn worker[1]
+> |  `- unicorn worker[1]
+> `- unicorn worker[0]
+>    `- unicorn worker[0]
+
+The second master there is the new one, and the first is the old one.
+
+I was more concerned if there are multiple masters with no parent-child
+relationship to each other; but that seems to not be the case.
+
+But yeah, give 4.8.3 a try since it should've fixed the problem
+(which was reported and confirmed privately)
+
+> This has been happening pretty frequently across multiple server
+> instances, and again once it starts happening on an instance, it keeps
+> happening 100% of the time (until I restart Unicorn completely). So
+> it’s not a rare edge case.
+
+You can probably recover by removing the pid files entirely
+and HUP the (only) master; but I haven't tried it...
+
+> > That's a pretty fragile config and I regret ever including it in the
+> > example config files
+
+> Any better examples/docs you’d recommend I consult for guidance? Or is
+> expecting to achieve a robust zero-downtime restart using
+> before_fork/after_fork hooks unrealistic?
+
+Best bet would be to run with double the workers temporarily unless
+you're too low on memory (and swapping) or backend (DB) connections or
+any other resource.
+
+If you're really low on memory/connections, do WINCH + USR2 + QUIT (and
+pray the new master works right :).  Clients will suffer in response
+time as your new app loads, so do it during non-peak traffic and/or
+shift traffic away from that machine.
+
+You can also send TTOU a few times to reduce worker counts instead of
+WINCH to nuke all of them, but I'd send all signals via deploy
+script/commands rather than automatically via (synchronous) hooks.
+
+But that's just me; probably others do things differently...
