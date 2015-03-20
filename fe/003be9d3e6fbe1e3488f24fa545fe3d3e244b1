@@ -1,0 +1,94 @@
+Return-Path: <kyank@avalanche.com.au>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-2.2 required=3.0 tests=AWL,BAYES_00 shortcircuit=no
+ autolearn=ham version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from mail-pd0-f171.google.com (mail-pd0-f171.google.com
+ [209.85.192.171]) (using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256
+ (128/128 bits)) (No client certificate requested) by dcvr.yhbt.net (Postfix)
+ with ESMTPS id 1AB991FAC1 for <unicorn-public@bogomips.org>; Fri, 20 Mar 2015
+ 01:55:17 +0000 (UTC)
+Received: by pdbcz9 with SMTP id cz9so93378499pdb.3 for
+ <unicorn-public@bogomips.org>; Thu, 19 Mar 2015 18:55:16 -0700 (PDT)
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=1e100.net;
+ s=20130820; h=x-gm-message-state:content-type:mime-version:subject:from
+ :in-reply-to:date:cc:message-id:references:to;
+ bh=ddKctTEeEN/rQdntSDb9a5Pnkbz83qk+MdV85sxYSw0=;
+ b=D4Sq5wuC06ZQ7l7Br574Z0eXQpSfvo5wGvELA+a83/tJ0PsxX9oluT+E5GIIUCL9ZT
+ A9Be4RpmXFOpKYh75dkg3f5sdrIH2pFQejhycLTeCloQm2I29VNFK/T3D4jdFGbfmeMV
+ GcSIprfRvrWEhTxpTQy+62NoPQIVaEtorsNqkzCWvhyTaammk+8DGRaTiYrz7jmsEAW4
+ 0r0NuQDRKOBskFnjvc9oLKmJc8G489BqtRgQsaVoUBDqsSMxLqMHqyOmNy9cG5jFTa+9
+ SoP5+AfAHP1eFPQXFUvwA/RR4/J5yU7uLrf9CKH+oCnWhbi+wqDDPSjVD/lXk7YDCyL/ pMhQ==
+X-Gm-Message-State:
+ ALoCoQkLNKeUmY04nSXy0y759wbNuVZ8axJDXBZljXyUoo/Y6PP5hb4KgCNbyW1L8erFlrwUbCwgBFiFNLfHrrIWvgtk0e0Q3q4oKzno++Go1E4zmWAdGg44mcb8apPeZT7WTt1tapqS7j0rshRqvUjt9gGD8rChdauTgz3jd/HqZlWnkz5ECkywATRSge0Rxki7iJHsOz95
+X-Received: by 10.70.123.41 with SMTP id lx9mr31643654pdb.84.1426816516480;
+ Thu, 19 Mar 2015 18:55:16 -0700 (PDT)
+Received: from [192.168.0.11] (CPE-120-148-101-46.bjzv2.lon.bigpond.net.au.
+ [120.148.101.46]) by mx.google.com with ESMTPSA id
+ n10sm5089196pdk.68.2015.03.19.18.55.13 (version=TLSv1
+ cipher=ECDHE-RSA-RC4-SHA bits=128/128); Thu, 19 Mar 2015 18:55:15 -0700 (PDT)
+Content-Type: multipart/signed; boundary="Apple-Mail=_EACC1164-84B1-4957-A31D-536BB6338A1E"; micalg="sha1"; protocol="application/pkcs7-signature"
+Mime-Version: 1.0 (Mac OS X Mail 8.2 \(2090\))
+Subject: Re: On USR2, new master runs with same PID
+From: Kevin Yank <kyank@avalanche.com.au>
+In-Reply-To: <20150312064541.GA8863@dcvr.yhbt.net>
+Date: Fri, 20 Mar 2015 12:55:06 +1100
+Cc: unicorn-public@bogomips.org
+Message-Id: <02F0A595-AA78-46C8-AE9B-48AA73682191@avalanche.com.au>
+References: <2C0638F8-338C-4B06-B641-0DCF48D4D16A@avalanche.com.au>
+ <20150312014515.GA10605@dcvr.yhbt.net>
+ <DFD60515-B333-4597-8DFE-D690C8DA9E8B@avalanche.com.au>
+ <20150312064541.GA8863@dcvr.yhbt.net>
+To: Eric Wong <e@80x24.org>
+X-Mailer: Apple Mail (2.2090)
+X-Content-Filtered-By: PublicInbox::Filter 0.0.1
+List-Id: <unicorn-public@bogomips.org>
+
+
+--Apple-Mail=_EACC1164-84B1-4957-A31D-536BB6338A1E
+Content-Transfer-Encoding: quoted-printable
+Content-Type: text/plain; charset=utf-8
+
+
+> On 12 Mar 2015, at 5:45 pm, Eric Wong <e@80x24.org> wrote:
+>=20
+> Kevin Yank <kyank@avalanche.com.au> wrote:
+>> It=E2=80=99s possible; I=E2=80=99m using eye =
+(https://github.com/kostya/eye) as a
+>=20
+> Aha!  I forgot about that one, try upgrading to unicorn 4.8.3 which
+> fixed this issue last year.  ref:
+>=20
+> =
+http://bogomips.org/unicorn-public/m/20140504023338.GA583@dcvr.yhbt.net.ht=
+ml
+> =
+http://bogomips.org/unicorn-public/m/20140502231558.GA4215@dcvr.yhbt.net.h=
+tml
+
+Finally solved this definitively. It was user error to do with my setup =
+of the eye process monitor.
+
+I=E2=80=99d accidentally deployed a buggy logrotate configuration for =
+eye, which was causing a second eye daemon to be spawned once a day =
+(when the logs were rotated). Those two eye daemons ran side-by-side, =
+and fought with each other when one was told to restart Unicorn. I=E2=80=99=
+d already anticipated and fixed this problem, but failed to deploy the =
+correct version of the config to our cluster.
+
+All fixed now. Thanks for your pointers; they put me on the right track. =
+:)
+
+--
+Kevin Yank
+Chief Technology Officer, Avalanche Technology Group
+http://avalanche.com.au/
+
+ph: +61 4 2241 0083
+
+
+
+
+--Apple-Mail=_EACC1164-84B1-4957-A31D-536BB6338A1E--
