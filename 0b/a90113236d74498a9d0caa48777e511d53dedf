@@ -1,0 +1,51 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-2.9 required=3.0 tests=ALL_TRUSTED,AWL,BAYES_00,
+ URIBL_BLOCKED shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 364ED1FAC1; Fri, 20 Mar 2015 02:08:36 +0000 (UTC)
+Date: Fri, 20 Mar 2015 02:08:36 +0000
+From: Eric Wong <e@80x24.org>
+To: Kevin Yank <kyank@avalanche.com.au>
+Cc: unicorn-public@bogomips.org
+Subject: Re: On USR2, new master runs with same PID
+Message-ID: <20150320020836.GA32651@dcvr.yhbt.net>
+References: <2C0638F8-338C-4B06-B641-0DCF48D4D16A@avalanche.com.au>
+ <20150312014515.GA10605@dcvr.yhbt.net>
+ <DFD60515-B333-4597-8DFE-D690C8DA9E8B@avalanche.com.au>
+ <20150312064541.GA8863@dcvr.yhbt.net>
+ <31B22118-FCD4-4909-AB6F-47F99A05F111@avalanche.com.au>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+Content-Transfer-Encoding: 8bit
+In-Reply-To: <31B22118-FCD4-4909-AB6F-47F99A05F111@avalanche.com.au>
+List-Id: <unicorn-public@bogomips.org>
+
+Kevin Yank <kyank@avalanche.com.au> wrote:
+> Regarding zero-downtime deploys:
+> 
+> On 12 Mar 2015, at 5:45 pm, Eric Wong <e@80x24.org> wrote:
+> 
+> > Best bet would be to run with double the workers temporarily unless
+> > you're too low on memory (and swapping) or backend (DB) connections or
+> > any other resource.
+>  
+> I’d like to take this approach as I do have enough memory to spare.
+> How do you usually implement this? Any good write-ups or sample
+> configs you can point me to?
+
+Only send SIGUSR2 to the master, leaving you with two masters and two
+sets of workers.  Skip (automated) sending of SIGTTOU signals to lower
+worker count to the old master.
+
+Eventually, you'll decide to send SIGQUIT to the old master to stop
+it (or the new one, if you decide the new code is broken).
+
+You can still combine this with SIGWINCH (or SIGTTOU) to stop traffic
+flow to the old master, too.
+
+Thanks for following up on your logrotate/eye issue, by the way.
