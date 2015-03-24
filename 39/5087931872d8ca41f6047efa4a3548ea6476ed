@@ -1,0 +1,101 @@
+Return-Path: <mfischer@zendesk.com>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS3561 63.128.0.0/15
+X-Spam-Status: No, score=-1.7 required=3.0 tests=AWL,BAYES_00,
+ RCVD_IN_DNSWL_MED,URIBL_BLOCKED shortcircuit=no autolearn=unavailable
+ version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from us-smtp-delivery-110.mimecast.com
+ (us-smtp-delivery-110.mimecast.com [63.128.21.110]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 0363A1FA61 for <unicorn-public@bogomips.org>; Tue, 24
+ Mar 2015 23:02:48 +0000 (UTC)
+Subject: Re: nginx reverse proxy getting ECONNRESET
+Received: from mail-qg0-f53.google.com (mail-qg0-f53.google.com
+ [209.85.192.53]) (Using TLS) by us-mta-20.us.mimecast.lan; Tue, 24 Mar 2015
+ 19:02:46 -0400
+Received: by qgh3 with SMTP id 3so4924994qgh.2 for
+ <unicorn-public@bogomips.org>; Tue, 24 Mar 2015 16:02:46 -0700 (PDT)
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=1e100.net;
+ s=20130820; h=x-gm-message-state:mime-version:in-reply-to:references:date
+ :message-id:subject:from:to:cc:content-type;
+ bh=M8GYDl4PrpoocMqI8LfbV5Ao4+CVoN7vOE1VrqSNrvw=;
+ b=aQsG6Vphd8AumaWEBm34bi8OkSV7soRqMNT3B7KM/l++BmpIlNpQyE6oo5+2L5V0bS
+ GfBdMG+edCZj4EafllajED1sZN2WCZDQCgrcfpJWK8Pv7fOEItCOu49g/uDu6jA+FPVl
+ E7M0hlMXDnGPnEYd85HI8ZiYUY+IL2nAlgxPwzkP57y+yFhp6jGa2IP80O7oE1yzIi+k
+ z9vl8clMiHX54h6RnbpfA2x6oxFZdq/XoRzLT5i18MhkBNT3Mle2pL8DuzYC4AnGS6AC
+ nv0Ax0kukjSHH0V/aNKrgos8C7vc5Z2f2/U/x1xEn8uwzV157iDWsZkQS9sZSeosCBYv HS1A==
+X-Gm-Message-State:
+ ALoCoQluE76a+6LYWvdiI2IStERTLVvd+vMh9X2ZYC/kIPTTpug/+nmjShsaIdRfwAM9mf30/zvP1fNjyEooFfINh6DbgpReHm+Q9Dup/HDcZdIBeOr+cmAApIgyh6YisqQ9VGpDb+c6HGZmynSMWrgN1b45G0kpiIfpzv7ih5RiO1c9MyGc3gg=
+X-Received: by 10.140.201.8 with SMTP id w8mr8934567qha.51.1427238166331;
+ Tue, 24 Mar 2015 16:02:46 -0700 (PDT)
+MIME-Version: 1.0
+X-Received: by 10.140.201.8 with SMTP id w8mr8934558qha.51.1427238166231;
+ Tue, 24 Mar 2015 16:02:46 -0700 (PDT)
+Received: by 10.140.48.97 with HTTP; Tue, 24 Mar 2015 16:02:46 -0700 (PDT)
+In-Reply-To: <20150324225437.GA21975@dcvr.yhbt.net>
+References:
+ <CABHxtY7Sn5yaiR5a3gDk1G4XySE+UtfuqUTcOSdmwneXLD5rcg@mail.gmail.com>
+ <20150324225437.GA21975@dcvr.yhbt.net>
+Date: Tue, 24 Mar 2015 23:02:46 +0000
+Message-ID:
+ <CABHxtY7+dhCt39Qi6=+DWVd4oxpNMmWDZVe1a9rXKmtez6KAvw@mail.gmail.com>
+From: Michael Fischer <mfischer@zendesk.com>
+To: Eric Wong <e@80x24.org>
+Cc: unicorn-public <unicorn-public@bogomips.org>
+X-MC-Unique: aCOj1mywQOKoj3SiW-IOew-1
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
+List-Id: <unicorn-public@bogomips.org>
+
+On Tue, Mar 24, 2015 at 10:54 PM, Eric Wong <e@80x24.org> wrote:
+> Michael Fischer <mfischer@zendesk.com> wrote:
+>> We have an nginx 1.6.2 proxy in front of a Unicorn 4.8.3 server that
+>> is frequently reporting the following error:
+>>
+>> 2015/03/24 01:46:01 [error] 11217#0: *872231 readv() failed (104:
+>> Connection reset by peer) while reading upstream
+>>
+>> The interesting things are:
+>>
+>> 1) The upstream is a Unix domain socket (to which Unicorn is bound)
+>> 2) Unicorn isn't reporting that a child died in the error log (and I
+>> verified their lifetimes with ps(1))
+>>
+>> Any hints as to what we should look for?
+>
+> What changed recently with your setup?
+
+We upgraded nginx from 1.4.7 to 1.6.2.  The frequency of the error has
+increased significantly since.  But I hesitate to point the finger at
+nginx without more evidence, since its developers are very skilled.
+
+> Which OS/kernel version + vendor version?
+
+uname -3.13.0-40-generic #69~precise1-Ubuntu
+
+Ruby 2.1.1
+
+> Can you setup a test instance on a different nginx port/unicorn socket
+> and with a config.ru such as:
+>
+> ------------------------- 8< ----------------------
+> run(lambda do |env|
+>   $stderr.write("#$$ starting at #{Time.now}\n")
+>   # be sure to configure your unicorn timeout
+>   sleep
+>   # should not return, wait for unicorn to kill
+> end)
+> ----------------------------------------------------
+>
+> And hitting nginx with a single test request to reproduce the issue.
+
+I'll take that step later if I have to, but I'm not sure what evidence
+that would provide, since we're not having timeout issues -- when this
+happens, the response time reported by nginx is usually just a few
+seconds (Unicorn timeout is 90 seconds),
+
+Thanks,
+
+--Michael
+
