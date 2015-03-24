@@ -1,0 +1,90 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-2.9 required=3.0 tests=ALL_TRUSTED,AWL,BAYES_00,
+ URIBL_BLOCKED shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 149E763382B; Tue, 24 Mar 2015 23:46:21 +0000 (UTC)
+Date: Tue, 24 Mar 2015 23:46:20 +0000
+From: Eric Wong <e@80x24.org>
+To: Michael Fischer <mfischer@zendesk.com>
+Cc: unicorn-public <unicorn-public@bogomips.org>
+Subject: Re: nginx reverse proxy getting ECONNRESET
+Message-ID: <20150324234620.GA15866@dcvr.yhbt.net>
+References:
+ <CABHxtY7Sn5yaiR5a3gDk1G4XySE+UtfuqUTcOSdmwneXLD5rcg@mail.gmail.com>
+ <20150324225437.GA21975@dcvr.yhbt.net> <20150324225957.GA22127@dcvr.yhbt.net>
+ <CABHxtY6pW0rtrEz74TQmFGdBiAeYMZr_0bubR7VCrmHPsU19Lg@mail.gmail.com>
+ <20150324232320.GA9552@dcvr.yhbt.net>
+ <CABHxtY7H+LAz7=0eyDJy+y4nbOYqfdbdXGY7d52N+h9AT8vBJA@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To:
+ <CABHxtY7H+LAz7=0eyDJy+y4nbOYqfdbdXGY7d52N+h9AT8vBJA@mail.gmail.com>
+List-Id: <unicorn-public@bogomips.org>
+
+Michael Fischer <mfischer@zendesk.com> wrote:
+> On Tue, Mar 24, 2015 at 11:23 PM, Eric Wong <e@80x24.org> wrote:
+> 
+> > So there might be data sitting on the socket if your application
+> > processing returns a response before it parsed the POST request.
+> 
+> When this occurs, the nginx access logs show an HTTP 200 (OK) response
+> with a 0 byte response body.
+> 
+> Is it your hypothesis that the application is just failing to consume
+> the entire POST body in this instance?   In that case, wouldn't we
+> expect to see nginx failing to write on the socket instead of read?
+
+It could've been just big enough to fit inside the kernel socket
+buffers, but not enough for nginx to wait on.  In the below standalone
+example, the server only reads 4092 bytes of the 4096-byte request.
+
+> > Actually, you can try setting up a Rack::Lobster instance but sending
+> > a giant POST request?
+> >
+> > ------------- config.ru --------------
+> > require 'rack/lobster'
+> > run Rack::Lobster.new
+> > --------------------------------------
+> 
+> I don't know what this is -- systems guy here, not a Rack expert...
+> how will this help?
+
+Just a dumb "hello world" type app which doesn't read the input.
+
+Here's a bare-bones example without nginx/unicorn at all:
+
+require 'tmpdir'
+require 'socket'
+Dir.mktmpdir do |dir|
+  Dir.chdir(dir) do
+    path = 'sock'
+    a = UNIXServer.new(path)
+    srv = Thread.new do
+      c = a.accept
+      c.readpartial(4092)
+      c.write 'HTTP/1.1 200 OK\r\n\r\n'
+      c.close
+      puts "thread done"
+    end
+
+    con = UNIXSocket.new(path)
+    bytes = ' ' * 4096
+    con.write(bytes)
+    while buf = con.sysread(4096)
+      p [ 'client read' , buf ]
+    end
+  end
+end
+
+The above causes sysread to fail with ECONNRESET in the server.  If you
+change the above server to read 4096 bytes instead of 4092, and you get
+the expected EOFError instead.
+
+ECONNRESET is harmless in this case (unless nginx started pipelining or
+blindly attempting persistent connections to unicorn, which it should
+not be doing since unicorn sends "Connection: close" on every response)
