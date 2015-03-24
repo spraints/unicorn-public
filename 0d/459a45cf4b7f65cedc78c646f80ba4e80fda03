@@ -1,0 +1,70 @@
+Return-Path: <mfischer@zendesk.com>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS3561 63.128.0.0/15
+X-Spam-Status: No, score=-1.7 required=3.0 tests=AWL,BAYES_00,
+ RCVD_IN_DNSWL_MED,URIBL_BLOCKED shortcircuit=no autolearn=unavailable
+ version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from us-smtp-delivery-110.mimecast.com
+ (us-smtp-delivery-110.mimecast.com [63.128.21.110]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 3FD6D1FA55 for <unicorn-public@bogomips.org>; Tue, 24
+ Mar 2015 23:04:40 +0000 (UTC)
+Subject: Re: nginx reverse proxy getting ECONNRESET
+Received: from mail-qg0-f53.google.com (mail-qg0-f53.google.com
+ [209.85.192.53]) (Using TLS) by us-mta-20.us.mimecast.lan; Tue, 24 Mar 2015
+ 19:04:38 -0400
+Received: by qgh3 with SMTP id 3so4988996qgh.2 for
+ <unicorn-public@bogomips.org>; Tue, 24 Mar 2015 16:04:37 -0700 (PDT)
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=1e100.net;
+ s=20130820; h=x-gm-message-state:mime-version:in-reply-to:references:date
+ :message-id:subject:from:to:cc:content-type;
+ bh=iaZVq9rhJax1rgmy2m/YxpOLeGyXz/OpTDq5Uqt8/eY=;
+ b=mvMiuwwYCbvIpetUUjZsQ1NIqZUU8tfo5fETl1VZfVj+aYvkrANF/tJovWdNsZsAk7
+ fWgeG1vg3M6790L3Oo2GnSxmJJy22l7D63th0NPkXu76SPNMJH13r9QjTwPxmH58ai4W
+ tohMyN6IeIdKlD0TV4Nyk7DteXdgAKTagIEoeH4IRUeeQMa6mEDUVQDax2OIUQB9aG11
+ BAh+7Ry38IFv5jTSEycf6Dp3pyHnn1vbofu1eYhUPzKkzk8AfKZp3vI3PiDREFBigxPd
+ 71VffmR6kPVjukXUL5pr59xmkARjTOsZeezfN+WbnFIqXhahb84VXjQP3+9lQIcgizoK 816A==
+X-Gm-Message-State:
+ ALoCoQkpNitcg0Awj9CCTunglaWD7tSWCDvK7Wnl8uQH+eGFkci27oxae6cjwbc6RNhmp71zwDmf6JBPGGWYU9rnwqUDaMIhWyqBCYFxzW9RUOLf6IsEZ06g1cqOLcbfn17vY0jpjN8+3J7Jm345OyA61QHH0b3FkCo+kJ0IDSLPml9fUeKJm0w=
+X-Received: by 10.140.145.203 with SMTP id 194mr8844369qhr.102.1427238277848;
+ Tue, 24 Mar 2015 16:04:37 -0700 (PDT)
+MIME-Version: 1.0
+X-Received: by 10.140.145.203 with SMTP id 194mr8844358qhr.102.1427238277739;
+ Tue, 24 Mar 2015 16:04:37 -0700 (PDT)
+Received: by 10.140.48.97 with HTTP; Tue, 24 Mar 2015 16:04:37 -0700 (PDT)
+In-Reply-To: <20150324225957.GA22127@dcvr.yhbt.net>
+References:
+ <CABHxtY7Sn5yaiR5a3gDk1G4XySE+UtfuqUTcOSdmwneXLD5rcg@mail.gmail.com>
+ <20150324225437.GA21975@dcvr.yhbt.net> <20150324225957.GA22127@dcvr.yhbt.net>
+Date: Tue, 24 Mar 2015 23:04:37 +0000
+Message-ID:
+ <CABHxtY6pW0rtrEz74TQmFGdBiAeYMZr_0bubR7VCrmHPsU19Lg@mail.gmail.com>
+From: Michael Fischer <mfischer@zendesk.com>
+To: Eric Wong <e@80x24.org>
+Cc: unicorn-public <unicorn-public@bogomips.org>
+X-MC-Unique: BipjOub0SeOxCZzmyv5nnQ-1
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
+List-Id: <unicorn-public@bogomips.org>
+
+On Tue, Mar 24, 2015 at 10:59 PM, Eric Wong <e@80x24.org> wrote:
+> Another likely explanation might be you're not draining rack.input every
+> request, since unicorn does lazy reads off the socket to prevent
+> rejected uploads from wasting disk I/O[1]
+>
+> So you can send a bigger POST request with my example to maybe
+> reproduce the issue.
+>
+> [1] you can use the Unicorn::PrereadInput middleware to forcibly
+>     disable the lazy read:
+>     http://unicorn.bogomips.org/Unicorn/PrereadInput.html
+
+Actually, these are quite large POST requests we're attempting to
+service (on the order of 4MB).  Can you elaborate on the mechanism in
+play here?
+
+Thanks,
+
+--Michael
+
