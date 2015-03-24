@@ -1,0 +1,63 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-2.9 required=3.0 tests=ALL_TRUSTED,AWL,BAYES_00,
+ URIBL_BLOCKED shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 2640A63382B; Tue, 24 Mar 2015 23:23:21 +0000 (UTC)
+Date: Tue, 24 Mar 2015 23:23:20 +0000
+From: Eric Wong <e@80x24.org>
+To: Michael Fischer <mfischer@zendesk.com>
+Cc: unicorn-public <unicorn-public@bogomips.org>
+Subject: Re: nginx reverse proxy getting ECONNRESET
+Message-ID: <20150324232320.GA9552@dcvr.yhbt.net>
+References:
+ <CABHxtY7Sn5yaiR5a3gDk1G4XySE+UtfuqUTcOSdmwneXLD5rcg@mail.gmail.com>
+ <20150324225437.GA21975@dcvr.yhbt.net> <20150324225957.GA22127@dcvr.yhbt.net>
+ <CABHxtY6pW0rtrEz74TQmFGdBiAeYMZr_0bubR7VCrmHPsU19Lg@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To:
+ <CABHxtY6pW0rtrEz74TQmFGdBiAeYMZr_0bubR7VCrmHPsU19Lg@mail.gmail.com>
+List-Id: <unicorn-public@bogomips.org>
+
+Michael Fischer <mfischer@zendesk.com> wrote:
+> On Tue, Mar 24, 2015 at 10:59 PM, Eric Wong <e@80x24.org> wrote:
+> > Another likely explanation might be you're not draining rack.input every
+> > request, since unicorn does lazy reads off the socket to prevent
+> > rejected uploads from wasting disk I/O[1]
+> >
+> > So you can send a bigger POST request with my example to maybe
+> > reproduce the issue.
+> >
+> > [1] you can use the Unicorn::PrereadInput middleware to forcibly
+> >     disable the lazy read:
+> >     http://unicorn.bogomips.org/Unicorn/PrereadInput.html
+> 
+> Actually, these are quite large POST requests we're attempting to
+> service (on the order of 4MB).  Can you elaborate on the mechanism in
+> play here?
+
+Unlike a lot of servers, unicorn will not attempt to buffer request
+bodies on its own.  You'll need to actually process the POST request in
+your app (via Rack/Rails/whatever accessing env["rack.input"]).
+
+The PrereadInput middleware makes it behave like other servers
+(at the cost of being slower if a request is worthless and rejected)
+
+So there might be data sitting on the socket if your application
+processing returns a response before it parsed the POST request.
+
+In this case, the ECONNRESET messages are harmless and saves your
+Ruby process from GC thrashing.
+
+Actually, you can try setting up a Rack::Lobster instance but sending
+a giant POST request?
+
+------------- config.ru --------------
+require 'rack/lobster'
+run Rack::Lobster.new
+--------------------------------------
