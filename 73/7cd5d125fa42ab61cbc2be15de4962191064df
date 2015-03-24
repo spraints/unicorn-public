@@ -1,0 +1,78 @@
+Return-Path: <humings@gmail.com>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS15169 209.85.128.0/17
+X-Spam-Status: No, score=-0.4 required=3.0 tests=AWL,BAYES_00,FREEMAIL_FROM,
+ RCVD_IN_DNSWL_BLOCKED,URIBL_BLOCKED shortcircuit=no autolearn=ham
+ version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from mail-la0-f48.google.com (mail-la0-f48.google.com
+ [209.85.215.48]) (using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256
+ (128/128 bits)) (No client certificate requested) by dcvr.yhbt.net (Postfix)
+ with ESMTPS id 6FBEB1F6A8 for <unicorn-public@bogomips.org>; Tue, 24 Mar 2015
+ 15:28:06 +0000 (UTC)
+Received: by laae1 with SMTP id e1so30281654laa.2 for
+ <unicorn-public@bogomips.org>; Tue, 24 Mar 2015 08:28:04 -0700 (PDT)
+MIME-Version: 1.0
+X-Received: by 10.112.26.209 with SMTP id n17mr4247975lbg.84.1427210884796;
+ Tue, 24 Mar 2015 08:28:04 -0700 (PDT)
+Received: by 10.114.77.132 with HTTP; Tue, 24 Mar 2015 08:28:04 -0700 (PDT)
+Date: Tue, 24 Mar 2015 23:28:04 +0800
+Message-ID:
+ <CALFpTnNDAb-T=yuAF7eizD0Yo_kDidfHoXew+EjUVu+UOwEpCQ@mail.gmail.com>
+Subject: Is it possible to create a thread in Rails subscribe to Redis
+ message channel?
+From: =?UTF-8?B?6IOh5piO?= <humings@gmail.com>
+To: unicorn-public@bogomips.org
+Content-Type: text/plain; charset=UTF-8
+X-Content-Filtered-By: PublicInbox::Filter 0.0.1
+List-Id: <unicorn-public@bogomips.org>
+
+Hi there
+
+I have one question about related to thread in Unicorn; I have asked the
+quesiton on stackoverflow.com but no one answers:
+
+http://stackoverflow.com/questions/29180275/is-it-possible-to-create-a-thread-in-rails-subscribe-to-redis-message-channel
+
+I also pasted the question in this email, hope that someone could help me
+with this:
+
+==============================================
+
+I am trying to create a thread in Rails to subscribe a message channel of
+Redis. Is there a way to do this? I am using unicorn.
+
+I have tried to do this in the unicorn configuration like this:
+
+after_fork do |server, worker|
+
+  Thread.new do
+    begin
+      $redis.subscribe(:one, :two) do |on|
+        on.subscribe do |channel, subscriptions|
+          puts "Subscribed to ##{channel} (#{subscriptions} subscriptions)"
+        end
+        on.message do |channel, message|
+          puts "##{channel}: #{message}"
+          $redis.unsubscribe if message == "exit"
+        end
+        on.unsubscribe do |channel, subscriptions|
+          puts "Unsubscribed from ##{channel} (#{subscriptions} subscriptions)"
+        end
+      end
+    rescue Redis::BaseConnectionError => error
+      puts "#{error}, retrying in 1s"
+      sleep 1
+      retry
+    end
+  endend
+
+But it will make the unicorn server unable to handle any web request. I
+thought that if I am using a different thread to subscribe to Redis, it
+won't block the main thread; am I missing something here?
+
+-- 
+Regards,
+Hu, Ming
+
