@@ -1,0 +1,61 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-2.9 required=3.0 tests=ALL_TRUSTED,AWL,BAYES_00,
+ URIBL_BLOCKED shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 916191F6A8; Tue, 24 Mar 2015 22:54:38 +0000 (UTC)
+Date: Tue, 24 Mar 2015 22:54:38 +0000
+From: Eric Wong <e@80x24.org>
+To: Michael Fischer <mfischer@zendesk.com>
+Cc: unicorn-public <unicorn-public@bogomips.org>
+Subject: Re: nginx reverse proxy getting ECONNRESET
+Message-ID: <20150324225437.GA21975@dcvr.yhbt.net>
+References:
+ <CABHxtY7Sn5yaiR5a3gDk1G4XySE+UtfuqUTcOSdmwneXLD5rcg@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To:
+ <CABHxtY7Sn5yaiR5a3gDk1G4XySE+UtfuqUTcOSdmwneXLD5rcg@mail.gmail.com>
+List-Id: <unicorn-public@bogomips.org>
+
+Michael Fischer <mfischer@zendesk.com> wrote:
+> We have an nginx 1.6.2 proxy in front of a Unicorn 4.8.3 server that
+> is frequently reporting the following error:
+> 
+> 2015/03/24 01:46:01 [error] 11217#0: *872231 readv() failed (104:
+> Connection reset by peer) while reading upstream
+> 
+> The interesting things are:
+> 
+> 1) The upstream is a Unix domain socket (to which Unicorn is bound)
+> 2) Unicorn isn't reporting that a child died in the error log (and I
+> verified their lifetimes with ps(1))
+> 
+> Any hints as to what we should look for?
+
+What changed recently with your setup?
+
+Which OS/kernel version + vendor version?
+
+Since you've been around a while, I take it this is only a recent issue?
+
+Can you setup a test instance on a different nginx port/unicorn socket
+and with a config.ru such as:
+
+------------------------- 8< ----------------------
+run(lambda do |env|
+  $stderr.write("#$$ starting at #{Time.now}\n")
+  # be sure to configure your unicorn timeout
+  sleep
+  # should not return, wait for unicorn to kill
+end)
+----------------------------------------------------
+
+And hitting nginx with a single test request to reproduce the issue.
+
+And see if it happens on the same/different hosts where you notice the
+problem.
