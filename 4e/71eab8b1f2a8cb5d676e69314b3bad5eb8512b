@@ -1,0 +1,62 @@
+Return-Path: <mfischer@zendesk.com>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14135 216.205.24.0/21
+X-Spam-Status: No, score=-0.8 required=3.0 tests=AWL,BAYES_00,
+ RCVD_IN_DNSWL_LOW,URIBL_BLOCKED shortcircuit=no autolearn=unavailable
+ version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from us-smtp-delivery-110.mimecast.com
+ (us-smtp-delivery-110.mimecast.com [216.205.24.110]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 655BF1F6A8 for <unicorn-public@bogomips.org>; Tue, 24
+ Mar 2015 22:43:43 +0000 (UTC)
+Subject: nginx reverse proxy getting ECONNRESET
+Received: from mail-qg0-f53.google.com (mail-qg0-f53.google.com
+ [209.85.192.53]) (Using TLS) by us-mta-13.us.mimecast.lan; Tue, 24 Mar 2015
+ 18:43:41 -0400
+Received: by qgfa8 with SMTP id a8so13695493qgf.0 for
+ <unicorn-public@bogomips.org>; Tue, 24 Mar 2015 15:43:41 -0700 (PDT)
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=1e100.net;
+ s=20130820; h=x-gm-message-state:mime-version:date:message-id:subject:from:to
+ :content-type; bh=DsKdr1WMxzkRMJ1iTCfyL+umRh/uwYgk8Ry82r16cAY=;
+ b=JEdylSJuUfLDlCgdAuFXgfyqQm/uzgP/0w/3X209DMI45X45cZ3VIbkteoEgNjpnFo
+ C16lMf3x4JtvWvZ+HUh5PYWbSd/1zYPCqAH3zL6rJ4kdWyezTxihMbB+DKDnvbzw6nbG
+ ICrk9MpM13UVrpgVYSc+7LAcNq60e6MgqWmagUp3JI8prSDdRKMfNPg1Ryqal5KFmEFd
+ 2oYVbbZiHW/Rp3lW+rrXN2epBYfduFeZMuSlaDiJkJje6y2LJgpF1vTzrS3xkub2jFA9
+ cdqBbfpvgfAzNQ03zdQbbYVytKqL8aJeYy+rXZAL0YCRR2Nv6VlGXX5fiF42gqdCemiF zSTQ==
+X-Gm-Message-State:
+ ALoCoQlH5NTNOHABX0d1gaWGE6RZ1G2UvZzKclN6WlkDTDtEMpjbpufWj4xcqjhuvf0Eh0VPVyMrsrne5vzgUtsguhLXXpV1dqDVdBPEu6JingQtJj5gtmZrxHwWQx9HdWlHLdayZkNrfofJBUco+y3fSPecXdRfFDnFlOAl7VURkGM9tZJxm5o=
+X-Received: by 10.55.52.83 with SMTP id b80mr14177577qka.36.1427237021006;
+ Tue, 24 Mar 2015 15:43:41 -0700 (PDT)
+MIME-Version: 1.0
+X-Received: by 10.55.52.83 with SMTP id b80mr14177563qka.36.1427237020918;
+ Tue, 24 Mar 2015 15:43:40 -0700 (PDT)
+Received: by 10.140.48.97 with HTTP; Tue, 24 Mar 2015 15:43:40 -0700 (PDT)
+Date: Tue, 24 Mar 2015 22:43:40 +0000
+Message-ID:
+ <CABHxtY7Sn5yaiR5a3gDk1G4XySE+UtfuqUTcOSdmwneXLD5rcg@mail.gmail.com>
+From: Michael Fischer <mfischer@zendesk.com>
+To: unicorn-public <unicorn-public@bogomips.org>
+X-MC-Unique: yZ8TjJeOR0SXp31YLtHa6g-1
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
+List-Id: <unicorn-public@bogomips.org>
+
+We have an nginx 1.6.2 proxy in front of a Unicorn 4.8.3 server that
+is frequently reporting the following error:
+
+2015/03/24 01:46:01 [error] 11217#0: *872231 readv() failed (104:
+Connection reset by peer) while reading upstream
+
+The interesting things are:
+
+1) The upstream is a Unix domain socket (to which Unicorn is bound)
+2) Unicorn isn't reporting that a child died in the error log (and I
+verified their lifetimes with ps(1))
+
+Any hints as to what we should look for?
+
+Thanks,
+
+--Michael
+
