@@ -1,0 +1,51 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-2.9 required=3.0 tests=ALL_TRUSTED,AWL,BAYES_00
+ shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 1C7F31FA55; Tue, 24 Mar 2015 22:44:36 +0000 (UTC)
+Date: Tue, 24 Mar 2015 22:44:35 +0000
+From: Eric Wong <e@80x24.org>
+To: =?utf-8?B?6IOh5piO?= <humings@gmail.com>
+Cc: unicorn-public@bogomips.org
+Subject: Re: Is it possible to create a thread in Rails subscribe to Redis
+ message channel?
+Message-ID: <20150324224435.GA21568@dcvr.yhbt.net>
+References:
+ <CALFpTnNDAb-T=yuAF7eizD0Yo_kDidfHoXew+EjUVu+UOwEpCQ@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+Content-Transfer-Encoding: 8bit
+In-Reply-To:
+ <CALFpTnNDAb-T=yuAF7eizD0Yo_kDidfHoXew+EjUVu+UOwEpCQ@mail.gmail.com>
+List-Id: <unicorn-public@bogomips.org>
+
+胡明 <humings@gmail.com> wrote:
+> I am trying to create a thread in Rails to subscribe a message channel of
+> Redis. Is there a way to do this? I am using unicorn.
+
+Theoretically, yes, similar things are done with other services.
+
+<snip>
+
+> But it will make the unicorn server unable to handle any web request. I
+> thought that if I am using a different thread to subscribe to Redis, it
+> won't block the main thread; am I missing something here?
+
+I'm not familiar with Redis, but I know it's a server based on stream
+sockets similar to anything else HTTP/IMAP/MySQL/Postgres/memcached-based.
+
+But based on your observation, your client library is probably blocking
+the entire Ruby VM by not releasing the GVL when it the thread waits on
+Redis.
+
+Which Redis client library are you using?
+
+If the client library is written in C, it should have rb_thread_* calls
+when it needs to wait on the server for anything (e.g.
+rb_thread_call_without_gvl, rb_thread_fd_select, rb_thread_fd_select,
+etc...).  If you don't see those in the source code, get it fixed :)
