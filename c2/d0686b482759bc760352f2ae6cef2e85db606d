@@ -1,0 +1,79 @@
+Return-Path: <mfischer@zendesk.com>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14135 216.205.24.0/21
+X-Spam-Status: No, score=-1.0 required=3.0 tests=AWL,BAYES_00,
+ RCVD_IN_DNSWL_LOW,URIBL_BLOCKED shortcircuit=no autolearn=unavailable
+ version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from us-smtp-delivery-110.mimecast.com
+ (us-smtp-delivery-110.mimecast.com [216.205.24.110]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 771E463385A for <unicorn-public@bogomips.org>; Tue,
+ 24 Mar 2015 23:30:02 +0000 (UTC)
+Subject: Re: nginx reverse proxy getting ECONNRESET
+Received: from mail-qg0-f42.google.com (mail-qg0-f42.google.com
+ [209.85.192.42]) (Using TLS) by us-mta-13.us.mimecast.lan; Tue, 24 Mar 2015
+ 19:30:00 -0400
+Received: by qgf60 with SMTP id 60so3633544qgf.3 for
+ <unicorn-public@bogomips.org>; Tue, 24 Mar 2015 16:30:00 -0700 (PDT)
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=1e100.net;
+ s=20130820; h=x-gm-message-state:mime-version:in-reply-to:references:date
+ :message-id:subject:from:to:cc:content-type;
+ bh=wVcBH2g3ULBSJ6dC0LPgMjHpK+rK2ejQ8RHieMVfL4g=;
+ b=NxiibjpOd9Ng72hoIaSxW4utJm93M+8roczS3YyQ8GD/lmD6RO2fxMfU3G6fgWubrj
+ 1p8oLxcgZ41eUDn7YCoKg869z8uH0+OgCklCaWUU64jQE4pbw5h1E95NDvHGjUWV/HFZ
+ KHQQI6r8y8fPMOJhYTPjd8rwKs/Vg+fttdmhrIehwzZr5/Oc5mi5P8I+P+0iSXB1XAaQ
+ xMCQbgNBmIMfomL5/IntUL1OzST+uiEpl2noTnRew84zE88eHa93uDjriQq8PDz/KyM7
+ CKmgXpP47L3IuwxgAqnVLYhrO8j0lpGFaizRJBvtHuBjPfBoSLX+L5nc2m5SJPDFYebk G+wQ==
+X-Gm-Message-State:
+ ALoCoQmi7jMml6xiVS4PayUHGvl/3nx6DEDxS+X/cA3tOvu/OHZ3adtR7lqPAvrYa4lIpVXHxzStBmCh3mfYhRZQuLut72kCovEZ66E6WiesGZ41d2eCfR5kwcnmDQ/E/CYIAuQp58MV2Q8lpt4qGp/oiJTEcUXARONt4ZHPS1kambm79fJ7MAU=
+X-Received: by 10.140.28.36 with SMTP id 33mr8620396qgy.6.1427239800080; Tue,
+ 24 Mar 2015 16:30:00 -0700 (PDT)
+MIME-Version: 1.0
+X-Received: by 10.140.28.36 with SMTP id 33mr8620387qgy.6.1427239799970; Tue,
+ 24 Mar 2015 16:29:59 -0700 (PDT)
+Received: by 10.140.48.97 with HTTP; Tue, 24 Mar 2015 16:29:59 -0700 (PDT)
+In-Reply-To: <20150324232320.GA9552@dcvr.yhbt.net>
+References:
+ <CABHxtY7Sn5yaiR5a3gDk1G4XySE+UtfuqUTcOSdmwneXLD5rcg@mail.gmail.com>
+ <20150324225437.GA21975@dcvr.yhbt.net> <20150324225957.GA22127@dcvr.yhbt.net>
+ <CABHxtY6pW0rtrEz74TQmFGdBiAeYMZr_0bubR7VCrmHPsU19Lg@mail.gmail.com>
+ <20150324232320.GA9552@dcvr.yhbt.net>
+Date: Tue, 24 Mar 2015 23:29:59 +0000
+Message-ID:
+ <CABHxtY7H+LAz7=0eyDJy+y4nbOYqfdbdXGY7d52N+h9AT8vBJA@mail.gmail.com>
+From: Michael Fischer <mfischer@zendesk.com>
+To: Eric Wong <e@80x24.org>
+Cc: unicorn-public <unicorn-public@bogomips.org>
+X-MC-Unique: GAdz21tzTZqe6lOkEnCiUQ-1
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
+List-Id: <unicorn-public@bogomips.org>
+
+On Tue, Mar 24, 2015 at 11:23 PM, Eric Wong <e@80x24.org> wrote:
+
+> So there might be data sitting on the socket if your application
+> processing returns a response before it parsed the POST request.
+
+When this occurs, the nginx access logs show an HTTP 200 (OK) response
+with a 0 byte response body.
+
+Is it your hypothesis that the application is just failing to consume
+the entire POST body in this instance?   In that case, wouldn't we
+expect to see nginx failing to write on the socket instead of read?
+
+> Actually, you can try setting up a Rack::Lobster instance but sending
+> a giant POST request?
+>
+> ------------- config.ru --------------
+> require 'rack/lobster'
+> run Rack::Lobster.new
+> --------------------------------------
+
+I don't know what this is -- systems guy here, not a Rack expert...
+how will this help?
+
+Thanks,
+
+--Michael
+
