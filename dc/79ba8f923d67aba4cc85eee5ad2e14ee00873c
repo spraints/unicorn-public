@@ -1,0 +1,70 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-2.9 required=3.0 tests=ALL_TRUSTED,AWL,BAYES_00,
+ URIBL_BLOCKED shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 152862013F; Wed, 25 Mar 2015 10:12:08 +0000 (UTC)
+Date: Wed, 25 Mar 2015 10:12:07 +0000
+From: Eric Wong <e@80x24.org>
+To: Michael Fischer <mfischer@zendesk.com>
+Cc: unicorn-public <unicorn-public@bogomips.org>
+Subject: Re: nginx reverse proxy getting ECONNRESET
+Message-ID: <20150325101207.GA30908@dcvr.yhbt.net>
+References:
+ <CABHxtY7Sn5yaiR5a3gDk1G4XySE+UtfuqUTcOSdmwneXLD5rcg@mail.gmail.com>
+ <20150324225437.GA21975@dcvr.yhbt.net> <20150324225957.GA22127@dcvr.yhbt.net>
+ <CABHxtY6pW0rtrEz74TQmFGdBiAeYMZr_0bubR7VCrmHPsU19Lg@mail.gmail.com>
+ <20150324232320.GA9552@dcvr.yhbt.net>
+ <CABHxtY7H+LAz7=0eyDJy+y4nbOYqfdbdXGY7d52N+h9AT8vBJA@mail.gmail.com>
+ <20150324234620.GA15866@dcvr.yhbt.net> <20150324235504.GA16472@dcvr.yhbt.net>
+ <CABHxtY4Ba1rsGKQiTHCX250CcD871oOW3oqBxgFnELg8iw7FCw@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To:
+ <CABHxtY4Ba1rsGKQiTHCX250CcD871oOW3oqBxgFnELg8iw7FCw@mail.gmail.com>
+List-Id: <unicorn-public@bogomips.org>
+
+Michael Fischer <mfischer@zendesk.com> wrote:
+> On Tue, Mar 24, 2015 at 11:55 PM, Eric Wong <e@80x24.org> wrote:
+> 
+> > Actually, are you getting 502 errors returned from nginx in this case?
+> > That would not be harmless.  I suggest ensuring rack.input is
+> > fully-drained if that is the case (perhaps using PrereadInput).
+> 
+> No, they're all 200 responses with a zero-length body size.  It's the
+> first time I'd ever seen such a combination of symptoms.
+
+OK, thanks for the update.
+
+I was wondering if including a Unicorn::PostreadInput middleware should
+be introduced to quiet your logs.  It should have the same effect as
+PrereadInput, but should provide better performance in the common case
+and also be compatible with "rewindable_input false" users.
+
+class Unicorn::PostreadInput
+  def initialize(app)
+    @app = app
+  end
+
+  def call(env)
+    input = env["rack.input"] # save it here, in case the app reassigns it
+    @app.call(env)
+  ensure
+    # Ensure the HTTP request is entirely read off the socket even
+    # if the app aborts early.  This should prevent nginx from
+    # complaining about ECONNRESET errors.
+    unless env["rack.hijack_io"]
+      buf = ''
+      true while input.read(16384, buf)
+      buf.clear
+    end
+  end
+end
+
+(totally untested)
+
+"Postread" doesn't sound quite right, though...
