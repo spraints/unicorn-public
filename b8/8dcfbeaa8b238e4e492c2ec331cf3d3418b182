@@ -1,0 +1,78 @@
+Return-Path: <mfischer@zendesk.com>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14135 216.205.24.0/21
+X-Spam-Status: No, score=-1.1 required=3.0 tests=AWL,BAYES_00,
+ RCVD_IN_DNSWL_LOW,URIBL_BLOCKED shortcircuit=no autolearn=unavailable
+ version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from us-smtp-delivery-110.mimecast.com
+ (us-smtp-delivery-110.mimecast.com [216.205.24.110]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id EA1C92014D for <unicorn-public@bogomips.org>; Wed, 25
+ Mar 2015 09:48:30 +0000 (UTC)
+Subject: Re: nginx reverse proxy getting ECONNRESET
+Received: from mail-qg0-f49.google.com (mail-qg0-f49.google.com
+ [209.85.192.49]) (Using TLS) by us-mta-11.us.mimecast.lan; Wed, 25 Mar 2015
+ 05:48:29 -0400
+Received: by qgf60 with SMTP id 60so19642465qgf.3 for
+ <unicorn-public@bogomips.org>; Wed, 25 Mar 2015 02:48:28 -0700 (PDT)
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=1e100.net;
+ s=20130820; h=x-gm-message-state:mime-version:in-reply-to:references:date
+ :message-id:subject:from:to:cc:content-type;
+ bh=MuuLK+u5rmfjqLdJnNdCUZUtNcgx8uDt36UFi2rYY10=;
+ b=gTQlT7esPEqWARCsQeiI3a5UKzeXoM9im0uG0hFmixIhU5WIoQBq77IX+uGTeyKFZx
+ 7RACZib8WbFwGDQc9p25yBhylGp4nKJSGrYqsVa+qOXwAHjhZFwzxgwOznXRfCMiGcwu
+ hBQEtvEwMia6sKDDUIepjgCvKEsq5QT+3GZ4fsafut8b1kGPoxCNUxRFXCm7Zv6BcDMJ
+ YnHmeLuZJ5NRVyH+IODJ0dMofKGZ/8E305OuyCtqloRmzAQXMwjJUAOPSWbl9njLMILn
+ W4DsmMr2UBiSWlea3+KsTny97W4cA6fFU+f4oALb3HeUN8FzhHxt2bYbqUdjLt6tAAQ2 AEsw==
+X-Gm-Message-State:
+ ALoCoQk0MO8C4c5FcgP2nePYWZ1ZukcoaK0gfGIEoKxRFKvO7omTfvgWOlPvXfaxbuJQIScBEIfSZs/4ZbLi6wghKpCz3RsQxcy7LQOZjyLxhbXyMXwWBEE8IW7Zpdr8QUDPazIyfoRv+gOE/1nP7CZIkncmc4b2BHEdjD7dhcqWMFUY8Lb41N0=
+X-Received: by 10.140.42.195 with SMTP id c61mr10658602qga.94.1427276908468;
+ Wed, 25 Mar 2015 02:48:28 -0700 (PDT)
+MIME-Version: 1.0
+X-Received: by 10.140.42.195 with SMTP id c61mr10658597qga.94.1427276908395;
+ Wed, 25 Mar 2015 02:48:28 -0700 (PDT)
+Received: by 10.140.48.97 with HTTP; Wed, 25 Mar 2015 02:48:28 -0700 (PDT)
+In-Reply-To: <20150324234620.GA15866@dcvr.yhbt.net>
+References:
+ <CABHxtY7Sn5yaiR5a3gDk1G4XySE+UtfuqUTcOSdmwneXLD5rcg@mail.gmail.com>
+ <20150324225437.GA21975@dcvr.yhbt.net> <20150324225957.GA22127@dcvr.yhbt.net>
+ <CABHxtY6pW0rtrEz74TQmFGdBiAeYMZr_0bubR7VCrmHPsU19Lg@mail.gmail.com>
+ <20150324232320.GA9552@dcvr.yhbt.net>
+ <CABHxtY7H+LAz7=0eyDJy+y4nbOYqfdbdXGY7d52N+h9AT8vBJA@mail.gmail.com>
+ <20150324234620.GA15866@dcvr.yhbt.net>
+Date: Wed, 25 Mar 2015 09:48:28 +0000
+Message-ID:
+ <CABHxtY4SUMvms7h=3U1_i9ja6hTGfoeF47FxH+GLvinjWN026Q@mail.gmail.com>
+From: Michael Fischer <mfischer@zendesk.com>
+To: Eric Wong <e@80x24.org>
+Cc: unicorn-public <unicorn-public@bogomips.org>
+X-MC-Unique: siYWEAgISkWKUc1hbZnIwA-1
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
+List-Id: <unicorn-public@bogomips.org>
+
+On Tue, Mar 24, 2015 at 11:46 PM, Eric Wong <e@80x24.org> wrote:
+
+>> Is it your hypothesis that the application is just failing to consume
+>> the entire POST body in this instance?   In that case, wouldn't we
+>> expect to see nginx failing to write on the socket instead of read?
+>
+> It could've been just big enough to fit inside the kernel socket
+> buffers, but not enough for nginx to wait on.  In the below standalone
+> example, the server only reads 4092 bytes of the 4096-byte request.
+
+> Here's a bare-bones example without nginx/unicorn at all:
+
+[snip]
+
+Thank you for the example; it really zeroes in on the situation.  I
+learn something new every day!
+
+I'll check with the developers to find out whether the app is
+misbehaving in a similar way.
+
+Best regards,
+
+--Michael
+
