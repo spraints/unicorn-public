@@ -1,0 +1,66 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-2.9 required=3.0 tests=ALL_TRUSTED,AWL,BAYES_00,
+ URIBL_BLOCKED shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 7CCC01F462; Fri, 27 Mar 2015 18:34:15 +0000 (UTC)
+Date: Fri, 27 Mar 2015 18:34:15 +0000
+From: Eric Wong <e@80x24.org>
+To: Russell Jennings <violentpurr@gmail.com>
+Cc: unicorn-public@bogomips.org
+Subject: Re: $USER and $HOME shell variables not set
+Message-ID: <20150327183415.GA32272@dcvr.yhbt.net>
+References: <E6EDFE8D-87EB-473D-B189-B282D17B8324@gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+Content-Transfer-Encoding: 8bit
+In-Reply-To: <E6EDFE8D-87EB-473D-B189-B282D17B8324@gmail.com>
+List-Id: <unicorn-public@bogomips.org>
+
+Russell Jennings <violentpurr@gmail.com> wrote:
+> Hello,
+> 
+> I am running into some issues with these variables being set - since I
+> am spawning a script from a unicorn worker (via a rails controller) I
+> figured I’d ask here. 
+> 
+> Here is the stackoverflow with the full background:
+> http://stackoverflow.com/questions/29233181/why-is-envhome-nil-in-my-rake-task
+> 
+> in short: does unicorn have anything to do with $HOME or $USER not
+> being defined?
+
+Nope, unicorn itself does not change these variables.  We only set
+UNICORN_FD (for SIGUSR2 upgrades), PWD (if working_directory is used).
+
+Your init system may change users and clobber these options via
+sudo/su/env and similar wrappers, so I think it has to do with how
+you're starting unicorn.  If you're using sudo anywhere, the env_*
+options from the sudoers files will also affect which envs get
+clobbered/preserved/added.
+
+> From what I can tell, that its unicorn is the only
+> thing thats different versus running the same ruby via a rails console
+> (which does indeed set those shell variables correctly)
+> 
+> in no mans land, so any hep or insight would be greatly appreciated. 
+
+Can you add something to log the contents of ENV.inspect to
+a log file.  Perhaps something like:
+
+	Rails.logger.debug("env: #{ENV.inspect}")
+
+It would also be helpful to show the snippet of code from where you're
+running Rake in case you're accidentally setting an option wrong.
+
+
+Under Linux, you can also inspect the original environment of any running
+process from /proc/$PID/environ  In most cases/kernel versions, it won't
+keep up with env changes once a process is running.
+I use tr to replace '\0' with '\n' (newline) to help with readability
+
+	tr '\0' '\n' </proc/$PID/environ
