@@ -1,0 +1,106 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-2.9 required=3.0 tests=ALL_TRUSTED,BAYES_00
+ shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id BD5FA1F526 for <unicorn-public@bogomips.org>; Tue,  7
+ Apr 2015 07:56:15 +0000 (UTC)
+From: Eric Wong <e@80x24.org>
+To: unicorn-public@bogomips.org
+Subject: [PATCH] favor more string literals for cold call sites
+Date: Tue,  7 Apr 2015 07:56:15 +0000
+Message-Id: <1428393375-22083-1-git-send-email-e@80x24.org>
+List-Id: <unicorn-public@bogomips.org>
+
+Literal regexps cost over 450 bytes of memory per-site and
+unnecessary use of them costs memory in places where raw execution
+speed does not matter.  Nowadays, we can rely on String#end_with?
+(introduced in 1.8.7) for improved readability, too.
+---
+ bin/unicorn                  | 2 +-
+ bin/unicorn_rails            | 2 +-
+ lib/unicorn/configurator.rb  | 4 ++--
+ lib/unicorn/http_server.rb   | 2 +-
+ lib/unicorn/socket_helper.rb | 2 +-
+ 5 files changed, 6 insertions(+), 6 deletions(-)
+
+diff --git a/bin/unicorn b/bin/unicorn
+index c272e43..3c5e5cb 100755
+--- a/bin/unicorn
++++ b/bin/unicorn
+@@ -29,7 +29,7 @@ op = OptionParser.new("", 24, '  ') do |opts|
+ 
+   opts.on("-I", "--include PATH",
+           "specify $LOAD_PATH (may be used more than once)") do |path|
+-    $LOAD_PATH.unshift(*path.split(/:/))
++    $LOAD_PATH.unshift(*path.split(':'))
+   end
+ 
+   opts.on("-r", "--require LIBRARY",
+diff --git a/bin/unicorn_rails b/bin/unicorn_rails
+index b080846..ea4f822 100755
+--- a/bin/unicorn_rails
++++ b/bin/unicorn_rails
+@@ -30,7 +30,7 @@ op = OptionParser.new("", 24, '  ') do |opts|
+ 
+   opts.on("-I", "--include PATH",
+           "specify $LOAD_PATH (may be used more than once)") do |path|
+-    $LOAD_PATH.unshift(*path.split(/:/))
++    $LOAD_PATH.unshift(*path.split(':'))
+   end
+ 
+   opts.on("-r", "--require LIBRARY",
+diff --git a/lib/unicorn/configurator.rb b/lib/unicorn/configurator.rb
+index 69b4644..32e49c1 100644
+--- a/lib/unicorn/configurator.rb
++++ b/lib/unicorn/configurator.rb
+@@ -586,7 +586,7 @@ private
+   def canonicalize_tcp(addr, port)
+     packed = Socket.pack_sockaddr_in(port, addr)
+     port, addr = Socket.unpack_sockaddr_in(packed)
+-    /:/ =~ addr ? "[#{addr}]:#{port}" : "#{addr}:#{port}"
++    addr.include?(':') ? "[#{addr}]:#{port}" : "#{addr}:#{port}"
+   end
+ 
+   def set_path(var, path) #:nodoc:
+@@ -642,7 +642,7 @@ private
+       raise ArgumentError, "rackup file (#{ru}) not readable"
+ 
+     # it could be a .rb file, too, we don't parse those manually
+-    ru =~ /\.ru\z/ or return
++    ru.end_with?('.ru') or return
+ 
+     /^#\\(.*)/ =~ File.read(ru) or return
+     RACKUP[:optparse].parse!($1.split(/\s+/))
+diff --git a/lib/unicorn/http_server.rb b/lib/unicorn/http_server.rb
+index 77345d2..a726c91 100644
+--- a/lib/unicorn/http_server.rb
++++ b/lib/unicorn/http_server.rb
+@@ -186,7 +186,7 @@ class Unicorn::HttpServer
+     if path
+       if x = valid_pid?(path)
+         return path if pid && path == pid && x == $$
+-        if x == reexec_pid && pid =~ /\.oldbin\z/
++        if x == reexec_pid && pid.end_with?('.oldbin')
+           logger.warn("will not set pid=#{path} while reexec-ed "\
+                       "child is running PID:#{x}")
+           return
+diff --git a/lib/unicorn/socket_helper.rb b/lib/unicorn/socket_helper.rb
+index a321ddf..812ac53 100644
+--- a/lib/unicorn/socket_helper.rb
++++ b/lib/unicorn/socket_helper.rb
+@@ -156,7 +156,7 @@ module Unicorn
+     # returns rfc2732-style (e.g. "[::1]:666") addresses for IPv6
+     def tcp_name(sock)
+       port, addr = Socket.unpack_sockaddr_in(sock.getsockname)
+-      /:/ =~ addr ? "[#{addr}]:#{port}" : "#{addr}:#{port}"
++      addr.include?(':') ? "[#{addr}]:#{port}" : "#{addr}:#{port}"
+     end
+     module_function :tcp_name
+ 
+-- 
+EW
+
