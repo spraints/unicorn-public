@@ -1,0 +1,62 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-2.9 required=3.0 tests=ALL_TRUSTED,AWL,BAYES_00,
+ URIBL_BLOCKED shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 552F4200CD; Tue,  7 Apr 2015 23:22:18 +0000 (UTC)
+Date: Tue, 7 Apr 2015 23:22:18 +0000
+From: Eric Wong <e@80x24.org>
+To: unicorn-public@bogomips.org
+Subject: possible errors reading mailing list archives
+Message-ID: <20150407232218.GA8875@dcvr.yhbt.net>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+List-Id: <unicorn-public@bogomips.org>
+
+If you hit any errors or truncated/corrupted responses when reading ML
+archives at http://bogomips.org/unicorn-public/ it's probably because of
+a bug in the new rack.hijack-based proxy in front of the prefork Apache2
+instance hosting.
+
+Drop me (or this list) a plain-text mail with the URL(s) and any info
+about your client/connection that's broken for you
+
+Previously, it was yahns using a synchronous (Rack, no-hijack) proxy
+from yahns in the extras/proxy_pass.rb file[2]
+
+before:
+  yahns:extras/proxy_pass.rb -> varnish -> mpm_prefork+mod_perl
+
+after:
+  yahns:lib/yahns/proxy_pass.rb -> varnish -> mpm_prefork+mod_perl
+
+yahns mailing list archives with all the relevant commits are here:
+http://yhbt.net/yahns-public/
+
+In case the HTTP portion of the archives get hosed, archives of the
+mailing lists are still git clonable with ssoma[1] (or just using
+"git clone")
+
+	git://yhbt.net/yahns-public
+	git://bogomips.org/unicorn-public
+
+In case the server is gets completely hosed by the yahns proxy_pass
+changes, archives are still readable at:
+
+	https://www.mail-archive.com/yahns-public@yhbt.net/
+	https://www.mail-archive.com/unicorn-public@bogomips.org/
+
+Finally, in case you haven't realized by now; unicorn has always been a
+rip-off of Apache(1|2) prefork design.  The major difference is the
+marketing of unicorn always focused on the shortcomings of the design :>
+
+So any fully-buffering reverse proxy such as nginx or yahns/proxy_pass
+which protects one preforking server implementation from slow clients
+will protect another...
+
+[1] http://ssoma.public-inbox.org/
+[2] git clone git://yhbt.net/yahns
