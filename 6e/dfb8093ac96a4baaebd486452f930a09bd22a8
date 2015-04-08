@@ -1,0 +1,68 @@
+Return-Path: <gabe@zendesk.com>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS3561 63.128.0.0/15
+X-Spam-Status: No, score=-1.9 required=3.0 tests=BAYES_00,URIBL_BLOCKED
+ shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from us-smtp-delivery-110.mimecast.com
+ (us-smtp-delivery-110.mimecast.com [63.128.21.110]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 3A9FA200C8 for <unicorn-public@bogomips.org>; Wed,  8
+ Apr 2015 16:22:08 +0000 (UTC)
+Subject: Re: nginx reverse proxy getting ECONNRESET
+Received: from mail-ie0-f171.google.com (mail-ie0-f171.google.com
+ [209.85.223.171]) (Using TLS) by us-mta-36.us.mimecast.lan; Wed, 08 Apr 2015
+ 12:22:05 -0400
+Received: by iebrs15 with SMTP id rs15so78711800ieb.3 for
+ <unicorn-public@bogomips.org>; Wed, 08 Apr 2015 09:22:05 -0700 (PDT)
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=1e100.net;
+ s=20130820; h=x-gm-message-state:from:content-type:content-transfer-encoding
+ :subject:date:message-id:cc:to:mime-version;
+ bh=KLE7IFVZhNOevNz/C9O/0QbrBFAVMleCen/LpuogS5U=;
+ b=XDUZjMGfFIYU8cU32CS8NpNRHALlL5HCnPX3RlWuvX07leCqI9rPE2KnVSSICuPMvW
+ EunimkgjXYiOZAJ58ZgRMqy5h9UimAFnyCkWy4u1MkZeUm0DqTP3GhSUg6B3IxVyt35i
+ lWHZGhVnNGvQqMn+zu+91bQ0PE55uOwPgkI3n3Twqx3vsJ0WrpWZ9v/eARfTAw5CxU1i
+ wHMB8OckYTbgA5o27T2aF9ceW2o/hRo9nJs9GPeWLw604LSAC8yaGdGFd/doO6LmOqpC
+ FqJAgtPkLjGyhqMbYGP+Uu8kx2MuxiTZoz5bzDsnK7Ky2DP83HOEDtQqslYdfbXZdRoM M6mg==
+X-Gm-Message-State:
+ ALoCoQkkuoWhsfyPkfgqZprNjWnYxnxOUThNtlCeuGl2VMbpbSQim+RZRNhGqNRTXSKjbcYl3ynXXUBGK4AAZOhY6vj8RP5k8jf2MxIwvDh5M+dUlHlXwoI0WL87rM8j7zt3HZwa5crMSq9Jo0Kb1c4hBVuZG9x+dLxnsCGL+sj+WanwhYb75Ns=
+X-Received: by 10.50.43.136 with SMTP id w8mr9301320igl.26.1428510125142;
+ Wed, 08 Apr 2015 09:22:05 -0700 (PDT)
+X-Received: by 10.50.43.136 with SMTP id w8mr9301305igl.26.1428510125019;
+ Wed, 08 Apr 2015 09:22:05 -0700 (PDT)
+Received: from [10.0.1.12] (c-76-21-12-245.hsd1.ca.comcast.net.
+ [76.21.12.245]) by mx.google.com with ESMTPSA id
+ b17sm6994886iob.31.2015.04.08.09.22.04 (version=TLSv1
+ cipher=ECDHE-RSA-RC4-SHA bits=128/128); Wed, 08 Apr 2015 09:22:04 -0700 (PDT)
+From: Gabe Martin-Dempesy <gabe@zendesk.com>
+Date: Wed, 8 Apr 2015 09:22:03 -0700
+Message-Id: <FC91211E-FD32-432C-92FC-0318714C2170@zendesk.com>
+Cc: e@80x24.org
+To: unicorn-public@bogomips.org
+Mime-Version: 1.0 (Mac OS X Mail 8.2 \(2070.6\))
+X-Mailer: Apple Mail (2.2070.6)
+X-MC-Unique: 8Qt1HfoESLy48qfbPYf4dQ-1
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
+List-Id: <unicorn-public@bogomips.org>
+
+Follow up on the resolution.
+
+Data was being left in the socket, although it wasn=E2=80=99t immediately o=
+bvious why. The affected end point received gzipped POST bodies, and would =
+process this somewhat like this:
+
+    uncompressed_body =3D StringIO.new(Zlib::GzipReader.new(request.body).r=
+ead)
+    process(uncompressed_body)
+
+At the end of each request, all of the uncompressed data had been consumed =
+and `uncompressed_body.eof?` would always be true. However, GzipReader#clos=
+e wasn=E2=80=99t explicitly called, causing anywhere between 1 and 7 traili=
+ng bytes of the 8 byte gzip footer to remain unread in request.body (rack.i=
+nput) in a small portion of requests. Rewriting this to explicitly close th=
+e GzipReader forces it to read and validate the footer, and leaves us with =
+a completely consumed request.body.
+
+Thanks for your help identifying the root cause.
+
