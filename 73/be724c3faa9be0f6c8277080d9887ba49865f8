@@ -1,0 +1,127 @@
+Return-Path: <MMulvaney@bna.com>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS8075 207.46.64.0/18
+X-Spam-Status: No, score=-1.6 required=3.0 tests=AWL,BAYES_00,
+ RCVD_IN_DNSWL_BLOCKED,URIBL_BLOCKED shortcircuit=no autolearn=unavailable
+ version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from na01-by2-obe.outbound.protection.outlook.com
+ (mail-by2on0114.outbound.protection.outlook.com [207.46.100.114]) (using
+ TLSv1.2 with cipher ECDHE-RSA-AES256-SHA384 (256/256 bits)) (No client
+ certificate requested) by dcvr.yhbt.net (Postfix) with ESMTPS id A712C1F71E
+ for <unicorn-public@bogomips.org>; Wed, 22 Apr 2015 19:24:11 +0000 (UTC)
+Received: from CY1PR0301MB0780.namprd03.prod.outlook.com (25.160.160.140) by
+ CY1PR0301MB0780.namprd03.prod.outlook.com (25.160.160.140) with Microsoft
+ SMTP Server (TLS) id 15.1.136.25; Wed, 22 Apr 2015 19:24:10 +0000
+Received: from CY1PR0301MB0780.namprd03.prod.outlook.com ([25.160.160.140])
+ by CY1PR0301MB0780.namprd03.prod.outlook.com ([25.160.160.140]) with mapi id
+ 15.01.0136.014; Wed, 22 Apr 2015 19:24:10 +0000
+From: "Mulvaney, Mike" <MMulvaney@bna.com>
+To: Eric Wong <e@80x24.org>
+CC: "unicorn-public@bogomips.org" <unicorn-public@bogomips.org>
+Subject: RE: TeeInput leaks file handles/space
+Thread-Topic: TeeInput leaks file handles/space
+Thread-Index: AdB9Gw2r1ccEWvn3Q9SwOq7RL1z5OwAEGx4AAAEU3eAAAD7iAAAAK9hQ
+Date: Wed, 22 Apr 2015 19:24:09 +0000
+Message-ID:
+ <CY1PR0301MB078054C9531CACD477B3FADEA4EE0@CY1PR0301MB0780.namprd03.prod.outlook.com>
+References:
+ <CY1PR0301MB078011EB5A22B733EB222A45A4EE0@CY1PR0301MB0780.namprd03.prod.outlook.com> <20150422183808.GA5277@dcvr.yhbt.net> <CY1PR0301MB07803D33C70E594F058BB0FFA4EE0@CY1PR0301MB0780.namprd03.prod.outlook.com> <20150422191608.GA31363@dcvr.yhbt.net>
+In-Reply-To: <20150422191608.GA31363@dcvr.yhbt.net>
+Accept-Language: en-US
+Content-Language: en-US
+X-MS-Has-Attach: 
+X-MS-TNEF-Correlator: 
+x-originating-ip: [70.15.40.100]
+x-microsoft-antispam: UriScan:;BCL:0;PCL:0;RULEID:;SRVR:CY1PR0301MB0780;
+x-microsoft-antispam-prvs:
+ <CY1PR0301MB0780846AD0C81F9F07E1836BA4EE0@CY1PR0301MB0780.namprd03.prod.outlook.com>
+x-forefront-antispam-report:
+ BMV:1;SFV:NSPM;SFS:(10019020)(6009001)(76104003)(24454002)(377454003)(13464003)(50986999)(54356999)(19580395003)(19580405001)(93886004)(62966003)(77156002)(33656002)(74316001)(102836002)(87936001)(76176999)(110136001)(46102003)(2950100001)(2656002)(2900100001)(40100003)(66066001)(99286002)(92566002)(76576001)(122556002)(86362001);DIR:OUT;SFP:1102;SCL:1;SRVR:CY1PR0301MB0780;H:CY1PR0301MB0780.namprd03.prod.outlook.com;FPR:;SPF:None;MLV:sfv;LANG:en;
+x-exchange-antispam-report-test: UriScan:;
+x-exchange-antispam-report-cfa-test:
+ BCL:0;PCL:0;RULEID:(601004)(5005006)(5002010);SRVR:CY1PR0301MB0780;BCL:0;PCL:0;RULEID:;SRVR:CY1PR0301MB0780;
+x-forefront-prvs: 0554B1F54F
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: quoted-printable
+MIME-Version: 1.0
+X-OriginatorOrg: bna.com
+X-MS-Exchange-CrossTenant-originalarrivaltime: 22 Apr 2015 19:24:09.5909
+ (UTC)
+X-MS-Exchange-CrossTenant-fromentityheader: Hosted
+X-MS-Exchange-CrossTenant-id: 97be21fd-c601-4b16-9920-f5accc69da65
+X-MS-Exchange-Transport-CrossTenantHeadersStamped: CY1PR0301MB0780
+List-Id: <unicorn-public@bogomips.org>
+
+Oh yeah, I like that even better.
+
+The app I'm currently working on is using Rails 4.1 and Rack 1.5.x.  I don'=
+t have any problem with upgrading rack, I just haven't done it yet.
+
+I think it would be reasonable to fix this for Rack 1.6+.  It won't cause a=
+ny problems for Rack 1.5 users, right?  The environment variable gets set a=
+nd then ignored, so the app would behave exactly the same way.  If they wan=
+t to use the new cleanup code, they can upgrade rack.
+
+-Mike
+
+-----Original Message-----
+From: Eric Wong [mailto:e@80x24.org]=20
+Sent: Wednesday, April 22, 2015 3:16 PM
+To: Mulvaney, Mike
+Cc: unicorn-public@bogomips.org
+Subject: Re: TeeInput leaks file handles/space
+
+"Mulvaney, Mike" <MMulvaney@bna.com> wrote:
+> That looks reasonable to me -- this way you would only have one file=20
+> still open per process at a maximum, right?  I think that's a good=20
+> solution.
+
+Right.
+
+Below is a barely-tested alternative patch for Rack::TempfileReaper, for Ra=
+ck 1.6+ users only.  I'm not sure how prevalent 1.6+ was only released in D=
+ecember 2014...
+
+It's more standardized, but maybe Rack 1.6 isn't prevalent enough, yet.
+What do you think?
+
+(Sorry, in a rush, no commit message, yet)
+
+diff --git a/lib/unicorn/tee_input.rb b/lib/unicorn/tee_input.rb index 637c=
+583..7f6baa2 100644
+--- a/lib/unicorn/tee_input.rb
++++ b/lib/unicorn/tee_input.rb
+@@ -28,13 +28,20 @@ class Unicorn::TeeInput < Unicorn::StreamInput
+     @@client_body_buffer_size
+   end
+=20
++  # for Rack::TempfileReaper in rack 1.6+  def new_tmpio
++    tmpio =3D Unicorn::TmpIO.new
++    (@parser.env['rack.tempfiles'] ||=3D []) << tmpio
++    tmpio
++  end
++
+   # Initializes a new TeeInput object.  You normally do not have to call
+   # this unless you are writing an HTTP server.
+   def initialize(socket, request)
+     @len =3D request.content_length
+     super
+     @tmp =3D @len && @len <=3D @@client_body_buffer_size ?
+-           StringIO.new("") : Unicorn::TmpIO.new
++           StringIO.new("") : new_tmpio
+   end
+=20
+   # :call-seq:
+diff --git a/lib/unicorn/tmpio.rb b/lib/unicorn/tmpio.rb index c97979a..db8=
+8ed3 100644
+--- a/lib/unicorn/tmpio.rb
++++ b/lib/unicorn/tmpio.rb
+@@ -21,4 +21,7 @@ class Unicorn::TmpIO < File
+     fp.sync =3D true
+     fp
+   end
++
++  # pretend we're Tempfile for Rack::TempfileReaper  alias close! close
+ end
