@@ -1,0 +1,149 @@
+Return-Path: <MMulvaney@bna.com>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS8075 65.52.0.0/14
+X-Spam-Status: No, score=-1.4 required=3.0 tests=AWL,BAYES_00,
+ RCVD_IN_DNSWL_NONE,URIBL_BLOCKED shortcircuit=no autolearn=unavailable
+ version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from na01-bl2-obe.outbound.protection.outlook.com
+ (mail-bl2on0132.outbound.protection.outlook.com [65.55.169.132]) (using
+ TLSv1.2 with cipher ECDHE-RSA-AES256-SHA384 (256/256 bits)) (No client
+ certificate requested) by dcvr.yhbt.net (Postfix) with ESMTPS id 863A21F9F5
+ for <unicorn-public@bogomips.org>; Wed, 22 Apr 2015 19:10:04 +0000 (UTC)
+Received: from CY1PR0301MB0780.namprd03.prod.outlook.com (25.160.160.140) by
+ CY1PR0301MB0780.namprd03.prod.outlook.com (25.160.160.140) with Microsoft
+ SMTP Server (TLS) id 15.1.136.25; Wed, 22 Apr 2015 19:10:02 +0000
+Received: from CY1PR0301MB0780.namprd03.prod.outlook.com ([25.160.160.140])
+ by CY1PR0301MB0780.namprd03.prod.outlook.com ([25.160.160.140]) with mapi id
+ 15.01.0136.014; Wed, 22 Apr 2015 19:10:02 +0000
+From: "Mulvaney, Mike" <MMulvaney@bna.com>
+To: Eric Wong <e@80x24.org>
+CC: "unicorn-public@bogomips.org" <unicorn-public@bogomips.org>
+Subject: RE: TeeInput leaks file handles/space
+Thread-Topic: TeeInput leaks file handles/space
+Thread-Index: AdB9Gw2r1ccEWvn3Q9SwOq7RL1z5OwAEGx4AAAEU3eA=
+Date: Wed, 22 Apr 2015 19:10:02 +0000
+Message-ID:
+ <CY1PR0301MB07803D33C70E594F058BB0FFA4EE0@CY1PR0301MB0780.namprd03.prod.outlook.com>
+References:
+ <CY1PR0301MB078011EB5A22B733EB222A45A4EE0@CY1PR0301MB0780.namprd03.prod.outlook.com> <20150422183808.GA5277@dcvr.yhbt.net>
+In-Reply-To: <20150422183808.GA5277@dcvr.yhbt.net>
+Accept-Language: en-US
+Content-Language: en-US
+X-MS-Has-Attach: 
+X-MS-TNEF-Correlator: 
+x-originating-ip: [70.15.40.100]
+x-microsoft-antispam: UriScan:;BCL:0;PCL:0;RULEID:;SRVR:CY1PR0301MB0780;
+x-microsoft-antispam-prvs:
+ <CY1PR0301MB0780CAA400D5330A77E08D0CA4EE0@CY1PR0301MB0780.namprd03.prod.outlook.com>
+x-forefront-antispam-report:
+ BMV:1;SFV:NSPM;SFS:(10019020)(6009001)(164054003)(377454003)(13464003)(66066001)(110136001)(2656002)(2900100001)(40100003)(46102003)(2950100001)(122556002)(86362001)(99286002)(76576001)(92566002)(33656002)(77156002)(62966003)(50986999)(19580395003)(19580405001)(54356999)(76176999)(102836002)(74316001)(87936001);DIR:OUT;SFP:1102;SCL:1;SRVR:CY1PR0301MB0780;H:CY1PR0301MB0780.namprd03.prod.outlook.com;FPR:;SPF:None;MLV:sfv;LANG:en;
+x-exchange-antispam-report-test: UriScan:;
+x-exchange-antispam-report-cfa-test:
+ BCL:0;PCL:0;RULEID:(601004)(5005006)(5002010);SRVR:CY1PR0301MB0780;BCL:0;PCL:0;RULEID:;SRVR:CY1PR0301MB0780;
+x-forefront-prvs: 0554B1F54F
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: quoted-printable
+MIME-Version: 1.0
+X-OriginatorOrg: bna.com
+X-MS-Exchange-CrossTenant-originalarrivaltime: 22 Apr 2015 19:10:02.0373
+ (UTC)
+X-MS-Exchange-CrossTenant-fromentityheader: Hosted
+X-MS-Exchange-CrossTenant-id: 97be21fd-c601-4b16-9920-f5accc69da65
+X-MS-Exchange-Transport-CrossTenantHeadersStamped: CY1PR0301MB0780
+List-Id: <unicorn-public@bogomips.org>
+
+That looks reasonable to me -- this way you would only have one file still =
+open per process at a maximum, right?  I think that's a good solution.
+
+Thanks,
+
+-Mike
+
+-----Original Message-----
+From: Eric Wong [mailto:e@80x24.org]=20
+Sent: Wednesday, April 22, 2015 2:38 PM
+To: Mulvaney, Mike
+Cc: unicorn-public@bogomips.org
+Subject: Re: TeeInput leaks file handles/space
+
+How about this patch to tee_input?  It won't pollute the common code path, =
+at least, and unicorn won't support multiple clients/tee_inputs
+
+I might release 4.8.4 with this, but it does break behavior for hijackers, =
+but 5.0 will have lots of tiny internal incompatibilities for corner-cases =
+anyways.
+-----------------------------8<---------------------------
+Subject: [PATCH] tee_input: close temporary file upon allocating the next
+
+This prevents unicorn from using up too much space due to large uploads whi=
+le not polluting the common code path of most clients.
+
+This is only fine for unicorn since unicorn itself will never support multi=
+ple clients in the same process.
+
+This may break users of rack.hijack (are there any on unicorn?), but they c=
+an call IO#dup on the file if they're relying on hijack and server internal=
+s like that.
+
+In a perfect world, we could even truncate and rewind to avoid the FD/inode=
+ deallocation/allocations in the kernel; but that would break any IO#dup wo=
+rkarounds used by hijackers.
+
+Notes: StringIO#close does not release memory immediately, so there's no po=
+int in calling it here
+
+Ref: <CY1PR0301MB078011EB5A22B733EB222A45A4EE0@CY1PR0301MB0780.namprd03.pro=
+d.outlook.com>
+Reported-by: Mike Mulvaney <MMulvaney@bna.com>
+---
+ lib/unicorn/tee_input.rb | 15 ++++++++++++++-
+ 1 file changed, 14 insertions(+), 1 deletion(-)
+
+diff --git a/lib/unicorn/tee_input.rb b/lib/unicorn/tee_input.rb index 637c=
+583..6ff8210 100644
+--- a/lib/unicorn/tee_input.rb
++++ b/lib/unicorn/tee_input.rb
+@@ -9,12 +9,17 @@
+ # strict interpretation of Rack::Lint::InputWrapper functionality and  # w=
+ill not support any deviations from it.
+ #
++# This is an internal class meant for Unicorn only, any use beyond #=20
++what appears in the Rack specificiation is unsupported and subject # to=20
++change.
++#
+ # When processing uploads, Unicorn exposes a TeeInput object under  # "rac=
+k.input" of the Rack environment.
+ class Unicorn::TeeInput < Unicorn::StreamInput
+   # The maximum size (in +bytes+) to buffer in memory before
+   # resorting to a temporary file.  Default is 112 kilobytes.
+   @@client_body_buffer_size =3D Unicorn::Const::MAX_BODY
++  @@cur_tmpio =3D nil
+=20
+   # sets the maximum size of request bodies to buffer in memory,
+   # amounts larger than this are buffered to the filesystem @@ -28,13 +33,=
+21 @@ class Unicorn::TeeInput < Unicorn::StreamInput
+     @@client_body_buffer_size
+   end
+=20
++  # This class is essentially a singleton since unicorn will never=20
++ support  # multiple clients; and we don't want to pollute the common=20
++ code path  # with extra ivars/state  def new_tmpio
++    @@cur_tmpio.close if @@cur_tmpio
++    @@cur_tmpio =3D Unicorn::TmpIO.new
++  end
++
+   # Initializes a new TeeInput object.  You normally do not have to call
+   # this unless you are writing an HTTP server.
+   def initialize(socket, request)
+     @len =3D request.content_length
+     super
+     @tmp =3D @len && @len <=3D @@client_body_buffer_size ?
+-           StringIO.new("") : Unicorn::TmpIO.new
++           StringIO.new("") : new_tmpio
+   end
+=20
+   # :call-seq:
+--
+EW
