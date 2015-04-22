@@ -1,0 +1,78 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-2.9 required=3.0 tests=ALL_TRUSTED,BAYES_00,
+ URIBL_BLOCKED shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 8C2701F71E; Wed, 22 Apr 2015 19:16:08 +0000 (UTC)
+Date: Wed, 22 Apr 2015 19:16:08 +0000
+From: Eric Wong <e@80x24.org>
+To: "Mulvaney, Mike" <MMulvaney@bna.com>
+Cc: "unicorn-public@bogomips.org" <unicorn-public@bogomips.org>
+Subject: Re: TeeInput leaks file handles/space
+Message-ID: <20150422191608.GA31363@dcvr.yhbt.net>
+References:
+ <CY1PR0301MB078011EB5A22B733EB222A45A4EE0@CY1PR0301MB0780.namprd03.prod.outlook.com> <20150422183808.GA5277@dcvr.yhbt.net> <CY1PR0301MB07803D33C70E594F058BB0FFA4EE0@CY1PR0301MB0780.namprd03.prod.outlook.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To:
+ <CY1PR0301MB07803D33C70E594F058BB0FFA4EE0@CY1PR0301MB0780.namprd03.prod.outlook.com>
+List-Id: <unicorn-public@bogomips.org>
+
+"Mulvaney, Mike" <MMulvaney@bna.com> wrote:
+> That looks reasonable to me -- this way you would only have one file
+> still open per process at a maximum, right?  I think that's a good
+> solution.
+
+Right.
+
+Below is a barely-tested alternative patch for Rack::TempfileReaper,
+for Rack 1.6+ users only.  I'm not sure how prevalent 1.6+ was only
+released in December 2014...
+
+It's more standardized, but maybe Rack 1.6 isn't prevalent enough, yet.
+What do you think?
+
+(Sorry, in a rush, no commit message, yet)
+
+diff --git a/lib/unicorn/tee_input.rb b/lib/unicorn/tee_input.rb
+index 637c583..7f6baa2 100644
+--- a/lib/unicorn/tee_input.rb
++++ b/lib/unicorn/tee_input.rb
+@@ -28,13 +28,20 @@ class Unicorn::TeeInput < Unicorn::StreamInput
+     @@client_body_buffer_size
+   end
+ 
++  # for Rack::TempfileReaper in rack 1.6+
++  def new_tmpio
++    tmpio = Unicorn::TmpIO.new
++    (@parser.env['rack.tempfiles'] ||= []) << tmpio
++    tmpio
++  end
++
+   # Initializes a new TeeInput object.  You normally do not have to call
+   # this unless you are writing an HTTP server.
+   def initialize(socket, request)
+     @len = request.content_length
+     super
+     @tmp = @len && @len <= @@client_body_buffer_size ?
+-           StringIO.new("") : Unicorn::TmpIO.new
++           StringIO.new("") : new_tmpio
+   end
+ 
+   # :call-seq:
+diff --git a/lib/unicorn/tmpio.rb b/lib/unicorn/tmpio.rb
+index c97979a..db88ed3 100644
+--- a/lib/unicorn/tmpio.rb
++++ b/lib/unicorn/tmpio.rb
+@@ -21,4 +21,7 @@ class Unicorn::TmpIO < File
+     fp.sync = true
+     fp
+   end
++
++  # pretend we're Tempfile for Rack::TempfileReaper
++  alias close! close
+ end
