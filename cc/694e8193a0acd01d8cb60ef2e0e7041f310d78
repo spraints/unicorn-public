@@ -1,0 +1,103 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-2.9 required=3.0 tests=ALL_TRUSTED,BAYES_00,
+ URIBL_BLOCKED shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id EB76A1F71E; Wed, 22 Apr 2015 18:38:08 +0000 (UTC)
+Date: Wed, 22 Apr 2015 18:38:08 +0000
+From: Eric Wong <e@80x24.org>
+To: "Mulvaney, Mike" <MMulvaney@bna.com>
+Cc: "unicorn-public@bogomips.org" <unicorn-public@bogomips.org>
+Subject: Re: TeeInput leaks file handles/space
+Message-ID: <20150422183808.GA5277@dcvr.yhbt.net>
+References:
+ <CY1PR0301MB078011EB5A22B733EB222A45A4EE0@CY1PR0301MB0780.namprd03.prod.outlook.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To:
+ <CY1PR0301MB078011EB5A22B733EB222A45A4EE0@CY1PR0301MB0780.namprd03.prod.outlook.com>
+List-Id: <unicorn-public@bogomips.org>
+
+How about this patch to tee_input?  It won't pollute the common code
+path, at least, and unicorn won't support multiple clients/tee_inputs
+
+I might release 4.8.4 with this, but it does break behavior for
+hijackers, but 5.0 will have lots of tiny internal incompatibilities
+for corner-cases anyways.
+-----------------------------8<---------------------------
+Subject: [PATCH] tee_input: close temporary file upon allocating the next
+
+This prevents unicorn from using up too much space due to large
+uploads while not polluting the common code path of most clients.
+
+This is only fine for unicorn since unicorn itself will never
+support multiple clients in the same process.
+
+This may break users of rack.hijack (are there any on unicorn?), but
+they can call IO#dup on the file if they're relying on hijack and
+server internals like that.
+
+In a perfect world, we could even truncate and rewind to avoid the
+FD/inode deallocation/allocations in the kernel; but that would
+break any IO#dup workarounds used by hijackers.
+
+Notes: StringIO#close does not release memory immediately, so
+there's no point in calling it here
+
+Ref: <CY1PR0301MB078011EB5A22B733EB222A45A4EE0@CY1PR0301MB0780.namprd03.prod.outlook.com>
+Reported-by: Mike Mulvaney <MMulvaney@bna.com>
+---
+ lib/unicorn/tee_input.rb | 15 ++++++++++++++-
+ 1 file changed, 14 insertions(+), 1 deletion(-)
+
+diff --git a/lib/unicorn/tee_input.rb b/lib/unicorn/tee_input.rb
+index 637c583..6ff8210 100644
+--- a/lib/unicorn/tee_input.rb
++++ b/lib/unicorn/tee_input.rb
+@@ -9,12 +9,17 @@
+ # strict interpretation of Rack::Lint::InputWrapper functionality and
+ # will not support any deviations from it.
+ #
++# This is an internal class meant for Unicorn only, any use beyond
++# what appears in the Rack specificiation is unsupported and subject
++# to change.
++#
+ # When processing uploads, Unicorn exposes a TeeInput object under
+ # "rack.input" of the Rack environment.
+ class Unicorn::TeeInput < Unicorn::StreamInput
+   # The maximum size (in +bytes+) to buffer in memory before
+   # resorting to a temporary file.  Default is 112 kilobytes.
+   @@client_body_buffer_size = Unicorn::Const::MAX_BODY
++  @@cur_tmpio = nil
+ 
+   # sets the maximum size of request bodies to buffer in memory,
+   # amounts larger than this are buffered to the filesystem
+@@ -28,13 +33,21 @@ class Unicorn::TeeInput < Unicorn::StreamInput
+     @@client_body_buffer_size
+   end
+ 
++  # This class is essentially a singleton since unicorn will never support
++  # multiple clients; and we don't want to pollute the common code path
++  # with extra ivars/state
++  def new_tmpio
++    @@cur_tmpio.close if @@cur_tmpio
++    @@cur_tmpio = Unicorn::TmpIO.new
++  end
++
+   # Initializes a new TeeInput object.  You normally do not have to call
+   # this unless you are writing an HTTP server.
+   def initialize(socket, request)
+     @len = request.content_length
+     super
+     @tmp = @len && @len <= @@client_body_buffer_size ?
+-           StringIO.new("") : Unicorn::TmpIO.new
++           StringIO.new("") : new_tmpio
+   end
+ 
+   # :call-seq:
+-- 
+EW
