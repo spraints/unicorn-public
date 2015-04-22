@@ -1,0 +1,74 @@
+Return-Path: <MMulvaney@bna.com>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS8075 65.52.0.0/14
+X-Spam-Status: No, score=-0.5 required=3.0 tests=AWL,BAYES_00,
+ RCVD_IN_DNSWL_BLOCKED shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from na01-bl2-obe.outbound.protection.outlook.com
+ (mail-bl2on0137.outbound.protection.outlook.com [65.55.169.137]) (using
+ TLSv1.2 with cipher ECDHE-RSA-AES256-SHA384 (256/256 bits)) (No client
+ certificate requested) by dcvr.yhbt.net (Postfix) with ESMTPS id 8EAC41F71E
+ for <unicorn-public@bogomips.org>; Wed, 22 Apr 2015 16:42:53 +0000 (UTC)
+Received: from CY1PR0301MB0780.namprd03.prod.outlook.com (25.160.160.140) by
+ CY1PR0301MB0780.namprd03.prod.outlook.com (25.160.160.140) with Microsoft
+ SMTP Server (TLS) id 15.1.136.25; Wed, 22 Apr 2015 16:42:51 +0000
+Received: from CY1PR0301MB0780.namprd03.prod.outlook.com ([25.160.160.140])
+ by CY1PR0301MB0780.namprd03.prod.outlook.com ([25.160.160.140]) with mapi id
+ 15.01.0136.014; Wed, 22 Apr 2015 16:42:51 +0000
+From: "Mulvaney, Mike" <MMulvaney@bna.com>
+To: "unicorn-public@bogomips.org" <unicorn-public@bogomips.org>
+Subject: TeeInput leaks file handles/space
+Thread-Topic: TeeInput leaks file handles/space
+Thread-Index: AdB9Gw2r1ccEWvn3Q9SwOq7RL1z5Ow==
+Date: Wed, 22 Apr 2015 16:42:51 +0000
+Message-ID:
+ <CY1PR0301MB078011EB5A22B733EB222A45A4EE0@CY1PR0301MB0780.namprd03.prod.outlook.com>
+Accept-Language: en-US
+Content-Language: en-US
+X-MS-Has-Attach: 
+X-MS-TNEF-Correlator: 
+x-originating-ip: [70.15.40.100]
+x-microsoft-antispam: UriScan:;BCL:0;PCL:0;RULEID:;SRVR:CY1PR0301MB0780;
+x-microsoft-antispam-prvs:
+ <CY1PR0301MB07805CEF737E74DB41D6BD1EA4EE0@CY1PR0301MB0780.namprd03.prod.outlook.com>
+x-forefront-antispam-report:
+ BMV:1;SFV:NSPM;SFS:(10019020)(6009001)(40100003)(450100001)(66066001)(2351001)(107886001)(110136001)(229853001)(2900100001)(2656002)(46102003)(76576001)(122556002)(86362001)(99286002)(92566002)(33656002)(77156002)(62966003)(50986999)(54356999)(102836002)(74316001)(87936001)(2501003);DIR:OUT;SFP:1102;SCL:1;SRVR:CY1PR0301MB0780;H:CY1PR0301MB0780.namprd03.prod.outlook.com;FPR:;SPF:None;MLV:sfv;LANG:en;
+x-exchange-antispam-report-test: UriScan:;
+x-exchange-antispam-report-cfa-test:
+ BCL:0;PCL:0;RULEID:(601004)(5005006)(5002010);SRVR:CY1PR0301MB0780;BCL:0;PCL:0;RULEID:;SRVR:CY1PR0301MB0780;
+x-forefront-prvs: 0554B1F54F
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: quoted-printable
+MIME-Version: 1.0
+X-OriginatorOrg: bna.com
+X-MS-Exchange-CrossTenant-originalarrivaltime: 22 Apr 2015 16:42:51.5344
+ (UTC)
+X-MS-Exchange-CrossTenant-fromentityheader: Hosted
+X-MS-Exchange-CrossTenant-id: 97be21fd-c601-4b16-9920-f5accc69da65
+X-MS-Exchange-Transport-CrossTenantHeadersStamped: CY1PR0301MB0780
+List-Id: <unicorn-public@bogomips.org>
+
+When I upload large files to my unicorn process, TeeInput is streaming them=
+ through a @tmp instance variable which writes to /tmp/0.123456789 (some ra=
+ndom number).  The file is immediately deleted but the file handle is not c=
+losed, so the files are not really deleted by the file system.
+
+The files are eventually deleted when GC runs, but before GC runs they cont=
+inue to take up space.  You can see this in lsof output, for example:
+
+ruby       2783   webuser  23u      REG               0,17  6128086    3556=
+917 /tmp/0.04249158625633187 (deleted)
+
+This can cause problems if you have big files and a small /tmp, such as a t=
+mpfs disk mounted in ram.  If someone sends in several 100MB files, you cou=
+ld easily get 2-3 open files for each of 6 unicorn processes, which would t=
+ake up 1200MB of disk space until GC decides to run.
+
+I looked into fixing this but it doesn't look easy.  I can reach into the T=
+eeInput variable and close out the @tmp instance variable in my application=
+, and that does fix the problem.  But obviously that is not a good solution=
+.  I think there would have to be some kind of "close" method on http_reque=
+st that would close out all the open resources such as these files.
+
+-Mike
