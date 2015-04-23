@@ -1,0 +1,79 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-2.9 required=3.0 tests=ALL_TRUSTED,BAYES_00
+ shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 6E046200C3; Thu, 23 Apr 2015 09:29:18 +0000 (UTC)
+Date: Thu, 23 Apr 2015 09:29:18 +0000
+From: Eric Wong <e@80x24.org>
+To: =?utf-8?B?SsOpcsOpbXk=?= Lecour <jeremy.lecour@gmail.com>
+Cc: unicorn-public@bogomips.org
+Subject: Re: Unicorn, environment variables, start and reload
+Message-ID: <20150423092918.GA31792@dcvr.yhbt.net>
+References:
+ <CANrRGgpP3fxo2FPBKCmSz2R34Nv=GeG2i3iXckevx=JQAHC2Xw@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+Content-Transfer-Encoding: 8bit
+In-Reply-To:
+ <CANrRGgpP3fxo2FPBKCmSz2R34Nv=GeG2i3iXckevx=JQAHC2Xw@mail.gmail.com>
+List-Id: <unicorn-public@bogomips.org>
+
+Jérémy Lecour <jeremy.lecour@gmail.com> wrote:
+> Hi,
+> 
+> For some time I've been using Unicorn to serve Rails applications.
+> 
+> I've been increasingly relying on environment variables to set various
+> password and configuration bits outside of the application's code.
+> 
+> For that I've been using the "dotenv" gem that load a `.env` file into
+> the ENV hash. It's great and really useful in development mode, but
+> it's not a best practice to use it in production. Here is what Brandon
+> Keepers (maintainer of Dotenv) says about this :
+> 
+> > One of the reasons I don't advocate for using dotenv in production is because it loads the environment variables within the ruby process, which makes it very difficult to track which variables were previously set and which were loaded by dotenv. If you set these variables in the environment of your server (/etc/environment, /etc/profile, etc) then unicorn reloading will just work.
+
+Right, and some of these envs might not work unless they're set before
+Ruby VM initialization.  By the time the process can run Ruby code, it's
+too late to setup most malloc behavior in any program or GC tuning for
+Ruby.
+
+I think most of the MRI-specific RUBY_* vars and most enviroment
+variables used for any malloc tuning will fall into this group.
+
+> So I was wondering what would be the correct way to have environment
+> variables available in the Ruby process, up-to-date when the Unicorn
+> process is started and reloaded too (with USR2).
+> 
+> And there is also the case of various shell initializations
+> (login/non-login, interactive/non-interactive) and supervisors like
+> Monit that strip the environment to a minumum before executing the
+> start/stop commands.
+
+I set them in an init script (or whatever startup script/system I use).
+I might also use "env -i" to clobber any existing environment if
+I'm feeling really thorough, but usually I don't.
+
+Most versions of Linux allow checking the environment by inspecting
+/proc/$PID/environ  (tr '\0' '\n' </proc/$PID/environ to convert
+null-terminated to newlines).  This may not reflect changes done inside
+the process, though, so maybe have a private endpoint dump the contents
+of ENV.
+
+> I understand that I can do something like this on start :
+> 
+>     $ source ~/my/app/.env && unicorn [...]
+> 
+> But what about the reload situation ?
+
+You can change the ENV (or run any other Ruby) in the config file, but
+most might not take effect until a new process is spawned (same with
+dotenv).  This means you may need USR2 for it to take effect.
+
+I definitely keep ENV changes in the Ruby config file synched with
+what's in the init script (and both in version control).
