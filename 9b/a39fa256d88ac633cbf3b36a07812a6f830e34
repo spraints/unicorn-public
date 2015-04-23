@@ -1,0 +1,68 @@
+Return-Path: <jeremy.lecour@gmail.com>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS15169 74.125.0.0/16
+X-Spam-Status: No, score=-1.9 required=3.0 tests=BAYES_00,FREEMAIL_FROM,
+ URIBL_BLOCKED shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from mail-wg0-f48.google.com (mail-wg0-f48.google.com
+ [74.125.82.48]) (using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256
+ (128/128 bits)) (No client certificate requested) by dcvr.yhbt.net (Postfix)
+ with ESMTPS id 5D2321FDBB for <unicorn-public@bogomips.org>; Thu, 23 Apr 2015
+ 09:05:44 +0000 (UTC)
+Received: by wgen6 with SMTP id n6so11258543wge.3 for
+ <unicorn-public@bogomips.org>; Thu, 23 Apr 2015 02:05:43 -0700 (PDT)
+X-Received: by 10.180.88.169 with SMTP id bh9mr13877542wib.6.1429779943102;
+ Thu, 23 Apr 2015 02:05:43 -0700 (PDT)
+MIME-Version: 1.0
+Received: by 10.28.167.11 with HTTP; Thu, 23 Apr 2015 02:05:22 -0700 (PDT)
+From: =?UTF-8?B?SsOpcsOpbXkgTGVjb3Vy?= <jeremy.lecour@gmail.com>
+Date: Thu, 23 Apr 2015 11:05:22 +0200
+Message-ID:
+ <CANrRGgpP3fxo2FPBKCmSz2R34Nv=GeG2i3iXckevx=JQAHC2Xw@mail.gmail.com>
+Subject: Unicorn, environment variables, start and reload
+To: unicorn-public@bogomips.org
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
+List-Id: <unicorn-public@bogomips.org>
+
+Hi,
+
+For some time I've been using Unicorn to serve Rails applications.
+
+I've been increasingly relying on environment variables to set various
+password and configuration bits outside of the application's code.
+
+For that I've been using the "dotenv" gem that load a `.env` file into
+the ENV hash. It's great and really useful in development mode, but
+it's not a best practice to use it in production. Here is what Brandon
+Keepers (maintainer of Dotenv) says about this :
+
+> One of the reasons I don't advocate for using dotenv in production is bec=
+ause it loads the environment variables within the ruby process, which make=
+s it very difficult to track which variables were previously set and which =
+were loaded by dotenv. If you set these variables in the environment of you=
+r server (/etc/environment, /etc/profile, etc) then unicorn reloading will =
+just work.
+
+So I was wondering what would be the correct way to have environment
+variables available in the Ruby process, up-to-date when the Unicorn
+process is started and reloaded too (with USR2).
+
+And there is also the case of various shell initializations
+(login/non-login, interactive/non-interactive) and supervisors like
+Monit that strip the environment to a minumum before executing the
+start/stop commands.
+
+I understand that I can do something like this on start :
+
+    $ source ~/my/app/.env && unicorn [...]
+
+But what about the reload situation ?
+
+
+Thanks for the help.
+
+--=20
+J=C3=A9r=C3=A9my Lecour :
+http://jeremy.wordpress.com - http://twitter.com/jlecour
