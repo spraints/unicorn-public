@@ -1,0 +1,42 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-2.9 required=3.0 tests=ALL_TRUSTED,BAYES_00,
+ URIBL_BLOCKED shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 4F8DE1F9F5; Fri, 24 Apr 2015 00:13:33 +0000 (UTC)
+Date: Fri, 24 Apr 2015 00:13:33 +0000
+From: Eric Wong <e@80x24.org>
+To: Jason Hines <jason@greenhell.com>
+Cc: unicorn-public@bogomips.org
+Subject: Re: Will restarting a Unicorn process (via HUP signal) wait for
+ worker threads?
+Message-ID: <20150424001333.GA2117@dcvr.yhbt.net>
+References:
+ <CAECjbYjs0V=zbqVo2Z2ZkYrNiSQmNE7QQz-Buuk0=-Y8hbL=DQ@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To:
+ <CAECjbYjs0V=zbqVo2Z2ZkYrNiSQmNE7QQz-Buuk0=-Y8hbL=DQ@mail.gmail.com>
+List-Id: <unicorn-public@bogomips.org>
+
+Jason Hines <jason@greenhell.com> wrote:
+> In my application, I have some background jobs which are executed in
+> separate threads.  (using SuckerPunch/Celluloid framework)
+> 
+> If I send a HUP signal to the Unicorn master, the application is reloaded
+> and gracefully restarts the workers.    But, if those workers have child
+> threads, does Unicorn wait for those threads to finish before the restart
+> or are they terminated immediately?
+
+unicorn itself does not know about any threads spawned by the application.
+
+However, you can setup an END/at_exit block in the worker to wait on
+those threads since unicorn workers perform graceful exit:
+
+	at_exit do
+	  join_all_threads
+	end
