@@ -1,0 +1,49 @@
+Return-Path: <jason@greenhell.com>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS15169 209.85.128.0/17
+X-Spam-Status: No, score=-0.4 required=3.0 tests=AWL,BAYES_00,
+ RCVD_IN_DNSWL_BLOCKED shortcircuit=no autolearn=ham version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from mail-ig0-f169.google.com (mail-ig0-f169.google.com
+ [209.85.213.169]) (using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256
+ (128/128 bits)) (No client certificate requested) by dcvr.yhbt.net (Postfix)
+ with ESMTPS id 8F80C1F9F5 for <unicorn-public@bogomips.org>; Fri, 24 Apr 2015
+ 00:04:11 +0000 (UTC)
+Received: by igblo3 with SMTP id lo3so2472715igb.0 for
+ <unicorn-public@bogomips.org>; Thu, 23 Apr 2015 17:04:11 -0700 (PDT)
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=1e100.net;
+ s=20130820; h=x-gm-message-state:mime-version:date:message-id:subject:from:to
+ :content-type; bh=m20PXe4Li1yDiPWQBpdX7zbiUywdOZQCjqvHarZNskg=;
+ b=mU/ep972I8YhFzLRr+awV5f/AbC8GD8U9GT16s0fcUztxZZapPC5rj7XXJG/3CrcE6
+ ahS37PV4v6Ug2I/chk/m8BjuyiFLKU4gVR8wIqVG6QK+PS44ksxWMvy3W37mAoOBuWw2
+ cFARLrDJ182ujtEknQ0s2aeSiIPZso9jXvIhjbqHpRGYGI/zFXtqTBvtGLIMlgsehZXr
+ Uz/H3Lv8JzJKcAvdrU2Z66z7rcsVSKI7JqrRi+rEAeuNwN8syiivTXQh2OjkgRj2sRew
+ 08c6fnbG3BnV2c8lTPcUCZ7n/2DgpIoqOzm/dCoKYPfa1BE+paqSxWCEfiQfHwGK+653 Z+8g==
+X-Gm-Message-State:
+ ALoCoQn3WwnbyfMO+NJUF/D8UlAUSh4Dmr58FlE+0jcuEgOsm46TT6AN2x72af7vH5/M6/HDfeMB
+MIME-Version: 1.0
+X-Received: by 10.107.134.206 with SMTP id q75mr7353879ioi.27.1429833850900;
+ Thu, 23 Apr 2015 17:04:10 -0700 (PDT)
+Received: by 10.50.1.39 with HTTP; Thu, 23 Apr 2015 17:04:10 -0700 (PDT)
+Date: Thu, 23 Apr 2015 20:04:10 -0400
+Message-ID:
+ <CAECjbYjs0V=zbqVo2Z2ZkYrNiSQmNE7QQz-Buuk0=-Y8hbL=DQ@mail.gmail.com>
+Subject: Will restarting a Unicorn process (via HUP signal) wait for worker
+ threads?
+From: Jason Hines <jason@greenhell.com>
+To: unicorn-public@bogomips.org
+Content-Type: text/plain; charset=UTF-8
+X-Content-Filtered-By: PublicInbox::Filter 0.0.1
+List-Id: <unicorn-public@bogomips.org>
+
+In my application, I have some background jobs which are executed in
+separate threads.  (using SuckerPunch/Celluloid framework)
+
+If I send a HUP signal to the Unicorn master, the application is reloaded
+and gracefully restarts the workers.    But, if those workers have child
+threads, does Unicorn wait for those threads to finish before the restart
+or are they terminated immediately?
+
+Thanks in advance for any light shed here.
+
