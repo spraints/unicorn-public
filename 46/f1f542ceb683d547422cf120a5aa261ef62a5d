@@ -1,0 +1,50 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-2.9 required=3.0 tests=ALL_TRUSTED,BAYES_00
+ shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 9FB172014D; Fri, 24 Apr 2015 03:02:21 +0000 (UTC)
+From: Eric Wong <e@80x24.org>
+To: unicorn-public@bogomips.org
+Cc: Mike Mulvaney <MMulvaney@bna.com>, Eric Wong <e@80x24.org>
+Subject: [PATCH 2/2] support TempfileReaper in deployment and development
+ envs
+Date: Fri, 24 Apr 2015 03:02:18 +0000
+Message-Id: <1429844538-25726-3-git-send-email-e@80x24.org>
+In-Reply-To: <1429844538-25726-1-git-send-email-e@80x24.org>
+References: <1429844538-25726-1-git-send-email-e@80x24.org>
+List-Id: <unicorn-public@bogomips.org>
+
+rack 1.6 added a TempfileReaper middleware to cleanup temporary
+files.  Enable it by default for users running rack 1.6 or later
+to avoid leaving temporary files around.
+---
+ lib/unicorn.rb | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/lib/unicorn.rb b/lib/unicorn.rb
+index 467245d..9fdcb8e 100644
+--- a/lib/unicorn.rb
++++ b/lib/unicorn.rb
+@@ -65,6 +65,7 @@ module Unicorn
+           use Rack::CommonLogger, $stderr
+           use Rack::ShowExceptions
+           use Rack::Lint
++          use Rack::TempfileReaper if Rack.const_defined?(:TempfileReaper)
+           run inner_app
+         end.to_app
+       when "deployment"
+@@ -72,6 +73,7 @@ module Unicorn
+           use Rack::ContentLength
+           use Rack::Chunked
+           use Rack::CommonLogger, $stderr
++          use Rack::TempfileReaper if Rack.const_defined?(:TempfileReaper)
+           run inner_app
+         end.to_app
+       else
+-- 
+EW
+
