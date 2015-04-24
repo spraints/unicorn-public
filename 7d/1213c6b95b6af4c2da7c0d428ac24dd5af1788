@@ -1,0 +1,115 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-2.9 required=3.0 tests=ALL_TRUSTED,BAYES_00,
+ URIBL_BLOCKED shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 71EDB200D1; Fri, 24 Apr 2015 03:02:21 +0000 (UTC)
+From: Eric Wong <e@80x24.org>
+To: unicorn-public@bogomips.org
+Cc: Mike Mulvaney <MMulvaney@bna.com>, Eric Wong <e@80x24.org>
+Subject: [PATCH 1/2] tee_input: support for Rack::TempfileReaper middleware
+Date: Fri, 24 Apr 2015 03:02:17 +0000
+Message-Id: <1429844538-25726-2-git-send-email-e@80x24.org>
+In-Reply-To: <1429844538-25726-1-git-send-email-e@80x24.org>
+References: <1429844538-25726-1-git-send-email-e@80x24.org>
+List-Id: <unicorn-public@bogomips.org>
+
+Rack::TempfileReaper was added in rack 1.6 to cleanup temporary
+files.  Make Unicorn::TmpIO ducktype-compatible so
+Rack::TempfileReaper may be used to free up space used by temporary
+buffer files.
+
+Ref: <CY1PR0301MB078011EB5A22B733EB222A45A4EE0@CY1PR0301MB0780.namprd03.prod.outlook.com>
+Reported-by: Mike Mulvaney <MMulvaney@bna.com>
+---
+ lib/unicorn/tee_input.rb    |  9 ++++++++-
+ lib/unicorn/tmpio.rb        |  3 +++
+ test/unit/test_tee_input.rb | 10 ++++++++++
+ 3 files changed, 21 insertions(+), 1 deletion(-)
+
+diff --git a/lib/unicorn/tee_input.rb b/lib/unicorn/tee_input.rb
+index 637c583..3c6d18a 100644
+--- a/lib/unicorn/tee_input.rb
++++ b/lib/unicorn/tee_input.rb
+@@ -28,13 +28,20 @@ class Unicorn::TeeInput < Unicorn::StreamInput
+     @@client_body_buffer_size
+   end
+ 
++  # for Rack::TempfileReaper in rack 1.6+
++  def new_tmpio # :nodoc:
++    tmpio = Unicorn::TmpIO.new
++    (@parser.env['rack.tempfiles'] ||= []) << tmpio
++    tmpio
++  end
++
+   # Initializes a new TeeInput object.  You normally do not have to call
+   # this unless you are writing an HTTP server.
+   def initialize(socket, request)
+     @len = request.content_length
+     super
+     @tmp = @len && @len <= @@client_body_buffer_size ?
+-           StringIO.new("") : Unicorn::TmpIO.new
++           StringIO.new("") : new_tmpio
+   end
+ 
+   # :call-seq:
+diff --git a/lib/unicorn/tmpio.rb b/lib/unicorn/tmpio.rb
+index c97979a..db88ed3 100644
+--- a/lib/unicorn/tmpio.rb
++++ b/lib/unicorn/tmpio.rb
+@@ -21,4 +21,7 @@ class Unicorn::TmpIO < File
+     fp.sync = true
+     fp
+   end
++
++  # pretend we're Tempfile for Rack::TempfileReaper
++  alias close! close
+ end
+diff --git a/test/unit/test_tee_input.rb b/test/unit/test_tee_input.rb
+index 0c2c941..4647e66 100644
+--- a/test/unit/test_tee_input.rb
++++ b/test/unit/test_tee_input.rb
+@@ -29,6 +29,13 @@ class TestTeeInput < Test::Unit::TestCase
+     end while true
+   end
+ 
++  def check_tempfiles
++    tmp = @parser.env["rack.tempfiles"]
++    assert_instance_of Array, tmp
++    assert_operator tmp.size, :>=, 1
++    assert_instance_of Unicorn::TmpIO, tmp[0]
++  end
++
+   def test_gets_long
+     r = init_request("hello", 5 + (4096 * 4 * 3) + "#$/foo#$/".size)
+     ti = TeeInput.new(@rd, r)
+@@ -106,6 +113,7 @@ class TestTeeInput < Test::Unit::TestCase
+     assert_kind_of File, ti.tmp
+     assert_equal 0, ti.tmp.pos
+     assert_equal Unicorn::Const::MAX_BODY + 1, ti.size
++    check_tempfiles
+   end
+ 
+   def test_read_in_full_if_content_length
+@@ -148,6 +156,7 @@ class TestTeeInput < Test::Unit::TestCase
+     assert_nil ti.read(1)
+     pid, status = Process.waitpid2(pid)
+     assert status.success?
++    check_tempfiles
+   end
+ 
+   def test_chunked
+@@ -183,6 +192,7 @@ class TestTeeInput < Test::Unit::TestCase
+     status = nil
+     pid, status = Process.waitpid2(pid)
+     assert status.success?
++    check_tempfiles
+   end
+ 
+   def test_chunked_ping_pong
+-- 
+EW
+
