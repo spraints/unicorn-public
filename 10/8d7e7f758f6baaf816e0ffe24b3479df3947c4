@@ -1,0 +1,49 @@
+Return-Path: <normalperson@yhbt.net>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-2.9 required=3.0 tests=ALL_TRUSTED,BAYES_00,
+ T_RP_MATCHES_RCVD shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id D80D71F78C for <unicorn-public@bogomips.org>; Thu,  7
+ May 2015 22:16:08 +0000 (UTC)
+From: Eric Wong <e@80x24.org>
+To: unicorn-public@bogomips.org
+Subject: [PATCH] favor kgio_wait_readable for single FD over select
+Date: Thu,  7 May 2015 22:16:08 +0000
+Message-Id: <1431036968-29895-1-git-send-email-e@80x24.org>
+List-Id: <unicorn-public@bogomips.org>
+
+kgio_wait_readable is superior for single FDs in that it may use the
+ppoll syscall on Linux via Ruby, making it immune to the slowdown
+high FDs with select() and the array allocations enforced by the
+Ruby wrapper interface.
+
+Note: IO#wait in the io/wait stdlib has the same effect, but as of
+2.2 still needlessly checks the FIONREAD ioctl.  So avoid needing to
+force a new require on users which also incur shared object loading
+costs.  The longer term plan is to rely entirely on Ruby IO
+primitives entirely and drop kgio, but that won't happen until we
+can depend on Ruby 2.3 for exception-free accept_nonblock
+(which will be released December 2015).
+---
+ lib/unicorn/http_server.rb | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/lib/unicorn/http_server.rb b/lib/unicorn/http_server.rb
+index a726c91..82747b8 100644
+--- a/lib/unicorn/http_server.rb
++++ b/lib/unicorn/http_server.rb
+@@ -369,7 +369,7 @@ class Unicorn::HttpServer
+ 
+   # wait for a signal hander to wake us up and then consume the pipe
+   def master_sleep(sec)
+-    IO.select([ @self_pipe[0] ], nil, nil, sec) or return
++    @self_pipe[0].kgio_wait_readable(sec) or return
+     # 11 bytes is the maximum string length which can be embedded within
+     # the Ruby itself and not require a separate malloc (on 32-bit MRI 1.9+).
+     # Most reads are only one byte here and uncommon, so it's not worth a
+-- 
+EW
+
