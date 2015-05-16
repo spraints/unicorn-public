@@ -1,0 +1,59 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-2.9 required=3.0 tests=ALL_TRUSTED,BAYES_00
+ shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id F3AA96590DD; Sat, 16 May 2015 21:30:35 +0000 (UTC)
+From: Eric Wong <e@80x24.org>
+To: unicorn-public@bogomips.org
+Cc: e@80x24.org
+Subject: [PATCH 2/2] avoid extra allocation for hijack proc creation
+Date: Sat, 16 May 2015 21:30:25 +0000
+Message-Id: <1431811825-20664-3-git-send-email-e@80x24.org>
+In-Reply-To: <1431811825-20664-1-git-send-email-e@80x24.org>
+References: <1431811825-20664-1-git-send-email-e@80x24.org>
+List-Id: <unicorn-public@bogomips.org>
+
+proc creation is expensive, so merely use a 48-byte generic ivar
+hash slot for @socket instead.
+---
+ lib/unicorn/http_request.rb | 16 +++++++++++-----
+ 1 file changed, 11 insertions(+), 5 deletions(-)
+
+diff --git a/lib/unicorn/http_request.rb b/lib/unicorn/http_request.rb
+index b32003e..b60e383 100644
+--- a/lib/unicorn/http_request.rb
++++ b/lib/unicorn/http_request.rb
+@@ -97,15 +97,21 @@ class Unicorn::HttpParser
+ 
+     e[RACK_INPUT] = 0 == content_length ?
+                     NULL_IO : @@input_class.new(socket, self)
+-    hijack_setup(e, socket)
++
++    # for Rack hijacking in Rack 1.5 and later
++    @socket = socket
++    e[RACK_HIJACK] = self
++
+     e.merge!(DEFAULTS)
+   end
+ 
+-  def hijacked?
+-    env.include?(RACK_HIJACK_IO)
++  # for rack.hijack, we respond to this method so no extra allocation
++  # of a proc object
++  def call
++    env[RACK_HIJACK_IO] = @socket
+   end
+ 
+-  def hijack_setup(e, socket)
+-    e[RACK_HIJACK] = proc { e[RACK_HIJACK_IO] = socket }
++  def hijacked?
++    env.include?(RACK_HIJACK_IO)
+   end
+ end
+-- 
+EW
+
