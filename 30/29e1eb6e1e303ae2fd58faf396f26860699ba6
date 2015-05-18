@@ -1,0 +1,52 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-2.9 required=3.0 tests=ALL_TRUSTED,BAYES_00,
+ URIBL_BLOCKED shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 72E141FA5B; Mon, 18 May 2015 21:34:35 +0000 (UTC)
+From: Eric Wong <e@80x24.org>
+To: unicorn-public@bogomips.org
+Cc: Eric Wong <e@80x24.org>, Michael Fischer <mfischer@zendesk.com>, Gabe
+ Martin-Dempesy <gabe@zendesk.com>
+Subject: [PATCH] FAQ: add note about ECONNRESET errors from bodies
+Date: Mon, 18 May 2015 21:34:39 +0000
+Message-Id: <1431984879-10120-1-git-send-email-e@80x24.org>
+List-Id: <unicorn-public@bogomips.org>
+
+Thanks to Michael Fischer and Gabe Martin-Dempesy for bringing this
+to light on the mailing list.
+
+Ref: <CABHxtY7Sn5yaiR5a3gDk1G4XySE+UtfuqUTcOSdmwneXLD5rcg@mail.gmail.com>
+Ref: <FC91211E-FD32-432C-92FC-0318714C2170@zendesk.com>
+
+Cc: Michael Fischer <mfischer@zendesk.com>
+Cc: Gabe Martin-Dempesy <gabe@zendesk.com>
+---
+ FAQ | 9 +++++++++
+ 1 file changed, 9 insertions(+)
+
+diff --git a/FAQ b/FAQ
+index 66f1a09..fdf1400 100644
+--- a/FAQ
++++ b/FAQ
+@@ -1,5 +1,14 @@
+ = Frequently Asked Questions about Unicorn
+ 
++=== Why is nginx getting ECONNRESET as a reverse proxy?
++
++Request body data (commonly from POST and PUT requests) may not be
++drained entirely by the application.  This may happen when request
++bodies are gzipped, as unicorn reads request body data lazily to avoid
++overhead from bad requests.
++
++Ref: http://mid.gmane.org/FC91211E-FD32-432C-92FC-0318714C2170@zendesk.com
++
+ === Why aren't my Rails log files rotated when I use SIGUSR1?
+ 
+ The Rails autoflush_log option must remain disabled with multiprocess
+-- 
+EW
+
