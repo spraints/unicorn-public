@@ -1,0 +1,71 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-2.9 required=3.0 tests=ALL_TRUSTED,BAYES_00
+ shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id E56461FA5C; Tue, 19 May 2015 20:01:25 +0000 (UTC)
+Date: Tue, 19 May 2015 20:01:31 +0000
+From: Eric Wong <e@80x24.org>
+To: unicorn-public@bogomips.org
+Subject: [PATCH] http_response: avoid special-casing for Rack < 1.5
+Message-ID: <20150519200131.GA17439@dcvr.yhbt.net>
+References: <1431811825-20664-1-git-send-email-e@80x24.org>
+ <1431811825-20664-2-git-send-email-e@80x24.org>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <1431811825-20664-2-git-send-email-e@80x24.org>
+List-Id: <unicorn-public@bogomips.org>
+
+Rack 1.4 and earlier will soon die out, so avoid having extra,
+overengineered code and method dispatch to silently drop support
+for mis-hijacking with old Rack versions.
+
+This will cause improperly hijacked responses in all versions of
+Rack to fail, but allows properly hijacked responses to work
+regardless of Rack version.
+
+Followup-to: commit fdf09e562733f9509d275cb13c1c1a04e579a68a
+("http_request: support rack.hijack by default")
+---
+ lib/unicorn/http_response.rb | 16 +++-------------
+ 1 file changed, 3 insertions(+), 13 deletions(-)
+
+diff --git a/lib/unicorn/http_response.rb b/lib/unicorn/http_response.rb
+index cc027c5..c9c2de8 100644
+--- a/lib/unicorn/http_response.rb
++++ b/lib/unicorn/http_response.rb
+@@ -36,9 +36,9 @@ def http_response_write(socket, status, headers, body,
+         when %r{\A(?:Date\z|Connection\z)}i
+           next
+         when "rack.hijack"
+-          # this was an illegal key in Rack < 1.5, so it should be
+-          # OK to silently discard it for those older versions
+-          hijack = hijack_prepare(value)
++          # This should only be hit under Rack >= 1.5, as this was an illegal
++          # key in Rack < 1.5
++          hijack = value
+         else
+           if value =~ /\n/
+             # avoiding blank, key-only cookies with /\n+/
+@@ -60,14 +60,4 @@ def http_response_write(socket, status, headers, body,
+   ensure
+     body.respond_to?(:close) and body.close
+   end
+-
+-  # Rack 1.5.0 (protocol version 1.2) adds response hijacking support
+-  if ((Rack::VERSION[0] << 8) | Rack::VERSION[1]) >= 0x0102
+-    def hijack_prepare(value)
+-      value
+-    end
+-  else
+-    def hijack_prepare(_)
+-    end
+-  end
+ end
+-- 
+EW
+
