@@ -1,0 +1,89 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-2.9 required=3.0 tests=ALL_TRUSTED,BAYES_00,
+ URIBL_BLOCKED shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id AD2341F488; Tue, 19 May 2015 23:28:58 +0000 (UTC)
+Date: Tue, 19 May 2015 23:28:58 +0000
+From: Eric Wong <e@80x24.org>
+To: Dan Moore <dan@vaporwa.re>
+Cc: unicorn-public@bogomips.org
+Subject: Re: SIGWINCH ignored...
+Message-ID: <20150519232858.GA23515@dcvr.yhbt.net>
+References: <etPan.555b4293.5b47a5b7.e617@danbookpro>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+Content-Transfer-Encoding: 8bit
+In-Reply-To: <etPan.555b4293.5b47a5b7.e617@danbookpro>
+List-Id: <unicorn-public@bogomips.org>
+
+Don't send HTML parts, it is flagged as spam and nearly lost.
+
+Onto your question...
+
+Dan Moore <dan@vaporwa.re> wrote:
+> I’m interested in the SIGWINCH signal and specifically the message
+> that is posted to the console at an INFO level instead of DEBUG level:
+> https://github.com/ddollar/foreman/issues/557
+> “INFO – : SIGWINCH ignored because we’re not daemonized”
+
+I wrote this patch a while ago to a private bug reporter (via
+unicorn@bogomips.org) back in July 2013, but apparently it
+was forgotten:
+
+--- a/lib/unicorn/http_server.rb
++++ b/lib/unicorn/http_server.rb
+@@ -294,13 +294,13 @@ class Unicorn::HttpServer
+       when :USR2 # exec binary, stay alive in case something went wrong
+         reexec
+       when :WINCH
+-        if Unicorn::Configurator::RACKUP[:daemonized]
++        if $stdin.tty?
++          logger.info "SIGWINCH ignored because we're not daemonized"
++        else
+           respawn = false
+           logger.info "gracefully stopping all workers"
+           soft_kill_each_worker(:QUIT)
+           self.worker_processes = 0
+-        else
+-          logger.info "SIGWINCH ignored because we're not daemonized"
+         end
+       when :TTIN
+         respawn = true
+
+I don't recall it breaks anything, so perhaps it's a good change to make
+for unicorn 5.
+
+> I would like to request that
+> this be moved to DEBUG level as it’s quite chatty when using tmux,
+> foreman, and terminal.
+
+I don't think using DEBUG is a good idea to hack around a problem,
+but rather detecting whether stdin is a TTY as above is a better check.
+
+The archives are also mirrored to gmane.org and mail-archive.com,
+so they should be searchable from either of those.
+
+> I apologize if this was already discussed, but
+> I cannot seem to perform a full search on the email archives.
+
+The mailing list archives are cloneable via git:
+  git clone --bare git://bogomips.org/unicorn-public/
+
+And the tree layout is described at:
+  http://ssoma.public-inbox.org/ssoma_repository.txt
+  (it's not meant to be cloned without --bare)
+
+You can currently use the ssoma command-line (at ssoma.public-inbox.org)
+tool to import the archives into a mbox/maildir and search using tools
+such as mairix/notmuch/etc...
+
+The existing HTML archives at http://bogomips.org/unicorn-public/ should
+be easily crawlable by search engines (no JS, frames, CSS or images),
+but a Xapian-based search might happen in the future (that would also
+help with maintaining stable IDs for read-only NNTP support).
+
