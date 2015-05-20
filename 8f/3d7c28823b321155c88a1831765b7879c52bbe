@@ -1,0 +1,47 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-2.9 required=3.0 tests=ALL_TRUSTED,BAYES_00,
+ URIBL_BLOCKED shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 156621F526; Wed, 20 May 2015 23:11:05 +0000 (UTC)
+Date: Wed, 20 May 2015 23:11:04 +0000
+From: Eric Wong <e@80x24.org>
+To: Dan Moore <dan@vaporwa.re>
+Cc: unicorn-public@bogomips.org
+Subject: Re: SIGWINCH ignored...
+Message-ID: <20150520231104.GA22455@dcvr.yhbt.net>
+References: <etPan.555b4293.5b47a5b7.e617@danbookpro>
+ <861658785.98319.1432078146036.JavaMail.mobile-sync@ioii68>
+ <6067929621305539263@unknownmsgid>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <6067929621305539263@unknownmsgid>
+List-Id: <unicorn-public@bogomips.org>
+
+Dan Moore <dan@vaporwa.re> wrote:
+> Thank you, that's perfect. +1 for unicorn 5 patch.
+
+Thanks for the confirmation, pushed as the following commit:
+
+commit a6077391bb62d0b13016084b0eea36b987afe8f0
+Author: Eric Wong <e@80x24.org>
+Date:   Wed May 20 22:15:48 2015 +0000
+
+    process SIGWINCH unless stdin is a TTY
+    
+    Some process managers such as foreman and daemontools rely on
+    unicorn not daemonizing, but we still want to be able to process
+    SIGWINCH in that case.
+    
+    stdout and stderr may be redirected to a pipe (for cronolog or
+    similar process), so those are less likely to be attached to a TTY
+    than stdin.  This also allows users to process SIGWINCH when running
+    inside a regular terminal if they redirect stdin to /dev/null.
+    
+    Reported-by: Dan Moore <dan@vaporwa.re>
+    References: <etPan.555b4293.5b47a5b7.e617@danbookpro>
+    	<20150519232858.GA23515@dcvr.yhbt.net>
