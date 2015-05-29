@@ -1,0 +1,89 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-2.9 required=3.0 tests=ALL_TRUSTED,BAYES_00
+ shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 7C15D1F5F5; Fri, 29 May 2015 06:03:55 +0000 (UTC)
+From: Eric Wong <e@80x24.org>
+To: unicorn-public@bogomips.org
+Cc: Eric Wong <e@80x24.org>
+Subject: [PATCH] http: use rb_hash_clear in Ruby 2.0+
+Date: Fri, 29 May 2015 06:03:54 +0000
+Message-Id: <1432879434-3642-1-git-send-email-e@80x24.org>
+List-Id: <unicorn-public@bogomips.org>
+
+Calling the function directly avoids the overhead of Ruby method
+table lookup and global method cache.  The only downside is this is
+now hidden from tracers and cannot be overridden from Ruby, but I
+doubt anybody cares about that.
+---
+ ext/unicorn_http/extconf.rb      |  1 +
+ ext/unicorn_http/unicorn_http.rl | 21 ++++++++++++++++++---
+ 2 files changed, 19 insertions(+), 3 deletions(-)
+
+diff --git a/ext/unicorn_http/extconf.rb b/ext/unicorn_http/extconf.rb
+index 7a1b0cd..1da0282 100644
+--- a/ext/unicorn_http/extconf.rb
++++ b/ext/unicorn_http/extconf.rb
+@@ -5,6 +5,7 @@ have_macro("SIZEOF_OFF_T", "ruby.h") or check_sizeof("off_t", "sys/types.h")
+ have_macro("SIZEOF_SIZE_T", "ruby.h") or check_sizeof("size_t", "sys/types.h")
+ have_macro("SIZEOF_LONG", "ruby.h") or check_sizeof("long", "sys/types.h")
+ have_func("rb_str_set_len", "ruby.h")
++have_func("rb_hash_clear", "ruby.h") # Ruby 2.0+
+ have_func("gmtime_r", "time.h")
+ 
+ create_makefile("unicorn_http")
+diff --git a/ext/unicorn_http/unicorn_http.rl b/ext/unicorn_http/unicorn_http.rl
+index 4254540..bd45dd0 100644
+--- a/ext/unicorn_http/unicorn_http.rl
++++ b/ext/unicorn_http/unicorn_http.rl
+@@ -60,7 +60,19 @@ struct http_parser {
+   } len;
+ };
+ 
+-static ID id_clear, id_set_backtrace, id_response_start_sent;
++static ID id_set_backtrace, id_response_start_sent;
++
++#ifdef HAVE_RB_HASH_CLEAR /* Ruby >= 2.0 */
++#  define my_hash_clear(h) (void)rb_hash_clear(h)
++#else /* !HAVE_RB_HASH_CLEAR - Ruby <= 1.9.3 */
++
++static ID id_clear;
++
++static void my_hash_clear(VALUE h)
++{
++  rb_funcall(h, id_clear, 0);
++}
++#endif /* HAVE_RB_HASH_CLEAR */
+ 
+ static void finalize_header(struct http_parser *hp);
+ 
+@@ -584,7 +596,7 @@ static VALUE HttpParser_clear(VALUE self)
+   struct http_parser *hp = data_get(self);
+ 
+   http_parser_init(hp);
+-  rb_funcall(hp->env, id_clear, 0);
++  my_hash_clear(hp->env);
+   rb_ivar_set(self, id_response_start_sent, Qfalse);
+ 
+   return self;
+@@ -926,9 +938,12 @@ void Init_unicorn_http(void)
+   SET_GLOBAL(g_http_transfer_encoding, "TRANSFER_ENCODING");
+   SET_GLOBAL(g_content_length, "CONTENT_LENGTH");
+   SET_GLOBAL(g_http_connection, "CONNECTION");
+-  id_clear = rb_intern("clear");
+   id_set_backtrace = rb_intern("set_backtrace");
+   id_response_start_sent = rb_intern("@response_start_sent");
+   init_unicorn_httpdate();
++
++#ifndef HAVE_RB_HASH_CLEAR
++  id_clear = rb_intern("clear");
++#endif
+ }
+ #undef SET_GLOBAL
+-- 
+EW
+
