@@ -1,0 +1,68 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-2.7 required=3.0 tests=ALL_TRUSTED,AWL,BAYES_00
+ shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 59FA76338EE; Sat,  6 Jun 2015 01:58:10 +0000 (UTC)
+From: Eric Wong <e@80x24.org>
+To: unicorn-public@bogomips.org
+Cc: Eric Wong <e@80x24.org>
+Subject: [PATCH 1/2] move the socket into Rack env for hijacking
+Date: Sat,  6 Jun 2015 01:58:02 +0000
+Message-Id: <1433555883-24723-2-git-send-email-e@80x24.org>
+In-Reply-To: <1433555883-24723-1-git-send-email-e@80x24.org>
+References: <1433555883-24723-1-git-send-email-e@80x24.org>
+List-Id: <unicorn-public@bogomips.org>
+
+This avoids the expensive generic instance variable for @socket
+and exposes the socket as `env["unicorn.socket"]' to the Rack
+application.
+
+As as nice side-effect, applications may access
+`env["unicorn.socket"]' as part of the API may be useful for
+3rd-party bits such as Raindrops::TCP_Info for reading the tcp_info
+struct on Linux-based systems.
+
+Yes, `env["unicorn.socket"]' is a proprietary API in unicorn!
+News at 11!  But then again, unicorn is not the first Rack server
+to implement `env["#{servername}.socket"]', either...
+---
+ lib/unicorn/http_request.rb | 5 +++--
+ 1 file changed, 3 insertions(+), 2 deletions(-)
+
+diff --git a/lib/unicorn/http_request.rb b/lib/unicorn/http_request.rb
+index b60e383..f5c6b5b 100644
+--- a/lib/unicorn/http_request.rb
++++ b/lib/unicorn/http_request.rb
+@@ -33,6 +33,7 @@ class Unicorn::HttpParser
+   # 2.2+ optimizes hash assignments when used with literal string keys
+   REMOTE_ADDR = 'REMOTE_ADDR'.freeze
+   RACK_INPUT = 'rack.input'.freeze
++  UNICORN_SOCKET = 'unicorn.socket'.freeze
+   HTTP_RESPONSE_START = [ 'HTTP', '/1.1 ']
+   @@input_class = Unicorn::TeeInput
+   @@check_client_connection = false
+@@ -99,7 +100,7 @@ class Unicorn::HttpParser
+                     NULL_IO : @@input_class.new(socket, self)
+ 
+     # for Rack hijacking in Rack 1.5 and later
+-    @socket = socket
++    e[UNICORN_SOCKET] = socket
+     e[RACK_HIJACK] = self
+ 
+     e.merge!(DEFAULTS)
+@@ -108,7 +109,7 @@ class Unicorn::HttpParser
+   # for rack.hijack, we respond to this method so no extra allocation
+   # of a proc object
+   def call
+-    env[RACK_HIJACK_IO] = @socket
++    env[RACK_HIJACK_IO] = env[UNICORN_SOCKET]
+   end
+ 
+   def hijacked?
+-- 
+EW
+
