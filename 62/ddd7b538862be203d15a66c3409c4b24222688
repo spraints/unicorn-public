@@ -1,0 +1,156 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-2.7 required=3.0 tests=ALL_TRUSTED,AWL,BAYES_00
+ shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id EC4BD6338EF; Sat,  6 Jun 2015 01:58:11 +0000 (UTC)
+From: Eric Wong <e@80x24.org>
+To: unicorn-public@bogomips.org
+Cc: Eric Wong <e@80x24.org>
+Subject: [PATCH 2/2] http: move response_start_sent into the C ext
+Date: Sat,  6 Jun 2015 01:58:03 +0000
+Message-Id: <1433555883-24723-3-git-send-email-e@80x24.org>
+In-Reply-To: <1433555883-24723-1-git-send-email-e@80x24.org>
+References: <1433555883-24723-1-git-send-email-e@80x24.org>
+List-Id: <unicorn-public@bogomips.org>
+
+Combined with the previous commit to eliminate the `@socket'
+instance variable, this eliminates the last instance variable
+in the Unicorn::HttpRequest class.
+
+Eliminating the last instance variable avoids the creation of a
+internal hash table used for implementing the "generic" instance
+variables found in non-pure-Ruby classes.  Method entry overhead
+remains the same.
+
+While this change doesn't do a whole lot for unicorn memory usage
+where the HttpRequest is a singleton, it helps other HTTP servers
+which rely on this code where thousands of clients may be connected.
+---
+ ext/unicorn_http/unicorn_http.rl | 26 +++++++++++++++++++++++---
+ lib/unicorn/http_request.rb      |  4 +---
+ test/unit/test_http_parser_ng.rb | 11 +++++++++++
+ 3 files changed, 35 insertions(+), 6 deletions(-)
+
+diff --git a/ext/unicorn_http/unicorn_http.rl b/ext/unicorn_http/unicorn_http.rl
+index bd45dd0..a5f069d 100644
+--- a/ext/unicorn_http/unicorn_http.rl
++++ b/ext/unicorn_http/unicorn_http.rl
+@@ -25,6 +25,7 @@ void init_unicorn_httpdate(void);
+ #define UH_FL_KAVERSION 0x80
+ #define UH_FL_HASHEADER 0x100
+ #define UH_FL_TO_CLEAR 0x200
++#define UH_FL_RESSTART 0x400 /* for check_client_connection */
+ 
+ /* all of these flags need to be set for keepalive to be supported */
+ #define UH_FL_KEEPALIVE (UH_FL_KAVERSION | UH_FL_REQEOF | UH_FL_HASHEADER)
+@@ -60,7 +61,7 @@ struct http_parser {
+   } len;
+ };
+ 
+-static ID id_set_backtrace, id_response_start_sent;
++static ID id_set_backtrace;
+ 
+ #ifdef HAVE_RB_HASH_CLEAR /* Ruby >= 2.0 */
+ #  define my_hash_clear(h) (void)rb_hash_clear(h)
+@@ -597,7 +598,6 @@ static VALUE HttpParser_clear(VALUE self)
+ 
+   http_parser_init(hp);
+   my_hash_clear(hp->env);
+-  rb_ivar_set(self, id_response_start_sent, Qfalse);
+ 
+   return self;
+ }
+@@ -880,6 +880,25 @@ static VALUE HttpParser_filter_body(VALUE self, VALUE dst, VALUE src)
+   return src;
+ }
+ 
++static VALUE HttpParser_rssset(VALUE self, VALUE boolean)
++{
++  struct http_parser *hp = data_get(self);
++
++  if (RTEST(boolean))
++    HP_FL_SET(hp, RESSTART);
++  else
++    HP_FL_UNSET(hp, RESSTART);
++
++  return boolean; /* ignored by Ruby anyways */
++}
++
++static VALUE HttpParser_rssget(VALUE self)
++{
++  struct http_parser *hp = data_get(self);
++
++  return HP_FL_TEST(hp, RESSTART) ? Qtrue : Qfalse;
++}
++
+ #define SET_GLOBAL(var,str) do { \
+   var = find_common_field(str, sizeof(str) - 1); \
+   assert(!NIL_P(var) && "missed global field"); \
+@@ -914,6 +933,8 @@ void Init_unicorn_http(void)
+   rb_define_method(cHttpParser, "next?", HttpParser_next, 0);
+   rb_define_method(cHttpParser, "buf", HttpParser_buf, 0);
+   rb_define_method(cHttpParser, "env", HttpParser_env, 0);
++  rb_define_method(cHttpParser, "response_start_sent=", HttpParser_rssset, 1);
++  rb_define_method(cHttpParser, "response_start_sent", HttpParser_rssget, 0);
+ 
+   /*
+    * The maximum size a single chunk when using chunked transfer encoding.
+@@ -939,7 +960,6 @@ void Init_unicorn_http(void)
+   SET_GLOBAL(g_content_length, "CONTENT_LENGTH");
+   SET_GLOBAL(g_http_connection, "CONNECTION");
+   id_set_backtrace = rb_intern("set_backtrace");
+-  id_response_start_sent = rb_intern("@response_start_sent");
+   init_unicorn_httpdate();
+ 
+ #ifndef HAVE_RB_HASH_CLEAR
+diff --git a/lib/unicorn/http_request.rb b/lib/unicorn/http_request.rb
+index f5c6b5b..9339bce 100644
+--- a/lib/unicorn/http_request.rb
++++ b/lib/unicorn/http_request.rb
+@@ -25,8 +25,6 @@ class Unicorn::HttpParser
+   RACK_HIJACK_IO = "rack.hijack_io".freeze
+   NULL_IO = StringIO.new("")
+ 
+-  attr_accessor :response_start_sent
+-
+   # :stopdoc:
+   # A frozen format for this is about 15% faster
+   # Drop these frozen strings when Ruby 2.2 becomes more prevalent,
+@@ -92,7 +90,7 @@ class Unicorn::HttpParser
+ 
+     # detect if the socket is valid by writing a partial response:
+     if @@check_client_connection && headers?
+-      @response_start_sent = true
++      self.response_start_sent = true
+       HTTP_RESPONSE_START.each { |c| socket.write(c) }
+     end
+ 
+diff --git a/test/unit/test_http_parser_ng.rb b/test/unit/test_http_parser_ng.rb
+index efd82e1..d186f5a 100644
+--- a/test/unit/test_http_parser_ng.rb
++++ b/test/unit/test_http_parser_ng.rb
+@@ -34,6 +34,17 @@ class HttpParserNgTest < Test::Unit::TestCase
+     assert_equal false, @parser.response_start_sent
+   end
+ 
++  def test_response_start_sent
++    assert_equal false, @parser.response_start_sent, "default is false"
++    @parser.response_start_sent = true
++    assert_equal true, @parser.response_start_sent
++    @parser.response_start_sent = false
++    assert_equal false, @parser.response_start_sent
++    @parser.response_start_sent = true
++    @parser.clear
++    assert_equal false, @parser.response_start_sent
++  end
++
+   def test_connection_TE
+     @parser.buf << "GET / HTTP/1.1\r\nHost: example.com\r\nConnection: TE\r\n"
+     @parser.buf << "TE: trailers\r\n\r\n"
+-- 
+EW
+
