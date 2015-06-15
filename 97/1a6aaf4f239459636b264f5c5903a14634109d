@@ -1,0 +1,116 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-2.8 required=3.0 tests=ALL_TRUSTED,AWL,BAYES_00,
+ URIBL_BLOCKED shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 6C21F1F5EC; Mon, 15 Jun 2015 22:56:52 +0000 (UTC)
+Date: Mon, 15 Jun 2015 22:56:52 +0000
+From: Eric Wong <e@80x24.org>
+To: unicorn-public@bogomips.org
+Subject: [ANN] unicorn 5.0.0.pre1 - incompatible changes!
+Message-ID: <20150615225652.GA16164@dcvr.yhbt.net>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+List-Id: <unicorn-public@bogomips.org>
+
+This release finally drops Ruby 1.8 support and requires Ruby 1.9.3
+or later.  The horrible "Status:" header in our HTTP response is
+finally gone, saving at least 16 precious bytes in every single HTTP
+response.
+
+Under Ruby 2.1 and later, the monotonic clock is used for timeout
+handling for better accuracy.
+
+Several experimental, unused and undocumented features are removed.
+
+There's also tiny, minor performance and memory improvements from
+dropping 1.8 compatibility, but probably nothing noticeable on a
+typical real-life (bloated) app.
+
+The biggest performance improvement we made was to our website by
+switching to olddoc.  Depending on connection speed, latency, and
+renderer performance, it typically loads two to four times faster.
+
+Finally, for the billionth time: unicorn must never be exposed
+to slow clients, as it will never ever use new-fangled things
+like non-blocking socket I/O, threads, epoll or kqueue.  unicorn
+must be used with a fully-buffering reverse proxy such as nginx
+for slow clients.
+
+I'll tag 5.0.0 final in a week or so if all goes well
+
+= gem install --pre unicorn
+= git clone git://bogomips.org/unicorn.git
+= http://unicorn.bogomips.org/
+
+* ISSUES: update with mailing list subscription
+* GIT-VERSION-GEN: start 5.0.0 development
+* http: remove xftrust options
+* FAQ: add entry for Rails autoflush_log
+* dev: remove isolate dependency
+* unicorn.gemspec: depend on test-unit 3.0
+* http_response: remove Status: header
+* remove RubyForge and Freecode references
+* remove mongrel.rubyforge.org references
+* http: remove the keepalive requests limit
+* http: reduce parser from 72 to 56 bytes on 64-bit
+* examples: add run_once to before_fork hook example
+* worker: remove old tmp accessor
+* http_server: save 450+ bytes of memory on x86-64
+* t/t0002-parser-error.sh: relax test for rack 1.6.0
+* remove SSL support
+* tmpio: drop the "size" method
+* switch docs + website to olddoc
+* README: clarify/reduce references to unicorn_rails
+* gemspec: fixup olddoc migration
+* use the monotonic clock under Ruby 2.1+
+* http: -Wshorten-64-to-32 warnings on clang
+* remove old inetd+git examples and exec_cgi
+* http: standalone require + reduction in binary size
+* GNUmakefile: fix clean gem build + reduce build cruft
+* socket_helper: reduce constant lookups and caching
+* remove 1.8, <= 1.9.1 fallback for missing IO#autoclose=
+* favor IO#close_on_exec= over fcntl in 1.9+
+* use require_relative to reduce syscalls at startup
+* doc: update support status for Ruby versions
+* fix uninstalled testing and reduce require paths
+* test_socket_helper: do not depend on SO_REUSEPORT
+* favor "a.b(&:c)" form over "a.b { |x| x.c }"
+* ISSUES: add section for bugs in other projects
+* http_server: favor ivars over constants
+* explain 11 byte magic number for self-pipe
+* const: drop constants used by Rainbows!
+* reduce and localize constant string use
+* Links: mark Rainbows! as historical, reference yahns
+* save about 200 bytes of memory on x86-64
+* http: remove deprecated reset method
+* http: remove experimental dechunk! method
+* socket_helper: update comments
+* doc: document UNICORN_FD in manpage
+* doc: document Etc.nprocessors for worker_processes
+* favor more string literals for cold call sites
+* tee_input: support for Rack::TempfileReaper middleware
+* support TempfileReaper in deployment and development envs
+* favor kgio_wait_readable for single FD over select
+* Merge tag 'v4.9.0'
+* http_request: support rack.hijack by default
+* avoid extra allocation for hijack proc creation
+* FAQ: add note about ECONNRESET errors from bodies
+* process SIGWINCH unless stdin is a TTY
+* ISSUES: discourage HTML mail strongly, welcome nyms
+* http: use rb_hash_clear in Ruby 2.0+
+* http_response: avoid special-casing for Rack < 1.5
+* www: install NEWS.atom.xml properly
+* http_server: remove a few more accessors and constants
+* http_response: simplify regular expression
+* move the socket into Rack env for hijacking
+* http: move response_start_sent into the C ext
+* FAQ: reorder bit on Rack 1.1.x and Rails 2.3.x
+* ensure body is closed during hijack
+
+-- 
+EW
