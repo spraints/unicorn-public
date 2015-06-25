@@ -1,0 +1,56 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-2.8 required=3.0 tests=ALL_TRUSTED,AWL,BAYES_00,
+ URIBL_BLOCKED shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 0BF9A2029F; Thu, 25 Jun 2015 23:26:27 +0000 (UTC)
+Date: Thu, 25 Jun 2015 23:26:26 +0000
+From: Eric Wong <e@80x24.org>
+To: Christos Trochalakis <christos@skroutz.gr>
+Cc: Dmitry Smirnov <onlyjob@debian.org>, Hleb Valoshka <375gnu@gmail.com>,
+ unicorn@packages.debian.org, unicorn-public@bogomips.org
+Subject: Re: [DRE-maint] unicorn: native systemd service
+Message-ID: <20150625232626.GA23882@dcvr.yhbt.net>
+References: <3137844.nsIDTWmvl4@debstor>
+ <20150625083118.GA22140@luke.ws.skroutz.gr>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20150625083118.GA22140@luke.ws.skroutz.gr>
+List-Id: <unicorn-public@bogomips.org>
+
++Cc unicorn-public list 
+Christos Trochalakis <christos@skroutz.gr> wrote:
+> Hello all,
+> 
+> I have recently migrated our main ruby application to systemd implementing zero
+> downtime upgrades.
+> 
+> systemd doesn't like replacing the binary on the fly. There is one exception to
+> this, services with PIDFile. When PIDFile is set, systemd reads it when the
+> main process exits and replaces the main process.  nginx also had this issue a
+> few months ago [0].
+> 
+> So, in order to support zero-downtime upgrades we have to use a pid file.
+
+I don't think so.  You should be able to bind the listen socket in
+systemd and rely on the socket activation features (setting the
+UNICORN_FD environment variable to the created FD).
+
+You still need to have the matching "listen" directive in the unicorn
+config file so unicorn does not close it.
+
+With socket activation, you should just be able to kill unicorn using
+SIGQUIT (just master, or even all workers) and restart without ever
+dropping a connection.  I do NOT suggest using SIGTERM for unicorn,
+since that'll cause the master to kill all workers ASAP.
+
+If the master dies before the workers (e.g. from SIGKILL),
+systemd ought to just ignore the workers.
+
+I don't actually know the systemd config at all, but anybody familiar
+with systemd socket activation should have no problems setting the
+UNICORN_FD env.
