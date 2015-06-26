@@ -1,0 +1,165 @@
+Return-Path: <yatiohi@ideopolis.gr>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS202042 185.6.76.0/22
+X-Spam-Status: No, score=-0.9 required=3.0 tests=AWL,BAYES_00,
+ RCVD_IN_DNSWL_NONE,URIBL_BLOCKED shortcircuit=no autolearn=unavailable
+ version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from mailer.skroutz.gr (mailer.skroutz.gr [185.6.78.18]) by
+ dcvr.yhbt.net (Postfix) with ESMTP id 13366202A6 for
+ <unicorn-public@bogomips.org>; Fri, 26 Jun 2015 11:41:34 +0000 (UTC)
+Received: from localhost (localhost [127.0.0.1]) by mailer.skroutz.gr
+ (Postfix) with ESMTP id 0BDEA2A4384; Fri, 26 Jun 2015 14:41:32 +0300 (EEST)
+Received: from mailer.skroutz.gr ([127.0.0.1]) by localhost
+ (mailer.skroutz.gr [127.0.0.1]) (amavisd-new, port 10026) with ESMTP id
+ YRnIbar6CCSu; Fri, 26 Jun 2015 14:41:31 +0300 (EEST)
+Received: from luke.ws.skroutz.gr (luke.ws.skroutz.gr [185.6.78.148]) by
+ mailer.skroutz.gr (Postfix) with ESMTPSA id 6B4C22A42FF; Fri, 26 Jun 2015
+ 14:41:31 +0300 (EEST)
+Date: Fri, 26 Jun 2015 14:41:29 +0300
+From: Christos Trochalakis <yatiohi@ideopolis.gr>
+To: Eric Wong <e@80x24.org>
+Cc: Dmitry Smirnov <onlyjob@debian.org>, Hleb Valoshka <375gnu@gmail.com>,
+ unicorn@packages.debian.org, unicorn-public@bogomips.org
+Subject: Re: [DRE-maint] unicorn: native systemd service
+Message-ID: <20150626114129.GA25883@luke.ws.skroutz.gr>
+References: <3137844.nsIDTWmvl4@debstor>
+ <20150625083118.GA22140@luke.ws.skroutz.gr>
+ <20150625232626.GA23882@dcvr.yhbt.net>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii; format=flowed
+Content-Disposition: inline
+In-Reply-To: <20150625232626.GA23882@dcvr.yhbt.net>
+User-Agent: Mutt/1.5.23 (2014-03-12)
+List-Id: <unicorn-public@bogomips.org>
+
+On Thu, Jun 25, 2015 at 11:26:26PM +0000, Eric Wong wrote:
+>+Cc unicorn-public list
+>Christos Trochalakis <christos@skroutz.gr> wrote:
+>> Hello all,
+>>
+>> I have recently migrated our main ruby application to systemd implementing zero
+>> downtime upgrades.
+>>
+>> systemd doesn't like replacing the binary on the fly. There is one exception to
+>> this, services with PIDFile. When PIDFile is set, systemd reads it when the
+>> main process exits and replaces the main process.  nginx also had this issue a
+>> few months ago [0].
+>>
+>> So, in order to support zero-downtime upgrades we have to use a pid file.
+>
+>I don't think so.  You should be able to bind the listen socket in
+>systemd and rely on the socket activation features (setting the
+>UNICORN_FD environment variable to the created FD).
+>
+>You still need to have the matching "listen" directive in the unicorn
+>config file so unicorn does not close it.
+>
+>With socket activation, you should just be able to kill unicorn using
+>SIGQUIT (just master, or even all workers) and restart without ever
+>dropping a connection.  I do NOT suggest using SIGTERM for unicorn,
+>since that'll cause the master to kill all workers ASAP.
+>
+
+Yes, you are right socket activation is also an option! I have made some
+experiments with a simple rack app to test it.
+
+systemd uses the LISTEN_FDS env variable that is an integer indicating the
+number of inherited file descriptors. Those FDs have consecutive numbers
+starting from `SD_LISTEN_FDS_START` which is `3` (man sd_listen_fds).
+
+So for example if LISTEN_FDS="2", UNICORN_FD should be "3,4". I used a
+simple wrapper script for that. Here is the full configuration:
+
+$ tail -n+1 /srv/uni/* /etc/systemd/system/uni.*
+
+==> /srv/uni/config.ru <==
+app = proc do |env|
+  sleep 5
+  [
+    200,
+    { 'Content-Type' => 'text/plain' },
+    ["Socket Activated!\n", "pid:#{$$}\n", "ppid:#{Process.ppid}\n"]
+  ]
+end
+
+run app
+
+==> /srv/uni/unicorn.conf.rb <==
+worker_processes 2
+working_directory "/srv/uni"
+
+# Keep in sync with uni.socket
+listen 9000, :tcp_nopush => true
+listen 9001, :tcp_nopush => true
+
+==> /srv/uni/wrapper <==
+#!/bin/bash
+
+[ -z "$LISTEN_FDS" ] && exec $@
+
+UNICORN_FD=""
+for fd in `seq 3 $(($LISTEN_FDS+2))`; do
+	UNICORN_FD="${UNICORN_FD}${fd},"
+done
+export UNICORN_FD
+
+echo "wrapped fds: ${UNICORN_FD}"
+
+exec $@
+
+==> /etc/systemd/system/uni.service <==
+[Unit]
+Description=Unicorn Server
+
+[Service]
+ExecStart=/srv/uni/wrapper /usr/bin/unicorn -c /srv/uni/unicorn.conf.rb -d
+KillSignal=SIGQUIT
+KillMode=mixed
+
+==> /etc/systemd/system/uni.socket <==
+[Unit]
+Description=Unicorn Socket
+
+[Socket]
+ListenStream=0.0.0.0:9000
+ListenStream=0.0.0.0:9001
+
+[Install]
+WantedBy=sockets.target
+
+Make sure to activate the systemd units:
+chmod +x /srv/uni/wrapper
+systemdctl daemon-reload
+systemctl enable uni.socket
+systemctl start  uni.socket
+
+The application sleeps for 5secs before replying.
+
+I run the following commands from 3 different terminals:
+
+$ curl localhost:9000 [blocked for 5sec]
+# systemctl stop uni.service [issues sigquit on the running unicorn, killing
+                              the 2nd worker and waiting the 1st to finish]
+$ curl localhost:9000 [blocked since there are no more workers to accept right now]
+
+After the first request is served, unicorn dies and systemd respawns a new master.
+The second request is accepted by the new master (notice the different ppid).
+
+Some notes:
+
+TCP socket options are not applied by unicorn on inherited sockets (TCPSocket
+=== sock is false). systemd socket files have support for most options now but
+we might want unicorn to `setsockopt` them as well. For example,
+'DeferAcceptSec', 'KeepAliveIntervalSec', 'NoDelay' are supported since v216, so
+they are not available in jessie (v215).
+
+socket activation is a really interesting setup, but personally I would not run
+it with a large application. Clients would have to wait for the new master to
+be up and running before a reply is returned, and that could take tenths of
+seconds. The USR2 rexec solves that problem since both old and new workers are
+accepting on the socket and we can kill the old ones when we are ready. In that
+case the PIDFile trick is handy to support zero downtime restarts with no
+latency.
+
