@@ -1,0 +1,37 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-2.7 required=3.0 tests=ALL_TRUSTED,AWL,BAYES_00
+ shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 857822025D; Fri, 26 Jun 2015 22:31:35 +0000 (UTC)
+Date: Fri, 26 Jun 2015 22:31:35 +0000
+From: Eric Wong <e@80x24.org>
+To: =?utf-8?Q?Br=C3=A1ulio?= Bhavamitra <braulio@eita.org.br>
+Cc: unicorn-public <unicorn-public@bogomips.org>
+Subject: Re: Does the the environment is preserved on USR2?
+Message-ID: <20150626223135.GA9040@dcvr.yhbt.net>
+References:
+ <CAJri6_t2Pnj5OrW3xqjZOky_U6YsS1+BG1y9mtf=sVFLv_dmxA@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To:
+ <CAJri6_t2Pnj5OrW3xqjZOky_U6YsS1+BG1y9mtf=sVFLv_dmxA@mail.gmail.com>
+List-Id: <unicorn-public@bogomips.org>
+
+USR2 should not change environment variables besides UNICORN_FD
+and PWD (if working_directory is used).
+
+On most Linux versions, you can check the initial environment of a
+running process by inspecting the environ file for the process:
+
+	tr '\0' '\n' < /proc/$PID/environ
+
+This may not reflect environment changes after the process is started.
+
+However, you can use ENV inside Ruby code to check that.  Maybe add a
+private Rack endpoint to show ENV.inspect output to your app to check
+this...
