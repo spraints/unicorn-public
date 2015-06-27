@@ -1,0 +1,74 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-2.8 required=3.0 tests=ALL_TRUSTED,AWL,BAYES_00,
+ URIBL_BLOCKED shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 0F98F63380B; Sat, 27 Jun 2015 04:01:37 +0000 (UTC)
+Date: Sat, 27 Jun 2015 04:01:36 +0000
+From: Eric Wong <e@80x24.org>
+To: Christos Trochalakis <yatiohi@ideopolis.gr>
+Cc: Dmitry Smirnov <onlyjob@debian.org>, Hleb Valoshka <375gnu@gmail.com>,
+ unicorn@packages.debian.org, unicorn-public@bogomips.org
+Subject: [RFC] emulate sd_listen_fds for systemd support
+Message-ID: <20150627040136.GA13070@dcvr.yhbt.net>
+References: <3137844.nsIDTWmvl4@debstor>
+ <20150625083118.GA22140@luke.ws.skroutz.gr>
+ <20150625232626.GA23882@dcvr.yhbt.net>
+ <20150626114129.GA25883@luke.ws.skroutz.gr>
+ <20150627030501.GA24759@dcvr.yhbt.net>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20150627030501.GA24759@dcvr.yhbt.net>
+List-Id: <unicorn-public@bogomips.org>
+
+Unfortunately, testing this is tricky because FD=3
+(SD_LISTEN_FDS_START) tends to be grabbed by (MRI) Ruby 1.9.3
+and onwards for the internal self-pipe.
+
+So for now, I've manually tested this with a systemd installation
+
+Disclaimer: this is also my first experience using systemd
+---
+  Eric Wong <e@80x24.org> wrote:
+  > OK, I'll probably add LISTEN_FDS and LISTEN_PID support to unicorn
+  > directly so the wrapper is unnecessary.
+
+ lib/unicorn/http_server.rb | 16 +++++++++++++---
+ 1 file changed, 13 insertions(+), 3 deletions(-)
+
+diff --git a/lib/unicorn/http_server.rb b/lib/unicorn/http_server.rb
+index 297b9f9..0f97516 100644
+--- a/lib/unicorn/http_server.rb
++++ b/lib/unicorn/http_server.rb
+@@ -766,12 +766,22 @@ def redirect_io(io, path)
+   def inherit_listeners!
+     # inherit sockets from parents, they need to be plain Socket objects
+     # before they become Kgio::UNIXServer or Kgio::TCPServer
+-    inherited = ENV['UNICORN_FD'].to_s.split(',').map do |fd|
+-      io = Socket.for_fd(fd.to_i)
++    inherited = ENV['UNICORN_FD'].to_s.split(',')
++
++    # emulate sd_listen_fds() for systemd
++    sd_pid, sd_fds = ENV.values_at('LISTEN_PID', 'LISTEN_FDS')
++    if sd_pid && sd_pid.to_i == $$
++      # 3 = SD_LISTEN_FDS_START
++      inherited.concat((3...(3 + sd_fds.to_i)).map { |fd| Socket.for_fd(fd) })
++    end
++    # to ease debugging, we will not unset LISTEN_PID and LISTEN_FDS
++
++    inherited.map! do |fd|
++      io = String === fd ? Socket.for_fd(fd.to_i) : fd
+       io.autoclose = false
+       io = server_cast(io)
+       set_server_sockopt(io, listener_opts[sock_name(io)])
+-      logger.info "inherited addr=#{sock_name(io)} fd=#{fd}"
++      logger.info "inherited addr=#{sock_name(io)} fd=#{io.fileno}"
+       io
+     end
+ 
+-- 
+EW
