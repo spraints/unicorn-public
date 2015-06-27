@@ -1,0 +1,58 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-2.8 required=3.0 tests=ALL_TRUSTED,AWL,BAYES_00,
+ URIBL_BLOCKED shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 70E7963380B; Sat, 27 Jun 2015 02:58:01 +0000 (UTC)
+From: Eric Wong <e@80x24.org>
+To: unicorn-public@bogomips.org
+Cc: Christos Trochalakis <yatiohi@ideopolis.gr>, Eric Wong <e@80x24.org>
+Subject: [PATCH] apply TCP socket options on inherited sockets
+Date: Sat, 27 Jun 2015 02:57:59 +0000
+Message-Id: <1435373879-4299-1-git-send-email-e@80x24.org>
+List-Id: <unicorn-public@bogomips.org>
+
+TCP socket options are now set when inheriting existing sockets from
+a parent process.  I'm fairly certain all the TCP setsockopt knobs
+we use are idempotent and harmless to change.
+
+If anything, the only directive I'd be uncomfortable changing is
+shortening the listen(2) (aka :backlog) size, but we've always
+changed that anyways since it also applies to UNIX sockets.
+
+Note: removing a configuration knob in a unicorn config file can not
+reset the value to the OS-provided default setting.  Inherited
+sockets must use a new setting to override existing ones.
+(or the socket needs to be closed and re-created in the process
+ launcher before unicorn inherits it).
+
+Noticed-by: Christos Trochalakis <yatiohi@ideopolis.gr>
+  <20150626114129.GA25883@luke.ws.skroutz.gr>
+---
+ lib/unicorn/http_server.rb | 5 +++--
+ 1 file changed, 3 insertions(+), 2 deletions(-)
+
+diff --git a/lib/unicorn/http_server.rb b/lib/unicorn/http_server.rb
+index 3282ec7..297b9f9 100644
+--- a/lib/unicorn/http_server.rb
++++ b/lib/unicorn/http_server.rb
+@@ -768,10 +768,11 @@ def inherit_listeners!
+     # before they become Kgio::UNIXServer or Kgio::TCPServer
+     inherited = ENV['UNICORN_FD'].to_s.split(',').map do |fd|
+       io = Socket.for_fd(fd.to_i)
+-      set_server_sockopt(io, listener_opts[sock_name(io)])
+       io.autoclose = false
++      io = server_cast(io)
++      set_server_sockopt(io, listener_opts[sock_name(io)])
+       logger.info "inherited addr=#{sock_name(io)} fd=#{fd}"
+-      server_cast(io)
++      io
+     end
+ 
+     config_listeners = config[:listeners].dup
+-- 
+EW
+
