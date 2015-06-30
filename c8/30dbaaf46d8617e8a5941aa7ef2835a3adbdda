@@ -1,0 +1,136 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-2.9 required=3.0 tests=ALL_TRUSTED,BAYES_00
+ shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id D62C7203EB; Tue, 30 Jun 2015 22:52:09 +0000 (UTC)
+From: Eric Wong <e@80x24.org>
+To: unicorn-public@bogomips.org
+Cc: e@80x24.org
+Subject: [PATCH 2/3] reduce constants and optimize for Ruby 2.2
+Date: Tue, 30 Jun 2015 22:51:51 +0000
+Message-Id: <1435704712-4981-3-git-send-email-e@80x24.org>
+In-Reply-To: <1435704712-4981-1-git-send-email-e@80x24.org>
+References: <1435704712-4981-1-git-send-email-e@80x24.org>
+List-Id: <unicorn-public@bogomips.org>
+
+Ruby (MRI) 2.1 optimizes allocations away on String#freeze with
+literal strings.
+
+Furthermore, Ruby 2.2 optimizes away literal string allocations
+when they are used as arguments to Hash#[] and Hash#[]=
+
+Thus we can avoid expensive constant lookups and cache overhead
+by taking advantage of advancements in Ruby.
+
+Since Ruby 2.2 has been out for 7 months, now; it ought to be safe
+to introduce minor performance regressions for folks using older
+Rubies (1.9.3+ remains supported) to benefit folks on the latest
+Ruby.
+
+This should recover the performance lost in the
+"reflect changes in Rack::Utils::HTTP_STATUS_CODES" change
+in synthetic benchmarks.
+---
+ lib/unicorn/http_request.rb  | 19 +++++++------------
+ lib/unicorn/http_response.rb |  6 ++----
+ 2 files changed, 9 insertions(+), 16 deletions(-)
+
+diff --git a/lib/unicorn/http_request.rb b/lib/unicorn/http_request.rb
+index 9339bce..0c1f9bb 100644
+--- a/lib/unicorn/http_request.rb
++++ b/lib/unicorn/http_request.rb
+@@ -21,17 +21,12 @@ class Unicorn::HttpParser
+     "SERVER_SOFTWARE" => "Unicorn #{Unicorn::Const::UNICORN_VERSION}"
+   }
+ 
+-  RACK_HIJACK = "rack.hijack".freeze
+-  RACK_HIJACK_IO = "rack.hijack_io".freeze
+   NULL_IO = StringIO.new("")
+ 
+   # :stopdoc:
+   # A frozen format for this is about 15% faster
+   # Drop these frozen strings when Ruby 2.2 becomes more prevalent,
+   # 2.2+ optimizes hash assignments when used with literal string keys
+-  REMOTE_ADDR = 'REMOTE_ADDR'.freeze
+-  RACK_INPUT = 'rack.input'.freeze
+-  UNICORN_SOCKET = 'unicorn.socket'.freeze
+   HTTP_RESPONSE_START = [ 'HTTP', '/1.1 ']
+   @@input_class = Unicorn::TeeInput
+   @@check_client_connection = false
+@@ -78,7 +73,7 @@ class Unicorn::HttpParser
+     #  identify the client for the immediate request to the server;
+     #  that client may be a proxy, gateway, or other intermediary
+     #  acting on behalf of the actual source client."
+-    e[REMOTE_ADDR] = socket.kgio_addr
++    e['REMOTE_ADDR'] = socket.kgio_addr
+ 
+     # short circuit the common case with small GET requests first
+     socket.kgio_read!(16384, buf)
+@@ -94,12 +89,12 @@ class Unicorn::HttpParser
+       HTTP_RESPONSE_START.each { |c| socket.write(c) }
+     end
+ 
+-    e[RACK_INPUT] = 0 == content_length ?
+-                    NULL_IO : @@input_class.new(socket, self)
++    e['rack.input'] = 0 == content_length ?
++                      NULL_IO : @@input_class.new(socket, self)
+ 
+     # for Rack hijacking in Rack 1.5 and later
+-    e[UNICORN_SOCKET] = socket
+-    e[RACK_HIJACK] = self
++    e['unicorn.socket'] = socket
++    e['rack.hijack'] = self
+ 
+     e.merge!(DEFAULTS)
+   end
+@@ -107,10 +102,10 @@ class Unicorn::HttpParser
+   # for rack.hijack, we respond to this method so no extra allocation
+   # of a proc object
+   def call
+-    env[RACK_HIJACK_IO] = env[UNICORN_SOCKET]
++    env['rack.hijack_io'] = env['unicorn.socket']
+   end
+ 
+   def hijacked?
+-    env.include?(RACK_HIJACK_IO)
++    env.include?('rack.hijack_io'.freeze)
+   end
+ end
+diff --git a/lib/unicorn/http_response.rb b/lib/unicorn/http_response.rb
+index a42303e..ec8b7c8 100644
+--- a/lib/unicorn/http_response.rb
++++ b/lib/unicorn/http_response.rb
+@@ -10,8 +10,6 @@
+ # is the job of Rack, with the exception of the "Date" and "Status" header.
+ module Unicorn::HttpResponse
+ 
+-  CRLF = "\r\n"
+-
+   # internal API, code will always be common-enough-for-even-old-Rack
+   def err_response(code, response_start_sent)
+     "#{response_start_sent ? '' : 'HTTP/1.1 '}" \
+@@ -39,7 +37,7 @@ module Unicorn::HttpResponse
+           # key in Rack < 1.5
+           hijack = value
+         else
+-          if value =~ /\n/
++          if value.include?("\n".freeze)
+             # avoiding blank, key-only cookies with /\n+/
+             buf << value.split(/\n+/).map! { |v| "#{key}: #{v}\r\n" }.join
+           else
+@@ -47,7 +45,7 @@ module Unicorn::HttpResponse
+           end
+         end
+       end
+-      socket.write(buf << CRLF)
++      socket.write(buf << "\r\n".freeze)
+     end
+ 
+     if hijack
+-- 
+EW
+
