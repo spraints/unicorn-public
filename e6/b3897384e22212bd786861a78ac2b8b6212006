@@ -1,0 +1,99 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-2.9 required=3.0 tests=ALL_TRUSTED,BAYES_00
+ shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id D7968203EA; Tue, 30 Jun 2015 22:52:06 +0000 (UTC)
+From: Eric Wong <e@80x24.org>
+To: unicorn-public@bogomips.org
+Cc: e@80x24.org
+Subject: [PATCH 1/3] reflect changes in Rack::Utils::HTTP_STATUS_CODES
+Date: Tue, 30 Jun 2015 22:51:50 +0000
+Message-Id: <1435704712-4981-2-git-send-email-e@80x24.org>
+In-Reply-To: <1435704712-4981-1-git-send-email-e@80x24.org>
+References: <1435704712-4981-1-git-send-email-e@80x24.org>
+List-Id: <unicorn-public@bogomips.org>
+
+Applications may want to alter the message associated with HTTP
+status codes in Rack::Utils::HTTP_STATUS_CODES.  Avoid memoizing
+status lines ahead-of-time
+
+Note: this introduces a minor performance regression, but ought to
+be unnoticeable unless you're running "Hello world"-type apps.
+---
+ lib/unicorn/http_response.rb | 15 +++++++--------
+ test/unit/test_response.rb   | 20 ++++++++++++++++++++
+ 2 files changed, 27 insertions(+), 8 deletions(-)
+
+diff --git a/lib/unicorn/http_response.rb b/lib/unicorn/http_response.rb
+index 016dac8..a42303e 100644
+--- a/lib/unicorn/http_response.rb
++++ b/lib/unicorn/http_response.rb
+@@ -10,15 +10,12 @@
+ # is the job of Rack, with the exception of the "Date" and "Status" header.
+ module Unicorn::HttpResponse
+ 
+-  # Every standard HTTP code mapped to the appropriate message.
+-  CODES = Rack::Utils::HTTP_STATUS_CODES.inject({}) { |hash,(code,msg)|
+-    hash[code] = "#{code} #{msg}"
+-    hash
+-  }
+   CRLF = "\r\n"
+ 
++  # internal API, code will always be common-enough-for-even-old-Rack
+   def err_response(code, response_start_sent)
+-    "#{response_start_sent ? '' : 'HTTP/1.1 '}#{CODES[code]}\r\n\r\n"
++    "#{response_start_sent ? '' : 'HTTP/1.1 '}" \
++      "#{code} #{Rack::Utils::HTTP_STATUS_CODES[code]}\r\n\r\n"
+   end
+ 
+   # writes the rack_response to socket as an HTTP response
+@@ -26,9 +23,11 @@ module Unicorn::HttpResponse
+                           response_start_sent=false)
+     hijack = nil
+ 
+-    http_response_start = response_start_sent ? '' : 'HTTP/1.1 '
+     if headers
+-      buf = "#{http_response_start}#{CODES[status.to_i] || status}\r\n" \
++      code = status.to_i
++      msg = Rack::Utils::HTTP_STATUS_CODES[code]
++      start = response_start_sent ? ''.freeze : 'HTTP/1.1 '.freeze
++      buf = "#{start}#{msg ? %Q(#{code} #{msg}) : status}\r\n" \
+             "Date: #{httpdate}\r\n" \
+             "Connection: close\r\n"
+       headers.each do |key, value|
+diff --git a/test/unit/test_response.rb b/test/unit/test_response.rb
+index 3478288..1e9d74a 100644
+--- a/test/unit/test_response.rb
++++ b/test/unit/test_response.rb
+@@ -79,4 +79,24 @@ class ResponseTest < Test::Unit::TestCase
+     headers = out.string.split(/\r\n\r\n/).first.split(/\r\n/)
+     assert %r{\AHTTP/\d\.\d 666 I AM THE BEAST\z}.match(headers[0])
+   end
++
++  def test_modified_rack_http_status_codes_late
++    r, w = IO.pipe
++    pid = fork do
++      r.close
++      # Users may want to globally override the status text associated
++      # with an HTTP status code in their app.
++      Rack::Utils::HTTP_STATUS_CODES[200] = "HI"
++      http_response_write(w, 200, {}, [])
++      w.close
++    end
++    w.close
++    assert_equal "HTTP/1.1 200 HI\r\n", r.gets
++    r.read # just drain the pipe
++    pid, status = Process.waitpid2(pid)
++    assert_predicate status, :success?
++  ensure
++    r.close
++    w.close unless w.closed?
++  end
+ end
+-- 
+EW
+
