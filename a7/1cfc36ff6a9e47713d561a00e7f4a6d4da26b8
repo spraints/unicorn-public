@@ -1,0 +1,53 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-2.9 required=3.0 tests=ALL_TRUSTED,AWL,BAYES_00,
+ URIBL_BLOCKED shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 081C6203BB; Tue, 30 Jun 2015 17:30:02 +0000 (UTC)
+Date: Tue, 30 Jun 2015 17:30:01 +0000
+From: Eric Wong <e@80x24.org>
+To: Christos Trochalakis <yatiohi@ideopolis.gr>
+Cc: Dmitry Smirnov <onlyjob@debian.org>, Hleb Valoshka <375gnu@gmail.com>,
+ unicorn@packages.debian.org, unicorn-public@bogomips.org
+Subject: Re: [DRE-maint] unicorn: native systemd service
+Message-ID: <20150630173001.GA22252@dcvr.yhbt.net>
+References: <3137844.nsIDTWmvl4@debstor>
+ <20150625083118.GA22140@luke.ws.skroutz.gr>
+ <20150625232626.GA23882@dcvr.yhbt.net>
+ <20150626114129.GA25883@luke.ws.skroutz.gr>
+ <20150627030501.GA24759@dcvr.yhbt.net>
+ <20150630092026.GB6022@luke.ws.skroutz.gr>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20150630092026.GB6022@luke.ws.skroutz.gr>
+List-Id: <unicorn-public@bogomips.org>
+
+Christos Trochalakis <yatiohi@ideopolis.gr> wrote:
+> On Sat, Jun 27, 2015 at 03:05:01AM +0000, Eric Wong wrote:
+> >Christos Trochalakis <yatiohi@ideopolis.gr> wrote:
+> >>KillMode=mixed
+> >
+> >I don't think KillMode=mixed is necessary, here.  systemd can send
+> >SIGQUIT to workers.
+> >
+> 
+> Perhaps there is a race here, if a worker receives SIGQUIT first, and the
+> master respawns a new worker before receiving/handling its own SIGQUIT.
+> This is definitely a longshot, and will probably never happen, but
+> even then every process will eventually quit gracefully.
+
+Right. This race is possible, but workers will automatically die if
+they don't have a master.
+Easier just to kill the master, of course.
+
+> >Is it possible to make systemd fire up two unicorn masters?
+> >That would be a nice feature to have with socket activation.
+> 
+> That would be great! I am a bit surprised that specifying multiple
+> services ('Service=' option) is not supported.
+
+Can you get this feature added to systemd?
