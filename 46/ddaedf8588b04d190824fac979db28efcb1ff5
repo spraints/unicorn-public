@@ -1,0 +1,44 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-2.9 required=3.0 tests=ALL_TRUSTED,BAYES_00
+ shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id A8CF1203EC; Tue, 30 Jun 2015 22:52:12 +0000 (UTC)
+From: Eric Wong <e@80x24.org>
+To: unicorn-public@bogomips.org
+Cc: e@80x24.org
+Subject: [PATCH 3/3] http_response: reduce size of multi-line header path
+Date: Tue, 30 Jun 2015 22:51:52 +0000
+Message-Id: <1435704712-4981-4-git-send-email-e@80x24.org>
+In-Reply-To: <1435704712-4981-1-git-send-email-e@80x24.org>
+References: <1435704712-4981-1-git-send-email-e@80x24.org>
+List-Id: <unicorn-public@bogomips.org>
+
+This should save over 100 bytes of bytecode overhead due to
+reduced method dispatch points.  The performance difference
+when this is actually hit could go either way depending on
+how String#<< and realloc(3) interact, but it's uncommon
+enough that nobody is expected to notice either way.
+---
+ lib/unicorn/http_response.rb | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/lib/unicorn/http_response.rb b/lib/unicorn/http_response.rb
+index ec8b7c8..c1aa738 100644
+--- a/lib/unicorn/http_response.rb
++++ b/lib/unicorn/http_response.rb
+@@ -39,7 +39,7 @@ module Unicorn::HttpResponse
+         else
+           if value.include?("\n".freeze)
+             # avoiding blank, key-only cookies with /\n+/
+-            buf << value.split(/\n+/).map! { |v| "#{key}: #{v}\r\n" }.join
++            value.split(/\n+/).each { |v| buf << "#{key}: #{v}\r\n" }
+           else
+             buf << "#{key}: #{value}\r\n"
+           end
+-- 
+EW
+
