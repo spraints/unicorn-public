@@ -1,0 +1,147 @@
+Return-Path: <fadamjee@vailsys.com>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS19067 63.209.137.0/24
+X-Spam-Status: No, score=-2.5 required=3.0 tests=BAYES_00,RP_MATCHES_RCVD
+ shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from mx2.vailsys.com (mx2.vailsys.com [63.209.137.144]) (using
+ TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits)) (No client
+ certificate requested) by dcvr.yhbt.net (Postfix) with ESMTPS id C75D9633843
+ for <unicorn-public@bogomips.org>; Wed,  1 Jul 2015 16:08:06 +0000 (UTC)
+Received: from dplmail01.vail (dplmail01.vail [192.168.129.159]) by
+ mx2.vailsys.com (Postfix) with ESMTP id B2E4015E0051 for
+ <unicorn-public@bogomips.org>; Wed,  1 Jul 2015 12:08:05 -0400 (EDT)
+Received: from localhost (localhost [127.0.0.1]) by dplmail01.vail (Postfix)
+ with ESMTP id A6C0FE009F for <unicorn-public@bogomips.org>; Wed,  1 Jul 2015
+ 11:08:05 -0500 (CDT)
+X-Virus-Scanned: amavisd-new at vail
+Received: from dplmail01.vail ([127.0.0.1]) by localhost (dplmail01.vail
+ [127.0.0.1]) (amavisd-new, port 10024) with ESMTP id acSDFc8PV8j9 for
+ <unicorn-public@bogomips.org>; Wed,  1 Jul 2015 11:08:05 -0500 (CDT)
+Received: from dplzcs01.vail (dplzcs01.vail [192.168.129.173]) by
+ dplmail01.vail (Postfix) with ESMTP id 8AFE7E006B for
+ <unicorn-public@bogomips.org>; Wed,  1 Jul 2015 11:08:05 -0500 (CDT)
+Received: from localhost (localhost [127.0.0.1]) by dplzcs01.vail (Postfix)
+ with ESMTP id 88B585580581 for <unicorn-public@bogomips.org>; Wed,  1 Jul
+ 2015 11:08:05 -0500 (CDT)
+Received: from dplzcs01.vail ([127.0.0.1]) by localhost (dplzcs01.vail
+ [127.0.0.1]) (amavisd-new, port 10032) with ESMTP id 8yqkE4kqmyEV for
+ <unicorn-public@bogomips.org>; Wed,  1 Jul 2015 11:08:05 -0500 (CDT)
+Received: from localhost (localhost [127.0.0.1]) by dplzcs01.vail (Postfix)
+ with ESMTP id 6D1DA5580583 for <unicorn-public@bogomips.org>; Wed,  1 Jul
+ 2015 11:08:05 -0500 (CDT)
+X-Virus-Scanned: amavisd-new at zcs.vail
+Received: from dplzcs01.vail ([127.0.0.1]) by localhost (dplzcs01.vail
+ [127.0.0.1]) (amavisd-new, port 10026) with ESMTP id skM0DRKsuM7B for
+ <unicorn-public@bogomips.org>; Wed,  1 Jul 2015 11:08:05 -0500 (CDT)
+Received: from fadamjee-ltm.wifi.cl.vail (fadamjee-ltm.wifi.cl.vail
+ [172.23.25.53]) by dplzcs01.vail (Postfix) with ESMTP id 4A94D5580581 for
+ <unicorn-public@bogomips.org>; Wed,  1 Jul 2015 11:08:05 -0500 (CDT)
+Message-ID: <55941064.70808@vailsys.com>
+Date: Wed, 01 Jul 2015 11:08:04 -0500
+From: Farjad Adamjee <fadamjee@vailsys.com>
+User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10.10; rv:31.0)
+ Gecko/20100101 Thunderbird/31.7.0
+MIME-Version: 1.0
+To: unicorn-public@bogomips.org
+Subject: Unicorn returns blank page after no use
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Transfer-Encoding: 7bit
+List-Id: <unicorn-public@bogomips.org>
+
+Hello,
+
+I am not sure if this is the correct place for this, I have googled 
+around to see if anyone else has encountered such an issue, but I did 
+not find anything.
+
+I am having this issue where after a period of time of no use (on beta 
+[production] environment), maybe 12 hours or so, the unicorn process 
+sleeps. When I go and re-request the page, it returns blank.
+
+I am using Apache proxy to Unicorn.
+
+My unicorn.stderr.log states:
+I, [2015-07-01T03:07:05.168511 #13258]  INFO -- : master done reopening logs
+I, [2015-07-01T03:07:05.232546 #16222]  INFO -- : worker=2 done 
+reopening logs
+I, [2015-07-01T03:07:05.239934 #13308]  INFO -- : worker=0 done 
+reopening logs
+I, [2015-07-01T03:07:05.307616 #13311]  INFO -- : worker=1 done 
+reopening logs
+
+
+When I request the page again, it loads fine. It is only during the 
+process of "reopening logs" when it returns a blank page.
+
+My unicorn.rb file:
+
+worker_processes 3
+
+# Load app into the master before forking workers
+# for super-fast worker spawn times
+preload_app true
+
+# Listen on
+listen "127.0.0.1:8550", :backlog => 1024
+
+# Restart any workers that haven't responded in 180 seconds
+timeout 600
+
+# PID for the Unicorn master
+pid "/var/www/r/shared/pids/unicorn.pid"
+
+# Unicorn Log paths
+stderr_path "/var/www/r/shared/log/unicorn.stderr.log"
+stdout_path "/var/www/r/shared/log/unicorn.stdout.log"
+
+before_fork do |server, worker|
+   ##
+   # When sent a USR2, Unicorn will suffix its pidfile with .oldbin and
+   # immediately start loading up a new version of itself (loaded with a new
+   # version of our app). When this new Unicorn is completely loaded
+   # it will begin spawning workers. The first worker spawned will check to
+   # see if an .oldbin pidfile exists. If so, this means we've just 
+booted up
+   # a new Unicorn and need to tell the old one that it can now die. To 
+do so
+   # we send it a QUIT.
+   #
+   # Using this method we get 0 downtime deploys.
+   defined?(ActiveRecord::Base) and 
+ActiveRecord::Base.connection.disconnect!
+   defined?(OathKeeper) and OathKeeper.disconnect!
+
+   old_pid = '/var/www/r/shared/pids/unicorn.pid.oldbin'
+   if File.exists?(old_pid) && server.pid != old_pid
+     begin
+       Process.kill("QUIT", File.read(old_pid).to_i)
+     rescue Errno::ENOENT, Errno::ESRCH
+       # someone else did our job for us
+     end
+   end
+end
+
+after_fork do |server, worker|
+   ##
+   #  # Unicorn master loads the app then forks off workers - because of 
+the way
+   #    # Unix forking works, we need to make sure we aren't using any 
+of the parent's
+   #      # sockets, e.g. db connection
+   #
+   defined?(ActiveRecord::Base) and ActiveRecord::Base.establish_connection
+   defined?(OathKeeper) and OathKeeper.reconnect
+end
+
+Any help would be appreciated!
+Thank you!
+
+Farjad
+
+
+-- 
+Farjad Adamjee
+844.246.4018
+
