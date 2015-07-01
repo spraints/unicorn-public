@@ -1,0 +1,72 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-2.9 required=3.0 tests=ALL_TRUSTED,AWL,BAYES_00,
+ URIBL_BLOCKED shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 785C4203FB; Wed,  1 Jul 2015 17:30:20 +0000 (UTC)
+Date: Wed, 1 Jul 2015 17:30:20 +0000
+From: Eric Wong <e@80x24.org>
+To: Farjad Adamjee <fadamjee@vailsys.com>
+Cc: unicorn-public@bogomips.org
+Subject: Re: Unicorn returns blank page after no use
+Message-ID: <20150701173020.GA12472@dcvr.yhbt.net>
+References: <55941064.70808@vailsys.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <55941064.70808@vailsys.com>
+List-Id: <unicorn-public@bogomips.org>
+
+Farjad Adamjee <fadamjee@vailsys.com> wrote:
+> Hello,
+> 
+> I am not sure if this is the correct place for this, I have googled
+> around to see if anyone else has encountered such an issue, but I
+> did not find anything.
+
+This is the correct place :)  Plain-text email is the only way I
+handle support for ease-of-archival and distribution.
+
+> I am having this issue where after a period of time of no use (on
+> beta [production] environment), maybe 12 hours or so, the unicorn
+> process sleeps. When I go and re-request the page, it returns blank.
+
+This sounds like a database (or any other persistent connection
+backend) connection expiring due to an idle timeout.
+
+This could also be a firewall/router timeout problem between the
+server running unicorn and the database host.
+
+Tony experienced this last year:
+http://bogomips.org/unicorn-public/m/CAKM1sPNRsES6H6ByK6bO9Djwa8WvYV6HJ-rEaHopRUYBVFfuhg@mail.gmail.com
+
+You can confirm by running lsof on a worker processes to look for
+open sockets.  In case the connection loss isn't noticed by the
+OS, use strace (or any other similar syscall tracer for your OS)
+instead and watch connection activity.
+
+With strace (or similar) knock yourself down to one worker
+process via SIGTTOU to the master to ensure you're always tracing
+the correct one.
+
+> I am using Apache proxy to Unicorn.
+
+By the way, this is not recommended for slow clients.
+nginx (Open Source edition) is currently the only supported proxy.
+
+>   # Using this method we get 0 downtime deploys.
+>   defined?(ActiveRecord::Base) and
+> ActiveRecord::Base.connection.disconnect!
+>   defined?(OathKeeper) and OathKeeper.disconnect!
+
+I suggest disabling any idle timeout you might have, enabling TCP
+keepalive and enabling reconnects (see AR and your database driver
+documentation).  Worst case (firewall/router problem you can't
+fix via configuration), is to send a request to unicorn every
+few minutes/hours to keep things going.
+
+Perhaps OathKeeper has the same problem, too...
+I've never heard of it until now.
