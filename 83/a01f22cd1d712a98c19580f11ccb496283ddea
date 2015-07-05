@@ -1,0 +1,121 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-2.9 required=3.0 tests=ALL_TRUSTED,AWL,BAYES_00,
+ URIBL_BLOCKED shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 2423D63381C; Sun,  5 Jul 2015 00:27:40 +0000 (UTC)
+Date: Sun, 5 Jul 2015 00:27:39 +0000
+From: Eric Wong <e@80x24.org>
+To: Christos Trochalakis <yatiohi@ideopolis.gr>
+Cc: Dmitry Smirnov <onlyjob@debian.org>, Hleb Valoshka <375gnu@gmail.com>,
+ unicorn@packages.debian.org, unicorn-public@bogomips.org
+Subject: [PATCH v2] emulate sd_listen_fds for systemd support
+Message-ID: <20150705002739.GA20509@dcvr.yhbt.net>
+References: <3137844.nsIDTWmvl4@debstor>
+ <20150625083118.GA22140@luke.ws.skroutz.gr>
+ <20150625232626.GA23882@dcvr.yhbt.net>
+ <20150626114129.GA25883@luke.ws.skroutz.gr>
+ <20150627030501.GA24759@dcvr.yhbt.net> <20150627040136.GA13070@dcvr.yhbt.net>
+ <20150630084746.GA6022@luke.ws.skroutz.gr>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20150630084746.GA6022@luke.ws.skroutz.gr>
+List-Id: <unicorn-public@bogomips.org>
+
+systemd socket emulation shares FDs across execve, just like
+the built-in SIGUSR2 upgrade process in unicorn.  Thus it is
+easy to support inheriting sockets from systemd.
+
+Tested-by: Christos Trochalakis <yatiohi@ideopolis.gr>
+---
+  Christos Trochalakis <yatiohi@ideopolis.gr> wrote:
+  > On Sat, Jun 27, 2015 at 04:01:36AM +0000, Eric Wong wrote:
+  > >Unfortunately, testing this is tricky because FD=3
+  > >(SD_LISTEN_FDS_START) tends to be grabbed by (MRI) Ruby 1.9.3
+  > >and onwards for the internal self-pipe.
+
+  OK, that was a bogus note.
+  I forgot exec() in Ruby 1.9+ supports redirects natively.
+  Test included in updated patch.
+
+  > I have also tested it and works as expected. Also, hardcoding
+  > SD_LISTEN_FDS_START seems like the best option. I 'd like to see that
+  > applied to master.
+
+  Thanks.  This will be in 5.0.0.pre2
+
+ lib/unicorn/http_server.rb | 16 +++++++++++++---
+ test/exec/test_exec.rb     | 24 ++++++++++++++++++++++++
+ 2 files changed, 37 insertions(+), 3 deletions(-)
+
+diff --git a/lib/unicorn/http_server.rb b/lib/unicorn/http_server.rb
+index 297b9f9..0f97516 100644
+--- a/lib/unicorn/http_server.rb
++++ b/lib/unicorn/http_server.rb
+@@ -766,12 +766,22 @@ class Unicorn::HttpServer
+   def inherit_listeners!
+     # inherit sockets from parents, they need to be plain Socket objects
+     # before they become Kgio::UNIXServer or Kgio::TCPServer
+-    inherited = ENV['UNICORN_FD'].to_s.split(',').map do |fd|
+-      io = Socket.for_fd(fd.to_i)
++    inherited = ENV['UNICORN_FD'].to_s.split(',')
++
++    # emulate sd_listen_fds() for systemd
++    sd_pid, sd_fds = ENV.values_at('LISTEN_PID', 'LISTEN_FDS')
++    if sd_pid && sd_pid.to_i == $$
++      # 3 = SD_LISTEN_FDS_START
++      inherited.concat((3...(3 + sd_fds.to_i)).map { |fd| Socket.for_fd(fd) })
++    end
++    # to ease debugging, we will not unset LISTEN_PID and LISTEN_FDS
++
++    inherited.map! do |fd|
++      io = String === fd ? Socket.for_fd(fd.to_i) : fd
+       io.autoclose = false
+       io = server_cast(io)
+       set_server_sockopt(io, listener_opts[sock_name(io)])
+-      logger.info "inherited addr=#{sock_name(io)} fd=#{fd}"
++      logger.info "inherited addr=#{sock_name(io)} fd=#{io.fileno}"
+       io
+     end
+ 
+diff --git a/test/exec/test_exec.rb b/test/exec/test_exec.rb
+index 6deb96b..af8de26 100644
+--- a/test/exec/test_exec.rb
++++ b/test/exec/test_exec.rb
+@@ -96,6 +96,30 @@ run lambda { |env|
+     end
+   end
+ 
++  def test_sd_listen_fds_emulation
++    File.open("config.ru", "wb") { |fp| fp.write(HI) }
++    sock = TCPServer.new(@addr, @port)
++    sock.setsockopt(:SOL_SOCKET, :SO_KEEPALIVE, 0)
++
++    pid = xfork do
++      redirect_test_io do
++        # pretend to be systemd
++        ENV['LISTEN_PID'] = "#$$"
++        ENV['LISTEN_FDS'] = '1'
++
++        # 3 = SD_LISTEN_FDS_START
++        exec($unicorn_bin, "-l", "#@addr:#@port", 3 => sock)
++      end
++    end
++    res = hit(["http://#{@addr}:#{@port}/"])
++    assert_equal [ "HI\n"], res
++    assert_shutdown(pid)
++    assert_equal 1, sock.getsockopt(:SOL_SOCKET, :SO_KEEPALIVE).int,
++                 "unicorn should always set SO_KEEPALIVE on inherited sockets"
++  ensure
++    sock.close if sock
++  end
++
+   def test_working_directory_rel_path_config_file
+     other = Tempfile.new('unicorn.wd')
+     File.unlink(other.path)
+-- 
+EW
