@@ -1,0 +1,47 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-2.9 required=3.0 tests=ALL_TRUSTED,BAYES_00,
+ URIBL_BLOCKED shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id DAA4963382A; Wed,  8 Jul 2015 03:03:17 +0000 (UTC)
+From: Eric Wong <e@80x24.org>
+To: unicorn-public@bogomips.org
+Cc: Eric Wong <e@80x24.org>
+Subject: [PATCH] test_exec: disable systemd inheritance test
+Date: Wed,  8 Jul 2015 03:03:16 +0000
+Message-Id: <1436324596-29018-1-git-send-email-e@80x24.org>
+List-Id: <unicorn-public@bogomips.org>
+
+Turns out ruby does have trouble emulating systemd, for now:
+
+[ruby-core:69895] https://bugs.ruby-lang.org/issues/11336
+
+When we re-enable this test, we'll only enable it for fixed Rubies.
+The actual socket inheritance functionality works in any version of
+Ruby, of course, it's just that emulating systemd won't work until
+ruby-core fixes mainline Ruby.
+---
+ test/exec/test_exec.rb | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
+
+diff --git a/test/exec/test_exec.rb b/test/exec/test_exec.rb
+index af8de26..33d768a 100644
+--- a/test/exec/test_exec.rb
++++ b/test/exec/test_exec.rb
+@@ -96,7 +96,9 @@ def teardown
+     end
+   end
+ 
+-  def test_sd_listen_fds_emulation
++  # FIXME https://bugs.ruby-lang.org/issues/11336
++  # [ruby-core:69895] [Bug #11336]
++  def disabled_test_sd_listen_fds_emulation
+     File.open("config.ru", "wb") { |fp| fp.write(HI) }
+     sock = TCPServer.new(@addr, @port)
+     sock.setsockopt(:SOL_SOCKET, :SO_KEEPALIVE, 0)
+-- 
+EW
+
