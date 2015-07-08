@@ -1,0 +1,123 @@
+Return-Path: <yatiohi@ideopolis.gr>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS202042 185.6.76.0/22
+X-Spam-Status: No, score=-1.8 required=3.0 tests=AWL,BAYES_00,URIBL_BLOCKED
+ shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from mailer.skroutz.gr (mailer.skroutz.gr [185.6.78.18]) by
+ dcvr.yhbt.net (Postfix) with ESMTP id A12D52044D for
+ <unicorn-public@bogomips.org>; Wed,  8 Jul 2015 13:08:25 +0000 (UTC)
+Received: from localhost (localhost [127.0.0.1]) by mailer.skroutz.gr
+ (Postfix) with ESMTP id BB4F62A422F; Wed,  8 Jul 2015 16:08:23 +0300 (EEST)
+Received: from mailer.skroutz.gr ([127.0.0.1]) by localhost
+ (mailer.skroutz.gr [127.0.0.1]) (amavisd-new, port 10026) with ESMTP id
+ Ii-DYyNP4j-Z; Wed,  8 Jul 2015 16:08:23 +0300 (EEST)
+Received: from luke.ws.skroutz.gr (luke.ws.skroutz.gr [185.6.78.148]) by
+ mailer.skroutz.gr (Postfix) with ESMTPSA id 400DD2A410B; Wed,  8 Jul 2015
+ 16:08:22 +0300 (EEST)
+Date: Wed, 8 Jul 2015 16:08:21 +0300
+From: Christos Trochalakis <yatiohi@ideopolis.gr>
+To: Eric Wong <e@80x24.org>
+Cc: Dmitry Smirnov <onlyjob@debian.org>, Hleb Valoshka <375gnu@gmail.com>,
+ unicorn@packages.debian.org, unicorn-public@bogomips.org
+Subject: Re: [DRE-maint] unicorn: native systemd service
+Message-ID: <20150708130821.GA1361@luke.ws.skroutz.gr>
+References: <3137844.nsIDTWmvl4@debstor>
+ <20150625083118.GA22140@luke.ws.skroutz.gr>
+ <20150625232626.GA23882@dcvr.yhbt.net>
+ <20150626114129.GA25883@luke.ws.skroutz.gr>
+ <20150627030501.GA24759@dcvr.yhbt.net>
+ <20150630092026.GB6022@luke.ws.skroutz.gr>
+ <20150630173001.GA22252@dcvr.yhbt.net>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii; format=flowed
+Content-Disposition: inline
+In-Reply-To: <20150630173001.GA22252@dcvr.yhbt.net>
+User-Agent: Mutt/1.5.23 (2014-03-12)
+List-Id: <unicorn-public@bogomips.org>
+
+>Christos Trochalakis <yatiohi@ideopolis.gr> wrote:
+>> On Sat, Jun 27, 2015 at 03:05:01AM +0000, Eric Wong wrote:
+>> >Is it possible to make systemd fire up two unicorn masters?
+>> >That would be a nice feature to have with socket activation.
+>>
+>> That would be great! I am a bit surprised that specifying multiple
+>> services ('Service=' option) is not supported.
+
+Apparently I was wrong. I missed the 'Sockets=' option for Service units.
+
+You can specify a list of socket units to be inherited (if active) when
+the service is started. Note that this is not the reverse of Sockets'
+'Service=' option: the service is not auto-started when there is an
+incoming connnection on the relevant socket, you have to use 'Service='
+for socket activation.
+
+Here is a test config for 2 preforked unicorn masters using service
+templates (I am using the latest unicorn with the systemd patch):
+
+==> /srv/uni/config.ru <==
+puts "initializing for 5sec"
+sleep 5
+
+app = proc do |env|
+  [
+    200,
+    { 'Content-Type' => 'text/plain' },
+    ["ppid:#{Process.ppid}\n"]
+  ]
+end
+
+run app
+
+==> /srv/uni/unicorn.conf.rb <==
+worker_processes 2
+working_directory "/srv/uni"
+
+# Keep in sync with uni.socket file
+listen 9000
+listen 9001
+
+==> /etc/systemd/system/uni@.service <==
+[Unit]
+Description=Unicorn Server %i
+Wants=uni.socket
+After=uni.socket
+
+[Service]
+ExecStart=/usr/local/bin/unicorn -c /srv/uni/unicorn.conf.rb -d
+Sockets=uni.socket
+KillSignal=SIGQUIT
+
+[Install]
+WantedBy=multi-user.target
+
+==> /etc/systemd/system/uni.socket <==
+[Unit]
+Description=Unicorn Sockets
+
+[Socket]
+ListenStream=0.0.0.0:9000
+ListenStream=0.0.0.0:9001
+Service=uni@1.service
+
+[Install]
+WantedBy=sockets.target
+
+==> end <==
+
+systemctl daemon-reload
+systemctl enable uni.socket
+systemctl start uni.socket
+
+systemctl enable uni@1 uni@2 # Make them start at boot
+systemctl start uni@1 uni@2
+
+Now you can start and stop uni@1 and uni@2 with zero latency and without losing
+a connection. So we have a happy ending after all :)
+
+While searching systemd's mailing list, I found a thread discussing about a
+'Distribute=' option to sockets a few years back[0]. There is also a relevant
+item in systemd's TODO list.
+
+[0] http://thread.gmane.org/gmane.comp.sysutils.systemd.devel/14242/focus=14255
