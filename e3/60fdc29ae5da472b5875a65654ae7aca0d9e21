@@ -1,0 +1,587 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-3.2 required=3.0 tests=ALL_TRUSTED,AWL,BAYES_00,
+ URIBL_BLOCKED shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id EC29D20388 for <unicorn-public@bogomips.org>; Wed, 15
+ Jul 2015 22:05:49 +0000 (UTC)
+From: Eric Wong <e@80x24.org>
+To: unicorn-public@bogomips.org
+Subject: [PATCH] doc: remove references to old servers
+Date: Wed, 15 Jul 2015 22:05:49 +0000
+Message-Id: <1436997949-9606-1-git-send-email-e@80x24.org>
+List-Id: <unicorn-public@bogomips.org>
+
+They'll continue to be maintained, but we're no longer advertising
+them.  Also, favor lowercase "unicorn" while we're at it since that
+matches the executable and gem name to avoid unnecessary escaping
+for RDoc.
+---
+ Application_Timeouts             |  6 +++---
+ KNOWN_ISSUES                     | 14 +++++++-------
+ Links                            | 30 ++++++++++++++----------------
+ PHILOSOPHY                       |  6 ------
+ README                           | 32 ++++++++++++++++----------------
+ Sandbox                          |  2 +-
+ TUNING                           | 10 +++++-----
+ examples/nginx.conf              | 21 ++++++++++-----------
+ ext/unicorn_http/unicorn_http.rl |  2 +-
+ lib/unicorn.rb                   |  6 +++---
+ lib/unicorn/configurator.rb      | 24 ++++++++++--------------
+ lib/unicorn/http_server.rb       |  4 ++--
+ lib/unicorn/socket_helper.rb     |  8 +++-----
+ lib/unicorn/util.rb              |  2 +-
+ lib/unicorn/worker.rb            |  4 ++--
+ 15 files changed, 78 insertions(+), 93 deletions(-)
+
+diff --git a/Application_Timeouts b/Application_Timeouts
+index 5f0370d..561a1cc 100644
+--- a/Application_Timeouts
++++ b/Application_Timeouts
+@@ -4,10 +4,10 @@ This article focuses on _application_ setup for Rack applications, but
+ can be expanded to all applications that connect to external resources
+ and expect short response times.
+ 
+-This article is not specific to \Unicorn, but exists to discourage
++This article is not specific to unicorn, but exists to discourage
+ the overuse of the built-in
+ {timeout}[link:Unicorn/Configurator.html#method-i-timeout] directive
+-in \Unicorn.
++in unicorn.
+ 
+ == ALL External Resources Are Considered Unreliable
+ 
+@@ -71,7 +71,7 @@ handle network/server failures.
+ == The Last Line Of Defense
+ 
+ The {timeout}[link:Unicorn/Configurator.html#method-i-timeout] mechanism
+-in \Unicorn is an extreme solution that should be avoided whenever
++in unicorn is an extreme solution that should be avoided whenever
+ possible.  It will help catch bugs in your application where and when
+ your application forgets to use timeouts, but it is expensive as it
+ kills and respawns a worker process.
+diff --git a/KNOWN_ISSUES b/KNOWN_ISSUES
+index 1950223..6b80517 100644
+--- a/KNOWN_ISSUES
++++ b/KNOWN_ISSUES
+@@ -13,7 +13,7 @@ acceptable solution.  Those issues are documented here.
+ 
+ * PRNGs (pseudo-random number generators) loaded before forking
+   (e.g. "preload_app true") may need to have their internal state
+-  reset in the after_fork hook.  Starting with \Unicorn 3.6.1, we
++  reset in the after_fork hook.  Starting with unicorn 3.6.1, we
+   have builtin workarounds for Kernel#rand and OpenSSL::Random users,
+   but applications may use other PRNGs.
+ 
+@@ -36,13 +36,13 @@ acceptable solution.  Those issues are documented here.
+ 
+ * Under some versions of Ruby 1.8, it is necessary to call +srand+ in an
+   after_fork hook to get correct random number generation.  We have a builtin
+-  workaround for this starting with \Unicorn 3.6.1
++  workaround for this starting with unicorn 3.6.1
+ 
+   See http://blade.nagaokaut.ac.jp/cgi-bin/scat.rb/ruby/ruby-core/36450
+ 
+ * On Ruby 1.8 prior to Ruby 1.8.7-p248, *BSD platforms have a broken
+   stdio that causes failure for file uploads larger than 112K.  Upgrade
+-  your version of Ruby or continue using Unicorn 1.x/3.4.x.
++  your version of Ruby or continue using unicorn 1.x/3.4.x.
+ 
+ * Under Ruby 1.9.1, methods like Array#shuffle and Array#sample will
+   segfault if called after forking.  Upgrade to Ruby 1.9.2 or call
+@@ -53,12 +53,12 @@ acceptable solution.  Those issues are documented here.
+ 
+ * Rails 2.3.2 bundles its own version of Rack.  This may cause subtle
+   bugs when simultaneously loaded with the system-wide Rack Rubygem
+-  which Unicorn depends on.  Upgrading to Rails 2.3.4 (or later) is
++  which unicorn depends on.  Upgrading to Rails 2.3.4 (or later) is
+   strongly recommended for all Rails 2.3.x users for this (and security
+   reasons).  Rails 2.2.x series (or before) did not bundle Rack and are
+   should be unnaffected.  If there is any reason which forces your
+   application to use Rails 2.3.2 and you have no other choice, then
+-  you may edit your Unicorn gemspec and remove the Rack dependency.
++  you may edit your unicorn gemspec and remove the Rack dependency.
+ 
+   ref: http://mid.gmane.org/20091014221552.GA30624@dcvr.yhbt.net
+   Note: the workaround described in the article above only made
+@@ -71,9 +71,9 @@ acceptable solution.  Those issues are documented here.
+     set :env, :production
+     set :run, false
+   Since this is no longer an issue with Sinatra 0.9.x apps, this will not be
+-  fixed on our end.  Since Unicorn is itself the application launcher, the
++  fixed on our end.  Since unicorn is itself the application launcher, the
+   at_exit handler used in old Sinatra always caused Mongrel to be launched
+-  whenever a Unicorn worker was about to exit.
++  whenever a unicorn worker was about to exit.
+ 
+   Also remember we're capable of replacing the running binary without dropping
+   any connections regardless of framework :)
+diff --git a/Links b/Links
+index 5a586c1..ad05afd 100644
+--- a/Links
++++ b/Links
+@@ -1,13 +1,13 @@
+ = Related Projects
+ 
+-If you're interested in \Unicorn, you may be interested in some of the projects
++If you're interested in unicorn, you may be interested in some of the projects
+ listed below.  If you have any links to add/change/remove, please tell us at
+ mailto:unicorn-public@bogomips.org!
+ 
+ == Disclaimer
+ 
+-The \Unicorn project is not responsible for the content in these links.
+-Furthermore, the \Unicorn project has never, does not and will never endorse:
++The unicorn project is not responsible for the content in these links.
++Furthermore, the unicorn project has never, does not and will never endorse:
+ 
+ * any for-profit entities or services
+ * any non-{Free Software}[http://www.gnu.org/philosophy/free-sw.html]
+@@ -15,13 +15,13 @@ Furthermore, the \Unicorn project has never, does not and will never endorse:
+ The existence of these links does not imply endorsement of any entities
+ or services behind them.
+ 
+-=== For use with \Unicorn
++=== For use with unicorn
+ 
+ * {Bluepill}[https://github.com/arya/bluepill] -
+   a simple process monitoring tool written in Ruby
+ 
+ * {golden_brindle}[https://github.com/simonoff/golden_brindle] - tool to
+-  manage multiple \Unicorn instances/applications on a single server
++  manage multiple unicorn instances/applications on a single server
+ 
+ * {raindrops}[http://raindrops.bogomips.org/] - real-time stats for
+   preforking Rack servers
+@@ -29,27 +29,25 @@ or services behind them.
+ * {UnXF}[http://bogomips.org/unxf/]  Un-X-Forward* the Rack environment,
+   useful since unicorn is designed to be deployed behind a reverse proxy.
+ 
+-=== \Unicorn is written to work with
++=== unicorn is written to work with
+ 
+ * {Rack}[http://rack.github.io/] - a minimal interface between webservers
+   supporting Ruby and Ruby frameworks
+ 
+ * {Ruby}[https://www.ruby-lang.org/en/] - the programming language of
+-  Rack and \Unicorn
++  Rack and unicorn
+ 
+-* {nginx}[http://nginx.org/] - the reverse proxy for use with \Unicorn
++* {nginx}[http://nginx.org/] - the reverse proxy for use with unicorn
+ 
+-* {kgio}[http://bogomips.org/kgio/] - the I/O library written for \Unicorn
++* {kgio}[http://bogomips.org/kgio/] - the I/O library written for unicorn
++  (deprecated and functionality being mainlined into Ruby)
+ 
+ === Derivatives
+ 
+-* {Green Unicorn}[http://gunicorn.org/] - a Python version of \Unicorn
++* {Green Unicorn}[http://gunicorn.org/] - a Python version of unicorn
+ 
+-* {Rainbows!}[http://rainbows.bogomips.org/] - \Unicorn for sleepy
+-  apps and slow clients (historical).
+-
+-* {yahns}[http://yahns.yhbt.net/] - like Rainbows!, but with fewer options
+-  and designed for energy efficiency on idle sites.
++* {yahns}[http://yahns.yhbt.net/] - the complete opposite of unicorn in
++  every imaginable way.  Designed for energy efficiency on idle sites.
+ 
+ === Prior Work
+ 
+@@ -57,4 +55,4 @@ or services behind them.
+   unicorn is based on
+ 
+ * {david}[http://bogomips.org/david.git] - a tool to explain why you need
+-  nginx in front of \Unicorn
++  nginx in front of unicorn
+diff --git a/PHILOSOPHY b/PHILOSOPHY
+index 18b2d82..feb83d9 100644
+--- a/PHILOSOPHY
++++ b/PHILOSOPHY
+@@ -137,9 +137,3 @@ unicorn is highly inefficient for Comet/reverse-HTTP/push applications
+ where the HTTP connection spends a large amount of time idle.
+ Nevertheless, the ease of troubleshooting, debugging, and management of
+ unicorn may still outweigh the drawbacks for these applications.
+-
+-The {Rainbows!}[http://rainbows.bogomips.org/] aims to fill the gap for
+-odd corner cases where the nginx + unicorn combination is not enough.
+-While Rainbows! management/administration is largely identical to
+-unicorn, Rainbows! is far more ambitious and has seen little real-world
+-usage.
+diff --git a/README b/README
+index bd626e9..dc121d3 100644
+--- a/README
++++ b/README
+@@ -1,10 +1,10 @@
+-= Unicorn: Rack HTTP server for fast clients and Unix
++= unicorn: Rack HTTP server for fast clients and Unix
+ 
+-\Unicorn is an HTTP server for Rack applications designed to only serve
++unicorn is an HTTP server for Rack applications designed to only serve
+ fast clients on low-latency, high-bandwidth connections and take
+ advantage of features in Unix/Unix-like kernels.  Slow clients should
+ only be served by placing a reverse proxy capable of fully buffering
+-both the the request and response in between \Unicorn and slow clients.
++both the the request and response in between unicorn and slow clients.
+ 
+ == Features
+ 
+@@ -15,9 +15,9 @@ both the the request and response in between \Unicorn and slow clients.
+ * Compatible with Ruby 1.9.3 and later.
+   unicorn 4.8.x will remain supported for Ruby 1.8 users.
+ 
+-* Process management: \Unicorn will reap and restart workers that
++* Process management: unicorn will reap and restart workers that
+   die from broken apps.  There is no need to manage multiple processes
+-  or ports yourself.  \Unicorn can spawn and manage any number of
++  or ports yourself.  unicorn can spawn and manage any number of
+   worker processes you choose to scale to your backend.
+ 
+ * Load balancing is done entirely by the operating system kernel.
+@@ -33,11 +33,11 @@ both the the request and response in between \Unicorn and slow clients.
+ * Builtin reopening of all log files in your application via
+   USR1 signal.  This allows logrotate to rotate files atomically and
+   quickly via rename instead of the racy and slow copytruncate method.
+-  \Unicorn also takes steps to ensure multi-line log entries from one
++  unicorn also takes steps to ensure multi-line log entries from one
+   request all stay within the same file.
+ 
+ * nginx-style binary upgrades without losing connections.
+-  You can upgrade \Unicorn, your entire application, libraries
++  You can upgrade unicorn, your entire application, libraries
+   and even your Ruby interpreter without dropping clients.
+ 
+ * before_fork and after_fork hooks in case your application
+@@ -60,15 +60,15 @@ both the the request and response in between \Unicorn and slow clients.
+ 
+ == License
+ 
+-\Unicorn is copyright 2009 by all contributors (see logs in git).
++unicorn is copyright 2009 by all contributors (see logs in git).
+ It is based on Mongrel 1.1.5.
+ Mongrel is copyright 2007 Zed A. Shaw and contributors.
+ 
+-\Unicorn is licensed under (your choice) of the GPLv2 or later
++unicorn is licensed under (your choice) of the GPLv2 or later
+ (GPLv3+ preferred), or Ruby (1.8)-specific terms.
+ See the included LICENSE file for details.
+ 
+-\Unicorn is 100% Free Software.
++unicorn is 100% Free Software.
+ 
+ == Install
+ 
+@@ -108,17 +108,17 @@ In RAILS_ROOT, run:
+ 
+   unicorn_rails
+ 
+-\Unicorn will bind to all interfaces on TCP port 8080 by default.
++unicorn will bind to all interfaces on TCP port 8080 by default.
+ You may use the +--listen/-l+ switch to bind to a different
+ address:port or a UNIX socket.
+ 
+ === Configuration File(s)
+ 
+-\Unicorn will look for the config.ru file used by rackup in APP_ROOT.
++unicorn will look for the config.ru file used by rackup in APP_ROOT.
+ 
+-For deployments, it can use a config file for \Unicorn-specific options
++For deployments, it can use a config file for unicorn-specific options
+ specified by the +--config-file/-c+ command-line switch.  See
+-Unicorn::Configurator for the syntax of the \Unicorn-specific options.
++Unicorn::Configurator for the syntax of the unicorn-specific options.
+ The default settings are designed for maximum out-of-the-box
+ compatibility with existing applications.
+ 
+@@ -130,7 +130,7 @@ supported.  Run `unicorn -h` to see command-line options.
+ There is NO WARRANTY whatsoever if anything goes wrong, but
+ {let us know}[link:ISSUES.html] and we'll try our best to fix it.
+ 
+-\Unicorn is designed to only serve fast clients either on the local host
++unicorn is designed to only serve fast clients either on the local host
+ or a fast LAN.  See the PHILOSOPHY and DESIGN documents for more details
+ regarding this.
+ 
+@@ -140,6 +140,6 @@ All feedback (bug reports, user/development dicussion, patches, pull
+ requests) go to the mailing list/newsgroup.  See the ISSUES document for
+ information on the {mailing list}[mailto:unicorn-public@bogomips.org].
+ 
+-For the latest on \Unicorn releases, you may also finger us at
++For the latest on unicorn releases, you may also finger us at
+ unicorn@bogomips.org or check our NEWS page (and subscribe to our Atom
+ feed).
+diff --git a/Sandbox b/Sandbox
+index a6c3fe7..997b92f 100644
+--- a/Sandbox
++++ b/Sandbox
+@@ -1,4 +1,4 @@
+-= Tips for using \Unicorn with Sandbox installation tools
++= Tips for using unicorn with Sandbox installation tools
+ 
+ Since unicorn includes executables and is usually used to start a Ruby
+ process, there are certain caveats to using it with tools that sandbox
+diff --git a/TUNING b/TUNING
+index 6a6d7db..247090b 100644
+--- a/TUNING
++++ b/TUNING
+@@ -1,10 +1,10 @@
+-= Tuning \Unicorn
++= Tuning unicorn
+ 
+-\Unicorn performance is generally as good as a (mostly) Ruby web server
++unicorn performance is generally as good as a (mostly) Ruby web server
+ can provide.  Most often the performance bottleneck is in the web
+ application running on Unicorn rather than Unicorn itself.
+ 
+-== \Unicorn Configuration
++== unicorn Configuration
+ 
+ See Unicorn::Configurator for details on the config file format.
+ +worker_processes+ is the most-commonly needed tuning parameter.
+@@ -14,7 +14,7 @@ See Unicorn::Configurator for details on the config file format.
+ * worker_processes should be scaled to the number of processes your
+   backend system(s) can support.  DO NOT scale it to the number of
+   external network clients your application expects to be serving.
+-  \Unicorn is NOT for serving slow clients, that is the job of nginx.
++  unicorn is NOT for serving slow clients, that is the job of nginx.
+ 
+ * worker_processes should be *at* *least* the number of CPU cores on
+   a dedicated server (unless you do not have enough memory).
+@@ -58,7 +58,7 @@ See Unicorn::Configurator for details on the config file format.
+ * UNIX domain sockets are slightly faster than TCP sockets, but only
+   work if nginx is on the same machine.
+ 
+-== Other \Unicorn settings
++== Other unicorn settings
+ 
+ * Setting "preload_app true" can allow copy-on-write-friendly GC to
+   be used to save memory.  It will probably not work out of the box with
+diff --git a/examples/nginx.conf b/examples/nginx.conf
+index a68fe6f..0583c1f 100644
+--- a/examples/nginx.conf
++++ b/examples/nginx.conf
+@@ -1,5 +1,5 @@
+ # This is example contains the bare mininum to get nginx going with
+-# Unicorn or Rainbows! servers.  Generally these configuration settings
++# unicorn servers.  Generally these configuration settings
+ # are applicable to other HTTP application servers (and not just Ruby
+ # ones), so if you have one working well for proxying another app
+ # server, feel free to continue using it.
+@@ -44,8 +44,8 @@ http {
+   # click tracking!
+   access_log /path/to/nginx.access.log combined;
+ 
+-  # you generally want to serve static files with nginx since neither
+-  # Unicorn nor Rainbows! is optimized for it at the moment
++  # you generally want to serve static files with nginx since
++  # unicorn is not and will never be optimized for it
+   sendfile on;
+ 
+   tcp_nopush on; # off may be better for *some* Comet/long-poll stuff
+@@ -67,10 +67,10 @@ http {
+              text/javascript application/x-javascript
+              application/atom+xml;
+ 
+-  # this can be any application server, not just Unicorn/Rainbows!
++  # this can be any application server, not just unicorn
+   upstream app_server {
+     # fail_timeout=0 means we always retry an upstream even if it failed
+-    # to return a good HTTP response (in case the Unicorn master nukes a
++    # to return a good HTTP response (in case the unicorn master nukes a
+     # single worker for timing out).
+ 
+     # for UNIX domain socket setups:
+@@ -132,12 +132,11 @@ http {
+       # redirects, we set the Host: header above already.
+       proxy_redirect off;
+ 
+-      # set "proxy_buffering off" *only* for Rainbows! when doing
+-      # Comet/long-poll/streaming.  It's also safe to set if you're using
+-      # only serving fast clients with Unicorn + nginx, but not slow
+-      # clients.  You normally want nginx to buffer responses to slow
+-      # clients, even with Rails 3.1 streaming because otherwise a slow
+-      # client can become a bottleneck of Unicorn.
++      # It's also safe to set if you're using only serving fast clients
++      # with unicorn + nginx, but not slow clients.  You normally want
++      # nginx to buffer responses to slow clients, even with Rails 3.1
++      # streaming because otherwise a slow client can become a bottleneck
++      # of unicorn.
+       #
+       # The Rack application may also set "X-Accel-Buffering (yes|no)"
+       # in the response headers do disable/enable buffering on a
+diff --git a/ext/unicorn_http/unicorn_http.rl b/ext/unicorn_http/unicorn_http.rl
+index a5f069d..046ccb5 100644
+--- a/ext/unicorn_http/unicorn_http.rl
++++ b/ext/unicorn_http/unicorn_http.rl
+@@ -38,7 +38,7 @@ static VALUE set_maxhdrlen(VALUE self, VALUE len)
+   return UINT2NUM(MAX_HEADER_LEN = NUM2UINT(len));
+ }
+ 
+-/* keep this small for Rainbows! since every client has one */
++/* keep this small for other servers (e.g. yahns) since every client has one */
+ struct http_parser {
+   int cs; /* Ragel internal state */
+   unsigned int flags;
+diff --git a/lib/unicorn.rb b/lib/unicorn.rb
+index 9fdcb8e..b0e6bd1 100644
+--- a/lib/unicorn.rb
++++ b/lib/unicorn.rb
+@@ -10,10 +10,10 @@ require 'kgio'
+ # enough functionality to service web application requests fast as possible.
+ # :startdoc:
+ 
+-# \Unicorn exposes very little of an user-visible API and most of its
+-# internals are subject to change.  \Unicorn is designed to host Rack
++# unicorn exposes very little of an user-visible API and most of its
++# internals are subject to change.  unicorn is designed to host Rack
+ # applications, so applications should be written against the Rack SPEC
+-# and not \Unicorn internals.
++# and not unicorn internals.
+ module Unicorn
+ 
+   # Raised inside TeeInput when a client closes the socket inside the
+diff --git a/lib/unicorn/configurator.rb b/lib/unicorn/configurator.rb
+index 02f6b6b..4da19bb 100644
+--- a/lib/unicorn/configurator.rb
++++ b/lib/unicorn/configurator.rb
+@@ -1,7 +1,7 @@
+ # -*- encoding: binary -*-
+ require 'logger'
+ 
+-# Implements a simple DSL for configuring a \Unicorn server.
++# Implements a simple DSL for configuring a unicorn server.
+ #
+ # See http://unicorn.bogomips.org/examples/unicorn.conf.rb and
+ # http://unicorn.bogomips.org/examples/unicorn.conf.minimal.rb
+@@ -282,20 +282,19 @@ class Unicorn::Configurator
+   #   Setting this to +true+ can make streaming responses in Rails 3.1
+   #   appear more quickly at the cost of slightly higher bandwidth usage.
+   #   The effect of this option is most visible if nginx is not used,
+-  #   but nginx remains highly recommended with \Unicorn.
++  #   but nginx remains highly recommended with unicorn.
+   #
+   #   This has no effect on UNIX sockets.
+   #
+-  #   Default: +true+ (Nagle's algorithm disabled) in \Unicorn,
+-  #   +true+ in Rainbows!  This defaulted to +false+ in \Unicorn
+-  #   3.x
++  #   Default: +true+ (Nagle's algorithm disabled) in unicorn
++  #   This defaulted to +false+ in unicorn 3.x
+   #
+   # [:tcp_nopush => true or false]
+   #
+   #   Enables/disables TCP_CORK in Linux or TCP_NOPUSH in FreeBSD
+   #
+   #   This prevents partial TCP frames from being sent out and reduces
+-  #   wakeups in nginx if it is on a different machine.  Since \Unicorn
++  #   wakeups in nginx if it is on a different machine.  Since unicorn
+   #   is only designed for applications that send the response body
+   #   quickly without keepalive, sockets will always be flushed on close
+   #   to prevent delays.
+@@ -303,7 +302,7 @@ class Unicorn::Configurator
+   #   This has no effect on UNIX sockets.
+   #
+   #   Default: +false+
+-  #   This defaulted to +true+ in \Unicorn 3.4 - 3.7
++  #   This defaulted to +true+ in unicorn 3.4 - 3.7
+   #
+   # [:ipv6only => true or false]
+   #
+@@ -387,12 +386,10 @@ class Unicorn::Configurator
+   #   and +false+ or +nil+ is synonymous for a value of zero.
+   #
+   #   A value of +1+ is a good optimization for local networks
+-  #   and trusted clients.  For Rainbows! and Zbatery users, a higher
+-  #   value (e.g. +60+) provides more protection against some
+-  #   denial-of-service attacks.  There is no good reason to ever
+-  #   disable this with a +zero+ value when serving HTTP.
++  #   and trusted clients.  There is no good reason to ever
++  #   disable this with a +zero+ value with unicorn.
+   #
+-  #   Default: 1 retransmit for \Unicorn, 60 for Rainbows! 0.95.0\+
++  #   Default: 1
+   #
+   # [:accept_filter => String]
+   #
+@@ -401,8 +398,7 @@ class Unicorn::Configurator
+   #   This enables either the "dataready" or (default) "httpready"
+   #   accept() filter under FreeBSD.  This is intended as an
+   #   optimization to reduce context switches with common GET/HEAD
+-  #   requests.  For Rainbows! and Zbatery users, this provides
+-  #   some protection against certain denial-of-service attacks, too.
++  #   requests.
+   #
+   #   There is no good reason to change from the default.
+   #
+diff --git a/lib/unicorn/http_server.rb b/lib/unicorn/http_server.rb
+index 0f97516..3dbfd3e 100644
+--- a/lib/unicorn/http_server.rb
++++ b/lib/unicorn/http_server.rb
+@@ -7,8 +7,8 @@
+ #
+ # Users do not need to know the internals of this class, but reading the
+ # {source}[http://bogomips.org/unicorn.git/tree/lib/unicorn/http_server.rb]
+-# is education for programmers wishing to learn how \Unicorn works.
+-# See Unicorn::Configurator for information on how to configure \Unicorn.
++# is education for programmers wishing to learn how unicorn works.
++# See Unicorn::Configurator for information on how to configure unicorn.
+ class Unicorn::HttpServer
+   # :stopdoc:
+   attr_accessor :app, :timeout, :worker_processes,
+diff --git a/lib/unicorn/socket_helper.rb b/lib/unicorn/socket_helper.rb
+index 812ac53..df8315e 100644
+--- a/lib/unicorn/socket_helper.rb
++++ b/lib/unicorn/socket_helper.rb
+@@ -5,14 +5,12 @@ require 'socket'
+ module Unicorn
+   module SocketHelper
+ 
+-    # internal interface, only used by Rainbows!/Zbatery
++    # internal interface
+     DEFAULTS = {
+       # The semantics for TCP_DEFER_ACCEPT changed in Linux 2.6.32+
+       # with commit d1b99ba41d6c5aa1ed2fc634323449dd656899e9
+-      # This change shouldn't affect Unicorn users behind nginx (a
+-      # value of 1 remains an optimization), but Rainbows! users may
+-      # want to use a higher value on Linux 2.6.32+ to protect against
+-      # denial-of-service attacks
++      # This change shouldn't affect unicorn users behind nginx (a
++      # value of 1 remains an optimization).
+       :tcp_defer_accept => 1,
+ 
+       # FreeBSD, we need to override this to 'dataready' if we
+diff --git a/lib/unicorn/util.rb b/lib/unicorn/util.rb
+index c7784bd..2f8bfeb 100644
+--- a/lib/unicorn/util.rb
++++ b/lib/unicorn/util.rb
+@@ -1,7 +1,7 @@
+ # -*- encoding: binary -*-
+ 
+ require 'fcntl'
+-module Unicorn::Util
++module Unicorn::Util # :nodoc:
+ 
+ # :stopdoc:
+   def self.is_log?(fp)
+diff --git a/lib/unicorn/worker.rb b/lib/unicorn/worker.rb
+index b3f8afe..6748a2f 100644
+--- a/lib/unicorn/worker.rb
++++ b/lib/unicorn/worker.rb
+@@ -3,8 +3,8 @@ require "raindrops"
+ 
+ # This class and its members can be considered a stable interface
+ # and will not change in a backwards-incompatible fashion between
+-# releases of \Unicorn.  Knowledge of this class is generally not
+-# not needed for most users of \Unicorn.
++# releases of unicorn.  Knowledge of this class is generally not
++# not needed for most users of unicorn.
+ #
+ # Some users may want to access it in the before_fork/after_fork hooks.
+ # See the Unicorn::Configurator RDoc for examples.
+-- 
+EW
+
