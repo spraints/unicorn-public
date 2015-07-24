@@ -1,0 +1,57 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-2.9 required=3.0 tests=ALL_TRUSTED,BAYES_00,
+ URIBL_BLOCKED shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 684F91F4BD; Fri, 24 Jul 2015 17:13:56 +0000 (UTC)
+Date: Fri, 24 Jul 2015 17:13:56 +0000
+From: Eric Wong <e@80x24.org>
+To: "Dowd, Stephen" <stephen.dowd@emc.com>
+Cc: unicorn-public@bogomips.org
+Subject: Re: Question:  How to limit size of log & error files
+Message-ID: <20150724171356.GA24235@dcvr.yhbt.net>
+References: <65EB80B5926DCC4DA6C21AEC11827B7B4C01DE74@MX108CL01.corp.emc.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To:
+ <65EB80B5926DCC4DA6C21AEC11827B7B4C01DE74@MX108CL01.corp.emc.com>
+List-Id: <unicorn-public@bogomips.org>
+
+"Dowd, Stephen" <stephen.dowd@emc.com> wrote:
+> I'd like to control the size and on disk layout of the unicorn error
+> and output logs.   Basically I want ruby Logger like functionality
+> where I can specify a fixed # of rolling logs each of which is limited
+> to # mb in size.   Not sure how to do this in unicorn.rb. 
+
+You can also use the "logger" directive to avoid using the default
+Logger (which goes to $stderr) instead:
+
+http://unicorn.bogomips.org/Unicorn/Configurator.html#method-i-logger
+
+You'll also need to reconfigure Rack::CommonLogger and/or whatever
+logger your framework (e.g. Rails/Sinatra) uses.
+
+In modern versions of Ruby, the Logger class also seems multi-process
+aware when doing its internal logrotation.
+
+There is also SyslogLogger RubyGem which provides a Logger interface but
+goes directly to syslog.
+
+> My unicorn.conf file has basically the defaults, with the exception of:
+> 
+> Stderr_path "/log/unicorn/stderr.log"
+> Stdout_path "/log/unicorn/stdout.log"
+ 
+> These files will grow to the point where the disk becomes full at
+> which point we begin to see failures.   
+
+I prefer to log to files and use logrotate using a config as in
+http://unicorn.bogomips.org/examples/logrotate.conf as Ben pointed out.
+
+But you can also point those to FIFO + chronolog as Hleb pointed out,
+too.  That might be a little slower because of the context switches
+and synchronous wakeups.
