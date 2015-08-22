@@ -1,0 +1,44 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-3.1 required=3.0 tests=ALL_TRUSTED,AWL,BAYES_00,
+ URIBL_BLOCKED shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 881A3659016 for <unicorn-public@bogomips.org>; Sat,
+ 22 Aug 2015 04:42:23 +0000 (UTC)
+From: Eric Wong <e@80x24.org>
+To: unicorn-public@bogomips.org
+Subject: [PATCH] gemspec: limit to 1.9.3 and 2.x
+Date: Sat, 22 Aug 2015 04:42:23 +0000
+Message-Id: <1440218543-25371-1-git-send-email-e@80x24.org>
+List-Id: <unicorn-public@bogomips.org>
+
+It does not look like we'll be compatible with Ruby 3.0 with
+the plan for immutable string literals.
+
+However, keep in mind 3.0 is still many years away and
+decisions can change, so it would be premature to stop
+assuming frozen string literals this year.
+
+ref: https://bugs.ruby-lang.org/issues/11473
+---
+ unicorn.gemspec | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/unicorn.gemspec b/unicorn.gemspec
+index 47d5670..23450f5 100644
+--- a/unicorn.gemspec
++++ b/unicorn.gemspec
+@@ -25,6 +25,7 @@ Gem::Specification.new do |s|
+   s.files = manifest
+   s.homepage = Olddoc.config['rdoc_url']
+   s.test_files = test_files
++  s.required_ruby_version = [ '>= 1.9.3', '< 3.0' ]
+ 
+   # for people that are absolutely stuck on Rails 2.3.2 and can't
+   # up/downgrade to any other version, the Rack dependency may be
+-- 
+EW
+
