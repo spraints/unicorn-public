@@ -1,0 +1,69 @@
+Return-Path: <cbrasic@gmail.com>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS15169 209.85.128.0/17
+X-Spam-Status: No, score=-2.6 required=3.0 tests=BAYES_00,FREEMAIL_FROM,
+ RCVD_IN_DNSWL_LOW,URIBL_BLOCKED shortcircuit=no autolearn=unavailable
+ version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from mail-io0-f176.google.com (mail-io0-f176.google.com
+ [209.85.223.176]) (using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256
+ (128/128 bits)) (No client certificate requested) by dcvr.yhbt.net (Postfix)
+ with ESMTPS id B42F0200EB for <unicorn-public@bogomips.org>; Wed,  2 Sep 2015
+ 16:32:17 +0000 (UTC)
+Received: by ioiz6 with SMTP id z6so26552809ioi.2 for
+ <unicorn-public@bogomips.org>; Wed, 02 Sep 2015 09:32:17 -0700 (PDT)
+X-Received: by 10.107.34.85 with SMTP id i82mr35003091ioi.129.1441211537100;
+ Wed, 02 Sep 2015 09:32:17 -0700 (PDT)
+MIME-Version: 1.0
+Received: by 10.36.111.209 with HTTP; Wed, 2 Sep 2015 09:31:57 -0700 (PDT)
+In-Reply-To:
+ <CAE2Ar51tfuR8mJ99KmDj75p-JJOTAgYbOAwNaC-5b4-Pw__XTg@mail.gmail.com>
+References:
+ <CAE2Ar51tfuR8mJ99KmDj75p-JJOTAgYbOAwNaC-5b4-Pw__XTg@mail.gmail.com>
+From: Carl Brasic <cbrasic@gmail.com>
+Date: Wed, 2 Sep 2015 18:31:57 +0200
+Message-ID:
+ <CAD-jRAcHR7sqfTgda0p3AG51tO_pB1JeWPfLKCAyBCcQj7NdPA@mail.gmail.com>
+Subject: Re: Monitoring active/idle unicorn process stats
+To: Christian Pedersen <christian@onelogin.com>
+Cc: unicorn-public@bogomips.org
+Content-Type: text/plain; charset=UTF-8
+List-Id: <unicorn-public@bogomips.org>
+
+On Wed, Sep 2, 2015 at 5:49 PM, Christian Pedersen
+<christian@onelogin.com> wrote:
+> Hi!
+>
+> Is it possible to query the number of busy/idle unicorn workers? For
+> scaling purposes, I would like to be able to see the utilisation of
+> the unicorn workers, so I will know if I need to deploy more servers
+> in peak hours or not. Currently the only measure I have is when
+> machines top out and start serving 502's. I am not interested in
+> queueing up requests, as the approach is to instead spin up additional
+> capacity when needed.
+>
+> I notice on http://demo.nginx.com/status.html that one of the metrics
+> under 'demoupstreams' is the number of active connections. I wonder if
+> that metric is exposed by nginx somehow, or if this is something only
+> available in nginx plus. Suggestions for alternative approaches to
+> this is appreciated. Ideally, I would like a metric that I can consume
+> and pump into our monitoring tools with a fairly high resolution.
+>
+> Cheers,
+> Christian
+
+Assuming you are proxying via domain socket, raindrops includes a
+parser to extract the socket's active and queued connections.  We use
+a script that publishes the following to our monitoring tools:
+
+    Raindrops::Linux.unix_listener_stats(["/path/to/socket"])[0]
+    # => #<struct Raindrops::ListenStats active=6, queued=0>
+
+If you want to call this repeatedly without a process supervisor, you
+can use bash scripts embedded in cron to get arbitrary granularity:
+
+    SHELL=bash
+    * * * * * for ((n=0;n<12;n++)); do /bin/publish_stats; sleep 5; done
+
+Carl
