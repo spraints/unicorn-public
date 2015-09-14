@@ -1,0 +1,65 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-2.9 required=3.0 tests=ALL_TRUSTED,AWL,BAYES_00,
+ URIBL_BLOCKED shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 44D4D1F4B3; Mon, 14 Sep 2015 02:14:25 +0000 (UTC)
+Date: Mon, 14 Sep 2015 02:14:25 +0000
+From: Eric Wong <e@80x24.org>
+To: =?utf-8?Q?Br=C3=A1ulio?= Bhavamitra <braulio@eita.org.br>
+Cc: Sarkis Varozian <svarozian@gmail.com>, unicorn-public
+ <unicorn-public@bogomips.org>
+Subject: Re: Request Queueing after deploy + USR2 restart
+Message-ID: <20150914021425.GA1720@dcvr.yhbt.net>
+References:
+ <CAGchx-+qiqGzEW3PWiOgJPQtk6HfdP-t0iohYnXft14zFE7Brg@mail.gmail.com>
+ <CAJri6_vidE15Xor4THzQB3uxyqPdApxHoyWp47NAG8m8TQuw0Q@mail.gmail.com>
+ <CAJri6_sB05+C5j=+biXzTeGVoRDv_aA8iOJxxxMc5EkVbTg35Q@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+Content-Transfer-Encoding: 8bit
+In-Reply-To:
+ <CAJri6_sB05+C5j=+biXzTeGVoRDv_aA8iOJxxxMc5EkVbTg35Q@mail.gmail.com>
+List-Id: <unicorn-public@bogomips.org>
+
+Bráulio Bhavamitra <braulio@eita.org.br> wrote:
+> Sakis, ressurecting this.
+> 
+> I'm seeing this after the upgrade from rails 3.2 to rails 4.2. Maybe it is
+> because of adequate record and other "cached on first time used" stuff.
+
+I'm not knowledgeable enough to comment on Rails , but
+"cache on first time used" includes the caches in the YARV RubyVM
+itself:
+
+1) inline method cache
+2) inline constant cache
+3) global method cache
+
+The only way to warm up the inline caches is to actually run your
+code paths (perhaps in warmup code).  After warmup, you need to
+avoid defining new classes/constants or doing includes/extends/etc
+because those things invalidate caches.
+
+ruby-core has been working to reduce the size of internal data
+structures in C to improve CPU cache utilization (which might make
+the explicit RubyVM-level caches less necessary for small apps).
+
+Ruby 2.3 should include some more speedups in method lookup;
+but having the smallest possible code base always helps.
+
+Regardless of language or VM implementation; big code and data
+structures invalidates caches on the CPU faster than smaller
+code and data structures.
+
+So reduce your application code size, kill unnecessary features,
+use a smaller framework (perhaps Sinatra, or even just Rack),
+load fewer libraries, etc.
+
+
+And yes, this mindset to making things smaller extends to mail:
+stop bloating them with top-posts and insanely long signatures.
