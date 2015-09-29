@@ -1,0 +1,77 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-2.9 required=3.0 tests=ALL_TRUSTED,AWL,BAYES_00
+ shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 7851C1FA66; Tue, 29 Sep 2015 07:36:50 +0000 (UTC)
+Date: Tue, 29 Sep 2015 07:36:50 +0000
+From: Eric Wong <e@80x24.org>
+To: Pirate Praveen <praveen@debian.org>
+Cc: unicorn-public@bogomips.org
+Subject: Re: Request to follow SemVer/mention it in homepage
+Message-ID: <20150929073650.GA7434@dcvr.yhbt.net>
+References: <560A31F1.3060608@debian.org>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <560A31F1.3060608@debian.org>
+List-Id: <unicorn-public@bogomips.org>
+
+Pirate Praveen <praveen@debian.org> wrote:
+> Do you follow Semantic Versioning as defined by semver.org? If yes,
+> can you mention it on the homepage? If not, can you consider it?
+
+Maybe we follow semver...
+
+No, I'd rather not mention it on the homepage or be formally/officially
+bound to it (see below)
+
+I have considered it in the past, but decided against it...
+
+unicorn is on the verge of becoming 5.x:
+
+This is for internal changes which some weirdo projects (notably
+Rainbows!) rely on; but was never considered public API or marketed
+as such.  I absolutely do not want people building server-specific
+apps when Rack exists.
+
+Rack will also hit 2.x soon, but regardless of incompatible changes
+in Rack, unicorn must remain compatible with both 1.x and 2.x for
+practical reasons.
+
+> It will help us a lot in maintain rails applications in debian. We
+> like to keep only one version of any app/lib in debian and if you can
+> guarantee Semantic Versioning rails apps using unicorn could declare a
+> looser dependency rather than upto the patch version. Now gitlab
+> defines unicorn ~> 4.8.3 and diaspora defines ~> 4.9.0 If you are
+> following Semantic Versioning they could change it to ~> 4.8 and ~>
+> 4.9 and 4.9.0 will satisfy both. Currently debian has 4.9.0 and it
+> does not match ~> 4.8.3
+
+Tying a Rack app to unicorn is totally, completely wrong and defeats the
+point of Rack.
+
+Honestly, I could understand tying an app to thin with it's EM-specific
+API, but unicorn(!?!?)  Even if an app isn't thread-safe, it should
+still work in passenger, thin, or puma/webrick configured for a
+single-thread...
+
+
+Regardless of a formalities such as semver, I'll work to ensure unicorn
+can be compatible[1] with any Rack apps in Debian main.
+Heck, perhaps Rack 0.9.x still works (assuming the installed Ruby
+version supports it).
+
+Just let us know what real problems you find, they will be fixed.
+
+Fwiw, Debian is my preferred platform and I can stay 100% within email
+with the Debian BTS + lists.
+
+
+[1] I would never say unicorn is the best choice for all apps,
+    but it should at least limp along with sufficiently loose
+    definitions of "working", perhaps with hundreds of inefficient
+    processes in some cases.
