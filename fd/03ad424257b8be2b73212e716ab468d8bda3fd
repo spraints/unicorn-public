@@ -1,0 +1,63 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-2.9 required=3.0 tests=ALL_TRUSTED,AWL,BAYES_00,
+ URIBL_BLOCKED shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id CC0F2633844; Tue, 29 Sep 2015 19:43:59 +0000 (UTC)
+Date: Tue, 29 Sep 2015 19:43:59 +0000
+From: Eric Wong <e@80x24.org>
+To: =?utf-8?B?SsOpcsOpbXk=?= Lecour <jeremy.lecour@gmail.com>
+Cc: Pirate Praveen <praveen@debian.org>, unicorn-public@bogomips.org
+Subject: Re: Request to follow SemVer/mention it in homepage
+Message-ID: <20150929194359.GB7572@dcvr.yhbt.net>
+References: <560A31F1.3060608@debian.org>
+ <20150929073650.GA7434@dcvr.yhbt.net>
+ <CANrRGgpX9F8fc_mkvqphZWR8BX9LsR9WbiMzmjJbANLA3PULVg@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+Content-Transfer-Encoding: 8bit
+In-Reply-To:
+ <CANrRGgpX9F8fc_mkvqphZWR8BX9LsR9WbiMzmjJbANLA3PULVg@mail.gmail.com>
+List-Id: <unicorn-public@bogomips.org>
+
+Jérémy Lecour <jeremy.lecour@gmail.com> wrote:
+> On Tue, Sep 29, 2015 at 9:36 AM, Eric Wong <e@80x24.org> wrote:
+> > Tying a Rack app to unicorn is totally, completely wrong and defeats the
+> > point of Rack.
+> 
+> I completely agree with that statement.
+> 
+> However, having an app with hard dependency on a specific app server
+> is not the same a providing a default setup for a given app server.
+> 
+> For example, an app like Gitlab, Discourse or whatever might provide a
+> default good configuration for Unicorn, a set of optimisations in the
+> context of a Unicorn (pre/post fork instructions…) and have something
+> that works great out of the box, even if it's not restricted to
+> Unicorn.
+
+Right, Debian has Recommends/Suggests: fields for soft dependencies; but
+I still consider that overkill.
+
+> Someone who would want to change to Passenger, Puma or else would have
+> to adapt the configuration and port the optimizations, but the app
+> would work the same as with Unicorn, without crippled features.
+> Someone who wouldn't change or tweak anything would have a good
+> setting by default.
+
+Perhaps there could be per-server Debian packages such as:
+
+	gitlab-webrick  (should be the default)
+	gitlab-puma
+	gitlab-passenger
+	gitlab-unicorn
+	...
+
+Given unicorn has always required the use of nginx for exposure to
+public clients, unicorn is perhaps the worst choice as a default
+server for people unwilling to read documentation and edit config
+files.
