@@ -1,0 +1,43 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-2.8 required=3.0 tests=ALL_TRUSTED,AWL,BAYES_00,
+ URIBL_BLOCKED shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 51C1C1F80E; Thu, 15 Oct 2015 17:46:25 +0000 (UTC)
+From: Eric Wong <e@80x24.org>
+To: unicorn-public@bogomips.org
+Cc: Eric Wong <e@80x24.org>
+Subject: [PATCH] unicorn.conf.rb: remove mention of REE-specific setting
+Date: Thu, 15 Oct 2015 17:46:23 +0000
+Message-Id: <20151015174623.6616-1-e@80x24.org>
+List-Id: <unicorn-public@bogomips.org>
+
+Ruby 2.0+ has a copy-on-write-friendly memory layout by default,
+and REE is long dead and just confusing to new users.
+---
+ examples/unicorn.conf.rb | 5 +----
+ 1 file changed, 1 insertion(+), 4 deletions(-)
+
+diff --git a/examples/unicorn.conf.rb b/examples/unicorn.conf.rb
+index 4b28a5a..1e05cbb 100644
+--- a/examples/unicorn.conf.rb
++++ b/examples/unicorn.conf.rb
+@@ -40,11 +40,8 @@ pid "/path/to/app/shared/pids/unicorn.pid"
+ stderr_path "/path/to/app/shared/log/unicorn.stderr.log"
+ stdout_path "/path/to/app/shared/log/unicorn.stdout.log"
+ 
+-# combine Ruby 2.0.0dev or REE with "preload_app true" for memory savings
+-# http://rubyenterpriseedition.com/faq.html#adapt_apps_for_cow
++# combine Ruby 2.0.0+ with "preload_app true" for memory savings
+ preload_app true
+-GC.respond_to?(:copy_on_write_friendly=) and
+-  GC.copy_on_write_friendly = true
+ 
+ # Enable this flag to have unicorn test client connections by writing the
+ # beginning of the HTTP headers before calling the application.  This
+-- 
+EW
+
