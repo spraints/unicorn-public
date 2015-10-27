@@ -1,0 +1,38 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-2.9 required=3.0 tests=ALL_TRUSTED,AWL,BAYES_00
+ shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 660481F810 for <unicorn-public@bogomips.org>; Tue, 27
+ Oct 2015 03:33:19 +0000 (UTC)
+From: Eric Wong <e@80x24.org>
+To: unicorn-public@bogomips.org
+Subject: [PATCH 0/2] socket inheritance behavior/bug => feature!
+Date: Tue, 27 Oct 2015 03:33:10 +0000
+Message-Id: <20151027033312.14878-1-e@80x24.org>
+List-Id: <unicorn-public@bogomips.org>
+
+Given long enough, some bugs need to become documented behavior
+(see [PATCH 2/2]).
+
+Anyways, I guess we'll release 5.0.0 final in a day or two.  I was
+intending to release 5.0.0 today until I noticed how un-DRY having
+listeners configured in both systemd and unicorn config files would
+be.  And then I noticed we have an existing bug as documented in 2/2
+which would allow the user to be DRY after all.
+
+Eric Wong (2):
+      sd_listen_fds emulation cleanup
+      inheriting sockets from UNICORN_FD does not close them
+
+ Documentation/unicorn.1.txt |  4 +---
+ lib/unicorn/http_server.rb  |  4 ++--
+ test/exec/test_exec.rb      | 50 ++++++++++++++++++++++++++++++++++-----------
+ 3 files changed, 41 insertions(+), 17 deletions(-)
+
+Fwiw, in case anybody is uncomfortable with the mere mention of the
+word "systemd"; unicorn will never have any dependencies on systemd.
+It will merely use systemd if available.
