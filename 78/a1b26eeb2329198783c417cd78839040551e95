@@ -1,0 +1,110 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-2.9 required=3.0 tests=ALL_TRUSTED,AWL,BAYES_00,
+ URIBL_BLOCKED shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 82D081FDE7 for <unicorn-public@bogomips.org>; Tue, 27
+ Oct 2015 03:33:19 +0000 (UTC)
+From: Eric Wong <e@80x24.org>
+To: unicorn-public@bogomips.org
+Subject: [PATCH 1/2] sd_listen_fds emulation cleanup
+Date: Tue, 27 Oct 2015 03:33:11 +0000
+Message-Id: <20151027033312.14878-2-e@80x24.org>
+In-Reply-To: <20151027033312.14878-1-e@80x24.org>
+References: <20151027033312.14878-1-e@80x24.org>
+List-Id: <unicorn-public@bogomips.org>
+
+Re-enable and expand on the test case while we're at it for new
+Rubies.  The bug is now fixed in Ruby 2.3.0dev as of r51576.  We
+shall assume anybody running a pre-release 2.3.0 at this point is
+running a fairly recent snapshot, so we won't bother doing a
+finer-grained check in the test for an exact revision number.
+---
+ lib/unicorn/http_server.rb |  4 ++--
+ test/exec/test_exec.rb     | 40 +++++++++++++++++++++++-----------------
+ 2 files changed, 25 insertions(+), 19 deletions(-)
+
+diff --git a/lib/unicorn/http_server.rb b/lib/unicorn/http_server.rb
+index 3dbfd3e..c1a2e60 100644
+--- a/lib/unicorn/http_server.rb
++++ b/lib/unicorn/http_server.rb
+@@ -772,12 +772,12 @@ def inherit_listeners!
+     sd_pid, sd_fds = ENV.values_at('LISTEN_PID', 'LISTEN_FDS')
+     if sd_pid && sd_pid.to_i == $$
+       # 3 = SD_LISTEN_FDS_START
+-      inherited.concat((3...(3 + sd_fds.to_i)).map { |fd| Socket.for_fd(fd) })
++      inherited.concat((3...(3 + sd_fds.to_i)).to_a)
+     end
+     # to ease debugging, we will not unset LISTEN_PID and LISTEN_FDS
+ 
+     inherited.map! do |fd|
+-      io = String === fd ? Socket.for_fd(fd.to_i) : fd
++      io = Socket.for_fd(fd.to_i)
+       io.autoclose = false
+       io = server_cast(io)
+       set_server_sockopt(io, listener_opts[sock_name(io)])
+diff --git a/test/exec/test_exec.rb b/test/exec/test_exec.rb
+index 33d768a..af6f151 100644
+--- a/test/exec/test_exec.rb
++++ b/test/exec/test_exec.rb
+@@ -96,31 +96,37 @@ def teardown
+     end
+   end
+ 
+-  # FIXME https://bugs.ruby-lang.org/issues/11336
+-  # [ruby-core:69895] [Bug #11336]
+-  def disabled_test_sd_listen_fds_emulation
++  def test_sd_listen_fds_emulation
+     File.open("config.ru", "wb") { |fp| fp.write(HI) }
+     sock = TCPServer.new(@addr, @port)
+-    sock.setsockopt(:SOL_SOCKET, :SO_KEEPALIVE, 0)
+ 
+-    pid = xfork do
+-      redirect_test_io do
+-        # pretend to be systemd
+-        ENV['LISTEN_PID'] = "#$$"
+-        ENV['LISTEN_FDS'] = '1'
++    [ %W(-l #@addr:#@port), nil ].each do |l|
++      sock.setsockopt(:SOL_SOCKET, :SO_KEEPALIVE, 0)
++
++      pid = xfork do
++        redirect_test_io do
++          # pretend to be systemd
++          ENV['LISTEN_PID'] = "#$$"
++          ENV['LISTEN_FDS'] = '1'
+ 
+-        # 3 = SD_LISTEN_FDS_START
+-        exec($unicorn_bin, "-l", "#@addr:#@port", 3 => sock)
++          # 3 = SD_LISTEN_FDS_START
++          args = [ $unicorn_bin ]
++          args.concat(l) if l
++          args << { 3 => sock }
++          exec(*args)
++        end
+       end
++      res = hit(["http://#@addr:#@port/"])
++      assert_equal [ "HI\n" ], res
++      assert_shutdown(pid)
++      assert_equal 1, sock.getsockopt(:SOL_SOCKET, :SO_KEEPALIVE).int,
++                  'unicorn should always set SO_KEEPALIVE on inherited sockets'
+     end
+-    res = hit(["http://#{@addr}:#{@port}/"])
+-    assert_equal [ "HI\n"], res
+-    assert_shutdown(pid)
+-    assert_equal 1, sock.getsockopt(:SOL_SOCKET, :SO_KEEPALIVE).int,
+-                 "unicorn should always set SO_KEEPALIVE on inherited sockets"
+   ensure
+     sock.close if sock
+-  end
++    # disabled test on old Rubies: https://bugs.ruby-lang.org/issues/11336
++    # [ruby-core:69895] [Bug #11336] fixed by r51576
++  end if RUBY_VERSION.to_f >= 2.3
+ 
+   def test_working_directory_rel_path_config_file
+     other = Tempfile.new('unicorn.wd')
+-- 
+EW
+
