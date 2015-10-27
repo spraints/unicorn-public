@@ -1,0 +1,92 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-2.9 required=3.0 tests=ALL_TRUSTED,AWL,BAYES_00,
+ URIBL_BLOCKED shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 9DE621FDFC for <unicorn-public@bogomips.org>; Tue, 27
+ Oct 2015 03:33:19 +0000 (UTC)
+From: Eric Wong <e@80x24.org>
+To: unicorn-public@bogomips.org
+Subject: [PATCH 2/2] inheriting sockets from UNICORN_FD does not close them
+Date: Tue, 27 Oct 2015 03:33:12 +0000
+Message-Id: <20151027033312.14878-3-e@80x24.org>
+In-Reply-To: <20151027033312.14878-1-e@80x24.org>
+References: <20151027033312.14878-1-e@80x24.org>
+List-Id: <unicorn-public@bogomips.org>
+
+For some reason, I thought invalid descriptors passed to UNICORN_FD
+would be automatically closed by the master process; but apparently
+this hasn't been the case.  On the other hand, this bug has been
+around for over 6 years now and nobody noticed or cared enough to
+tell us, so fixing it might break existing setups.
+
+Since there may be users relying on this behavior, we cannot change
+the behavior anymore; so update the documentation and write at test
+to ensure we can never "fix" this bug at the expense of breaking
+any working setups which may be out there.
+
+Keep in mind that a before_exec hook may always be used to modify
+the UNICORN_FD environment by setting the close_on_exec flag and
+removing the appropriate descriptor from the environment.
+
+I originally intended to add the ability to inherit new listeners
+without a config file specification so systemd users can avoid
+repeating themselves in the systemd and unicorn config files,
+but apparently there is nothing to change in our code.
+---
+ Documentation/unicorn.1.txt |  4 +---
+ test/exec/test_exec.rb      | 20 ++++++++++++++++++++
+ 2 files changed, 21 insertions(+), 3 deletions(-)
+
+diff --git a/Documentation/unicorn.1.txt b/Documentation/unicorn.1.txt
+index 193860f..5b82ad5 100644
+--- a/Documentation/unicorn.1.txt
++++ b/Documentation/unicorn.1.txt
+@@ -166,9 +166,7 @@ variable internally when doing transparent upgrades.
+ UNICORN_FD is a comma-delimited list of one or more file descriptors
+ used to implement USR2 upgrades.  Init systems may bind listen sockets
+ itself and spawn unicorn with UNICORN_FD set to the file descriptor
+-numbers of the listen socket(s).  The unicorn CONFIG_FILE must still
+-have the inherited listen socket parameters defined as in a normal
+-startup, otherwise the socket will be closed.
++numbers of the listen socket(s).
+ 
+ # SEE ALSO
+ 
+diff --git a/test/exec/test_exec.rb b/test/exec/test_exec.rb
+index af6f151..ca0b7bc 100644
+--- a/test/exec/test_exec.rb
++++ b/test/exec/test_exec.rb
+@@ -128,6 +128,26 @@ def test_sd_listen_fds_emulation
+     # [ruby-core:69895] [Bug #11336] fixed by r51576
+   end if RUBY_VERSION.to_f >= 2.3
+ 
++  def test_inherit_listener_unspecified
++    File.open("config.ru", "wb") { |fp| fp.write(HI) }
++    sock = TCPServer.new(@addr, @port)
++    sock.setsockopt(:SOL_SOCKET, :SO_KEEPALIVE, 0)
++
++    pid = xfork do
++      redirect_test_io do
++        ENV['UNICORN_FD'] = sock.fileno.to_s
++        exec($unicorn_bin, sock.fileno => sock.fileno)
++      end
++    end
++    res = hit(["http://#@addr:#@port/"])
++    assert_equal [ "HI\n" ], res
++    assert_shutdown(pid)
++    assert_equal 1, sock.getsockopt(:SOL_SOCKET, :SO_KEEPALIVE).int,
++                'unicorn should always set SO_KEEPALIVE on inherited sockets'
++  ensure
++    sock.close if sock
++  end
++
+   def test_working_directory_rel_path_config_file
+     other = Tempfile.new('unicorn.wd')
+     File.unlink(other.path)
+-- 
+EW
+
