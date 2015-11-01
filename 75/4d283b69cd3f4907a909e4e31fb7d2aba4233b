@@ -1,0 +1,80 @@
+Return-Path: <normalperson@yhbt.net>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-3.0 required=3.0 tests=ALL_TRUSTED,AWL,BAYES_00,
+ T_RP_MATCHES_RCVD,URIBL_BLOCKED shortcircuit=no autolearn=unavailable
+ version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) (using TLSv1.2 with
+ cipher DHE-RSA-AES128-SHA (128/128 bits)) (No client certificate requested)
+ by dcvr.yhbt.net (Postfix) with ESMTPSA id 8A9901FDEB; Sun,  1 Nov 2015
+ 08:55:59 +0000 (UTC)
+Date: Sun, 1 Nov 2015 08:55:59 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: ruby-talk@ruby-lang.org, unicorn-public@bogomips.org
+Subject: [ANN] unicorn 5.0.0 - Rack HTTP server for fast clients and *nix
+Message-ID: <20151101-unicorn-5.0.0-rele@sed>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+List-Id: <unicorn-public@bogomips.org>
+
+Unicorn is an HTTP server for Rack applications designed to only serve
+fast clients on low-latency, high-bandwidth connections and take
+advantage of features in Unix/Unix-like kernels.  Slow clients should
+only be served by placing a reverse proxy capable of fully buffering
+both the the request and response in between unicorn and slow clients.
+
+* http://unicorn.bogomips.org/
+* public list: unicorn-public@bogomips.org
+* mail archives: http://bogomips.org/unicorn-public/
+* git clone git://bogomips.org/unicorn.git
+* http://unicorn.bogomips.org/NEWS.atom.xml
+* nntp://news.public-inbox.org/inbox.comp.lang.ruby.unicorn
+
+Changes since 4.9.0:
+
+unicorn 5.0.0 - most boring major release. EVER.
+
+An evolutionary dead-end since its announcement[1] nearly six years
+ago, this old-fashioned preforker has had enough bugs and missteps
+that it's managed to hit version 5!
+
+I wish I could say unicorn 5 is leaps and bounds better than 4, but
+it is not.  This major version change allows us to drop some cruft
+and unused features which accumulated over the years, resulting in
+several kilobytes of memory saved[2]!
+
+Compatibility:
+
+* The horrible, proprietary (:P) "Status:" response header is
+  finally gone, saving at least 16 precious bytes in every HTTP
+  response.  This should make it easier to write custom HTTP clients
+  which are compatible across all HTTP servers.  It will hopefully
+  make migrating between different Rack servers easier for new
+  projects.
+
+* Ruby 1.8 support removed.  Ruby 1.9.3 is currently the earliest
+  supported version.  However, expect minor, likely-unnoticeable
+  performance regressions if you use Ruby 2.1 or earlier.  Going
+  forward, unicorn will favor the latest version (currently 2.2) of
+  the mainline Ruby implementation, potentially sacrificing
+  performance on older Rubies.
+
+* Some internal, undocumented features and APIs used by
+  derivative servers are gone; removing bloat and slightly lowering
+  memory use.  We have never and will never endorse the use of any
+  applications or middleware with a dependency on unicorn,
+  applications should be written for Rack instead.
+  Note: Rainbows! 5.0 will be released next week or so to be
+  compatible with unicorn 5.x
+
+New features:
+
+* sd_listen_fds(3) emulation added for systemd compatibility.
+  You may now stop using PID files and other process monitoring
+  software when using systemd.
+
+-- 
+EW
