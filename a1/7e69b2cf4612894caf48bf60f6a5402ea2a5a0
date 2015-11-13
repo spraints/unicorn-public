@@ -1,0 +1,70 @@
+Return-Path: <jeff.utter@firespring.com>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS15169 209.85.128.0/17
+X-Spam-Status: No, score=-0.0 required=3.0 tests=AWL,BAYES_00,URIBL_BLOCKED
+ shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from mail-lb0-f181.google.com (mail-lb0-f181.google.com
+ [209.85.217.181]) (using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256
+ (128/128 bits)) (No client certificate requested) by dcvr.yhbt.net (Postfix)
+ with ESMTPS id 74BA71F45C for <unicorn-public@bogomips.org>; Fri, 13 Nov 2015
+ 00:51:29 +0000 (UTC)
+Received: by lbbkw15 with SMTP id kw15so45342475lbb.0 for
+ <unicorn-public@bogomips.org>; Thu, 12 Nov 2015 16:51:27 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+ d=firespring_com.20150623.gappssmtp.com; s=20150623;
+ h=mime-version:date:message-id:subject:from:to:content-type;
+ bh=qPfkcS3ihWEkgE1vhwVQIkRawDGtl0soA6YDjVi82VA=;
+ b=DQaJj1lTmlOWD6ed4maXkk9KL81Sc7Mm2uP3kZpyTW0PJY30HG3ezyoB69Y5VdHA7u
+ IKYTAYnbdPCDl5y/6bEA640UX1J/+a3M3y9TiG/1Lzq77BJ0U8uJ/UHBbJi9AbD0jmHW
+ EZHzTTGMDFhWBhiF52i8mXnqDbeOk7Lx6B+Zvckl7PzjiFd9xakqAb+/x3xGMAne3h7G
+ OYhUDnHg/MWFro+qki72U7bYAC5H4B+F8ao6p9hoWctkPxtcNdX4U2MR7YMWVsILD5e5
+ nryXMaLnD7iDK+qdO/FhPdegHikIolfPEh4kDkAKMdKQ1Ynqx3NGwhqk90V+HM5tWnrY mvAQ==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=1e100.net;
+ s=20130820; h=x-gm-message-state:mime-version:date:message-id:subject:from:to
+ :content-type; bh=qPfkcS3ihWEkgE1vhwVQIkRawDGtl0soA6YDjVi82VA=;
+ b=D6d5onHekjUk4xQVzxwHMZ5uc8jCu6BMn4DfNRZxGH187w8oT9+N44V9xAMAZT1GQA
+ qSlSp/HMhVL4cv3jFEXcm2k7gIFKTVqx0pA0Tr7683y3TuA6U4VuSmRLlwCZ71DXk0WW
+ rY76FLsuS02+KHqQ1ENNqkA4DMjkRIRAnBJoJmHTve8OWqXJqunr/5D4LdpxraiYcrcb
+ GoAEvNZKdcIJPr/C0Hhb8ZjA/fvpy4PhB/pLs0+JhDJdMAndSv+E/kVHnQdGfBiD9tXn
+ 2jqB1V30hIUMafcxfm2n552CA7bdFaCR6OBJ5xCdaxzuzzB2zOvW/QLg0hsmu3LNqZX/ CP5Q==
+X-Gm-Message-State:
+ ALoCoQl7nbTPbGhJPhl9Zetw4xpXbSvLx71qm2s8/jIKU4Lv46OZrctKAVU0KRcDMWsyp4DlYFS5
+MIME-Version: 1.0
+X-Received: by 10.112.173.198 with SMTP id bm6mr8885937lbc.43.1447375887588;
+ Thu, 12 Nov 2015 16:51:27 -0800 (PST)
+Received: by 10.25.1.150 with HTTP; Thu, 12 Nov 2015 16:51:27 -0800 (PST)
+Date: Thu, 12 Nov 2015 18:51:27 -0600
+Message-ID:
+ <CAOWFGYOLb7EmqSW8sp69igQVsw=jyb-vM2ozmV9ufkgStvK2ew@mail.gmail.com>
+Subject: Shared Metrics Between Workers
+From: Jeff Utter <jeff.utter@firespring.com>
+To: unicorn-public@bogomips.org
+Content-Type: text/plain; charset=UTF-8
+List-Id: <unicorn-public@bogomips.org>
+
+Hello,
+
+I was wondering if anyone can offer any advice in handling stats
+collections between worker processes in forking servers (like unicorn).
+Specifically, I am attempting to work on a solution for the Prometheus ruby
+gem. Some details are in this issue here:
+https://github.com/prometheus/client_ruby/issues/9
+
+Prometheus works with a "scrape" model, where every few seconds a
+prometheus server hits a http endpoint that exposes status. With the
+current middleware the stats will only represent whichever worker is hit.
+
+I have read through the documentation for unicorn and poked around the
+source code some  -- as well as searched for similar projects for
+inspiration.
+
+The earliest, promising solution I considered was raindrops, but it looks
+as though you need to know all of the possible metrics up front - which
+won't necessarily work as prometheus could use metrics based on parameters
+which could vary.
+
+Does anyone have any experience working with something like this?
+
+Thanks for any suggestions.
