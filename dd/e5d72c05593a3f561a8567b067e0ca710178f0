@@ -1,0 +1,101 @@
+Return-Path: <jeff.utter@firespring.com>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS15169 209.85.128.0/17
+X-Spam-Status: No, score=-0.9 required=3.0 tests=AWL,BAYES_00,URIBL_BLOCKED
+ shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from mail-ig0-f181.google.com (mail-ig0-f181.google.com
+ [209.85.213.181]) (using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256
+ (128/128 bits)) (No client certificate requested) by dcvr.yhbt.net (Postfix)
+ with ESMTPS id 31FBF1F45C for <unicorn-public@bogomips.org>; Fri, 13 Nov 2015
+ 14:33:08 +0000 (UTC)
+Received: by igvi2 with SMTP id i2so37018637igv.0 for
+ <unicorn-public@bogomips.org>; Fri, 13 Nov 2015 06:33:07 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+ d=firespring_com.20150623.gappssmtp.com; s=20150623;
+ h=date:from:to:cc:message-id:in-reply-to:references:subject
+ :mime-version:content-type:content-transfer-encoding :content-disposition;
+ bh=FxvpYdy6NWQu5vxUVuKBzY3gKyDasx70s/B8tm3Cqzw=;
+ b=x2YoyeiXTUMOo6E1Ew9ckOZZA9EMOLRMiig2kHytUinT47Irv4TbSqKYKJC2t62fu2
+ RSPrVvYkicVd+kFfazGaeVXvtEM8JkeaEwpKlVYQOzMkEEmmIHG4R6EcYJ1eR3cKlFk4
+ mdlAaasfUzumhoB+hlXVjFAXbxYh+RbXfdi71v9kP4b2efZGW0YjuCKoCkJgzk7br451
+ Y66r5D/qmtPZMDluSq+n2QD/gdHUSt9pWTWX5gtNg8AOmdwUyrUKTNCeb56n0BSQFiJ0
+ tvBaCN3d7DXLGAeTiHXMSnEyF6usSHZdhKVBYQ/UT49yJlKfmhFQV4lF7OpBSB8aYKVa qs7g==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=1e100.net;
+ s=20130820; h=x-gm-message-state:date:from:to:cc:message-id:in-reply-to
+ :references:subject:mime-version:content-type
+ :content-transfer-encoding:content-disposition;
+ bh=FxvpYdy6NWQu5vxUVuKBzY3gKyDasx70s/B8tm3Cqzw=;
+ b=WbokRZ0ELluVr7fGKY8MWpnT0oPBaefefrIt1UQCtwO1N/agR/X0Q59U2gXZxIxaGD
+ NV8ELcX3gNeEPMaxOWYoQNzKC/f4URjZojKDIwrwI8xF13ZOlBbQCOT+xfZs0rmiPsRZ
+ O83/l7B9cy3DgWjCNlTTv1Jsim4W0h5HW03ha9Tqxn4slidtUV5xSME2l/lbiLJGFhCX
+ d0IJTawYtIXPxCSAl62LKYOWMZZ6pBtQ5tCzB0DiGJdwKzBXXxtGPRV8CdD0KpMS0TJ6
+ 1GbFkohnRu54bVb2534odru9EyQSafaCumxiiKyIm/rpjiS7DS1P+wXRtV3owBvNq8Z1 EUqw==
+X-Gm-Message-State:
+ ALoCoQn5bRexVOyGhg0Gh7uoUNJ2BeGzzqr3I7sE1Wm6GvJfayAqY/2E8shO8+kNuf3TzExq2Mha
+X-Received: by 10.50.79.201 with SMTP id l9mr3935131igx.53.1447425187218;
+ Fri, 13 Nov 2015 06:33:07 -0800 (PST)
+Received: from jharris.hq.firespring.com ([208.82.104.162]) by smtp.gmail.com
+ with ESMTPSA id in9sm1413638igb.18.2015.11.13.06.33.05 (version=TLSv1.2
+ cipher=ECDHE-RSA-AES128-GCM-SHA256 bits=128/128); Fri, 13 Nov 2015 06:33:06
+ -0800 (PST)
+Date: Fri, 13 Nov 2015 08:33:07 -0600
+From: Jeff Utter <jeff.utter@firespring.com>
+To: Eric Wong <e@80x24.org>
+Cc: unicorn-public@bogomips.org
+Message-ID: <etPan.5645f4a3.231a9b16.5a5@jharris.hq.firespring.com>
+In-Reply-To: <20151113012312.GA29929@dcvr.yhbt.net>
+References:
+ <CAOWFGYOLb7EmqSW8sp69igQVsw=jyb-vM2ozmV9ufkgStvK2ew@mail.gmail.com>
+ <20151113012312.GA29929@dcvr.yhbt.net>
+Subject: Re: Shared Metrics Between Workers
+X-Mailer: Airmail (335)
+MIME-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+Content-Disposition: inline
+List-Id: <unicorn-public@bogomips.org>
+
+=C2=A0
+Thanks for the quick reply. I very much appreciate the insight.
+
+On November 12, 2015 at 7:23:13 PM, Eric Wong (e=4080x24.org(mailto:e=408=
+0x24.org)) wrote:
+> Jeff Utter wrote: =20
+> > The earliest, promising solution I considered was raindrops, but it l=
+ooks =20
+> > as though you need to know all of the possible metrics up front - whi=
+ch =20
+> > won't necessarily work as prometheus could use metrics based on param=
+eters =20
+> > which could vary. =20
+> =20
+> You don't have to return all the data you'd aggregate with raindrops, =20
+> though. Just what was requested. =20
+
+Just to make sure I understand this correctly though, in order for the me=
+trics to be available between workers, the raindrops structs would need t=
+o be setup for each metric before unicorn forks=3F=C2=A0
+
+> GDBM (in the stdlib), SQLite, RRD, or any =22on-filesystem=22=5B1=5D da=
+ta store =20
+> should work, even. If you do have a lot of stats; batch the updates =20
+> locally (per-worker) and write them to a shared area periodically.
+
+Are you suggesting this data store would be shared between workers or one=
+ per worker (and whatever displays the metrics would read all the stores)=
+=3F I tried sharing between workers with DBM and GDBM and both of them en=
+d up losing metrics due to being overwritten by other threads. I imagine =
+I would have to lock the file whenever one is writing, which would block =
+other workers (not ideal). Out of the box PStore works fine for this (sur=
+prisingly). I'm guessing it does file locks behind the scenes.
+
+Right now I'm thinking that the best way to handle this would be one data=
+ store per worker and then whatever reads the metrics scrapes them all re=
+ad-only. My biggest concern with this approach is knowing which data-stor=
+es are valid. I suppose I could put them all in a folder based off the pa=
+rent's pid. However, would it be possible that some could be orphaned if =
+a worker is killed by the master=3F I would need some way for the master =
+to communicate to the collector (probably in a worker) what other workers=
+ are actively running. Is that possible=3F
