@@ -1,0 +1,84 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-2.9 required=3.0 tests=ALL_TRUSTED,BAYES_00,
+ URIBL_BLOCKED shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 6614E1F42F; Fri, 13 Nov 2015 20:54:24 +0000 (UTC)
+Date: Fri, 13 Nov 2015 20:54:27 +0000
+From: Eric Wong <e@80x24.org>
+To: Jeff Utter <jeff.utter@firespring.com>
+Cc: unicorn-public@bogomips.org
+Subject: Re: Shared Metrics Between Workers
+Message-ID: <20151113205427.GA7237@dcvr.yhbt.net>
+References:
+ <CAOWFGYOLb7EmqSW8sp69igQVsw=jyb-vM2ozmV9ufkgStvK2ew@mail.gmail.com>
+ <20151113012312.GA29929@dcvr.yhbt.net>
+ <etPan.5645f4a3.231a9b16.5a5@jharris.hq.firespring.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+Content-Transfer-Encoding: 8bit
+In-Reply-To: <etPan.5645f4a3.231a9b16.5a5@jharris.hq.firespring.com>
+List-Id: <unicorn-public@bogomips.org>
+
+Jeff Utter <jeff.utter@firespring.com> wrote:
+> On November 12, 2015 at 7:23:13 PM, Eric Wong (e@80x24.org) wrote:
+> > You don't have to return all the data you'd aggregate with raindrops,  
+> > though. Just what was requested.  
+> 
+> Just to make sure I understand this correctly though, in order for the
+> metrics to be available between workers, the raindrops structs would
+> need to be setup for each metric before unicorn forks? 
+
+Yes.  But most (if not all) metrics you'd care about will need
+aggregation, and thus must be known/aggregated for the lifetime
+of a process, correct?
+
+> > GDBM (in the stdlib), SQLite, RRD, or any "on-filesystem"[1] data store  
+> > should work, even. If you do have a lot of stats; batch the updates  
+> > locally (per-worker) and write them to a shared area periodically.
+> 
+> Are you suggesting this data store would be shared between workers or
+> one per worker (and whatever displays the metrics would read all the
+> stores)? I tried sharing between workers with DBM and GDBM and both of
+> them end up losing metrics due to being overwritten by other threads.
+> I imagine I would have to lock the file whenever one is writing, which
+> would block other workers (not ideal). Out of the box PStore works
+> fine for this (surprisingly). I'm guessing it does file locks behind
+> the scenes.
+
+The data in the on-filesystem store would be shared across processes.
+But you'd probably want to aggregate locally in a hash before flushing
+periodically.
+
+You're probably losing data because DB file descriptors are shared
+across fork.  You need to open DBs/connections after forking.  With any
+DB, you can't expect to open/share open file descriptors across fork.
+
+You can safely share UDP sockets across fork, and likely SCTP if
+implemented in the kernel (I haven't tried).  But any userland wrappers
+on top of the UDP socket (e.g. statsd, as Michael mentioned) will need
+to be checked for fork-friendliness.
+
+> Right now I'm thinking that the best way to handle this would be one
+> data store per worker and then whatever reads the metrics scrapes them
+> all read-only. My biggest concern with this approach is knowing which
+> data-stores are valid. I suppose I could put them all in a folder
+> based off the parent's pid. However, would it be possible that some
+> could be orphaned if a worker is killed by the master? I would need
+> some way for the master to communicate to the collector (probably in a
+> worker) what other workers are actively running. Is that possible?
+
+I don't think you to worry about all that.  You'd want stats even for
+dead workers to stick around if they were running the same code as
+current worker.
+
+OTOH, you probably want to reset/drop stats on new deploys;
+so maybe key the stats based on the version of the app you're running.
+
+I also forget to mention I've used memcached for some stats, too.  It's
+great when the data is fast-expiring, disposable and needs to be shared
+across several machines; not just processes within the same host.
