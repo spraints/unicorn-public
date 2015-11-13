@@ -1,0 +1,83 @@
+Return-Path: <mfischer@zendesk.com>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS14135 216.205.24.0/21
+X-Spam-Status: No, score=-0.7 required=3.0 tests=AWL,BAYES_00,URIBL_BLOCKED
+ shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from us-smtp-delivery-110.mimecast.com
+ (us-smtp-delivery-110.mimecast.com [216.205.24.110]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 6F5251F42F for <unicorn-public@bogomips.org>; Fri, 13
+ Nov 2015 11:04:28 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=zendesk.com;
+ s=mimecast20150210; t=1447412667;
+ bh=dBCUY6Zt+yGmqR6YhnZ7FL1qm2sJPYNBNqljNffqme0=;
+ h=Subject:MIME-Version:In-Reply-To:References:Date:Message-ID:From:To:Cc:Content-Type:Content-Transfer-Encoding; b=YviFP+zcZiKZ2K5DbXWsjACOKfnADo+iI2euUU3jlhffvJN7ikiytrItQ/DOQCJSlGNdtEEuzZ5huaS9TEnGiSpe/AWck5u+q/uvZNkNgLig9EK3yY8OUm7SVfhKLrEkz1H4mUC5EzSTtbDb/K54gvAbS4Ivz0SdCLwXnDyGI14=
+Subject: Re: Shared Metrics Between Workers
+Received: from mail-yk0-f172.google.com (mail-yk0-f172.google.com
+ [209.85.160.172]) (Using TLS) by us-smtp-1.mimecast.com with ESMTP id
+ us-mta-21-fcdSoNVRQbW70hDza0F4xQ-1; Fri, 13 Nov 2015 06:04:26 -0500
+Received: by ykba77 with SMTP id a77so139718254ykb.2 for
+ <unicorn-public@bogomips.org>; Fri, 13 Nov 2015 03:04:25 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=zendesk.com;
+ s=zencorpemail;
+ h=mime-version:in-reply-to:references:date:message-id:subject:from:to
+ :cc:content-type; bh=i1xiS2ANhruLUytopEVAkwzzXkaRoJVcpCn5Euj19M0=;
+ b=fOv/+FiMBkqxzjDofX/+EHs2JBIL6/jYjtj2J0HsKJcb3WUFrqEqQCPLGoFPsG5R5A
+ IvB0Bi1RClT9vr+UkwfPNrbKQuG6xOjOdjVBB5X7oV7IUv/VwmrzuXL9ulaq8lwJXcyO
+ 7FBtMOfSWRcVMVvG4ehTQXchq3O1OBCl5BzQs=
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=1e100.net;
+ s=20130820; h=x-gm-message-state:mime-version:in-reply-to:references:date
+ :message-id:subject:from:to:cc:content-type;
+ bh=i1xiS2ANhruLUytopEVAkwzzXkaRoJVcpCn5Euj19M0=;
+ b=B/sgvyE7qX8LUT5LYkhvt7rWNV3wjPAF5sR4Z/Ty+Y7y75OLTWepiW2vZcxEJ0zqfK
+ jUSmUnUJE6c7KjsNNR7R7MQMzD3m+v1WofjxIrrrfMZ4qZiINSoyzaozmIRmGseiKHm1
+ oeEwDUZh5AWwBP4+wYZkhglfV8SQEQ7Ur/5QH54ibx3/D5l5ZmklBvbo6pYAXDQgZIJQ
+ k55SQBZOSMG6ySfE1MY8POVw+1Z8Alisu9wRc44xS07BKoT6CPF5UJswtKjbqg+rKeCK
+ /hWroL+nQGMbJSr5vkm1cXAC6ELXk3lnPDTuBIgAaE11S0kY17xkYzUU5z8L9SwNtp+4 TJZA==
+X-Gm-Message-State:
+ ALoCoQmgRj1rWP6GMlzOab249c2IGtYjgKpW6M6wPwvsvJ+SMU//07YEy03PGBYJPF96ywgsMcTyM8JFit0w/ePnT5oTZyETdXNS7vbKG6qeg3hhaW+3U73sM5nkPTgW8IjOD+kF+NOh7mGMQBf9+MjZYTxT59vwKWmaKWvnr/Kl1WnrRFFeyF4=
+X-Received: by 10.13.247.69 with SMTP id h66mr20426017ywf.168.1447412665819;
+ Fri, 13 Nov 2015 03:04:25 -0800 (PST)
+MIME-Version: 1.0
+X-Received: by 10.13.247.69 with SMTP id h66mr20425995ywf.168.1447412665615;
+ Fri, 13 Nov 2015 03:04:25 -0800 (PST)
+Received: by 10.13.246.130 with HTTP; Fri, 13 Nov 2015 03:04:25 -0800 (PST)
+In-Reply-To:
+ <CAOWFGYOLb7EmqSW8sp69igQVsw=jyb-vM2ozmV9ufkgStvK2ew@mail.gmail.com>
+References:
+ <CAOWFGYOLb7EmqSW8sp69igQVsw=jyb-vM2ozmV9ufkgStvK2ew@mail.gmail.com>
+Date: Fri, 13 Nov 2015 19:04:25 +0800
+Message-ID:
+ <CABHxtY7tCHqQzKDwJo5UStytoK_ZDZDT6_evfVCbHMp5OD+puA@mail.gmail.com>
+From: Michael Fischer <mfischer@zendesk.com>
+To: Jeff Utter <jeff.utter@firespring.com>
+Cc: unicorn-public <unicorn-public@bogomips.org>
+X-MC-Unique: fcdSoNVRQbW70hDza0F4xQ-1
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
+List-Id: <unicorn-public@bogomips.org>
+
+On Fri, Nov 13, 2015 at 8:51 AM, Jeff Utter <jeff.utter@firespring.com> wro=
+te:
+
+> I was wondering if anyone can offer any advice in handling stats
+> collections between worker processes in forking servers (like unicorn).
+> Specifically, I am attempting to work on a solution for the Prometheus ru=
+by
+> gem. Some details are in this issue here:
+> https://github.com/prometheus/client_ruby/issues/9
+
+We run a statsd server on our application servers, and our
+applications invoke statsd operations against various counters and
+gauges.  The statsd protocol is UDP based and very fast.  statsd
+itself keeps all data in memory and flushes it to its backend every
+few seconds.
+
+Multiple implementations of statsd exist.  We use Datadog's, but there
+are lots of implementations out there.
+
+Best regards,
+
+--Michael
+
