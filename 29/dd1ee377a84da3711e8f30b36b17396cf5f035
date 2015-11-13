@@ -1,0 +1,46 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-1.9 required=3.0 tests=ALL_TRUSTED,AWL,BAYES_00,
+ URIBL_BLOCKED shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 5C5821F45C; Fri, 13 Nov 2015 01:23:12 +0000 (UTC)
+Date: Fri, 13 Nov 2015 01:23:12 +0000
+From: Eric Wong <e@80x24.org>
+To: Jeff Utter <jeff.utter@firespring.com>
+Cc: unicorn-public@bogomips.org
+Subject: Re: Shared Metrics Between Workers
+Message-ID: <20151113012312.GA29929@dcvr.yhbt.net>
+References:
+ <CAOWFGYOLb7EmqSW8sp69igQVsw=jyb-vM2ozmV9ufkgStvK2ew@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To:
+ <CAOWFGYOLb7EmqSW8sp69igQVsw=jyb-vM2ozmV9ufkgStvK2ew@mail.gmail.com>
+List-Id: <unicorn-public@bogomips.org>
+
+Jeff Utter <jeff.utter@firespring.com> wrote:
+> The earliest, promising solution I considered was raindrops, but it looks
+> as though you need to know all of the possible metrics up front - which
+> won't necessarily work as prometheus could use metrics based on parameters
+> which could vary.
+
+You don't have to return all the data you'd aggregate with raindrops,
+though.  Just what was requested.
+
+GDBM (in the stdlib), SQLite, RRD, or any "on-filesystem"[1] data store
+should work, even.  If you do have a lot of stats; batch the updates
+locally (per-worker) and write them to a shared area periodically.
+
+I'd even batch incrementing the shared counters with raindrops if
+you have too many stats.  Atomic increments (implemented with
+GCC intrinsics) may get expensive (as they require SMP memory
+barriers).
+
+[1] Definitely put any on-disk stats files on tmpfs (/dev/shm on most
+GNU/Linux setups) to avoid wearing out hard drives or SSDs.  Otherwise
+disable fsync in GDBM (off by default, I think...) or SQLite (set the
+synchronous pragma to "off").
