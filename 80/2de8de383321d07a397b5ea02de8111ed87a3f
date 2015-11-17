@@ -1,0 +1,85 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-2.9 required=3.0 tests=ALL_TRUSTED,BAYES_00,
+ URIBL_BLOCKED shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id C3C9F203E6; Tue, 17 Nov 2015 21:45:23 +0000 (UTC)
+From: Eric Wong <e@80x24.org>
+To: unicorn-public@bogomips.org
+Cc: Eric Wong <e@80x24.org>
+Subject: [PATCH] examples: add systemd socket and service files
+Date: Tue, 17 Nov 2015 21:45:22 +0000
+Message-Id: <20151117214522.12986-1-e@80x24.org>
+List-Id: <unicorn-public@bogomips.org>
+
+Since we have init scripts, we ought to have the equivalent for
+systemd users who cannot upgrade via the normal SIGUSR2 mechanism;
+but can use multiple services: "unicorn@1" + h"unicorn@2" to
+accomplish the same thing.
+
+Based on examples by Christos Trochalakis <yatiohi@ideopolis.gr>
+
+ref:
+http://bogomips.org/unicorn-public/20150708130821.GA1361@luke.ws.skroutz.gr/
+---
+ examples/unicorn.socket   | 11 +++++++++++
+ examples/unicorn@.service | 26 ++++++++++++++++++++++++++
+ 2 files changed, 37 insertions(+)
+ create mode 100644 examples/unicorn.socket
+ create mode 100644 examples/unicorn@.service
+
+diff --git a/examples/unicorn.socket b/examples/unicorn.socket
+new file mode 100644
+index 0000000..7d5f773
+--- /dev/null
++++ b/examples/unicorn.socket
+@@ -0,0 +1,11 @@
++# ==> /etc/systemd/system/unicorn.socket <==
++[Unit]
++Description = unicorn sockets
++
++[Socket]
++ListenStream = 127.0.0.1:8080
++ListenStream = /tmp/path/to/.unicorn.sock
++Service = unicorn@1.service
++
++[Install]
++WantedBy = sockets.target
+diff --git a/examples/unicorn@.service b/examples/unicorn@.service
+new file mode 100644
+index 0000000..b058da5
+--- /dev/null
++++ b/examples/unicorn@.service
+@@ -0,0 +1,26 @@
++# ==> /etc/systemd/system/unicorn@.service <==
++# Since SIGUSR2 upgrades do not work under systemd, this service file
++# allows starting two simultaneous services during upgrade time
++# (e.g. unicorn@1 unicorn@2) with the intention that they take
++# turns running in-between upgrades.  This should allow upgrading
++# without downtime.
++
++[Unit]
++Description = unicorn Rack application server %i
++Wants = unicorn.socket
++After = unicorn.socket
++
++[Service]
++ExecStart = /usr/bin/unicorn -c /path/to/unicorn.conf.rb /path/to/config.ru
++Sockets = unicorn.socket
++KillSignal = SIGQUIT
++User = nobody
++Group = nogroup
++ExecReload = /bin/kill -HUP $MAINPID
++
++# This is based on the Unicorn::Configurator#timeout directive,
++# adding a few seconds for scheduling differences:
++TimeoutStopSec = 62
++
++[Install]
++WantedBy = multi-user.target
+-- 
+EW
+
