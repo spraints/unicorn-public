@@ -1,0 +1,108 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-2.9 required=3.0 tests=ALL_TRUSTED,BAYES_00,
+ URIBL_BLOCKED shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 6C1FE203B3; Tue, 17 Nov 2015 00:27:43 +0000 (UTC)
+Date: Tue, 17 Nov 2015 00:27:43 +0000
+From: Eric Wong <e@80x24.org>
+To: Owen Ou <o@heroku.com>
+Cc: unicorn-public@bogomips.org, api-team <api-team@heroku.com>
+Subject: Re: undefined method `include?' for nil:NilClass (NoMethodError)
+Message-ID: <20151117002743.GA22072@dcvr.yhbt.net>
+References:
+ <CAO47=rJa=zRcLn_Xm4v2cHPr6c0UswaFC_omYFEH+baSxHOWKQ@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To:
+ <CAO47=rJa=zRcLn_Xm4v2cHPr6c0UswaFC_omYFEH+baSxHOWKQ@mail.gmail.com>
+List-Id: <unicorn-public@bogomips.org>
+
+Owen Ou <o@heroku.com> wrote:
+> We recently upgraded to Unicorn 5.0 but getting the following error:
+> 
+> [2015-11-16T14:54:16.943652 #19838] ERROR -- : app error: undefined
+> method `include?' for nil:NilClass (NoMethodError)
+> 
+> E, [2015-11-16T14:54:16.943712 #19838] ERROR -- :
+> /home/api/vendor/bundle/ruby/2.2.0/gems/unicorn-5.0.0/lib/unicorn/http_response.rb:40:in
+> `block in http_response_write'
+
+<snip>
+
+> The error came from this commit:
+> https://github.com/defunkt/unicorn/commit/fb2f10e1d7a72e6787720003342a21f11b879614.
+> And specifically the line of `if value =~ /\n/` is changed to `if
+> value.include?("\n".freeze)`. Apparently `value` can be nil which
+> caused our issue. It should be an easy fix.
+
+Yes, easy, I reverted that hunk in the original change since it's
+the easiest to verify as correct.  It's unfortunate, change to have
+to make, though.
+
+Thanks, will release 5.0.1 in less than a day...
+
+---------------------8<-----------------------
+Subject: [PATCH] http_response: allow nil values in response headers
+
+This blatantly violates Rack SPEC, but we've had this bug since
+March 2009[1].  Thus, we cannot expect all existing applications
+and middlewares to fix this bug and will probably have to
+support it forever.
+
+Unfortunately, supporting this bug contributes to application
+server lock-in, but at least we'll document it as such.
+
+[1] commit 1835c9e2e12e6674b52dd80e4598cad9c4ea1e84
+    ("HttpResponse: speed up non-multivalue headers")
+
+Reported-by: Owen Ou <o@heroku.com>
+Ref: <CAO47=rJa=zRcLn_Xm4v2cHPr6c0UswaFC_omYFEH+baSxHOWKQ@mail.gmail.com>
+---
+  Side note: I don't intend to port this change to less-popular servers
+  I maintain.  This bug is yet another example of why monoculture or
+  even any sort of majority adoption hurts an ecosystem.
+
+ lib/unicorn/http_response.rb | 2 +-
+ test/unit/test_response.rb   | 9 +++++++++
+ 2 files changed, 10 insertions(+), 1 deletion(-)
+
+diff --git a/lib/unicorn/http_response.rb b/lib/unicorn/http_response.rb
+index c1aa738..7b446c2 100644
+--- a/lib/unicorn/http_response.rb
++++ b/lib/unicorn/http_response.rb
+@@ -37,7 +37,7 @@ def http_response_write(socket, status, headers, body,
+           # key in Rack < 1.5
+           hijack = value
+         else
+-          if value.include?("\n".freeze)
++          if value =~ /\n/
+             # avoiding blank, key-only cookies with /\n+/
+             value.split(/\n+/).each { |v| buf << "#{key}: #{v}\r\n" }
+           else
+diff --git a/test/unit/test_response.rb b/test/unit/test_response.rb
+index 0b14d59..fbe433f 100644
+--- a/test/unit/test_response.rb
++++ b/test/unit/test_response.rb
+@@ -33,6 +33,15 @@ def test_response_headers
+     assert out.length > 0, "output didn't have data"
+   end
+ 
++  # ref: <CAO47=rJa=zRcLn_Xm4v2cHPr6c0UswaFC_omYFEH+baSxHOWKQ@mail.gmail.com>
++  def test_response_header_broken_nil
++    out = StringIO.new
++    http_response_write(out, 200, {"Nil" => nil}, %w(hysterical raisin))
++    assert ! out.closed?
++
++    assert_match %r{^Nil: \r\n}sm, out.string, 'nil accepted'
++  end
++
+   def test_response_string_status
+     out = StringIO.new
+     http_response_write(out,'200', {}, [])
+-- 
+EW
