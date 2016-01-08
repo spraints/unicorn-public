@@ -1,0 +1,77 @@
+Return-Path: <adamduke@twitter.com>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS15169 209.85.128.0/17
+X-Spam-Status: No, score=-1.2 required=3.0 tests=AWL,BAYES_00,
+ RCVD_IN_DNSWL_LOW,URIBL_BLOCKED shortcircuit=no autolearn=unavailable
+ version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from mail-yk0-f181.google.com (mail-yk0-f181.google.com
+ [209.85.160.181]) (using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256
+ (128/128 bits)) (No client certificate requested) by dcvr.yhbt.net (Postfix)
+ with ESMTPS id 2C7942021D for <unicorn-public@bogomips.org>; Fri,  8 Jan 2016
+ 18:34:58 +0000 (UTC)
+Received: by mail-yk0-f181.google.com with SMTP id x67so371918053ykd.2 for
+ <unicorn-public@bogomips.org>; Fri, 08 Jan 2016 10:34:58 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=twitter.com;
+ s=google; h=mime-version:date:message-id:subject:from:to:content-type;
+ bh=v9sO0t+HLuGe6S9xQTR2aLYvmG1tiQDbkSWUWi4C40s=;
+ b=nBVXUD1453r035WMiGLKFzJY1puYQ4R13UR832J7jZJ8QtrmZgk5iM9cV7huitDHvI
+ l1YimVIWpqPPRo/P2XuuRZOoESYjKyY9zTAhqTJ5xyWc3QahjdMzQq1pdGC+LdL694vO
+ 5TN/epFAb4jT6NLzWg7jNgiJRAcucihhX2NBg=
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=1e100.net;
+ s=20130820; h=x-gm-message-state:mime-version:date:message-id:subject:from:to
+ :content-type; bh=v9sO0t+HLuGe6S9xQTR2aLYvmG1tiQDbkSWUWi4C40s=;
+ b=WbPqm/9IHqTljF+T5d4f9QHrENlPyQPl5fC1k4HzfUws5NlP0pDpJLcKDw4dpcSlWu
+ hJO7l+fttnqoL4CzmEI7AFZutwtid3X2T3f0ZypqGY3QxDgsvg7G0ZamQ/8OyA+SMX/O
+ VvO4QZKiSyJB+RU4P/DbxAAeP6zRtpbD4hrQwv3Ecrd9mY7ueMftjSg+ZJWSnF/cK1cY
+ 3m5cYCVjLv/nVengEmCjz2hzmj5jBodaHtGhPAKRt5Dq9IyBgEiqyTMK9VaYkHy1hEHR
+ A+sz7mBaZ73zleeqwEiyOD0xNz4jsNiv/LYAS5/b2U3gPr4XAsokSADd176/3a6tXmxc JZvA==
+X-Gm-Message-State:
+ ALoCoQkPW5YeLnJeXq07UPWEPsCLFqj6Og5Ep34FPao+YTxE+sEAazkgcuXgjXOovIdWwR8WD6mquXqxtRckih/0qxFygmgT8/IOFHHTMnKAqopdc3hJPmo=
+MIME-Version: 1.0
+X-Received: by 10.13.203.71 with SMTP id n68mr81501348ywd.240.1452278097431;
+ Fri, 08 Jan 2016 10:34:57 -0800 (PST)
+Received: by 10.13.223.214 with HTTP; Fri, 8 Jan 2016 10:34:57 -0800 (PST)
+Date: Fri, 8 Jan 2016 13:34:57 -0500
+Message-ID:
+ <CACj6Wog0=R6Wsh1U5SFE6r1BdWBr4Loe+GM6UKdObSALwAj9JQ@mail.gmail.com>
+Subject: [PATCH] limit rack version for ruby compatibility
+From: Adam Duke <adamduke@twitter.com>
+To: unicorn-public@bogomips.org
+Content-Type: text/plain; charset=UTF-8
+List-Id: <unicorn-public@bogomips.org>
+
+From 6f1cb0ae4b63bd1906fd83d154dae1d1f2b35407 Mon Sep 17 00:00:00 2001
+From: Adam Duke <adam.v.duke@gmail.com>
+Date: Fri, 8 Jan 2016 13:06:31 -0500
+Subject: [PATCH] limit rack version for ruby compatibility
+
+rack introduced a dependency on ruby 2.2.2 or greater in
+https://github.com/rack/rack/commit/771d94e5dbe53058160a1f8a4cc56384c1d2a048
+
+In order to maintain support for ruby versions less than 2.2.2, limit
+the rack dependency to supported versions for the current ruby.
+---
+ unicorn.gemspec | 6 +++++-
+ 1 file changed, 5 insertions(+), 1 deletion(-)
+
+diff --git a/unicorn.gemspec b/unicorn.gemspec
+index 1099361..ce7080a 100644
+--- a/unicorn.gemspec
++++ b/unicorn.gemspec
+@@ -35,7 +35,11 @@
+   # up/downgrade to any other version, the Rack dependency may be
+   # commented out.  Nevertheless, upgrading to Rails 2.3.4 or later is
+   # *strongly* recommended for security reasons.
+-  s.add_dependency(%q<rack>)
++  if RUBY_VERSION < '2.2.2'
++    s.add_dependency(%q<rack>, '~> 1.6.4')
++  else
++    s.add_dependency(%q<rack>)
++  end
+   s.add_dependency(%q<kgio>, '~> 2.6')
+   s.add_dependency(%q<raindrops>, '~> 0.7')
+
+-- 
+2.6.4
