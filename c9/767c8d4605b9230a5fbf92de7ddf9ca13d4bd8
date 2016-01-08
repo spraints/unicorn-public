@@ -1,0 +1,102 @@
+Return-Path: <adamduke@twitter.com>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS15169 209.85.128.0/17
+X-Spam-Status: No, score=-2.1 required=3.0 tests=AWL,BAYES_00,
+ RCVD_IN_DNSWL_LOW,URIBL_BLOCKED shortcircuit=no autolearn=unavailable
+ version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from mail-yk0-f174.google.com (mail-yk0-f174.google.com
+ [209.85.160.174]) (using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256
+ (128/128 bits)) (No client certificate requested) by dcvr.yhbt.net (Postfix)
+ with ESMTPS id 7D5932021D for <unicorn-public@bogomips.org>; Fri,  8 Jan 2016
+ 22:13:20 +0000 (UTC)
+Received: by mail-yk0-f174.google.com with SMTP id x67so378079836ykd.2 for
+ <unicorn-public@bogomips.org>; Fri, 08 Jan 2016 14:13:20 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=twitter.com;
+ s=google;
+ h=mime-version:in-reply-to:references:date:message-id:subject:from:to
+ :cc:content-type; bh=I8svqgUiHKu0pK+qTOTiXXqETy9YPhzENTeV1E+ExkA=;
+ b=K4yJY84YRcuQCOQQOjtda5T99K9hVhYF8vn0Bjagd3kemSyEO1I/r2+3cvPj+Mtt5s
+ tufyh4b9Njx94Drp2isNoe/6v/ao32FvXbD6WD2lZc3OvWmBprwbHlRCsQ9QnibWDbOe
+ NwpJ5AjWjTKKDnUSsOqQKlZzURP7gH+m8Qgnc=
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=1e100.net;
+ s=20130820; h=x-gm-message-state:mime-version:in-reply-to:references:date
+ :message-id:subject:from:to:cc:content-type;
+ bh=I8svqgUiHKu0pK+qTOTiXXqETy9YPhzENTeV1E+ExkA=;
+ b=cWf8oDAAQOAPygukISPaNI1ov0Kq5JB/CmpBvF/06hBho9I3vvj3wYUDqELhZEsS5T
+ aJNUJyJxmIKAezqcKNv0PBcFIeVYCyY7jiRJ+FcMjgbCZyYXuzdv1FjnBVopPwefOZPB
+ wd0SR+6DOVQjjylc0ICbrEP/blo6B+/EBwtEdreYfll7poyGjC6Zo08Y+8jJzHbzkd3B
+ 7hjubVeORDFWYOGP5qcTqj0SoNJzl8OaiW3/QJIv+OfoH0jc/0JKIvwc/Ca6RAbCW51w
+ GoZrcmG2nfsIMaFQHAfpBQrBs+OryLxx7lebTYVUn0EP/JdwenxToStlI9RkifvJZKRX 9JdA==
+X-Gm-Message-State:
+ ALoCoQlziMlYNhFptVi50rswQCLUfFXsHvTnTEO+S1q8Ajtxq+Xwbv2V14jYwipv2qqvKq1RL06FP5qR/NhhNfM60s4+4eUf6QYgdi/YO1kPex3Q4JJTj9c=
+MIME-Version: 1.0
+X-Received: by 10.13.242.1 with SMTP id b1mr98134048ywf.137.1452291199434;
+ Fri, 08 Jan 2016 14:13:19 -0800 (PST)
+Received: by 10.13.223.214 with HTTP; Fri, 8 Jan 2016 14:13:19 -0800 (PST)
+In-Reply-To: <20160108215659.GA36442@TC.local>
+References:
+ <CACj6Wog0=R6Wsh1U5SFE6r1BdWBr4Loe+GM6UKdObSALwAj9JQ@mail.gmail.com>
+ <20160108191807.GA30703@dcvr.yhbt.net> <20160108215046.GA36373@TC.local>
+ <20160108215659.GA36442@TC.local>
+Date: Fri, 8 Jan 2016 17:13:19 -0500
+Message-ID:
+ <CACj6WohuY65xCNVRwrA4ODrj1NcsMNaDBw8ykxJ6YBAhZ4ZU4Q@mail.gmail.com>
+Subject: Re: [PATCH] limit rack version for ruby compatibility
+From: Adam Duke <adamduke@twitter.com>
+To: Aaron Patterson <tenderlove@ruby-lang.org>
+Cc: rack-devel@googlegroups.com, unicorn-public@bogomips.org
+Content-Type: text/plain; charset=UTF-8
+List-Id: <unicorn-public@bogomips.org>
+
+Is it reasonable to assume that any rack release that includes bumping
+the ruby requirement to 2.2.2 would require a major version bump of
+rack?
+
+The dependency in the unicorn gemspec could be as simple as '< 2' if
+that is the case.
+
+On Fri, Jan 8, 2016 at 4:56 PM, Aaron Patterson
+<tenderlove@ruby-lang.org> wrote:
+> On Fri, Jan 08, 2016 at 01:50:46PM -0800, Aaron Patterson wrote:
+>> On Fri, Jan 08, 2016 at 07:18:07PM +0000, Eric Wong wrote:
+>> > Adam Duke <adamduke@twitter.com> wrote:
+>> > > From: Adam Duke <adam.v.duke@gmail.com>
+>> > > Date: Fri, 8 Jan 2016 13:06:31 -0500
+>> > > Subject: [PATCH] limit rack version for ruby compatibility
+>> > >
+>> > > rack introduced a dependency on ruby 2.2.2 or greater in
+>> > > https://github.com/rack/rack/commit/771d94e5dbe53058160a1f8a4cc56384c1d2a048
+>> >
+>> > Cc-ing rack-devel + Aaron
+>> >
+>> > Yikes!  ruby-core still supports Ruby 2.1 and possibly even 2.0.0
+>> >
+>> > And there doesn't seem to be any documentation on why Ruby 2.2.x
+>> > is needed in the first place for rack.git
+>> > commit a2fe30a5e70371c89c1b29fdc2dc5f8027bc5fe6
+>> >
+>> >     http://bogomips.org/mirrors/rack.git/patch?id=a2fe30a5e70371c8
+>> >
+>> > Aaron?
+>>
+>> The main reason I bumped it up to Ruby 2.2.x is because that will be the
+>> minimum version of Ruby I'll be stuck with throughout Rack 2.x's
+>> lifetime.  IOW, I can't drop Ruby versions in anything but a major
+>> release so I'm being conservative and only going with the latest (at the
+>> time that was 2.2).
+>>
+>> I could be convinced to bring down the version number, but I'd like to
+>> know why first. :)
+>
+> Oh, I forgot to mention that I don't mind eliminating the Ruby version
+> requirement as long as we put something in the README that says we only
+> guarantee it works on 2.2.x and up.  Older versions could be "best
+> effort".  I'm just afraid to do something like that because I really
+> don't want to maintain 1.8 and 1.9 baggage (for example).  I used the
+> gemspec to clearly announce the Ruby versions I actually test with.
+>
+> --
+> Aaron Patterson
+> http://tenderlovemaking.com/
