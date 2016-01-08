@@ -1,0 +1,77 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-2.7 required=3.0 tests=ALL_TRUSTED,AWL,BAYES_00,
+ URIBL_BLOCKED shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 8E47A2021D; Fri,  8 Jan 2016 19:18:07 +0000 (UTC)
+Date: Fri, 8 Jan 2016 19:18:07 +0000
+From: Eric Wong <e@80x24.org>
+To: Adam Duke <adamduke@twitter.com>
+Cc: unicorn-public@bogomips.org, Aaron Patterson <aaron.patterson@gmail.com>,
+ rack-devel@googlegroups.com
+Subject: Re: [PATCH] limit rack version for ruby compatibility
+Message-ID: <20160108191807.GA30703@dcvr.yhbt.net>
+References:
+ <CACj6Wog0=R6Wsh1U5SFE6r1BdWBr4Loe+GM6UKdObSALwAj9JQ@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To:
+ <CACj6Wog0=R6Wsh1U5SFE6r1BdWBr4Loe+GM6UKdObSALwAj9JQ@mail.gmail.com>
+List-Id: <unicorn-public@bogomips.org>
+
+Adam Duke <adamduke@twitter.com> wrote:
+> From: Adam Duke <adam.v.duke@gmail.com>
+> Date: Fri, 8 Jan 2016 13:06:31 -0500
+> Subject: [PATCH] limit rack version for ruby compatibility
+> 
+> rack introduced a dependency on ruby 2.2.2 or greater in
+> https://github.com/rack/rack/commit/771d94e5dbe53058160a1f8a4cc56384c1d2a048
+
+Cc-ing rack-devel + Aaron
+
+Yikes!  ruby-core still supports Ruby 2.1 and possibly even 2.0.0
+
+And there doesn't seem to be any documentation on why Ruby 2.2.x
+is needed in the first place for rack.git
+commit a2fe30a5e70371c89c1b29fdc2dc5f8027bc5fe6
+
+	http://bogomips.org/mirrors/rack.git/patch?id=a2fe30a5e70371c8
+
+Aaron?
+
+> In order to maintain support for ruby versions less than 2.2.2, limit
+> the rack dependency to supported versions for the current ruby.
+> ---
+>  unicorn.gemspec | 6 +++++-
+>  1 file changed, 5 insertions(+), 1 deletion(-)
+> 
+> diff --git a/unicorn.gemspec b/unicorn.gemspec
+> index 1099361..ce7080a 100644
+> --- a/unicorn.gemspec
+> +++ b/unicorn.gemspec
+> @@ -35,7 +35,11 @@
+>    # up/downgrade to any other version, the Rack dependency may be
+>    # commented out.  Nevertheless, upgrading to Rails 2.3.4 or later is
+>    # *strongly* recommended for security reasons.
+> -  s.add_dependency(%q<rack>)
+> +  if RUBY_VERSION < '2.2.2'
+> +    s.add_dependency(%q<rack>, '~> 1.6.4')
+> +  else
+> +    s.add_dependency(%q<rack>)
+> +  end
+
+Interesting, I built a gem with RubyGems 2.5.1 and this conditional
+was preserved in the gemspec.  I tried this in the past (2009/2010?)
+and any conditionals written like this got clobbered in the final
+gemspec.
+
+In other words, conditionals used to be evaluated at "gem build" time,
+not "gem install" time.  We should check when this improvement was
+introduced into RubyGems should we go this route.
+
+Also, maybe '~> 1.6.4' is too strict, '~> 1.6' could be better in case
+a rack 1.7 comes out in parallel to rack 2.0
