@@ -1,0 +1,83 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-2.7 required=3.0 tests=ALL_TRUSTED,AWL,BAYES_00,
+ URIBL_BLOCKED shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 2EEE72021D; Fri,  8 Jan 2016 22:37:32 +0000 (UTC)
+Date: Fri, 8 Jan 2016 22:37:32 +0000
+From: Eric Wong <e@80x24.org>
+To: Aaron Patterson <tenderlove@ruby-lang.org>
+Cc: rack-devel@googlegroups.com, Adam Duke <adamduke@twitter.com>,
+ unicorn-public@bogomips.org
+Subject: Re: [PATCH] limit rack version for ruby compatibility
+Message-ID: <20160108223732.GA28771@dcvr.yhbt.net>
+References:
+ <CACj6Wog0=R6Wsh1U5SFE6r1BdWBr4Loe+GM6UKdObSALwAj9JQ@mail.gmail.com>
+ <20160108191807.GA30703@dcvr.yhbt.net> <20160108215046.GA36373@TC.local>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20160108215046.GA36373@TC.local>
+List-Id: <unicorn-public@bogomips.org>
+
+Aaron Patterson <tenderlove@ruby-lang.org> wrote:
+> The main reason I bumped it up to Ruby 2.2.x is because that will be the
+> minimum version of Ruby I'll be stuck with throughout Rack 2.x's
+> lifetime.  IOW, I can't drop Ruby versions in anything but a major
+> release so I'm being conservative and only going with the latest (at the
+> time that was 2.2).
+> 
+> I could be convinced to bring down the version number, but I'd like to
+> know why first. :)
+
+Because other people are _always_ slow to upgrade :)
+
+However, I suppose it's fine to bring the requirement up with a
+major version bump of Rack.  I don't want to burden you with
+old cruft, either.
+
+unicorn may also be able to drop the dependency on rack by
+lazy loading:
+
+* Rack::Utils::HTTP_STATUS_CODES is the main thing we use from
+  Rack at runtime; and unicorn would actually function fine if
+  the hash were empty; HTTP status lines would just be short
+  and non-descriptive.
+
+* The Rack::Builder dependency can be optional, even.
+
+Fwiw, I plan to support Rack 1.x and Ruby 1.9.3 under unicorn for a few
+more years because of LTS distros.  New versions take priority, of
+course.
+
+> On Fri, Jan 08, 2016 at 07:18:07PM +0000, Eric Wong wrote:
+> > Adam Duke <adamduke@twitter.com> wrote:
+> > > +++ b/unicorn.gemspec
+> > > @@ -35,7 +35,11 @@
+> > >    # up/downgrade to any other version, the Rack dependency may be
+> > >    # commented out.  Nevertheless, upgrading to Rails 2.3.4 or later is
+> > >    # *strongly* recommended for security reasons.
+> > > -  s.add_dependency(%q<rack>)
+> > > +  if RUBY_VERSION < '2.2.2'
+> > > +    s.add_dependency(%q<rack>, '~> 1.6.4')
+> > > +  else
+> > > +    s.add_dependency(%q<rack>)
+> > > +  end
+> > 
+> > Interesting, I built a gem with RubyGems 2.5.1 and this conditional
+> > was preserved in the gemspec.  I tried this in the past (2009/2010?)
+> > and any conditionals written like this got clobbered in the final
+> > gemspec.
+> 
+> I wonder if that's true even after you upload to rubygems.org.  I'd
+> guess it's not true as they don't want to support arbitrary ruby code
+> for specs.
+
+Ah, you're right.  I was looking at the gemspec which is distributed
+with the gem source and not the regenerated gemspec which RubyGems
+actually uses.
+
+So yeah, it looks like Adam's patch only affects the gem build process.
