@@ -1,0 +1,44 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-2.9 required=3.0 tests=ALL_TRUSTED,BAYES_00,
+ URIBL_BLOCKED shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id BEC201FD21; Wed, 13 Jan 2016 09:21:21 +0000 (UTC)
+Date: Wed, 13 Jan 2016 09:21:21 +0000
+From: Eric Wong <e@80x24.org>
+To: Francesco Savignago <francesco.savignago@develon.com>
+Cc: unicorn-public@bogomips.org
+Subject: Re: behaviour with signal HUP
+Message-ID: <20160113092121.GA25450@dcvr.yhbt.net>
+References: <85B1295D-D7D9-4E6A-A5D4-BA3A36D82E92@develon.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <85B1295D-D7D9-4E6A-A5D4-BA3A36D82E92@develon.com>
+List-Id: <unicorn-public@bogomips.org>
+
+Francesco Savignago <francesco.savignago@develon.com> wrote:
+> Hi unicorn.
+> Asking a question about a thing that I am not able to test: does
+> sending a HUP signal to unicorn results in connections being dropped
+> or kept?
+
+The connection is kept during any socket I/O and application processing.
+
+unicorn doesn't handle persistent connections, though, so it'll always
+drop the connection when its done writing the response.
+
+You should be able to test and verify yourself by:
+
+1) writing an intentionally slow endpoint in your app
+2) starting a request to that slow endpoint
+3) sending SIGHUP
+4) the slow endpoint should finish
+5) the workers will gracefully exit and restart
+
+> TIA for support
+
+No problem :>
