@@ -1,0 +1,135 @@
+Return-Path: <adamduke@twitter.com>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS15169 209.85.128.0/17
+X-Spam-Status: No, score=-1.7 required=3.0 tests=AWL,BAYES_00,URIBL_BLOCKED
+ shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from mail-yk0-f172.google.com (mail-yk0-f172.google.com
+ [209.85.160.172]) (using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256
+ (128/128 bits)) (No client certificate requested) by dcvr.yhbt.net (Postfix)
+ with ESMTPS id D0BD91F406 for <unicorn-public@bogomips.org>; Thu, 21 Jan 2016
+ 17:12:38 +0000 (UTC)
+Received: by mail-yk0-f172.google.com with SMTP id k129so56214129yke.0 for
+ <unicorn-public@bogomips.org>; Thu, 21 Jan 2016 09:12:38 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=twitter.com;
+ s=google;
+ h=mime-version:in-reply-to:references:date:message-id:subject:from:to
+ :cc:content-type; bh=LThr9z/APwcMuBHomI8SnzamH9gyZFAfRTrzHOmV5iU=;
+ b=ogwnmAlWke0OqYP5pBKTauced7zmJFx0EP39JuDE6jaECUjbRjlk6XMeSdl+DpLK7l
+ j4lUDA+qqWyXg4MXyRYRyOP96SRvucJ+yPmHPPkSwpaQ0ndBvB/yiL4lJsQYLRO5Zag/
+ axO7/MQINIpinpzKrtUoGCGV6HqoL7YrrpWWs=
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=1e100.net;
+ s=20130820; h=x-gm-message-state:mime-version:in-reply-to:references:date
+ :message-id:subject:from:to:cc:content-type;
+ bh=LThr9z/APwcMuBHomI8SnzamH9gyZFAfRTrzHOmV5iU=;
+ b=ilSzcwr35ajgQ3ApodBXo6Pp2U+lP7KdclIk+lF7lmIUdN+kizXz74m2wGDQpxgMUI
+ LrYzOqY61Qv4Y5Tf8jIb/El6Vox37buK8JuCekWk7sDvemAWVXuD5rmIkF4/1rovDL0l
+ cV0GDYhxwK//8yGiK5EkYDAHQUfph3S13xJy2F94jfhe16u/YWBMBMhkrTpGoFRLEksZ
+ yoFJJapAto3ywABhn/4wpka8VUJ2X3SPniDk3g6Wuv5X/QKVMOAHcpgMJly83+nmzHW2
+ 8y8v+a2dA56edJU9Va5O6nZGNDDCAo+mO2bkPPliDzgkrWxVqTP7MNSFnfdpIitXoJxS xKLg==
+X-Gm-Message-State:
+ ALoCoQlmi6GKDeM4A7jqjhA2V+1aLgCrE9SH44a9k2QxNvP97qfXlMelQ0jKUAyYSdDTRBM6QkBT1g5TUufeaHpxl/qQbGd74zC7L3scFPz6wMLQFTNR+Ek=
+MIME-Version: 1.0
+X-Received: by 10.37.230.65 with SMTP id d62mr14904850ybh.52.1453396358066;
+ Thu, 21 Jan 2016 09:12:38 -0800 (PST)
+Received: by 10.13.223.214 with HTTP; Thu, 21 Jan 2016 09:12:38 -0800 (PST)
+In-Reply-To: <20160108231910.GA42107@TC.local>
+References:
+ <CACj6Wog0=R6Wsh1U5SFE6r1BdWBr4Loe+GM6UKdObSALwAj9JQ@mail.gmail.com>
+ <20160108191807.GA30703@dcvr.yhbt.net> <20160108215046.GA36373@TC.local>
+ <20160108223732.GA28771@dcvr.yhbt.net> <20160108231910.GA42107@TC.local>
+Date: Thu, 21 Jan 2016 12:12:38 -0500
+Message-ID:
+ <CACj6Wog+1rqEaW1R1G0eKEZuz7vNVUC51Qh7q7Z1tKpzRrybKw@mail.gmail.com>
+Subject: Re: [PATCH] limit rack version for ruby compatibility
+From: Adam Duke <adamduke@twitter.com>
+To: Aaron Patterson <tenderlove@ruby-lang.org>
+Cc: rack-devel@googlegroups.com, unicorn-public@bogomips.org
+Content-Type: text/plain; charset=UTF-8
+List-Id: <unicorn-public@bogomips.org>
+
+Following up on this, it seems to me like keeping the Ruby 2.2.2
+requirement is the right way to go for rack. If the unicorn project
+wants to continue support for older rubies, the unicorn gemspec should
+be changed to limit the rack dependency to '< 2'. If rack 2.0.0 is
+released and there is no limit on the dependency in unicorn's gemspec,
+it seems to me like any deployments that are not running Ruby 2.2.2
+will fail.
+
+From 2f3b39edb5d477e0efcbe5ce55af37ddea289e9e Mon Sep 17 00:00:00 2001
+From: Adam Duke <adam.v.duke@gmail.com>
+Date: Fri, 8 Jan 2016 13:06:31 -0500
+Subject: [PATCH] limit rack version for ruby compatibility
+
+rack introduced a dependency on ruby 2.2.2 or greater in
+https://github.com/rack/rack/commit/771d94e5dbe53058160a1f8a4cc56384c1d2a048
+
+In order to maintain support for ruby versions less than 2.2.2, limit
+the rack dependency to supported versions for the current ruby.
+---
+ unicorn.gemspec | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/unicorn.gemspec b/unicorn.gemspec
+index 1099361..16607ac 100644
+--- a/unicorn.gemspec
++++ b/unicorn.gemspec
+@@ -35,7 +35,7 @@
+   # up/downgrade to any other version, the Rack dependency may be
+   # commented out.  Nevertheless, upgrading to Rails 2.3.4 or later is
+   # *strongly* recommended for security reasons.
+-  s.add_dependency(%q<rack>)
++  s.add_dependency(%q<rack>, '< 2')
+   s.add_dependency(%q<kgio>, '~> 2.6')
+   s.add_dependency(%q<raindrops>, '~> 0.7')
+
+-- 
+2.6.4
+
+On Fri, Jan 8, 2016 at 6:19 PM, Aaron Patterson
+<tenderlove@ruby-lang.org> wrote:
+> On Fri, Jan 08, 2016 at 10:37:32PM +0000, Eric Wong wrote:
+>> Aaron Patterson <tenderlove@ruby-lang.org> wrote:
+>> > The main reason I bumped it up to Ruby 2.2.x is because that will be the
+>> > minimum version of Ruby I'll be stuck with throughout Rack 2.x's
+>> > lifetime.  IOW, I can't drop Ruby versions in anything but a major
+>> > release so I'm being conservative and only going with the latest (at the
+>> > time that was 2.2).
+>> >
+>> > I could be convinced to bring down the version number, but I'd like to
+>> > know why first. :)
+>>
+>> Because other people are _always_ slow to upgrade :)
+>
+> Yes, exactly. I am betting that by the time people upgrade to Rack 2.0,
+> Ruby 2.2.2 will be old hat (Ruby 2.3 has been released already!)  ;)
+>
+>> However, I suppose it's fine to bring the requirement up with a
+>> major version bump of Rack.  I don't want to burden you with
+>> old cruft, either.
+>>
+>> unicorn may also be able to drop the dependency on rack by
+>> lazy loading:
+>>
+>> * Rack::Utils::HTTP_STATUS_CODES is the main thing we use from
+>>   Rack at runtime; and unicorn would actually function fine if
+>>   the hash were empty; HTTP status lines would just be short
+>>   and non-descriptive.
+>>
+>> * The Rack::Builder dependency can be optional, even.
+>>
+>> Fwiw, I plan to support Rack 1.x and Ruby 1.9.3 under unicorn for a few
+>> more years because of LTS distros.  New versions take priority, of
+>> course.
+>
+> Ok.  Let me know if there's anything I can do to help.  Removing the
+> strict requirement from the gemspec *is* on the table, as long as we
+> document the supported versions in the README.  I don't plan on using
+> anything that would be specific to Ruby 2.2.2 and up, but I don't want
+> to be burdened by older ones either.  A simple comment in the README
+> would suffice.
+>
+> --
+> Aaron Patterson
+> http://tenderlovemaking.com/
