@@ -1,0 +1,171 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-2.7 required=3.0 tests=ALL_TRUSTED,AWL,BAYES_00
+ shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 780921F406; Thu, 21 Jan 2016 20:12:55 +0000 (UTC)
+Date: Thu, 21 Jan 2016 20:12:55 +0000
+From: Eric Wong <e@80x24.org>
+To: Adam Duke <adamduke@twitter.com>
+Cc: Aaron Patterson <tenderlove@ruby-lang.org>, rack-devel@googlegroups.com,
+ unicorn-public@bogomips.org
+Subject: Re: [PATCH] limit rack version for ruby compatibility
+Message-ID: <20160121201255.GA6186@dcvr.yhbt.net>
+References:
+ <CACj6Wog0=R6Wsh1U5SFE6r1BdWBr4Loe+GM6UKdObSALwAj9JQ@mail.gmail.com>
+ <20160108191807.GA30703@dcvr.yhbt.net> <20160108215046.GA36373@TC.local>
+ <20160108223732.GA28771@dcvr.yhbt.net> <20160108231910.GA42107@TC.local>
+ <CACj6Wog+1rqEaW1R1G0eKEZuz7vNVUC51Qh7q7Z1tKpzRrybKw@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To:
+ <CACj6Wog+1rqEaW1R1G0eKEZuz7vNVUC51Qh7q7Z1tKpzRrybKw@mail.gmail.com>
+List-Id: <unicorn-public@bogomips.org>
+
+Adam Duke <adamduke@twitter.com> wrote:
+> Following up on this, it seems to me like keeping the Ruby 2.2.2
+> requirement is the right way to go for rack. If the unicorn project
+> wants to continue support for older rubies, the unicorn gemspec should
+> be changed to limit the rack dependency to '< 2'. If rack 2.0.0 is
+> released and there is no limit on the dependency in unicorn's gemspec,
+> it seems to me like any deployments that are not running Ruby 2.2.2
+> will fail.
+
+I prefer we drop the rack dependency entirely.  We don't use rack
+for much.  This seems doable, (totally untested) patch below:
+
+diff --git a/lib/unicorn.rb b/lib/unicorn.rb
+index b0e6bd1..a3eae5e 100644
+--- a/lib/unicorn.rb
++++ b/lib/unicorn.rb
+@@ -1,9 +1,14 @@
+ # -*- encoding: binary -*-
+ require 'etc'
+ require 'stringio'
+-require 'rack'
+ require 'kgio'
+ 
++begin
++  require 'rack'
++rescue LoadError
++  warn 'rack not available, functionality reduced'
++end
++
+ # :stopdoc:
+ # Unicorn module containing all of the classes (include C extensions) for
+ # running a Unicorn web server.  It contains a minimalist HTTP server with just
+@@ -32,6 +37,9 @@ module Unicorn
+   def self.builder(ru, op)
+     # allow Configurator to parse cli switches embedded in the ru file
+     op = Unicorn::Configurator::RACKUP.merge!(:file => ru, :optparse => op)
++    if ru =~ /\.ru$/ && !defined?(Rack::Builder)
++      abort "rack and Rack::Builder must be available for processing #{ru}"
++    end
+ 
+     # Op is going to get cleared before the returned lambda is called, so
+     # save this value so that it's still there when we need it:
+@@ -53,32 +61,33 @@ def self.builder(ru, op)
+ 
+       return inner_app if no_default_middleware
+ 
++      middleware = { # order matters
++        ContentLength: [],
++        Chunked: [],
++        CommonLogger: [ $stderr ],
++        ShowExceptions: [],
++        Lint: [],
++        TempfileReaper: []
++      }
++
+       # return value, matches rackup defaults based on env
+       # Unicorn does not support persistent connections, but Rainbows!
+       # and Zbatery both do.  Users accustomed to the Rack::Server default
+       # middlewares will need ContentLength/Chunked middlewares.
+       case ENV["RACK_ENV"]
+       when "development"
+-        Rack::Builder.new do
+-          use Rack::ContentLength
+-          use Rack::Chunked
+-          use Rack::CommonLogger, $stderr
+-          use Rack::ShowExceptions
+-          use Rack::Lint
+-          use Rack::TempfileReaper if Rack.const_defined?(:TempfileReaper)
+-          run inner_app
+-        end.to_app
+       when "deployment"
+-        Rack::Builder.new do
+-          use Rack::ContentLength
+-          use Rack::Chunked
+-          use Rack::CommonLogger, $stderr
+-          use Rack::TempfileReaper if Rack.const_defined?(:TempfileReaper)
+-          run inner_app
+-        end.to_app
++        middleware.delete(:ShowExceptions)
++        middleware.delete(:Lint)
+       else
+-        inner_app
++        return inner_app
+       end
++      Rack::Builder.new do
++        middleware.each do |m, args|
++          use(Rack.const_get(m), *args) if Rack.const_defined?(m)
++        end
++        run inner_app
++      end.to_app
+     end
+   end
+ 
+diff --git a/lib/unicorn/http_response.rb b/lib/unicorn/http_response.rb
+index 7b446c2..ec128e4 100644
+--- a/lib/unicorn/http_response.rb
++++ b/lib/unicorn/http_response.rb
+@@ -10,10 +10,13 @@
+ # is the job of Rack, with the exception of the "Date" and "Status" header.
+ module Unicorn::HttpResponse
+ 
++  STATUS_CODES = defined?(Rack::Utils::HTTP_STATUS_CODES) ?
++                 Rack::Utils::HTTP_STATUS_CODES : {}
++
+   # internal API, code will always be common-enough-for-even-old-Rack
+   def err_response(code, response_start_sent)
+     "#{response_start_sent ? '' : 'HTTP/1.1 '}" \
+-      "#{code} #{Rack::Utils::HTTP_STATUS_CODES[code]}\r\n\r\n"
++      "#{code} #{STATUS_CODES[code]}\r\n\r\n"
+   end
+ 
+   # writes the rack_response to socket as an HTTP response
+@@ -23,7 +26,7 @@ def http_response_write(socket, status, headers, body,
+ 
+     if headers
+       code = status.to_i
+-      msg = Rack::Utils::HTTP_STATUS_CODES[code]
++      msg = STATUS_CODES[code]
+       start = response_start_sent ? ''.freeze : 'HTTP/1.1 '.freeze
+       buf = "#{start}#{msg ? %Q(#{code} #{msg}) : status}\r\n" \
+             "Date: #{httpdate}\r\n" \
+diff --git a/unicorn.gemspec b/unicorn.gemspec
+index 2728373..c3f8267 100644
+--- a/unicorn.gemspec
++++ b/unicorn.gemspec
+@@ -31,11 +31,11 @@
+   # version requirements here.
+   s.required_ruby_version = '< 3.0'
+ 
+-  # for people that are absolutely stuck on Rails 2.3.2 and can't
+-  # up/downgrade to any other version, the Rack dependency may be
+-  # commented out.  Nevertheless, upgrading to Rails 2.3.4 or later is
+-  # *strongly* recommended for security reasons.
+-  s.add_dependency(%q<rack>)
++  # We do not have a hard dependency on rack, it's possible to load
++  # things which respond to #call.  HTTP status lines in responses
++  # won't have descriptive text, only the numeric status.
++  # s.add_dependency(%q<rack>)
++
+   s.add_dependency(%q<kgio>, '~> 2.6')
+   s.add_dependency(%q<raindrops>, '~> 0.7')
+
+...  Not touching the untested, ancient old_rails stuff, yet
