@@ -1,0 +1,58 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-2.9 required=3.0 tests=ALL_TRUSTED,BAYES_00,
+ URIBL_BLOCKED shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id F074263380A; Wed, 27 Jan 2016 00:47:35 +0000 (UTC)
+Date: Wed, 27 Jan 2016 00:47:35 +0000
+From: Eric Wong <e@80x24.org>
+To: unicorn-public@bogomips.org
+Cc: Adam Duke <adamduke@twitter.com>, Aaron Patterson
+ <tenderlove@ruby-lang.org>
+Subject: Re: [PATCH] limit rack version for ruby compatibility
+Message-ID: <20160127004735.GA16295@dcvr.yhbt.net>
+References:
+ <CACj6Wog0=R6Wsh1U5SFE6r1BdWBr4Loe+GM6UKdObSALwAj9JQ@mail.gmail.com>
+ <20160108191807.GA30703@dcvr.yhbt.net> <20160108215046.GA36373@TC.local>
+ <20160108223732.GA28771@dcvr.yhbt.net> <20160108231910.GA42107@TC.local>
+ <CACj6Wog+1rqEaW1R1G0eKEZuz7vNVUC51Qh7q7Z1tKpzRrybKw@mail.gmail.com>
+ <20160121201255.GA6186@dcvr.yhbt.net>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20160121201255.GA6186@dcvr.yhbt.net>
+List-Id: <unicorn-public@bogomips.org>
+
+Eric Wong <e@80x24.org> wrote:
+> I prefer we drop the rack dependency entirely.  We don't use rack
+> for much.  This seems doable, (totally untested) patch below:
+
+(removed rack-devel from Cc:)
+
+Tested and pushed to unicorn.git master with minor changes
+as commit 3d69a6f064078eeb28c1819725d3715ce6905374
+
+* use nil instead of '[]' for empty splat to reduce garbage
+* rack is a development dependency, not removed as a dep entirely
+
+    http://bogomips.org/unicorn.git/patch?id=3d69a6f064078
+
+Subject: rack is optional at runtime, required for dev
+
+We do not want to pull in a newer or older version of rack depending
+on an the application running under it requires.  Furthermore, it
+has always been possible to use unicorn without any middleware at
+all.
+
+Without rack, we'll be missing descriptive status text in the first
+response line, but any valid HTTP/1.x parser should be able to
+handle it properly.
+
+ref:
+ http://bogomips.org/unicorn-public/20160121201255.GA6186@dcvr.yhbt.net/t/#u
+
+Thanks-to: Adam Duke <adam.v.duke@gmail.com>
+Thanks-to: Aaron Patterson <tenderlove@ruby-lang.org>
