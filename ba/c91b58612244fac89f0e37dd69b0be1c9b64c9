@@ -1,0 +1,43 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-2.9 required=3.0 tests=ALL_TRUSTED,BAYES_00
+ shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 355EF1F610; Wed, 27 Jan 2016 22:55:07 +0000 (UTC)
+From: Eric Wong <e@80x24.org>
+To: unicorn-public@bogomips.org
+Cc: Eric Wong <e@80x24.org>
+Subject: [PATCH] doc update for ClientShutdown exceptions class
+Date: Wed, 27 Jan 2016 22:55:05 +0000
+Message-Id: <20160127225505.29895-1-e@80x24.org>
+List-Id: <unicorn-public@bogomips.org>
+
+State explicitly applications should not rely on it, and instead
+rescue the generic EOFError exception.  This class will stick
+around because there may inevitably be things which rely on it,
+but we should not encourage it, either.
+---
+ lib/unicorn.rb | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
+
+diff --git a/lib/unicorn.rb b/lib/unicorn.rb
+index bb66b61..f122563 100644
+--- a/lib/unicorn.rb
++++ b/lib/unicorn.rb
+@@ -25,7 +25,9 @@ module Unicorn
+   # application dispatch.  This is always raised with an empty backtrace
+   # since there is nothing in the application stack that is responsible
+   # for client shutdowns/disconnects.  This exception is visible to Rack
+-  # applications unless PrereadInput middleware is loaded.
++  # applications unless PrereadInput middleware is loaded.  This
++  # is a subclass of the standard EOFError class and applications should
++  # not rescue it explicitly, but rescue EOFError instead.
+   ClientShutdown = Class.new(EOFError)
+ 
+   # :stopdoc:
+-- 
+EW
+
