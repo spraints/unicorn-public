@@ -1,0 +1,96 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-1.5 required=3.0 tests=ALL_TRUSTED,AWL,BAYES_00,
+ URIBL_BLOCKED shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id D8E051F736; Sat, 30 Jan 2016 09:34:53 +0000 (UTC)
+Date: Sat, 30 Jan 2016 09:34:53 +0000
+From: Eric Wong <e@80x24.org>
+To: Lawrence Pit <lawrencepit@icloud.com>
+Cc: unicorn-public@bogomips.org
+Subject: Re: unicorn log attack?
+Message-ID: <20160130093453.GA24510@dcvr.yhbt.net>
+References: <56AAAD0A.8000807@icloud.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <56AAAD0A.8000807@icloud.com>
+List-Id: <unicorn-public@bogomips.org>
+
+Lawrence Pit <lawrencepit@icloud.com> wrote:
+> Hi Eric,
+> 
+> I'm writing to you directly instead of to the unicorn-public list.
+
+Which got your HTML email tarpitted in my spam folder instead of
+being bounced back right away so you could fix it :)
+
+> I noticed yesterday our unicorn.log files, which are usually tiny,
+> were gigantic in size. Fortunately, this was caused by a friendly
+> attack, but had they persisted I think we would've run out of
+> diskspace (of which we would've been warned in advance, so we
+> could've dealt with the situation I suppose had it happened)
+> 
+> Upon inspection it seems requests were received as shown below (
+> I've cut out the middle part of the value that was part of the form
+> body that was posted )
+> 
+> The log statement is printed out by unicorn.rb method +log_error+.
+> 
+> I'm not sure this is a unicorn issue, and thinking more an issue of
+> how we developers should deal with repeatedly receiving the same
+> sort of (sometimes very large) exceptions? Any advice?
+
+Right, not a unicorn issue :)
+
+Use logrotate or similar, compress your logs frequently, be
+mindful of what you dump from your app; and watch your disk
+usage (which you seem to be doing already), but that includes
+emails :)
+
+In ancient times (perhaps it was the Mongrel days), the server
+itself would dump the contents of bad HTTP requests for
+debugging; but given the amount of probes/scans I saw: it wasn't
+worth it.  We don't even log things like aborted/dropped
+connections.
+
+Since the backtrace below clearly shows the error happened from
+something your application was doing; I don't consider it the
+responsibility of the app server to sanitize it.
+
+> ps. if you want to reply via the list that's fine by me.
+
+Done :) but I've shortened the backtrace for readability
+
+> E, [2016-01-26T11:23:49.499928 srv23 28932] unicorn: app error:
+> invalid %-encoding (stri%26%23%30%30%32%
+
+<snip>
+
+> [ CUT VERY LARGE VALUE ]
+
+<snip :>
+
+> (ArgumentError)
+> /usr/local/lib/ruby/2.2.0/uri/common.rb:382:in
+> `decode_www_form_component'
+> /rack-1.5.5/lib/rack/utils.rb:42:in
+> `unescape'
+> /rack-1.5.5/lib/rack/utils.rb:105:in
+> `block (2 levels) in parse_nested_query'
+
+<snip>  These definitely aren't called from code in unicorn itself.
+
+> /rack-1.5.5/lib/rack/urlmap.rb:50:in
+> `each'
+> /rack-1.5.5/lib/rack/urlmap.rb:50:in
+> `call'
+> /unicorn-5.0.1/lib/unicorn/http_server.rb:562:in
+> `process_client'
+> /unicorn-5.0.1/lib/unicorn/oob_gc.rb:70:in
+> `process_client'
+> /unicorn-5.0.1/lib/unicorn/http_server.rb:658:in
+> `worker_loop'
