@@ -1,0 +1,110 @@
+Return-Path: <lawrence.pit@gmail.com>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS15169 209.85.128.0/17
+X-Spam-Status: No, score=-0.5 required=3.0 tests=AWL,BAYES_00,FREEMAIL_FROM
+ shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from mail-qg0-f53.google.com (mail-qg0-f53.google.com
+ [209.85.192.53]) (using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256
+ (128/128 bits)) (No client certificate requested) by dcvr.yhbt.net (Postfix)
+ with ESMTPS id 7F84F1F612 for <unicorn-public@bogomips.org>; Mon,  1 Feb 2016
+ 05:04:36 +0000 (UTC)
+Received: by mail-qg0-f53.google.com with SMTP id b35so109234738qge.0 for
+ <unicorn-public@bogomips.org>; Sun, 31 Jan 2016 21:04:36 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com;
+ s=20120113;
+ h=mime-version:in-reply-to:references:date:message-id:subject:from:to
+ :content-type; bh=h/dNgCp3dXPL6m4Kq7yXvVJFFYXK1o9GiMtw7oNlp7Y=;
+ b=mKIFKcyqEMarYVqkLloTrG6v6fJaQs+TM+c0G5UAHArVMQnNa5zNAZ+SUEgTiN1lat
+ QJ+KlMHvC2k9soO7e+mEIu5UgxwvWXXr32VMg/zPRlJnnv58WQCFyWPQH+rVerwdA8zy
+ PWmci7AatIiBYgKwCiyJvOwz3Ozrqt0PmYedaG8sPZgTYAy/HlMa78pLOyymtozgB4N+
+ 6HtjDQ2gvgP8y0i6DZ0Uw24ezDkPJbXsjb6Udm2YIMUwYM6DyiKn/xamicKKIhiTPDya
+ mDMJ8u9fpDoiFMfp46PqiAORf8gqU8JqpalEIdYQZtVvRzolkgY7GdS17Pthyu+ld7u+ SEKA==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=1e100.net;
+ s=20130820; h=x-gm-message-state:mime-version:in-reply-to:references:date
+ :message-id:subject:from:to:content-type;
+ bh=h/dNgCp3dXPL6m4Kq7yXvVJFFYXK1o9GiMtw7oNlp7Y=;
+ b=ZCLDEBGOwfsesqVb/s07lHz+AcFn4T/eoF1RpeflGCwG5WdV7qW8iCoASjfP9qO2jr
+ sq92LgJ5V++eU6fOHqhjlY/nwOjYAm9L4euTUK3Dq/KOEf5527oXHZYiafyOrJYBSgdE
+ 1w6X+QDVUCl5yXwY6GDnRhRCnYzezz5VHgZ+lL8VPL9p4m5gv/Z4j+fU6YdWDU2Wg1aG
+ lTSw2g/DoucTAFRZ/oKRk4KHutIeuoTaGm5TYvwYfhB9Ill/vsCm+r2QRwRr82TY3KZW
+ ph7Vgyrzztb0LXbpu0qmzw6MLwHTY9KSklnZ8MAZEy4qIBitRSqLXzb7D1CnrcnIxXut PaVA==
+X-Gm-Message-State:
+ AG10YOQg9ocjgbAXH9VI9CY92ALTJxH+2leZkKw1q42Q4sRCUpBsQzrC6OAF7ctiT5++NxZlbMs/xvNRguvBlg==
+MIME-Version: 1.0
+X-Received: by 10.140.29.202 with SMTP id b68mr25889282qgb.100.1454303075776;
+ Sun, 31 Jan 2016 21:04:35 -0800 (PST)
+Received: by 10.55.81.67 with HTTP; Sun, 31 Jan 2016 21:04:35 -0800 (PST)
+In-Reply-To: <20160130093453.GA24510@dcvr.yhbt.net>
+References: <56AAAD0A.8000807@icloud.com>
+ <20160130093453.GA24510@dcvr.yhbt.net>
+Date: Mon, 1 Feb 2016 16:04:35 +1100
+Message-ID:
+ <CAGHrWsiqS486dqLPw9mZiooLXk2yso-JEtnr1vM02HeP+f_2Ug@mail.gmail.com>
+Subject: Re: unicorn log attack?
+From: Lawrence Pit <lawrence.pit@gmail.com>
+To: unicorn-public@bogomips.org
+Content-Type: text/plain; charset=UTF-8
+List-Id: <unicorn-public@bogomips.org>
+
+Hi Eric,
+
+> but that includes emails :)
+
+Yeah, sorry about the email format :[  Hope this time it's as expected.
+
+> Since the backtrace below clearly shows the error happened from
+> something your application was doing;
+
+.. if you count ruby MRI and rack as my application. ;) All this
+happens way before it touches what I would call my application. But
+yes, I could insert my own middleware before the first rack middleware
+and deal with it.
+
+> I don't consider it the responsibility of the app server to sanitize it.
+
+fwiw, I agree :) ... similarly, why consider it the responsibility of
+the app server to log it?  it is an application level error, not a
+unicorn error.
+
+Rack's spec doesn't state how to deal with exceptions in return to
+@app.call. Python's PEP 0333 says a bit more, along the lines of that
+applications should try to trap their own, internal errors. I'll go
+for that then.
+
+
+PS.
+
+> In ancient times (perhaps it was the Mongrel days), the server
+> itself would dump the contents of bad HTTP requests for
+> debugging; but given the amount of probes/scans I saw: it wasn't
+> worth it.  We don't even log things like aborted/dropped
+> connections.
+
+Yes, nice. :)
+
+The request I'm seeing is also a bad HTTP request (invalid
+%-encoding). To illustrate:
+
+curl -v -X POST "http://localhost:8080/?foo=bar%0abaz%xx"
+
+will have unicorn responds with a 400 Bad Request, handling
+Unicorn::HttpParserError. The request doesn't enter @app.call(...).
+And indeed unicorn doesn't even bother logging anything about this
+request.
+
+When sending the same thing as form data:
+
+curl -v -X POST -d "foo=bar%0abaz%xx" "http://localhost:8080/"
+
+then this will result in a 500 error and unicorn will log the posted
+value and stacktrace (provided Rack::Request.new(env).POST is called
+anywhere and @app doesn't trap its own errors):
+
+app error: invalid %-encoding (bar%0abaz%xx)
+(Rack::Utils::InvalidParameterError)
+
+
+Cheers,
+Lawrence
