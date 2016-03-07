@@ -1,0 +1,79 @@
+Return-Path: <amiryal@yxejamir.net>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS11403 66.111.4.0/24
+X-Spam-Status: No, score=-1.9 required=3.0 tests=BAYES_00,SPF_PASS,
+ URIBL_BLOCKED shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from out5-smtp.messagingengine.com (out5-smtp.messagingengine.com
+ [66.111.4.29]) (using TLSv1.2 with cipher AECDH-AES256-SHA (256/256 bits))
+ (No client certificate requested) by dcvr.yhbt.net (Postfix) with ESMTPS id
+ D871720578 for <unicorn-public@bogomips.org>; Mon,  7 Mar 2016 23:08:52 +0000
+ (UTC)
+Received: from compute6.internal (compute6.nyi.internal [10.202.2.46]) by
+ mailout.nyi.internal (Postfix) with ESMTP id 2037C2096A for
+ <unicorn-public@bogomips.org>; Mon,  7 Mar 2016 18:08:52 -0500 (EST)
+Received: from web5 ([10.202.2.215]) by compute6.internal (MEProxy); Mon, 07
+ Mar 2016 18:08:52 -0500
+DKIM-Signature: v=1; a=rsa-sha1; c=relaxed/relaxed; d=yxejamir.net; h=
+ content-transfer-encoding:content-type:date:from:message-id
+ :mime-version:subject:to:x-sasl-enc:x-sasl-enc; s=mesmtp; bh=6TJ
+ XhGV9tfDUchUe0bl/KWgB4iM=; b=lgOAf8zp/2H6WtcevYO/KymUwhBXCft91zx
+ cv+FG32SctYVWKR6Ltqc+ub8irxBk29hYrRzHFGGiWa0NXyjqGu2vJRTfQEGz8Ed
+ WTdfR8F9fWa1WGoj+9JbEGlQfsrEjlOeEmGcNw2GucS21X6uBdc6r1ZqSC/pyexB fZwTLiuM=
+DKIM-Signature: v=1; a=rsa-sha1; c=relaxed/relaxed; d= messagingengine.com;
+ h=content-transfer-encoding:content-type
+ :date:from:message-id:mime-version:subject:to:x-sasl-enc :x-sasl-enc;
+ s=smtpout; bh=6TJXhGV9tfDUchUe0bl/KWgB4iM=; b=Ih5n1
+ /vd2DWP43PjfAxttSMeIT2UlACNQTDyHnpxmbg4T0FI4vQOd/0O12b49+pidUcMu
+ BQ4qTfBsXGLKY/tKAxxu7rePc7sFmJDYrfpUB3Ak0L/Q3IlNW8mlrbBkVI4diBL6
+ 2BXrYv6hwhvD4JW1/FZxP3eZvZ/yAo2J02lGpE=
+Received: by web5.nyi.internal (Postfix, from userid 99) id E50A1A64F0B; Mon,
+ 7 Mar 2016 18:08:51 -0500 (EST)
+Message-Id: <1457392131.48974.542407130.6981D79B@webmail.messagingengine.com>
+X-Sasl-Enc: Tvva/+q8kXGf8F/br/AYjscqCwKwSBGtV/dUfhRnJAJ0 1457392131
+From: Amir Yalon <amiryal@yxejamir.net>
+To: unicorn-public@bogomips.org
+MIME-Version: 1.0
+Content-Transfer-Encoding: quoted-printable
+Content-Type: text/plain; charset="UTF-8"
+X-Mailer: MessagingEngine.com Webmail Interface - ajax-df15e059
+Subject: =?UTF-8?Q?Systemd=20socket=20inh?=
+ =?UTF-8?Q?eritance=20fails=20wit?=
+ =?UTF-8?Q?h=20=E2=80=9Cnot=20a=20socket=20fi?=
+ =?UTF-8?Q?le=20descriptor=E2=80=9D?=
+Date: Tue, 08 Mar 2016 01:08:51 +0200
+List-Id: <unicorn-public@bogomips.org>
+
+Hi,
+=C2=A0
+I have yet to compile a minimal failing configuration, but posting here
+in case it=E2=80=99s a common problem.
+=C2=A0
+Starting the systemd service with a configuration based on
+http://bogomips.org/unicorn-public/20150708130821.GA1361@luke.ws.skroutz.gr/
+(also found under examples/ in the source code), it fails, and the
+following is seen in the systemd journal:
+=C2=A0
+> app/vendor/bundle/ruby/2.0.0/gems/unicorn-5.0.1/lib/unicorn/http_server.r=
+b:780:in `for_fd': not a socket file descriptor (ArgumentError)
+> from app/vendor/bundle/ruby/2.0.0/gems/unicorn-5.0.1/lib/unicorn/http_ser=
+ver.rb:780:in `block in inherit_listeners!'
+> from app/vendor/bundle/ruby/2.0.0/gems/unicorn-5.0.1/lib/unicorn/http_ser=
+ver.rb:779:in `map!'
+> from app/vendor/bundle/ruby/2.0.0/gems/unicorn-5.0.1/lib/unicorn/http_ser=
+ver.rb:779:in `inherit_listeners!'
+> from app/vendor/bundle/ruby/2.0.0/gems/unicorn-5.0.1/lib/unicorn/http_ser=
+ver.rb:111:in `start'
+> from app/vendor/bundle/ruby/2.0.0/gems/unicorn-5.0.1/bin/unicorn:126:in `=
+<top (required)>'
+> from app/vendor/bundle/ruby/2.0.0/bin/unicorn:23:in `load'
+> from app/vendor/bundle/ruby/2.0.0/bin/unicorn:23:in `<main>'
+=C2=A0
+The error, in `for_fd': not a socket file descriptor (ArgumentError),
+occurs when attempting `io =3D Socket.for_fd(fd.to_i)`.
+=C2=A0
+Using Ruby version 2.0.0p645.=C2=A0 Should I try using 2.2 or later?
+=C2=A0
+Thanks,
+Amir
