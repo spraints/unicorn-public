@@ -1,0 +1,91 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-2.9 required=3.0 tests=ALL_TRUSTED,AWL,BAYES_00,
+ URIBL_BLOCKED shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id DB78B20578; Tue,  8 Mar 2016 03:31:41 +0000 (UTC)
+Date: Tue, 8 Mar 2016 03:31:41 +0000
+From: Eric Wong <e@80x24.org>
+To: Amir Yalon <amiryal@yxejamir.net>
+Cc: unicorn-public@bogomips.org
+Subject: Re: Systemd socket inheritance =?utf-8?Q?f?=
+ =?utf-8?Q?ails_with_=E2=80=9Cnot_a_socket_file_descriptor=E2=80=9D?=
+Message-ID: <20160308033141.GA10218@dcvr.yhbt.net>
+References: <1457392131.48974.542407130.6981D79B@webmail.messagingengine.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+Content-Transfer-Encoding: 8bit
+In-Reply-To:
+ <1457392131.48974.542407130.6981D79B@webmail.messagingengine.com>
+List-Id: <unicorn-public@bogomips.org>
+
+Amir Yalon <amiryal@yxejamir.net> wrote:
+> Starting the systemd service with a configuration based on
+> http://bogomips.org/unicorn-public/20150708130821.GA1361@luke.ws.skroutz.gr/
+> (also found under examples/ in the source code), it fails, and the
+> following is seen in the systemd journal:
+>  
+> > app/vendor/bundle/ruby/2.0.0/gems/unicorn-5.0.1/lib/unicorn/http_server.rb:780:in `for_fd': not a socket file descriptor (ArgumentError)
+
+<snip>
+ 
+> The error, in `for_fd': not a socket file descriptor (ArgumentError),
+> occurs when attempting `io = Socket.for_fd(fd.to_i)`.
+
+Curious, that means it's failing at the S_ISSOCK at line 53:
+
+http://bogomips.org/mirrors/ruby.git/tree/ext/socket/init.c?h=v2_0_0_645#n53
+
+fstat() says it's a valid FD, but not a socket.  Maybe IO.for_fd
+can enlighten us as to what you're getting if it's not a socket.
+
+Can you try the following change to http_server.rb to dump out
+the stat info of the FD that's failing?
+
+It'll still fail at Socket.for_fd, but IO.for_fd should not fail
+since fstat() already succeeded.
+
+--- a/lib/unicorn/http_server.rb
++++ b/lib/unicorn/http_server.rb
+@@ -777,6 +777,9 @@ def inherit_listeners!
+     # to ease debugging, we will not unset LISTEN_PID and LISTEN_FDS
+ 
+     inherited.map! do |fd|
++      io = IO.for_fd(fd.to_i)
++      io.autoclose = false
++      $stderr.write("fd=#{fd.inspect} #{io.stat.inspect}\n")
+       io = Socket.for_fd(fd.to_i)
+       io.autoclose = false
+       io = server_cast(io)
+
+Also, can you verify the UNICORN_FD env is NOT set by systemd?
+(It should not be)
+
+Thanks.
+
+> Using Ruby version 2.0.0p645.  Should I try using 2.2 or later?
+
+If it's easy, sure; but I just tried with 2.0.0-p645 without
+problems; so I would try making the change above and verifying
+UNICORN_FD is not set when systemd is being used, first.
+
+Ruby itself could not emulate systemd behavior for testing until
+2.3.0, but the actual functionality of unicorn w/ systemd should
+not be diminished with a real systemd with older Rubies.
+
+
+Also, for reference, which version of systemd is this?
+
+I checked the latest systemd.git but didn't notice any changes
+which would break the expectations of our sd_listen_fds(3)
+function emulation:
+
+	git clone https://github.com/systemd/systemd.git
+	cd systemd && git log -p src/libsystemd/sd-daemon/
+
+But maybe I missed something...
+Fwiw, I tested on Debian jessie w/ systemd 215-17+deb8u3
