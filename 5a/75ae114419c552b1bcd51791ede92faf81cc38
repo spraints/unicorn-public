@@ -1,0 +1,77 @@
+Return-Path: <amiryal@yxejamir.net>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS11403 66.111.4.0/24
+X-Spam-Status: No, score=-1.9 required=3.0 tests=AWL,BAYES_00,SPF_PASS,
+ URIBL_BLOCKED shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from out5-smtp.messagingengine.com (out5-smtp.messagingengine.com
+ [66.111.4.29]) (using TLSv1.2 with cipher AECDH-AES256-SHA (256/256 bits))
+ (No client certificate requested) by dcvr.yhbt.net (Postfix) with ESMTPS id
+ A0ECC20597 for <unicorn-public@bogomips.org>; Tue,  8 Mar 2016 20:32:56 +0000
+ (UTC)
+Received: from compute1.internal (compute1.nyi.internal [10.202.2.41]) by
+ mailout.nyi.internal (Postfix) with ESMTP id D683920E69 for
+ <unicorn-public@bogomips.org>; Tue,  8 Mar 2016 15:32:55 -0500 (EST)
+Received: from web2 ([10.202.2.212]) by compute1.internal (MEProxy); Tue, 08
+ Mar 2016 15:32:55 -0500
+DKIM-Signature: v=1; a=rsa-sha1; c=relaxed/relaxed; d=yxejamir.net; h=cc
+ :content-transfer-encoding:content-type:date:from:in-reply-to
+ :message-id:mime-version:references:subject:to:x-sasl-enc :x-sasl-enc;
+ s=mesmtp; bh=98mQI6Qky3Wm7xZEBAuKmolvTKw=; b=gOfxUe
+ CrohMKD1/7/h4sKlxEqtSNFhqLMiw/SDaCaY6a/be4R0i5cVo1oPjueyZPKDNVXb
+ xTodepEWj7Fw3Y6+L0l5Z0tD0oZAI4EdPRL4M2Xd6ycsW4Y4pgGCWZxYC0HpSuDE
+ UGVBOrSOdH8dN7I20I+t2i6l5MjA0TuYiaPCU=
+DKIM-Signature: v=1; a=rsa-sha1; c=relaxed/relaxed; d= messagingengine.com;
+ h=cc:content-transfer-encoding:content-type
+ :date:from:in-reply-to:message-id:mime-version:references
+ :subject:to:x-sasl-enc:x-sasl-enc; s=smtpout; bh=98mQI6Qky3Wm7xZ
+ EBAuKmolvTKw=; b=ZTFb8qnz/8uUENVhcudrVk4bp2/elwFnU9gwdvw85/74q/U
+ SeL6Vk9NWUq7Bv1EkpEsbY3ZECN4ROYFbNisxrDJwCy/dWvGuSApMRGMIIhv7qu6
+ tfAs7CeYDctoaOV03AovU/g18MQz0acZvxLEYuAYRdg+gfAvVn80JHEzKsPY=
+Received: by web2.nyi.internal (Postfix, from userid 99) id A85EF540687; Tue,
+ 8 Mar 2016 15:32:55 -0500 (EST)
+Message-Id:
+ <1457469175.1318763.543399970.5DA44188@webmail.messagingengine.com>
+X-Sasl-Enc: uVr5QhoYawWJypPGs0Jx/PdgXL+1tbH1x7+Bs2clmkzy 1457469175
+From: Amir Yalon <amiryal@yxejamir.net>
+To: Eric Wong <e@80x24.org>
+Cc: unicorn-public@bogomips.org
+MIME-Version: 1.0
+Content-Transfer-Encoding: quoted-printable
+Content-Type: text/plain; charset="UTF-8"
+X-Mailer: MessagingEngine.com Webmail Interface - ajax-27987fac
+Subject: =?UTF-8?Q?Re=3A=20Systemd=20socket?=
+ =?UTF-8?Q?=20inheritance=20fails?=
+ =?UTF-8?Q?=20with=20=E2=80=9Cnot=20a=20socke?=
+ =?UTF-8?Q?t=20file=20descriptor=E2=80=9D?=
+Date: Tue, 08 Mar 2016 22:32:55 +0200
+In-Reply-To: <20160308173710.GA534@dcvr.yhbt.net>
+References: <1457392131.48974.542407130.6981D79B@webmail.messagingengine.com>
+ <20160308033141.GA10218@dcvr.yhbt.net>
+ <1457423146.164433.542706346.5085E10D@webmail.messagingengine.com>
+ <20160308173710.GA534@dcvr.yhbt.net>
+List-Id: <unicorn-public@bogomips.org>
+
+> How many sockets are you activating? LISTEN_FDS should match
+> that number.
+
+I am =E2=80=9Cactivating=E2=80=9D only 1 socket, and the error is seen with=
+ both a TCP
+and a UNIX type socket.
+
+> Can you dump out the inherited, and LISTEN_* env variables with
+> the following?
+
+Yes, everything looks as expected, one inherited socket starting at fd
+number 3:
+
+I=3D[3] PID=3D4869 FDS=3D1
+
+Also tried with Ruby 2.2.1, same results.  FWIW, my rubies are compiled
+by system-wide RVM with no special options given to it.
+
+Thanks for taking the time to investigate, really appreciated.
+
+Regards,
+Amir
