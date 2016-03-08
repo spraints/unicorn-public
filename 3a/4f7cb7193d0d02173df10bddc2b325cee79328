@@ -1,0 +1,74 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-2.9 required=3.0 tests=ALL_TRUSTED,AWL,BAYES_00,
+ URIBL_BLOCKED shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 819AF20578; Tue,  8 Mar 2016 17:39:10 +0000 (UTC)
+Date: Tue, 8 Mar 2016 17:39:13 +0000
+From: Eric Wong <e@80x24.org>
+To: Amir Yalon <amiryal@yxejamir.net>
+Cc: unicorn-public@bogomips.org
+Subject: Re: Systemd socket inheritance =?utf-8?Q?f?=
+ =?utf-8?Q?ails_with_=E2=80=9Cnot_a_socket_file_descriptor=E2=80=9D?=
+Message-ID: <20160308173710.GA534@dcvr.yhbt.net>
+References: <1457392131.48974.542407130.6981D79B@webmail.messagingengine.com>
+ <20160308033141.GA10218@dcvr.yhbt.net>
+ <1457423146.164433.542706346.5085E10D@webmail.messagingengine.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+Content-Transfer-Encoding: 8bit
+In-Reply-To:
+ <1457423146.164433.542706346.5085E10D@webmail.messagingengine.com>
+List-Id: <unicorn-public@bogomips.org>
+
+Amir Yalon <amiryal@yxejamir.net> wrote:
+> Interesting.  With the testing patch applied, we’re now failing this
+> test in thread_pthread.c:
+> http://bogomips.org/mirrors/ruby.git/tree/thread_pthread.c#n1720
+> Which then raises the following exception in io.c:
+> http://bogomips.org/mirrors/ruby.git/tree/io.c#n7621
+>  
+> From the journal:
+> app/vendor/bundle/ruby/2.0.0/gems/unicorn-5.0.1/lib/unicorn/http_server.rb:780:in
+> `for_fd': The given fd is not accessible because RubyVM reserves it
+> (ArgumentError)
+
+That should not happen.  So I wonder if LISTEN_FDS is set to
+the wrong number, somehow.
+
+How many sockets are you activating? LISTEN_FDS should match
+that number.
+
+Can you dump out the inherited, and LISTEN_* env variables with
+the following?
+
+--- a/lib/unicorn/http_server.rb
++++ b/lib/unicorn/http_server.rb
+@@ -776,6 +776,8 @@ def inherit_listeners!
+     end
+     # to ease debugging, we will not unset LISTEN_PID and LISTEN_FDS
+ 
++    $stderr.write("I=#{inherited.inspect} PID=#{sd_pid} FDS=#{sd_fds}\n")
++
+     inherited.map! do |fd|
+       io = Socket.for_fd(fd.to_i)
+       io.autoclose = false
+
+
+Thanks.
+
+> > Also, can you verify the UNICORN_FD env is NOT set by systemd?
+> > (It should not be)
+> Verified, not set.
+>  
+> > Also, for reference, which version of systemd is this?
+> Ubuntu Wily 15.10, systemd 225-1ubuntu9
+
+I'll try to test with a newer version this week(*) if the above
+can't figure it out.
+
+* maybe Thursday/Friday, my connectivity is inconsistent
