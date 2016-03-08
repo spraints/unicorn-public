@@ -1,0 +1,91 @@
+Return-Path: <amiryal@yxejamir.net>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS11403 66.111.4.0/24
+X-Spam-Status: No, score=-1.9 required=3.0 tests=AWL,BAYES_00,
+ RCVD_IN_DNSWL_BLOCKED,SPF_PASS,URIBL_BLOCKED shortcircuit=no
+ autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from out5-smtp.messagingengine.com (out5-smtp.messagingengine.com
+ [66.111.4.29]) (using TLSv1.2 with cipher AECDH-AES256-SHA (256/256 bits))
+ (No client certificate requested) by dcvr.yhbt.net (Postfix) with ESMTPS id
+ 8AD3320597 for <unicorn-public@bogomips.org>; Tue,  8 Mar 2016 07:45:47 +0000
+ (UTC)
+Received: from compute3.internal (compute3.nyi.internal [10.202.2.43]) by
+ mailout.nyi.internal (Postfix) with ESMTP id E50E92062C for
+ <unicorn-public@bogomips.org>; Tue,  8 Mar 2016 02:45:46 -0500 (EST)
+Received: from web5 ([10.202.2.215]) by compute3.internal (MEProxy); Tue, 08
+ Mar 2016 02:45:46 -0500
+DKIM-Signature: v=1; a=rsa-sha1; c=relaxed/relaxed; d=yxejamir.net; h=cc
+ :content-transfer-encoding:content-type:date:from:in-reply-to
+ :message-id:mime-version:references:subject:to:x-sasl-enc :x-sasl-enc;
+ s=mesmtp; bh=543+/cVjdntM3Co/Gr8yNhm0pkU=; b=qypPE7
+ NdgfHuQi59AoxEUHtEBujA/jzDfiZg1NfDFRhw50nsaKp828LUCagwpIBoXwWsfS
+ vLkxDvJP+cE2swX3SEBSS4zOdBEVZkOQ1kP+6KIBF3+EvGGjixlxa6aN6xAQqkPJ
+ 3kdkZlKC86ZSDUv4tjdBiL5ME5lvpcrRf90ho=
+DKIM-Signature: v=1; a=rsa-sha1; c=relaxed/relaxed; d= messagingengine.com;
+ h=cc:content-transfer-encoding:content-type
+ :date:from:in-reply-to:message-id:mime-version:references
+ :subject:to:x-sasl-enc:x-sasl-enc; s=smtpout; bh=543+/cVjdntM3Co
+ /Gr8yNhm0pkU=; b=QMfl/3dN/CFDDum8IIz2jqvyG7LDi1IONf+Kd98DWIbfKne
+ RTlG4De6w7tjNkdghiE7UxVqsDR22hkuowbbHbyoVgpzIxkAaYwzlOn4k5Lc2Ns7
+ h8MvvXKwfuptKw8lqZgDh0qeaHQg9nLsi1GgEr8ZEX9uE3OLiaT9GBKkAGNE=
+Received: by web5.nyi.internal (Postfix, from userid 99) id B3460A661F8; Tue,
+ 8 Mar 2016 02:45:46 -0500 (EST)
+Message-Id:
+ <1457423146.164433.542706346.5085E10D@webmail.messagingengine.com>
+X-Sasl-Enc: a1+DirNP98IwT8uHEwBxqhqyMhDjZ8kaWRLpjAmZs4xr 1457423146
+From: Amir Yalon <amiryal@yxejamir.net>
+To: Eric Wong <e@80x24.org>
+Cc: unicorn-public@bogomips.org
+MIME-Version: 1.0
+Content-Transfer-Encoding: quoted-printable
+Content-Type: text/plain; charset="UTF-8"
+X-Mailer: MessagingEngine.com Webmail Interface - ajax-27987fac
+In-Reply-To: <20160308033141.GA10218@dcvr.yhbt.net>
+References: <1457392131.48974.542407130.6981D79B@webmail.messagingengine.com>
+ <20160308033141.GA10218@dcvr.yhbt.net>
+Subject: =?UTF-8?Q?Re=3A=20Systemd=20socket?=
+ =?UTF-8?Q?=20inheritance=20fails?=
+ =?UTF-8?Q?=20with=20=E2=80=9Cnot=20a=20socke?=
+ =?UTF-8?Q?t=20file=20descriptor=E2=80=9D?=
+Date: Tue, 08 Mar 2016 09:45:46 +0200
+List-Id: <unicorn-public@bogomips.org>
+
+Interesting.  With the testing patch applied, we=E2=80=99re now failing this
+test in thread_pthread.c:
+http://bogomips.org/mirrors/ruby.git/tree/thread_pthread.c#n1720
+Which then raises the following exception in io.c:
+http://bogomips.org/mirrors/ruby.git/tree/io.c#n7621
+=20
+From the journal:
+app/vendor/bundle/ruby/2.0.0/gems/unicorn-5.0.1/lib/unicorn/http_server.rb:=
+780:in
+`for_fd': The given fd is not accessible because RubyVM reserves it
+(ArgumentError)
+from
+/home/deploy/src/git/sapi/vendor/bundle/ruby/2.0.0/gems/unicorn-5.0.1/lib/u=
+nicorn/http_server.rb:780:in
+`block in inherit_listeners!'
+from
+app/vendor/bundle/ruby/2.0.0/gems/unicorn-5.0.1/lib/unicorn/http_server.rb:=
+779:in
+`map!'
+from
+app/vendor/bundle/ruby/2.0.0/gems/unicorn-5.0.1/lib/unicorn/http_server.rb:=
+779:in
+`inherit_listeners!'
+from
+app/vendor/bundle/ruby/2.0.0/gems/unicorn-5.0.1/lib/unicorn/http_server.rb:=
+111:in
+`start'
+=20
+> Also, can you verify the UNICORN_FD env is NOT set by systemd?
+> (It should not be)
+Verified, not set.
+=20
+> Also, for reference, which version of systemd is this?
+Ubuntu Wily 15.10, systemd 225-1ubuntu9
+=20
+Thanks,
+Amir
