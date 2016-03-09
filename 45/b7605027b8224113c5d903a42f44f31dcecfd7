@@ -1,0 +1,51 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-2.9 required=3.0 tests=ALL_TRUSTED,AWL,BAYES_00,
+ URIBL_BLOCKED shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id D223820578; Wed,  9 Mar 2016 03:51:57 +0000 (UTC)
+Date: Wed, 9 Mar 2016 03:51:57 +0000
+From: Eric Wong <e@80x24.org>
+To: Amir Yalon <amiryal@yxejamir.net>
+Cc: unicorn-public@bogomips.org
+Subject: Re: Systemd socket inheritance =?utf-8?Q?f?=
+ =?utf-8?Q?ails_with_=E2=80=9Cnot_a_socket_file_descriptor=E2=80=9D?=
+Message-ID: <20160309035157.GA23507@dcvr.yhbt.net>
+References: <1457392131.48974.542407130.6981D79B@webmail.messagingengine.com>
+ <20160308033141.GA10218@dcvr.yhbt.net>
+ <1457423146.164433.542706346.5085E10D@webmail.messagingengine.com>
+ <20160308173710.GA534@dcvr.yhbt.net>
+ <1457469175.1318763.543399970.5DA44188@webmail.messagingengine.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To:
+ <1457469175.1318763.543399970.5DA44188@webmail.messagingengine.com>
+List-Id: <unicorn-public@bogomips.org>
+
+Amir Yalon <amiryal@yxejamir.net> wrote:
+> Yes, everything looks as expected, one inherited socket starting at fd
+> number 3:
+> 
+> I=[3] PID=4869 FDS=1
+> 
+> Also tried with Ruby 2.2.1, same results.  FWIW, my rubies are compiled
+> by system-wide RVM with no special options given to it.
+
+Interesting.   Can you try using some other non-Ruby daemon
+which uses sd_listen_fds, too?   I can't think of any off
+the top of my head, but I'm sure there's some.
+
+It seems like systemd is mis-setting FD_CLOEXEC on socket,
+even.
+
+> Thanks for taking the time to investigate, really appreciated.
+
+No problem.  I wonder if something else is broken in your systemd
+config...
+
+Again, I'll take a harder look at newer systemd later this week
+unless somebody beats me to it.
