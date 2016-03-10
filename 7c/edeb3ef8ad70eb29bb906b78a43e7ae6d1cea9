@@ -1,0 +1,104 @@
+Return-Path: <amiryal@yxejamir.net>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS11403 66.111.4.0/24
+X-Spam-Status: No, score=-1.9 required=3.0 tests=AWL,BAYES_00,SPF_PASS,
+ URIBL_BLOCKED shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from out3-smtp.messagingengine.com (out3-smtp.messagingengine.com
+ [66.111.4.27]) (using TLSv1.2 with cipher AECDH-AES256-SHA (256/256 bits))
+ (No client certificate requested) by dcvr.yhbt.net (Postfix) with ESMTPS id
+ 9254A2059A for <unicorn-public@bogomips.org>; Thu, 10 Mar 2016 09:48:16 +0000
+ (UTC)
+Received: from compute4.internal (compute4.nyi.internal [10.202.2.44]) by
+ mailout.nyi.internal (Postfix) with ESMTP id EAF8F2252B for
+ <unicorn-public@bogomips.org>; Thu, 10 Mar 2016 04:48:15 -0500 (EST)
+Received: from web4 ([10.202.2.214]) by compute4.internal (MEProxy); Thu, 10
+ Mar 2016 04:48:15 -0500
+DKIM-Signature: v=1; a=rsa-sha1; c=relaxed/relaxed; d=yxejamir.net; h=cc
+ :content-transfer-encoding:content-type:date:from:in-reply-to
+ :message-id:mime-version:references:subject:to:x-sasl-enc :x-sasl-enc;
+ s=mesmtp; bh=hfu73lL0A5ubxHGAJizIu8wUn3I=; b=XwPXn3
+ 7WN3/RIFpaFK6C6AnDbaTTtPe9SIqdXx+5/1dleg/Tf4RpkBMZuWYVFYL1P/hA94
+ oDmmIPneTuhoZWayp3/m5tQbqd/rUIKAPz6K0Qc4L7K04euYmcOMik2DqyXK0/0d
+ kRfn/x+84B7V8rPAOzTbWAsp2d2s9FOKtrXRY=
+DKIM-Signature: v=1; a=rsa-sha1; c=relaxed/relaxed; d= messagingengine.com;
+ h=cc:content-transfer-encoding:content-type
+ :date:from:in-reply-to:message-id:mime-version:references
+ :subject:to:x-sasl-enc:x-sasl-enc; s=smtpout; bh=hfu73lL0A5ubxHG
+ AJizIu8wUn3I=; b=jwmtyftW9O11OsnkxEglnnCb/gkZEC99CtpLFOAWDCEmtGo
+ kKJ2E7Rnj/Yo8xI3Je2Ls1j8pKVSyEZ8McQ/y/6N4fGUfo9Ie3h9ClCZ7GLmEA0I
+ d/Lkm4PKHm+1w3sxzgO6IK8uz7KOJONrZMT9Cm87yXA2H9h+FOiLmg4T4Guk=
+Received: by web4.nyi.internal (Postfix, from userid 99) id B491D10B4E9; Thu,
+ 10 Mar 2016 04:48:15 -0500 (EST)
+Message-Id:
+ <1457603295.3001779.545065762.73AD820D@webmail.messagingengine.com>
+X-Sasl-Enc: zdW0pkmCHUnpYwg6N2aBNuTvigBW9VXZQgUQb1BuHCfR 1457603295
+From: Amir Yalon <amiryal@yxejamir.net>
+To: Christos Trochalakis <yatiohi@ideopolis.gr>, Eric Wong <e@80x24.org>
+Cc: unicorn-public@bogomips.org
+MIME-Version: 1.0
+Content-Transfer-Encoding: 7bit
+Content-Type: text/plain
+X-Mailer: MessagingEngine.com Webmail Interface - ajax-b28110db
+In-Reply-To: <20160309140604.GB25830@luke.ws.skroutz.gr>
+References: <1457392131.48974.542407130.6981D79B@webmail.messagingengine.com>
+ <20160308033141.GA10218@dcvr.yhbt.net>
+ <1457423146.164433.542706346.5085E10D@webmail.messagingengine.com>
+ <20160308173710.GA534@dcvr.yhbt.net>
+ <1457469175.1318763.543399970.5DA44188@webmail.messagingengine.com>
+ <20160309035157.GA23507@dcvr.yhbt.net>
+ <20160309140604.GB25830@luke.ws.skroutz.gr>
+Subject: =?UTF-8?Q?Re=3A=20Systemd=20socket?=
+ =?UTF-8?Q?=20inheritance=20fails?=
+ =?UTF-8?Q?=20with=20=E2=80=9Cnot=20a=20socke?=
+ =?UTF-8?Q?t=20file=20descriptor=E2=80=9D?=
+Date: Thu, 10 Mar 2016 11:48:15 +0200
+List-Id: <unicorn-public@bogomips.org>
+
+Christos Trochalakis wrote:
+> Ok, this is my theory, systemd correctly passes the sockets and the
+> environment to the process, but Amir is using rvm which probably runs
+> one more exec than usual. In this extra step rvm/ruby closes the fds for
+> security reasons but the ENV variables remain. In the newly forked ruby
+> process the timer gets fd=3 (which is now consider internal) and when
+> unicorn tries to example fd=3 breaks.
+
+Very plausible!
+
+I ran a few straces to confirm at least part of the theory, and it turns
+out RVM runs not one, but 20 more exec than usual. :)
+
+The way my application is launched with RVM:
+
+$ strace -c -e trace=execve /usr/local/rvm/bin/rvm default exec ruby -e
+''
+% time     seconds  usecs/call     calls    errors syscall
+------ ----------- ----------- --------- --------- ----------------
+  0.00    0.000000           0        21        16 execve
+------ ----------- ----------- --------- --------- ----------------
+100.00    0.000000                    21        16 total
+
+Using system Ruby:
+
+$ strace -c -e trace=execve ruby -e ''
+% time     seconds  usecs/call     calls    errors syscall
+------ ----------- ----------- --------- --------- ----------------
+  0.00    0.000000           0         1           execve
+------ ----------- ----------- --------- --------- ----------------
+100.00    0.000000                     1           total
+
+Using RVM ruby without RVM wrapper:
+
+$ strace -c -e trace=execve /usr/local/rvm/rubies/default/bin/ruby -e ''
+% time     seconds  usecs/call     calls    errors syscall
+------ ----------- ----------- --------- --------- ----------------
+  0.00    0.000000           0         1           execve
+------ ----------- ----------- --------- --------- ----------------
+100.00    0.000000                     1           total
+
+I will try to run my app using the 3rd method and report back as soon as
+I can.
+
+Thanks,
+Amir
