@@ -1,0 +1,94 @@
+Return-Path: <amiryal@yxejamir.net>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS11403 66.111.4.0/24
+X-Spam-Status: No, score=-1.8 required=3.0 tests=AWL,BAYES_00,SPF_PASS,
+ URIBL_BLOCKED shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from out4-smtp.messagingengine.com (out4-smtp.messagingengine.com
+ [66.111.4.28]) (using TLSv1.2 with cipher AECDH-AES256-SHA (256/256 bits))
+ (No client certificate requested) by dcvr.yhbt.net (Postfix) with ESMTPS id
+ 135C6633805 for <unicorn-public@bogomips.org>; Sat, 12 Mar 2016 23:19:09
+ +0000 (UTC)
+Received: from compute3.internal (compute3.nyi.internal [10.202.2.43]) by
+ mailout.nyi.internal (Postfix) with ESMTP id 8DA8A2037C for
+ <unicorn-public@bogomips.org>; Sat, 12 Mar 2016 18:19:08 -0500 (EST)
+Received: from web2 ([10.202.2.212]) by compute3.internal (MEProxy); Sat, 12
+ Mar 2016 18:19:08 -0500
+DKIM-Signature: v=1; a=rsa-sha1; c=relaxed/relaxed; d=yxejamir.net; h=cc
+ :content-transfer-encoding:content-type:date:from:in-reply-to
+ :message-id:mime-version:references:subject:to:x-sasl-enc :x-sasl-enc;
+ s=mesmtp; bh=fDnLeslMkyR0VD2zc0Vb7A8n56E=; b=EsQ4d1
+ WPwI9UCojJdqh41r5m3ogQeqR45zk4cohIOCe9SYNwCjimlvld3I+hRe6M2zsyb0
+ WdMKTt9Tw8R4uxjTyBh9SUMymFZUabNWTDSDknjm1rDPp/YZvaE6ppwRdcORfMTc
+ MgUFmC+zthj4aDB5BMhUTO3LVjVcKqJFnEzxA=
+DKIM-Signature: v=1; a=rsa-sha1; c=relaxed/relaxed; d= messagingengine.com;
+ h=cc:content-transfer-encoding:content-type
+ :date:from:in-reply-to:message-id:mime-version:references
+ :subject:to:x-sasl-enc:x-sasl-enc; s=smtpout; bh=fDnLeslMkyR0VD2
+ zc0Vb7A8n56E=; b=cKhEXozc4wK0dZQjnALYlTJ+pp4ywwdcTf7PZ6conb4gQF6
+ Wl02ea21sAD9pKQkh1WCBQ9eoUCgsA+iWuIL4Kt5sm6LAiZ4TAzJq5fJHVA9+2xd
+ vb2c+tN+E/p0XLs8FOeUVwKmpy2ZQIyJFQDayO710RhDAtAAwC35zWFhSct4=
+Received: by web2.nyi.internal (Postfix, from userid 99) id 5B21F540312; Sat,
+ 12 Mar 2016 18:19:08 -0500 (EST)
+Message-Id:
+ <1457824748.3666627.547425122.2A828B07@webmail.messagingengine.com>
+X-Sasl-Enc: T6YnqZ2fbRl8v1Sjhkbu9e3QgXTPXYLzEymJT7Px3k1Q 1457824748
+From: Amir Yalon <amiryal@yxejamir.net>
+To: Christos Trochalakis <yatiohi@ideopolis.gr>, Eric Wong <e@80x24.org>
+Cc: unicorn-public@bogomips.org
+MIME-Version: 1.0
+Content-Transfer-Encoding: quoted-printable
+Content-Type: text/plain; charset="UTF-8"
+X-Mailer: MessagingEngine.com Webmail Interface - ajax-da7163a6
+Subject: =?UTF-8?Q?Re=3A=20Systemd=20socket?=
+ =?UTF-8?Q?=20inheritance=20fails?=
+ =?UTF-8?Q?=20with=20=E2=80=9Cnot=20a=20socke?=
+ =?UTF-8?Q?t=20file=20descriptor=E2=80=9D?=
+Date: Sun, 13 Mar 2016 01:19:08 +0200
+In-Reply-To: <20160309140604.GB25830@luke.ws.skroutz.gr>
+References: <1457392131.48974.542407130.6981D79B@webmail.messagingengine.com>
+ <20160308033141.GA10218@dcvr.yhbt.net>
+ <1457423146.164433.542706346.5085E10D@webmail.messagingengine.com>
+ <20160308173710.GA534@dcvr.yhbt.net>
+ <1457469175.1318763.543399970.5DA44188@webmail.messagingengine.com>
+ <20160309035157.GA23507@dcvr.yhbt.net>
+ <20160309140604.GB25830@luke.ws.skroutz.gr>
+List-Id: <unicorn-public@bogomips.org>
+
+Hi all,
+=20
+After isolating the problem with the following one-liner in bash:
+=20
+$ /usr/local/rvm/bin/rvm default exec ruby -e 'puts
+IO.for_fd(3).inspect' 3<<<test
+#<IO:fd 3>
+=20
+$ bundle exec ruby -e 'puts IO.for_fd(3).inspect' 3<<<test
+-e:1:in `for_fd': The given fd is not accessible because RubyVM reserves
+it (ArgumentError)
+        from -e:1:in `<main>'
+=20
+$ /usr/local/rvm/rubies/default/bin/ruby -r bundler/setup -e 'puts
+IO.for_fd(3).inspect' 3<<<test
+#<IO:fd 3>
+=20
+It became obvious that RVM is not to blame, and the real culprit was
+Bundler=E2=80=99s `bundle exec` script.  From here it was just a matter of
+figuring out how to launch the unicorn script from within the bundle
+using the correct ruby without calling `bundle exec`.  There are a
+number of ways to do that, here is what worked for me:
+=20
+ExecStart =3D /usr/local/rvm/gems/ruby-2.0.0-p645/wrappers/ruby -r
+bundler/setup vendor/bundle/ruby/2.0.0/bin/unicorn -c
+config/unicorn/unicorn.rb -E staging -s myapp@%i
+=20
+Thanks again to all participants, your input was invaluable.
+=20
+=20
+P.S.  Notice how I abuse the -s no-op parameter to identify which
+template instance is running in systemd (in the output of ps, for
+example), maybe worth documenting it as a feature?
+=20
+Regards,
+Amir
