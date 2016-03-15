@@ -1,0 +1,99 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-2.9 required=3.0 tests=ALL_TRUSTED,AWL,BAYES_00,
+ URIBL_BLOCKED shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id E5E681F725; Tue, 15 Mar 2016 08:58:51 +0000 (UTC)
+Date: Tue, 15 Mar 2016 08:58:51 +0000
+From: Eric Wong <e@80x24.org>
+To: "Shota Fukumori (sora_h)" <her@sorah.jp>
+Cc: unicorn-public@bogomips.org, yahns-public@yhbt.net
+Subject: Re: https://unicorn.bogomips.org accepts client certificate?
+Message-ID: <20160315085851.GA505@dcvr.yhbt.net>
+References:
+ <CA+wiQwuE=ya6F4s4k3GCTUppk7mbBOYOVwVXhTsX2SP8mgdmNQ@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To:
+ <CA+wiQwuE=ya6F4s4k3GCTUppk7mbBOYOVwVXhTsX2SP8mgdmNQ@mail.gmail.com>
+List-Id: <unicorn-public@bogomips.org>
+
+"Shota Fukumori (sora_h)" <her@sorah.jp> wrote:
+> Hi,
+> 
+> I found that https://unicorn.bogomips.org/ accepts client certificate.
+> My browser prompts what certificate to use for a connection, even
+> https://unicorn.bogomips.org/ doesn't require a client certificate.
+
++Cc yahns-public@yhbt.net
+
+Likely a bug in yahns or the OpenSSL configuration of it.
+
+I have also been running some experimental ruby-trunk or
+yahns patches related to https://bugs.ruby-lang.org/issues/12126
+so maybe I left something out in a deployment[1]...
+
+Which client(s) are you using?
+
+curl, w3m, lynx on both Debian jessie and wheezy all seem fine.
+
+  openssl s_client -connect unicorn.bogomips.org:443 -CApath /etc/ssl/
+
+Also seems fine.  As does the following Ruby snippet:
+
+  require 'uri'
+  require 'net/https'
+  uri = URI('https://unicorn.bogomips.org/')
+  req = Net::HTTP::Get.new(uri)
+  res = Net::HTTP.start(uri.hostname, uri.port, use_ssl: true) do |http|
+    p http.request(req)
+  end
+
+I suppose there will be problems with old clients that can't
+handle SNI or newer/stronger encryption.
+
+> I and my colleagues are surprised about browser asking it. I guess
+> this is unexpected behavior, is it expected?
+
+I've not advertised the https site for unicorn yet;
+it's just an experiment at this point[2]
+
+Given the flurry of 1.12.x releases regarding TLS issues in
+yahns, it's safe to say there are likely bugs how yahns does
+TLS:
+
+  http://yhbt.net/yahns-public/20160229-yahns-1.12.2-unle@shed/t/
+
+Fwiw, here's the OpenSSL SSLContext config I use with yahns 1.12.2
+
+  require 'openssl'
+  ctx = OpenSSL::SSL::SSLContext.new
+  ctx.cert = OpenSSL::X509::Certificate.new(IO.read(
+    '/etc/ssl/certs/dcvr.yhbt.net.crt'))
+  ctx.extra_chain_cert = [ OpenSSL::X509::Certificate.new(IO.read(
+    '/etc/ssl/certs/dcvr.yhbt.net.chain.crt')) ]
+  ctx.key = OpenSSL::PKey::RSA.new(IO.read(
+    '/etc/ssl/private/dcvr.yhbt.net.key'))
+  ctx.set_params
+
+I'm really not that knowledgeable when it comes to OpenSSL[3].
+
+Is there a WEBrick or similar pure Ruby config you can mimic
+the problem with?
+
+
+
+[1] Anyways I'm on yahns 1.12.2, now, my curl check runs
+    periodically and never reported any TLS-related error
+    in weeks.
+
+[2] And will remain experimental indefinitely given my
+    lack-of-trust in both the CA system and the quality
+    of OpenSSL itself.
+
+[3] I'm afraid my attempt to use/read the openssl C library
+    code back in the the 2000s traumatized me for good :x
