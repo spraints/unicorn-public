@@ -1,0 +1,46 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-2.9 required=3.0 tests=ALL_TRUSTED,AWL,BAYES_00,
+ URIBL_BLOCKED shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 27E751F725; Tue, 15 Mar 2016 23:30:24 +0000 (UTC)
+Date: Tue, 15 Mar 2016 23:30:24 +0000
+From: Eric Wong <e@80x24.org>
+To: "Shota Fukumori (sora_h)" <her@sorah.jp>
+Cc: russm <russm-rubyforge@slofith.org>, unicorn-public@bogomips.org,
+ yahns-public@yhbt.net
+Subject: Re: https://unicorn.bogomips.org accepts client certificate?
+Message-ID: <20160315233024.GA11461@dcvr.yhbt.net>
+References:
+ <CA+wiQwuE=ya6F4s4k3GCTUppk7mbBOYOVwVXhTsX2SP8mgdmNQ@mail.gmail.com>
+ <20160315085851.GA505@dcvr.yhbt.net>
+ <CA+wiQwvagc4tFxt2-99MU6NFfTUzCX_ENCdV2Rz_0wTnQw4iXw@mail.gmail.com>
+ <20160315094348.GB7123@ha.slofith.org>
+ <CA+wiQwugNM-0UJHL9p+_YKWs_8xSEDGMeQAeit1envO=rrPfnA@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To:
+ <CA+wiQwugNM-0UJHL9p+_YKWs_8xSEDGMeQAeit1envO=rrPfnA@mail.gmail.com>
+List-Id: <unicorn-public@bogomips.org>
+
+"Shota Fukumori (sora_h)" <her@sorah.jp> wrote:
+> To be clear, you have to have a client certificate on your certificate
+> manager to be prompted.
+> Server doesn't specify acceptable client certificate CA names, so any
+> client certificate is ok.
+
+Thanks for the report, I think I just fixed the problem:
+
+  ctx.set_params # reasonable defaults for clients, apparently
+
+However, webrick and drb both set VERIFY_NONE for servers:
+
+  ctx.set_params(verify_mode: OpenSSL::SSL::VERIFY_NONE)
+
+I've updated https://unicorn.bogomips.org/ with the above change,
+can you confirm it works for you?  If so, I'll update the yahns
+documentation.
