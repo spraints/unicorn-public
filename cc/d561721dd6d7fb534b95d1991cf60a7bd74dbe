@@ -1,0 +1,112 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-2.8 required=3.0 tests=ALL_TRUSTED,AWL,BAYES_00,
+ URIBL_BLOCKED shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id B1240633808; Thu, 17 Mar 2016 00:27:36 +0000 (UTC)
+Date: Thu, 17 Mar 2016 00:27:36 +0000
+From: Eric Wong <e@80x24.org>
+To: Amir Yalon <amiryal@yxejamir.net>
+Cc: Christos Trochalakis <yatiohi@ideopolis.gr>, unicorn-public@bogomips.org
+Subject: [PATCH] doc: reference --keep-file-descriptors for "bundle exec"
+Message-ID: <20160317002736.GA26688@dcvr.yhbt.net>
+References: <1457392131.48974.542407130.6981D79B@webmail.messagingengine.com>
+ <20160308033141.GA10218@dcvr.yhbt.net>
+ <1457423146.164433.542706346.5085E10D@webmail.messagingengine.com>
+ <20160308173710.GA534@dcvr.yhbt.net>
+ <1457469175.1318763.543399970.5DA44188@webmail.messagingengine.com>
+ <20160309035157.GA23507@dcvr.yhbt.net>
+ <20160309140604.GB25830@luke.ws.skroutz.gr>
+ <1457824748.3666627.547425122.2A828B07@webmail.messagingengine.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+Content-Transfer-Encoding: 8bit
+In-Reply-To:
+ <1457824748.3666627.547425122.2A828B07@webmail.messagingengine.com>
+List-Id: <unicorn-public@bogomips.org>
+
+Amir Yalon <amiryal@yxejamir.net> wrote:
+> It became obvious that RVM is not to blame, and the real culprit was
+> Bundler’s `bundle exec` script.  From here it was just a matter of
+> figuring out how to launch the unicorn script from within the bundle
+> using the correct ruby without calling `bundle exec`.  There are a
+> number of ways to do that, here is what worked for me:
+
+Ahah, seems like an old problem with bundler defaults.
+
+> ExecStart = /usr/local/rvm/gems/ruby-2.0.0-p645/wrappers/ruby -r
+> bundler/setup vendor/bundle/ruby/2.0.0/bin/unicorn -c
+> config/unicorn/unicorn.rb -E staging -s myapp@%i
+
+Actually, "bundle exec --keep-file-descriptors" should work
+nowadays.  See patch below.
+
+> Thanks again to all participants, your input was invaluable.
+
+No problem.
+
+> P.S.  Notice how I abuse the -s no-op parameter to identify which
+> template instance is running in systemd (in the output of ps, for
+> example), maybe worth documenting it as a feature?
+
+*shrug* I prefer to use full the full path to the config file
+which would already include the app name in it:
+
+	unicorn -c /path/to/my_app/unicorn.conf.rb ...
+
+-------------------------8<-------------------------
+Subject: [PATCH] doc: reference --keep-file-descriptors for "bundle exec"
+
+"bundle exec" alone is not suitable for use with systemd-style
+socket activation due to Ruby 2.0+ behavior of setting close-on-exec
+for file descriptors above 2.  However, the "--keep-file-descriptors"
+option was added to bundler 1.4.0 to workaround this Ruby 2.0 change
+and may be used to prevent Ruby 2.0+ from closing file descriptors
+on exec.
+
+Thanks to Amir Yalon and Christos Trochalakis for bringing up
+this issue on the mailing list:
+
+http://bogomips.org/unicorn-public/1457824748.3666627.547425122.2A828B07@webmail.messagingengine.com/
+---
+ Sandbox                   | 6 +++---
+ examples/unicorn@.service | 2 ++
+ 2 files changed, 5 insertions(+), 3 deletions(-)
+
+diff --git a/Sandbox b/Sandbox
+index 997b92f..0760065 100644
+--- a/Sandbox
++++ b/Sandbox
+@@ -63,9 +63,9 @@ before_exec hook as illustrated by https://gist.github.com/534668
+ === Ruby 2.0.0 close-on-exec and SIGUSR2 incompatibility
+ 
+ Ruby 2.0.0 enforces FD_CLOEXEC on file descriptors by default.  unicorn
+-has been prepared for this behavior since unicorn 4.1.0, but we forgot
+-to remind the Bundler developers.  This issue is being tracked here:
+-https://github.com/bundler/bundler/issues/2628
++has been prepared for this behavior since unicorn 4.1.0, and bundler
++needs the "--keep-file-descriptors" option for "bundle exec":
++http://bundler.io/man/bundle-exec.1.html
+ 
+ == Isolate
+ 
+diff --git a/examples/unicorn@.service b/examples/unicorn@.service
+index b058da5..5b16b5b 100644
+--- a/examples/unicorn@.service
++++ b/examples/unicorn@.service
+@@ -11,6 +11,8 @@ Wants = unicorn.socket
+ After = unicorn.socket
+ 
+ [Service]
++# bundler users must use the "--keep-file-descriptors" switch, here:
++# ExecStart = bundle exec --keep-file-descriptors /usr/bin/unicorn ...
+ ExecStart = /usr/bin/unicorn -c /path/to/unicorn.conf.rb /path/to/config.ru
+ Sockets = unicorn.socket
+ KillSignal = SIGQUIT
+-- 
+EW
+
