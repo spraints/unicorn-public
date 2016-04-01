@@ -1,0 +1,75 @@
+Return-Path: <normalperson@YHBT.net>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-3.3 required=3.0 tests=ALL_TRUSTED,AWL,BAYES_00,
+ RP_MATCHES_RCVD,URIBL_BLOCKED shortcircuit=no autolearn=unavailable
+ version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) (using TLSv1.2 with
+ cipher DHE-RSA-AES128-SHA (128/128 bits)) (No client certificate requested)
+ by dcvr.yhbt.net (Postfix) with ESMTPSA id E5C7563380B; Fri,  1 Apr 2016
+ 00:43:03 +0000 (UTC)
+Date: Fri, 1 Apr 2016 00:43:03 +0000
+From: Eric Wong <normalperson@YHBT.net>
+To: ruby-talk@ruby-lang.org, unicorn-public@bogomips.org
+Cc: Adam Duke <adamduke@twitter.com>, Aaron Patterson
+ <tenderlove@ruby-lang.org>
+Subject: [ANN] unicorn 5.1.0 - Rack HTTP server for fast clients and *nix
+Message-ID: <20160401-unicorn-5.1.0-released@YHBT.net>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+List-Id: <unicorn-public@bogomips.org>
+
+Unicorn is an HTTP server for Rack applications designed to only serve
+fast clients on low-latency, high-bandwidth connections and take
+advantage of features in Unix/Unix-like kernels.  Slow clients should
+only be served by placing a reverse proxy capable of fully buffering
+both the the request and response in between unicorn and slow clients.
+
+* http://unicorn.bogomips.org/
+* public list: unicorn-public@bogomips.org
+* mail archives: http://bogomips.org/unicorn-public/
+* git clone git://bogomips.org/unicorn.git
+* http://unicorn.bogomips.org/NEWS.atom.xml
+* nntp://news.public-inbox.org/inbox.comp.lang.ruby.unicorn
+
+Changes:
+
+    unicorn 5.1.0 - rack is optional, again
+
+    Note: no code changes since 5.1.0.pre1 from January.^WNo, wait,
+    last minute performance improvement added today.  See below.
+
+    The big change is rack is not required (but still recommended).
+    Applications are expected to depend on rack on their own so they can
+    specify the version of rack they prefer without unicorn pulling
+    in a newer, potentially incompatible version.
+
+    unicorn will always attempt to work with multiple versions of rack
+    as practical.
+
+    The HTTP parser also switched to using the TypedData C-API for
+    extra type safety and memory usage accounting support in the
+    'objspace' extension.
+
+    Thanks to Adam Duke to bringing the rack change to our attention
+    and Aaron Patterson for helping with the matter.
+
+    Last minute change: we now support the new leftpad() syscall under
+    Linux for major performance and security improvements:
+
+        http://mid.gmane.org/1459463613-32473-1-git-send-email-richard@nod.at
+
+    8^H9 changes since 5.0.1:
+
+          http: TypedData C-API conversion
+          various documentation updates
+          doc: bump olddoc to ~> 1.2 for extra NNTP URL
+          rack is optional at runtime, required for dev
+          doc update for ClientShutdown exceptions class
+          unicorn 5.1.0.pre1 - rack is optional, again
+          doc: reference --keep-file-descriptors for "bundle exec"
+          doc: further trimming to reduce noise
+          use leftpad Linux syscall for speed!
