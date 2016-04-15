@@ -1,0 +1,75 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: 
+X-Spam-Status: No, score=-2.9 required=3.0 tests=ALL_TRUSTED,AWL,BAYES_00,
+ URIBL_BLOCKED shortcircuit=no autolearn=unavailable version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from localhost (dcvr.yhbt.net [127.0.0.1]) by dcvr.yhbt.net
+ (Postfix) with ESMTP id 2DFC02043F; Fri, 15 Apr 2016 05:42:02 +0000 (UTC)
+Date: Fri, 15 Apr 2016 05:42:02 +0000
+From: Eric Wong <e@80x24.org>
+To: Adam Fields <unicorn5958@street86.com>
+Cc: unicorn-public@bogomips.org
+Subject: Re: Dead PostgreSQL connections on worker restart
+Message-ID: <20160415054202.GA4043@dcvr.yhbt.net>
+References: <E6592304-8CB6-46AB-BDF6-CCAC1732219D@street86.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+Content-Transfer-Encoding: 8bit
+In-Reply-To: <E6592304-8CB6-46AB-BDF6-CCAC1732219D@street86.com>
+List-Id: <unicorn-public@bogomips.org>
+
+Adam Fields <unicorn5958@street86.com> wrote:
+> We have discovered that every time a unicorn worker is restarted,
+> rails throws "PG::ConnectionBad: connection is closed” errors.
+
+<snip>
+
+> We are using preload: true, and have before and after fork
+> rules to close and reopen the connections:
+
+<snip>
+
+> before_fork do |server, worker|
+>  defined?(ActiveRecord::Base) and
+>      ActiveRecord::Base.connection.disconnect!
+
+<snip>
+
+> Yet it seems that something is holding onto a dead connection
+> and trying to use it. 
+
+I'm not familiar with the Rails side anymore, so hopefully
+others can chime in.  However, from the OS perspective,
+it's generic and not dependent on Ruby or Pg, just *nix...
+
+> How can we troubleshoot this?
+
+Use lsof to determine which sockets are shared.
+lsof should be available and common on most platforms,
+definitely Linux-based ones.
+
+	lsof -p $PID_OF_MASTER
+	lsof -p $PID_OF_WORKER
+
+And compare the sockets shared between the processes based on
+the output of lsof.  I'm mostly going off Linux lsof output,
+here, but the idea is the same across all *nixes...
+
+Sockets marked as "LISTEN" are intended to be shared by unicorn.
+(UDP and other packet-oriented so sockets are fine to share, too;
+ but most apps don't use them)
+
+If your Pg connection is over TCP, look for TCP sockets
+in the ESTABLISHED state and ensure each process has
+a unique number in the DEVICE column (and/or local port).
+
+Likewise if your Pg connection is over a Unix socket.  Just make
+sure the path is the correct one (to distinguish from any Unix
+sockets unicorn listens on).
+
+In other words, no stream-oriented connections you make should
+be shared.  There probably shouldn't be any stream-oriented
+connections in your master process at all.
