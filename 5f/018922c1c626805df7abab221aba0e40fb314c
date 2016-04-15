@@ -1,0 +1,85 @@
+Return-Path: <unicorn5958@street86.com>
+X-Spam-Checker-Version: SpamAssassin 3.3.2 (2011-06-06) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS26347 69.163.253.0/24
+X-Spam-Status: No, score=-1.2 required=3.0 tests=AWL,BAYES_00,
+ RCVD_IN_DNSWL_LOW,URIBL_BLOCKED shortcircuit=no autolearn=unavailable
+ version=3.3.2
+X-Original-To: unicorn-public@bogomips.org
+Received: from homiemail-a11.g.dreamhost.com (sub3.mail.dreamhost.com
+ [69.163.253.7]) (using TLSv1 with cipher ADH-AES256-SHA (256/256 bits)) (No
+ client certificate requested) by dcvr.yhbt.net (Postfix) with ESMTPS id
+ B7FD42043F for <unicorn-public@bogomips.org>; Fri, 15 Apr 2016 03:26:27 +0000
+ (UTC)
+Received: from homiemail-a11.g.dreamhost.com (localhost [127.0.0.1]) by
+ homiemail-a11.g.dreamhost.com (Postfix) with ESMTP id F1D766E06C for
+ <unicorn-public@bogomips.org>; Thu, 14 Apr 2016 20:26:26 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha1; c=relaxed; d=street86.com; h=from
+ :content-type:content-transfer-encoding:subject:message-id:date
+ :to:mime-version; s=street86.com; bh=FWVqKjcUSvSTRr9+aEx9nybXtE0 =;
+ b=itVmeWkI0n6WkshY6WPzFAEsvW3+MionEpOXvJjY1/LDaU4NU9Acm62iniY
+ y2nfmSgxmfb3NBIqfc2NmamTCdJRT2UqbwNRtSL8qEJ/2aXb319Frhaqd4uTapbH
+ Ytn/SaUJxoa46WGMdFaDgWzxtSjJTkOlDc9NVJFOJl1s7Nl4=
+Received: from [192.168.166.112] (cpe-67-243-134-242.nyc.res.rr.com
+ [67.243.134.242]) (using TLSv1 with cipher DHE-RSA-AES256-SHA (256/256 bits))
+ (No client certificate requested) (Authenticated sender: fields@street86.com)
+ by homiemail-a11.g.dreamhost.com (Postfix) with ESMTPSA id C0FCB6E06A for
+ <unicorn-public@bogomips.org>; Thu, 14 Apr 2016 20:26:26 -0700 (PDT)
+From: Adam Fields <unicorn5958@street86.com>
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: quoted-printable
+Subject: Dead PostgreSQL connections on worker restart
+Message-Id: <E6592304-8CB6-46AB-BDF6-CCAC1732219D@street86.com>
+Date: Thu, 14 Apr 2016 23:26:24 -0400
+To: unicorn-public@bogomips.org
+Mime-Version: 1.0 (Mac OS X Mail 9.3 \(3124\))
+X-Mailer: Apple Mail (2.3124)
+List-Id: <unicorn-public@bogomips.org>
+
+We have discovered that every time a unicorn worker is restarted, rails =
+throws "PG::ConnectionBad: connection is closed=E2=80=9D errors.
+
+We are using preload: true, and have before and after fork rules to =
+close and reopen the connections:
+
+---------------------------------------------------
+before_fork do |server, worker|
+ defined?(ActiveRecord::Base) and
+     ActiveRecord::Base.connection.disconnect!
+
+   old_pid =3D "#{server.config[:pid]}.oldbin"
+   if File.exist?(old_pid) && server.pid !=3D old_pid
+     begin
+       sig =3D (worker.nr + 1) >=3D server.worker_processes ? :QUIT : =
+:TTOU
+       Process.kill(sig, File.read(old_pid).to_i)
+     rescue Errno::ENOENT, Errno::ESRCH
+       # someone else did our job for us
+     end
+   end
+end
+
+after_fork do |_server, _worker|
+  defined?(ActiveRecord::Base) and =
+ActiveRecord::Base.establish_connection
+
+  child_pid =3D _server.config[:pid].sub('.pid', ".#{_worker.nr}.pid")
+  system("echo #{Process.pid} > #{child_pid}")
+end
+---------------------------------------------------
+
+Yet it seems that something is holding onto a dead connection and trying =
+to use it.=20
+
+We have definitely correlated it to worker restarts - we have a monit =
+process in place to restart individual workers if they exceeded a memory =
+threshold, and when this number was too low, they were getting recycled =
+often and we saw a very high number of these errors. When we raised the =
+threshold, the error almost completely disappeared (but it still happens =
+sometimes when a worker is recycled).
+
+How can we troubleshoot this?
+
+Thanks!
+
+
