@@ -1,0 +1,193 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,BAYES_00
+	shortcircuit=no autolearn=unavailable autolearn_force=no version=3.4.0
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id 1B7521FF70;
+	Tue,  7 Jun 2016 21:13:54 +0000 (UTC)
+Date: Tue, 7 Jun 2016 21:13:54 +0000
+From: Eric Wong <e@80x24.org>
+To: Jesper =?utf-8?Q?R=C3=B8nn-Jensen?= <jesperrr@gmail.com>
+Cc: unicorn-public@bogomips.org
+Subject: [PATCH] examples/init.sh: update to reduce upgrade raciness
+Message-ID: <20160607211354.GA21174@dcvr.yhbt.net>
+References: <CAL-rKu6CZ731c=uHyZ8+Fg2fhC30e-3-J26XODacUK=YrfX+5Q@mail.gmail.com>
+ <20160607134107.GA4500@dcvr.yhbt.net>
+ <CAL-rKu6U=zY=1tMWbYZSwXS6k57F64JU8GZRFRmMFDB49bVmNA@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+Content-Transfer-Encoding: 8bit
+In-Reply-To: <CAL-rKu6U=zY=1tMWbYZSwXS6k57F64JU8GZRFRmMFDB49bVmNA@mail.gmail.com>
+List-Id: <unicorn-public@bogomips.org>
+
+Jesper Rønn-Jensen <jesperrr@gmail.com> wrote:
+> On Tue, Jun 7, 2016 at 3:41 PM, Eric Wong <e@80x24.org> wrote:
+> > Jesper Rønn-Jensen <jesperrr@gmail.com> wrote:
+> >> +++ b/examples/init.sh
+> >> @@ -45,7 +45,7 @@ restart|reload)
+> >>   $CMD
+> >>   ;;
+> >>  upgrade)
+> >> - if sig USR2 && sleep 2 && sig 0 && oldsig QUIT
+> >> + if sig USR2 && sleep 2 && sig 0
+> >>   then
+> >>   n=$TIMEOUT
+> >>   while test -s $old_pid && test $n -ge 0
+> >> --
+> >
+> > I actually wrote a better init script for a similar server,
+> > patch coming in a bit (or later, close to falling asleep).
+>
+> Thanks for input.
+> 
+> I will close this issue and wait for your patch later, then.
+ 
+Proposed patch below (for "git am --scissors" users)
+I've pushed this out to the "jr/init" branch on the git repo
+and you can download the blob directly, here:
+
+https://bogomips.org/unicorn.git/plain/examples/init.sh?h=jr/init
+
+Will rebase/amend this branch as necessary until merged into master.
+
+> Will also close pull-request I put at github with reference to this thread.
+
+Please do, thank you.
+
+Their terms-of-service doesn't allow bots to auto-close and redirect
+things; and I can't support any centralized messaging system.
+
+> >         Anyways if you stick to old-school Usenet/mailing list posting
+> >         conventions, I'm more than happy to help you :)
+ 
+> PS. Thanks for tip on HTML vs Plain text mails. Didn't know Gmail
+> could send plain text :)
+
+I think the only problem with gmail I've heard was from mobile
+phone app users.  At least the git ML and LKML gets text-only
+gmail posts all the time.
+
+We old-school conventions mean we also trim our quotes and
+avoid top-posting :)
+
+------------8<----------------
+Subject: [PATCH] examples/init.sh: update to reduce upgrade raciness
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Rework the "upgrade" target to only read the PID files once to
+avoid misreading the wrong PID files in the middle of the
+upgrade.
+
+Additionally, introduce the UPGRADE_DELAY environment parameter
+so users can increase/decrease according to their application
+startup time.
+
+PID files are inherently racy and people should be using a
+process manager (systemd or similar) instead, but this should
+mitigate most of the problems with the old target.
+
+While we're at it, add LSB tags for systems which complain
+about the lack of them and modernize things a bit using
+$(command) construct instead of the more fragile `command`.
+
+Thanks-to: Jesper Rønn-Jensen <jesperrr@gmail.com>
+---
+ examples/init.sh | 44 ++++++++++++++++++++++++++++++++++++--------
+ 1 file changed, 36 insertions(+), 8 deletions(-)
+
+diff --git a/examples/init.sh b/examples/init.sh
+index 1f0e035..4ef6cdc 100644
+--- a/examples/init.sh
++++ b/examples/init.sh
+@@ -1,7 +1,16 @@
+ #!/bin/sh
+ set -e
++### BEGIN INIT INFO
++# Provides:          unicorn
++# Required-Start:    $local_fs $network
++# Required-Stop:     $local_fs $network
++# Default-Start:     2 3 4 5
++# Default-Stop:      0 1 6
++# Short-Description: Start/stop unicorn Rack app server
++### END INIT INFO
++
+ # Example init script, this can be used with nginx, too,
+-# since nginx and unicorn accept the same signals
++# since nginx and unicorn accept the same signals.
+ 
+ # Feel free to change any of the following variables for your app:
+ TIMEOUT=${TIMEOUT-60}
+@@ -9,21 +18,22 @@ APP_ROOT=/home/x/my_app/current
+ PID=$APP_ROOT/tmp/pids/unicorn.pid
+ CMD="/usr/bin/unicorn -D -c $APP_ROOT/config/unicorn.rb"
+ INIT_CONF=$APP_ROOT/config/init.conf
++UPGRADE_DELAY=${UPGRADE_DELAY-2}
+ action="$1"
+ set -u
+ 
+ test -f "$INIT_CONF" && . $INIT_CONF
+ 
+-old_pid="$PID.oldbin"
++OLD="$PID.oldbin"
+ 
+ cd $APP_ROOT || exit 1
+ 
+ sig () {
+-	test -s "$PID" && kill -$1 `cat $PID`
++	test -s "$PID" && kill -$1 $(cat $PID)
+ }
+ 
+ oldsig () {
+-	test -s $old_pid && kill -$1 `cat $old_pid`
++	test -s "$OLD" && kill -$1 $(cat $OLD)
+ }
+ 
+ case $action in
+@@ -45,18 +55,36 @@ restart|reload)
+ 	$CMD
+ 	;;
+ upgrade)
+-	if sig USR2 && sleep 2 && sig 0 && oldsig QUIT
++	if oldsig 0
++	then
++		echo >&2 "Old upgraded process still running with $OLD"
++		exit 1
++	fi
++
++	cur_pid=
++	if test -s "$PID"
++	then
++		cur_pid=$(cat $PID)
++	fi
++
++	if test -n "$cur_pid" &&
++			kill -USR2 "$cur_pid" &&
++			sleep $UPGRADE_DELAY &&
++			new_pid=$(cat $PID) &&
++			test x"$new_pid" != x"$cur_pid" &&
++			kill -0 "$new_pid" &&
++			kill -QUIT "$cur_pid"
+ 	then
+ 		n=$TIMEOUT
+-		while test -s $old_pid && test $n -ge 0
++		while kill -0 "$cur_pid" 2>/dev/null && test $n -ge 0
+ 		do
+ 			printf '.' && sleep 1 && n=$(( $n - 1 ))
+ 		done
+ 		echo
+ 
+-		if test $n -lt 0 && test -s $old_pid
++		if test $n -lt 0 && kill -0 "$cur_pid" 2>/dev/null
+ 		then
+-			echo >&2 "$old_pid still exists after $TIMEOUT seconds"
++			echo >&2 "$cur_pid still running after $TIMEOUT seconds"
+ 			exit 1
+ 		fi
+ 		exit 0
+-- 
+EW
