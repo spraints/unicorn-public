@@ -1,0 +1,45 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,BAYES_00
+	shortcircuit=no autolearn=unavailable autolearn_force=no version=3.4.0
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id E543B1FF40
+	for <unicorn-public@bogomips.org>; Mon, 13 Jun 2016 22:31:26 +0000 (UTC)
+From: Eric Wong <e@80x24.org>
+To: unicorn-public@bogomips.org
+Subject: [PATCH] doc: systemd should only kill master in example
+Date: Mon, 13 Jun 2016 22:31:26 +0000
+Message-Id: <20160613223126.11990-1-e@80x24.org>
+List-Id: <unicorn-public@bogomips.org>
+
+By default, systemd kills every process in the control group
+when stopping a service.  While it ought to be harmless to
+signal workers, some Rack applications (and perhaps further
+subprocesses) can misbehave when interrupted by a signal.
+Ensure we only hit the master on graceful shutdown to avoid
+tickling bugs in Rack apps.
+
+This is the reason we switched to having the master send
+"fake" signals for workers beginning with unicorn 4.8.0
+back in 2013/2014.
+---
+ examples/unicorn@.service | 5 +++++
+ 1 file changed, 5 insertions(+)
+
+diff --git a/examples/unicorn@.service b/examples/unicorn@.service
+index 56aaec8..d95eb83 100644
+--- a/examples/unicorn@.service
++++ b/examples/unicorn@.service
+@@ -24,5 +24,10 @@ ExecReload = /bin/kill -HUP $MAINPID
+ # adding a few seconds for scheduling differences:
+ TimeoutStopSec = 62
+ 
++# Only kill the master process, it may be harmful to signal
++# workers via default "control-group" setting since some
++# Ruby extensions and applications misbehave on interrupts
++KillMode = process
++
+ [Install]
+ WantedBy = multi-user.target
