@@ -1,0 +1,67 @@
+From e@80x24.org  Mon Jun 20 20:00:46 2016
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,AWL,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.0
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id B31F91FF40;
+	Mon, 20 Jun 2016 20:00:46 +0000 (UTC)
+Date: Mon, 20 Jun 2016 20:00:46 +0000
+From: Eric Wong <e@80x24.org>
+To: unicorn-public@bogomips.org
+Subject: [PATCH] examples/logrotate.conf: update example for systemd
+Message-ID: <20160620200046.GA4221@dcvr.yhbt.net>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+List-Id: <unicorn-public@bogomips.org>
+
+...And add placeholders for other systems
+---
+  Leaving out the part for using a backup service :>
+
+	for i in /var/log/unicorn_app/*.log.gz
+	do
+		curl -sSf -T $i cloud.nsa.gov/store && rm $i
+	done
+
+ examples/logrotate.conf | 17 ++++++++++++++++-
+ 1 file changed, 16 insertions(+), 1 deletion(-)
+
+diff --git a/examples/logrotate.conf b/examples/logrotate.conf
+index 03fefc6..437f6c6 100644
+--- a/examples/logrotate.conf
++++ b/examples/logrotate.conf
+@@ -3,6 +3,9 @@
+ #
+ # See the logrotate(8) manpage for more information:
+ #    http://linux.die.net/man/8/logrotate
++#
++# public logrotate-related discussion in our archives:
++#    https://bogomips.org/unicorn-public/?q=logrotate
+ 
+ # Modify the following glob to match the logfiles your app writes to:
+ /var/log/unicorn_app/*.log {
+@@ -22,7 +25,19 @@
+ 	# config.  Unicorn supports the USR1 signal and we send it
+ 	# as our "lastaction" action:
+ 	lastaction
+-		# assuming your pid file is in /var/run/unicorn_app/pid
++		# For systemd users, assuming you use two services
++		# (as recommended) to allow zero-downtime upgrades.
++		# Only one service needs to be started, but signaling
++		# both here is harmless as long as they're both enabled
++		systemctl kill -s SIGUSR1 unicorn@1.service
++		systemctl kill -s SIGUSR1 unicorn@2.service
++
++		# Examples for other process management systems appreciated
++		# Mail us at unicorn-public@bogomips.org
++		# (see above for archives)
++
++		# If you use a pid file and assuming your pid file
++		# is in /var/run/unicorn_app/pid
+ 		pid=/var/run/unicorn_app/pid
+ 		test -s $pid && kill -USR1 "$(cat $pid)"
+ 	endscript
