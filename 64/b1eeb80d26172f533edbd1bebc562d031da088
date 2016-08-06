@@ -1,0 +1,65 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.0
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id 5095D20193;
+	Sat,  6 Aug 2016 01:01:26 +0000 (UTC)
+Date: Sat, 6 Aug 2016 01:01:26 +0000
+From: Eric Wong <e@80x24.org>
+To: Bo <boaz@2be.co.il>
+Cc: unicorn-public@bogomips.org
+Subject: Re: Please join the Rack Specification discussion for
+ `env['upgrade.websocket']`
+Message-ID: <20160806010126.GA7486@dcvr>
+References: <58D32D89-4523-436E-8C0E-FA8F4E7AFFB2@plezi.io>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <58D32D89-4523-436E-8C0E-FA8F4E7AFFB2@plezi.io>
+List-Id: <unicorn-public@bogomips.org>
+
+Bo <boaz@2be.co.il> wrote:
+> Please join the Rack Specification discussion for `env['upgrade.websocket']`
+
+Fwiw, I have not existed outside of plain-text email for years;
+so I'll respond inline here and you can link others to this
+thread on:
+
+https://bogomips.org/unicorn-public/58D32D89-4523-436E-8C0E-FA8F4E7AFFB2@plezi.io/T/
+(which anybody may reply-all to after disabling HTML in their mailer)
+
+> I represent an effort to extend Rack so that it allows server-side
+> websocket upgrade implementation support and pure Rack websocket
+> applications.
+> 
+> This new Rack feature proposal is gaining support, with over 42
+> support votes in the [original Rack discussion
+> thread](https://github.com/rack/rack/issues/1093).
+
+You mention performance several times, but I am not sure what
+you mean.  unicorn completely stops caring for a socket after
+it's hijacked by the app.  In other words:
+
+  Your Rack app could take the socket and inject it into an
+  event loop running in a separate thread.  That event loop
+  could be 100% C code running without GVL for all unicorn
+  cares.
+
+  unicorn would only parse the first HTTP request (with the
+  Upgrade header) before the Rack app hijacks it.
+
+
+Also, Ruby IO.select also supports arbitrary number of
+descriptors in some cases (Linux for sure, and probably most
+server-oriented *BSDs).  Of course, the malloc usage + O(n)
+behavior still suck, but no, select(2) is not always limited to
+<=1024 FDs.
+
+
+In any case, I'd be glad to help with lower-level issues over
+plain-text email, but I'm not going to attempt to run a
+mainstream browser capable of WebSockets or JS.
+I suppose curl can deal with WebSockets nowadays?
