@@ -1,0 +1,81 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.0
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id 552CE20193;
+	Sat,  6 Aug 2016 04:59:18 +0000 (UTC)
+Date: Sat, 6 Aug 2016 04:59:18 +0000
+From: Eric Wong <e@80x24.org>
+To: Boaz Segev <boaz@2be.co.il>
+Cc: unicorn-public@bogomips.org
+Subject: Re: Please join the Rack Specification discussion for
+ `env['upgrade.websocket']`
+Message-ID: <20160806045918.GA31857@starla>
+References: <58D32D89-4523-436E-8C0E-FA8F4E7AFFB2@plezi.io>
+ <20160806010126.GA7486@dcvr>
+ <202FC1D8-3042-4CBF-9DEA-85D1BEA080F3@2be.co.il>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <202FC1D8-3042-4CBF-9DEA-85D1BEA080F3@2be.co.il>
+List-Id: <unicorn-public@bogomips.org>
+
+Boaz Segev <boaz@2be.co.il> wrote:
+> Running two (or more) event loops, each with it's own
+> resources, is wasteful and promotes needless context switches.
+> 
+> There is no reason to hijack a socket when the server can
+> easily provide callbacks for IO related events using it's
+> existing established event loop.
+
+As Michael said, WS is a really bad fit for unicorn :)
+
+> This alone should provide a performance boost. There are other
+> considerations as well, but I think they all derive from this
+> core principle of having the web server retain control over
+> all network IO concerns.
+
+For anybody else writing an epoll-based server with multiple
+epoll-based event loops in different threads, the following is
+good ordering; relatively cheap and scalable:
+
+	epoll_ctl(original_epfd, EPOLL_CTL_DEL, client_fd, NULL);
+	epoll_ctl(websocket_epfd, EPOLL_CTL_ADD, client_fd, &ev);
+
+Change the order, and it's slower and less scalable:
+
+	/* in other words, don't do this in this order */
+	epoll_ctl(websocket_epfd, EPOLL_CTL_ADD, client_fd, &ev);
+	epoll_ctl(original_epfd, EPOLL_CTL_DEL, client_fd, NULL);
+
+The former ensures a simple topology where the file behind
+client_fd only exists in one eventpoll rbtree at a time.  The
+latter creates a complex topology which needs to do additional
+locking and scanning to prevent infinite loops.
+
+This is true since Linux 3.13, commit 67347fe4e632633
+("epoll: do not take global 'epmutex' for simple topologies")
+ https://bogomips.org/mirrors/linux.git/commit?id=67347fe4e632633
+
+> like hijacking, it's optional.
+> 
+> Unicorn was design for very specific use cases, so I
+> definitely understand if this might not be as interesting for
+> you. 
+
+Yes, unicorn itself will never have a multi-client-aware event
+loop.  It is out-of-scope for its design, it seems WebSockets
+usually have idle times which would cause any server with the
+design of unicorn to fall over.  unicorn cannot even handle
+HTTP/1.1 persistent connections.
+
+> However, I do think your experience as developers could help
+> enrich us all. If you have any comments or anything to add
+> regarding the proposed `websocket.upgrade` specification, your
+> voice is welcome:
+
+Sorry, not interested, and definitely not touching centralized
+message boards :>
