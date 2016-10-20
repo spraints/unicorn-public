@@ -1,0 +1,112 @@
+Return-Path: <death@junki.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS49160 62.122.208.0/22
+X-Spam-Status: No, score=-3.3 required=3.0 tests=BAYES_00,RP_MATCHES_RCVD
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.0
+Received: from junki.org (junki.org [62.122.209.15])
+	(using TLSv1.2 with cipher AECDH-AES256-SHA (256/256 bits))
+	(No client certificate requested)
+	by dcvr.yhbt.net (Postfix) with ESMTPS id 561C320987
+	for <unicorn-public@bogomips.org>; Thu, 20 Oct 2016 09:05:39 +0000 (UTC)
+Received: by junki.org (Postfix, from userid 1000)
+	id 754E2E093; Thu, 20 Oct 2016 12:05:36 +0300 (MSK)
+Received: from [10.0.1.132] (sovok1.thefurnish.ru [185.59.141.101])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by junki.org (Postfix) with ESMTPSA id D876CE08B
+	for <unicorn-public@bogomips.org>; Thu, 20 Oct 2016 12:05:34 +0300 (MSK)
+Message-ID: <1476954332.1736.156.camel@junki.org>
+Subject: [PATCH] Add some tolerance (RFC2616 sec. 19.3)
+From: Mishael A Sibiryakov <death@junki.org>
+To: unicorn-public@bogomips.org
+Date: Thu, 20 Oct 2016 12:05:32 +0300
+Content-Type: text/plain; charset="UTF-8"
+X-Mailer: Evolution 3.20.5 
+Mime-Version: 1.0
+Content-Transfer-Encoding: 8bit
+X-Bogosity: Ham, tests=bogofilter, spamicity=0.000000, version=1.2.4
+List-Id: <unicorn-public@bogomips.org>
+
+Hi all.
+
+We're implementing client certificate authentication with nginx and
+unicorn. 
+
+Nginx configured in the following way:
+
+proxy_set_header X-SSL-Client-Cert $ssl_client_cert;
+
+When client submits certificate and nginx passes it to the unicorn,
+unicorn responds with 400 (Bad Request). This caused because nginx
+doesn't use "\r\n" they using just "\n" and multilne headers is failed
+to parse (I've added test).
+
+Accorording to RFC2616 section 19.3:
+https://www.w3.org/Protocols/rfc2616/rfc2616-sec19.html#sec19.3
+
+"The line terminator for message-header fields is the sequence CRLF.
+However, we recommend that applications, when parsing such headers,
+recognize a single LF as a line terminator and ignore the leading CR."
+
+CRLF changed to ("\r\n" | "\n")
+
+Github commit https://github.com/uno4ki/unicorn/commit/ed127b66e162aaf1
+76de05720f6be758f8b41b1f
+
+
+PS: Googling "nginx unicorn ssl_client_cert" shows the problem. 
+
+---
+ ext/unicorn_http/unicorn_http_common.rl |  2 +-
+ test/unit/test_http_parser.rb           | 16 ++++++++++++++++
+ 2 files changed, 17 insertions(+), 1 deletion(-)
+
+diff --git a/ext/unicorn_http/unicorn_http_common.rl
+b/ext/unicorn_http/unicorn_http_common.rl
+index cc1d455..507e570 100644
+--- a/ext/unicorn_http/unicorn_http_common.rl
++++ b/ext/unicorn_http/unicorn_http_common.rl
+@@ -4,7 +4,7 @@
+ 
+ #### HTTP PROTOCOL GRAMMAR
+ # line endings
+-  CRLF = "\r\n";
++  CRLF = ("\r\n" | "\n");
+ 
+ # character types
+   CTL = (cntrl | 127);
+diff --git a/test/unit/test_http_parser.rb
+b/test/unit/test_http_parser.rb
+index c72f7f2..4b1a16e 100644
+--- a/test/unit/test_http_parser.rb
++++ b/test/unit/test_http_parser.rb
+@@ -230,6 +230,22 @@ def test_nasty_pound_header
+     assert_equal expect, req['HTTP_X_SSL_BULLSHIT']
+   end
+ 
++  def test_multiline_header_0d0a
++    parser = HttpParser.new
++    parser.buf << "GET / HTTP/1.0\r\nX-Multiline-Header: foo
+bar\r\n\tcha cha\r\n\tzha zha\r\n\r\n"
++    req = parser.env
++    assert_equal req, parser.parse
++    assert_equal 'foo bar cha cha zha zha',
+req['HTTP_X_MULTILINE_HEADER']
++  end
++
++  def test_multiline_header_0a
++    parser = HttpParser.new
++    parser.buf << "GET / HTTP/1.0\nX-Multiline-Header: foo bar\n\tcha
+cha\n\tzha zha\n\n"
++    req = parser.env
++    assert_equal req, parser.parse
++    assert_equal 'foo bar cha cha zha zha',
+req['HTTP_X_MULTILINE_HEADER']
++  end
++
+   def test_continuation_eats_leading_spaces
+     parser = HttpParser.new
+     header = "GET / HTTP/1.1\r\n" \
+-- 
+2.10.1
