@@ -1,0 +1,89 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.0
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id 3F20F1F4F8;
+	Thu, 20 Oct 2016 17:55:54 +0000 (UTC)
+Date: Thu, 20 Oct 2016 17:55:54 +0000
+From: Eric Wong <e@80x24.org>
+To: Mishael A Sibiryakov <death@junki.org>
+Cc: unicorn-public@bogomips.org
+Subject: Re: [PATCH] Add some tolerance (RFC2616 sec. 19.3)
+Message-ID: <20161020175554.GA15564@starla>
+References: <1476954332.1736.156.camel@junki.org>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+Content-Transfer-Encoding: 8bit
+In-Reply-To: <1476954332.1736.156.camel@junki.org>
+List-Id: <unicorn-public@bogomips.org>
+
+Mishael A Sibiryakov <death@junki.org> wrote:
+> Hi all.
+> 
+> We're implementing client certificate authentication with nginx and
+> unicorn. 
+> 
+> Nginx configured in the following way:
+> 
+> proxy_set_header X-SSL-Client-Cert $ssl_client_cert;
+> 
+> When client submits certificate and nginx passes it to the unicorn,
+> unicorn responds with 400 (Bad Request). This caused because nginx
+> doesn't use "\r\n" they using just "\n" and multilne headers is failed
+> to parse (I've added test).
+> 
+> Accorording to RFC2616 section 19.3:
+> https://www.w3.org/Protocols/rfc2616/rfc2616-sec19.html#sec19.3
+> 
+> "The line terminator for message-header fields is the sequence CRLF.
+> However, we recommend that applications, when parsing such headers,
+> recognize a single LF as a line terminator and ignore the leading CR."
+> 
+> CRLF changed to ("\r\n" | "\n")
+
+Thanks for that useful explanation.  Aside from the unnecessary,
+"Hi all,", that is an informative commit message which justifies
+the usefulness of that patch.
+
+> Github commit https://github.com/uno4ki/unicorn/commit/ed127b66e162aaf1
+> 76de05720f6be758f8b41b1f
+
+Unfortunately, the commit message in your git repo is lacking.
+I've used the text at the top of your email.
+
+> PS: Googling "nginx unicorn ssl_client_cert" shows the problem. 
+> 
+> ---
+>  ext/unicorn_http/unicorn_http_common.rl |  2 +-
+>  test/unit/test_http_parser.rb           | 16 ++++++++++++++++
+>  2 files changed, 17 insertions(+), 1 deletion(-)
+
+Eeep, Evolution does some strange things with formatting
+whitespaces.  It looks like instructions for making it nicer are
+in the Linux kernel:
+
+https://bogomips.org/mirrors/linux.git/plain/Documentation/email-clients.txt?h=v4.8
+
+<snip>
+
+> +  def test_multiline_header_0d0a
+> +    parser = HttpParser.new
+> +    parser.buf << "GET / HTTP/1.0\r\nX-Multiline-Header: foo
+> bar\r\n\tcha cha\r\n\tzha zha\r\n\r\n"
+
+I expect code to be wrapped at 80 lines or less.  Fixed locally.
+(I need big fonts, even 80 is a compromise, I really prefer 64)
+
+Anyways, pushed to the "rfc2616-sec19.3" branch.
+
+I've also uploaded a prerelease 5.1.0.4.gd5fbb to RubyGems
+for folks without Ragel.
+
+	gem install --pre unicorn -v 5.1.0.4.gd5fbb
+
+Anything else?  Expect a 5.2.0 release in a few days or so.
+Thanks.
