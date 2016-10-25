@@ -1,0 +1,321 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.0
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id 739832035F;
+	Tue, 25 Oct 2016 22:25:14 +0000 (UTC)
+Date: Tue, 25 Oct 2016 22:25:14 +0000
+From: Eric Wong <e@80x24.org>
+To: unicorn-public@bogomips.org
+Subject: [PATCH] relocate website to https://bogomips.org/unicorn/
+Message-ID: <20161025222514.GA31018@starla>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+List-Id: <unicorn-public@bogomips.org>
+
+HTTPS helps some with reader privacy and Let's Encrypt seems to
+be working well enough the past few months.
+
+This change will allow us to reduce subjectAltName bloat in our
+TLS certificate over time.  It will also promote domain name
+agility to support mirrors or migrations to other domains
+(including a Tor hidden service mirror).
+
+http://bogomips.org/unicorn/ will remain available for people on
+legacy systems without usable TLS.  There is no plan for automatic
+redirecting from HTTP to HTTPS at this time.
+---
+
+ I'm not sure when I'll remove "unicorn.bogomips.org"
+ subjectAltName from the TLS certificate, yet, hopefully
+ within a year; but maybe that's optimistic
+
+ I never actually advertised the HTTPS site for this project
+ before today, but search engines picked it up.  Oh well :<
+
+ .olddoc.yml                       |  6 +++---
+ Documentation/unicorn.1.txt       |  4 ++--
+ Documentation/unicorn_rails.1.txt |  4 ++--
+ GNUmakefile                       |  4 ++--
+ HACKING                           |  2 +-
+ ISSUES                            | 12 ++++++------
+ Links                             |  4 ++--
+ README                            |  4 ++--
+ SIGNALS                           |  2 +-
+ examples/big_app_gc.rb            |  2 +-
+ examples/nginx.conf               |  2 +-
+ examples/unicorn.conf.minimal.rb  |  4 ++--
+ examples/unicorn.conf.rb          |  4 ++--
+ lib/unicorn/configurator.rb       |  6 +++---
+ lib/unicorn/http_server.rb        |  2 +-
+ 15 files changed, 31 insertions(+), 31 deletions(-)
+
+diff --git a/.olddoc.yml b/.olddoc.yml
+index c4a9236..ee2d306 100644
+--- a/.olddoc.yml
++++ b/.olddoc.yml
+@@ -1,8 +1,8 @@
+ ---
+-cgit_url: http://bogomips.org/unicorn.git
++cgit_url: https://bogomips.org/unicorn.git
+ git_url: git://bogomips.org/unicorn.git
+-rdoc_url: http://unicorn.bogomips.org/
+-ml_url: http://bogomips.org/unicorn-public/
++rdoc_url: https://bogomips.org/unicorn/
++ml_url: https://bogomips.org/unicorn-public/
+ merge_html:
+   unicorn_1: Documentation/unicorn.1.html
+   unicorn_rails_1: Documentation/unicorn_rails.1.html
+diff --git a/Documentation/unicorn.1.txt b/Documentation/unicorn.1.txt
+index 3f20a9a..e692078 100644
+--- a/Documentation/unicorn.1.txt
++++ b/Documentation/unicorn.1.txt
+@@ -181,7 +181,7 @@ the unicorn config file.
+ * [Rack RDoc][2]
+ * [Rackup HowTo][3]
+ 
+-[1]: http://unicorn.bogomips.org/
++[1]: https://bogomips.org/unicorn/
+ [2]: http://www.rubydoc.info/github/rack/rack/
+ [3]: https://github.com/rack/rack/wiki/tutorial-rackup-howto
+-[4]: http://unicorn.bogomips.org/SIGNALS.html
++[4]: https://bogomips.org/unicorn/SIGNALS.html
+diff --git a/Documentation/unicorn_rails.1.txt b/Documentation/unicorn_rails.1.txt
+index 2ce7501..088e2ff 100644
+--- a/Documentation/unicorn_rails.1.txt
++++ b/Documentation/unicorn_rails.1.txt
+@@ -169,7 +169,7 @@ used by Unicorn.
+ * [Rack RDoc][2]
+ * [Rackup HowTo][3]
+ 
+-[1]: http://unicorn.bogomips.org/
++[1]: https://bogomips.org/unicorn/
+ [2]: http://www.rubydoc.info/github/rack/rack/
+ [3]: https://github.com/rack/rack/wiki/tutorial-rackup-howto
+-[4]: http://unicorn.bogomips.org/SIGNALS.html
++[4]: https://bogomips.org/unicorn/SIGNALS.html
+diff --git a/GNUmakefile b/GNUmakefile
+index 3f9c441..bc9c643 100644
+--- a/GNUmakefile
++++ b/GNUmakefile
+@@ -183,13 +183,13 @@ doc: .document $(ext)/unicorn_http.c man html .olddoc.yml $(PLACEHOLDERS)
+ 	install -m644 $(man1_paths) doc/
+ 	tar cf - $$(git ls-files examples/) | (cd doc && tar xf -)
+ 
+-# publishes docs to http://unicorn.bogomips.org
++# publishes docs to https://bogomips.org/unicorn/
+ publish_doc:
+ 	-git set-file-times
+ 	$(MAKE) doc
+ 	$(MAKE) doc_gz
+ 	chmod 644 $$(find doc -type f)
+-	$(RSYNC) -av doc/ unicorn.bogomips.org:/srv/unicorn/
++	$(RSYNC) -av doc/ bogomips.org:/srv/bogomips/unicorn/
+ 	git ls-files | xargs touch
+ 
+ # Create gzip variants of the same timestamp as the original so nginx
+diff --git a/HACKING b/HACKING
+index 0fa22cd..d55f1c7 100644
+--- a/HACKING
++++ b/HACKING
+@@ -57,7 +57,7 @@ Please wrap documentation at 72 characters-per-line or less (long URLs
+ are exempt) so it is comfortably readable from terminals.
+ 
+ When referencing mailing list posts, use
+-<tt>http://bogomips.org/unicorn-public/$MESSAGE_ID/</tt> if possible
++<tt>https://bogomips.org/unicorn-public/$MESSAGE_ID/</tt> if possible
+ since the Message-ID remains searchable even if a particular site
+ becomes unavailable.
+ 
+diff --git a/ISSUES b/ISSUES
+index 21bd013..291441a 100644
+--- a/ISSUES
++++ b/ISSUES
+@@ -2,8 +2,8 @@
+ 
+ mailto:unicorn-public@bogomips.org is the best place to report bugs,
+ submit patches and/or obtain support after you have searched the
+-{email archives}[http://bogomips.org/unicorn-public/] and
+-{documentation}[http://unicorn.bogomips.org/].
++{email archives}[https://bogomips.org/unicorn-public/] and
++{documentation}[https://bogomips.org/unicorn/].
+ 
+ * No subscription will ever be required to email us
+ * Cc: all participants in a thread or commit, as subscription is optional
+@@ -12,7 +12,7 @@ submit patches and/or obtain support after you have searched the
+ * Do not send HTML mail or images, it will be flagged as spam
+ * Anonymous and pseudonymous messages will always be welcome.
+ * The email submission port (587) is enabled on the bogomips.org MX:
+-  http://bogomips.org/unicorn-public/20141004232241.GA23908@dcvr.yhbt.net/t/
++  https://bogomips.org/unicorn-public/20141004232241.GA23908@dcvr.yhbt.net/t/
+ 
+ If your issue is of a sensitive nature or you're just shy in public,
+ then feel free to email us privately at mailto:unicorn@bogomips.org
+@@ -67,7 +67,7 @@ document distributed with git) on guidelines for patch submission.
+ * private: mailto:unicorn@bogomips.org
+ * nntp://news.gmane.org/gmane.comp.lang.ruby.unicorn.general
+ * nntp://news.public-inbox.org/inbox.comp.lang.ruby.unicorn
+-* http://bogomips.org/unicorn-public/
++* https://bogomips.org/unicorn-public/
+ 
+ Mailing list subscription is optional, so Cc: all participants.
+ 
+@@ -78,9 +78,9 @@ You can follow along via NNTP:
+ 
+ Or Atom feeds:
+ 
+-	http://bogomips.org/unicorn-public/new.atom
++	https://bogomips.org/unicorn-public/new.atom
+ 
+-	The HTML archives at http://bogomips.org/unicorn-public/
++	The HTML archives at https://bogomips.org/unicorn-public/
+ 	also has links to per-thread Atom feeds and downloadable
+ 	mboxes.
+ 
+diff --git a/Links b/Links
+index 6474a9d..7c113c8 100644
+--- a/Links
++++ b/Links
+@@ -26,7 +26,7 @@ or services behind them.
+ * {raindrops}[http://raindrops.bogomips.org/] - real-time stats for
+   preforking Rack servers
+ 
+-* {UnXF}[http://bogomips.org/unxf/]  Un-X-Forward* the Rack environment,
++* {UnXF}[https://bogomips.org/unxf/]  Un-X-Forward* the Rack environment,
+   useful since unicorn is designed to be deployed behind a reverse proxy.
+ 
+ === unicorn is written to work with
+@@ -52,5 +52,5 @@ or services behind them.
+ * {Mongrel}[http://rubygems.org/gems/mongrel] - the awesome webserver
+   unicorn is based on
+ 
+-* {david}[http://bogomips.org/david.git] - a tool to explain why you need
++* {david}[https://bogomips.org/david.git] - a tool to explain why you need
+   nginx in front of unicorn
+diff --git a/README b/README
+index 8079f37..29e04b4 100644
+--- a/README
++++ b/README
+@@ -82,7 +82,7 @@ You can get the latest source via git from the following locations
+ 
+ You may browse the code from the web:
+ 
+-* http://bogomips.org/unicorn.git
++* https://bogomips.org/unicorn.git
+ * http://repo.or.cz/w/unicorn.git (gitweb)
+ 
+ See the HACKING guide on how to contribute and build prerelease gems
+@@ -128,7 +128,7 @@ All feedback (bug reports, user/development dicussion, patches, pull
+ requests) go to the mailing list/newsgroup.  See the ISSUES document for
+ information on the {mailing list}[mailto:unicorn-public@bogomips.org].
+ 
+-The mailing list is archived at http://bogomips.org/unicorn-public/
++The mailing list is archived at https://bogomips.org/unicorn-public/
+ Read-only NNTP access is available at:
+ nntp://news.public-inbox.org/inbox.comp.lang.ruby.unicorn and
+ nntp://news.gmane.org/gmane.comp.lang.ruby.unicorn.general
+diff --git a/SIGNALS b/SIGNALS
+index 4d78065..1af851d 100644
+--- a/SIGNALS
++++ b/SIGNALS
+@@ -8,7 +8,7 @@ should be possible to easily share process management scripts between
+ Unicorn and nginx.
+ 
+ One example init script is distributed with unicorn:
+-http://unicorn.bogomips.org/examples/init.sh
++https://bogomips.org/unicorn/examples/init.sh
+ 
+ === Master Process
+ 
+diff --git a/examples/big_app_gc.rb b/examples/big_app_gc.rb
+index c4c8b04..9d05719 100644
+--- a/examples/big_app_gc.rb
++++ b/examples/big_app_gc.rb
+@@ -1,2 +1,2 @@
+-# see {Unicorn::OobGC}[http://unicorn.bogomips.org/Unicorn/OobGC.html]
++# see {Unicorn::OobGC}[https://bogomips.org/unicorn/Unicorn/OobGC.html]
+ # Unicorn::OobGC was broken in Unicorn v3.3.1 - v3.6.1 and fixed in v3.6.2
+diff --git a/examples/nginx.conf b/examples/nginx.conf
+index 0583c1f..e25712f 100644
+--- a/examples/nginx.conf
++++ b/examples/nginx.conf
+@@ -112,7 +112,7 @@ http {
+     # try_files directive appeared in in nginx 0.7.27 and has stabilized
+     # over time.  Older versions of nginx (e.g. 0.6.x) requires
+     # "if (!-f $request_filename)" which was less efficient:
+-    # http://bogomips.org/unicorn.git/tree/examples/nginx.conf?id=v3.3.1#n127
++    # https://bogomips.org/unicorn.git/tree/examples/nginx.conf?id=v3.3.1#n127
+     try_files $uri/index.html $uri.html $uri @app;
+ 
+     location @app {
+diff --git a/examples/unicorn.conf.minimal.rb b/examples/unicorn.conf.minimal.rb
+index 2a47910..2d1bf0a 100644
+--- a/examples/unicorn.conf.minimal.rb
++++ b/examples/unicorn.conf.minimal.rb
+@@ -1,9 +1,9 @@
+ # Minimal sample configuration file for Unicorn (not Rack) when used
+ # with daemonization (unicorn -D) started in your working directory.
+ #
+-# See http://unicorn.bogomips.org/Unicorn/Configurator.html for complete
++# See https://bogomips.org/unicorn/Unicorn/Configurator.html for complete
+ # documentation.
+-# See also http://unicorn.bogomips.org/examples/unicorn.conf.rb for
++# See also https://bogomips.org/unicorn/examples/unicorn.conf.rb for
+ # a more verbose configuration using more features.
+ 
+ listen 2007 # by default Unicorn listens on port 8080
+diff --git a/examples/unicorn.conf.rb b/examples/unicorn.conf.rb
+index 1e05cbb..d2897ef 100644
+--- a/examples/unicorn.conf.rb
++++ b/examples/unicorn.conf.rb
+@@ -2,10 +2,10 @@
+ #
+ # This configuration file documents many features of Unicorn
+ # that may not be needed for some applications. See
+-# http://unicorn.bogomips.org/examples/unicorn.conf.minimal.rb
++# https://bogomips.org/unicorn/examples/unicorn.conf.minimal.rb
+ # for a much simpler configuration file.
+ #
+-# See http://unicorn.bogomips.org/Unicorn/Configurator.html for complete
++# See https://bogomips.org/unicorn/Unicorn/Configurator.html for complete
+ # documentation.
+ 
+ # Use at least one worker per core if you're on a dedicated server,
+diff --git a/lib/unicorn/configurator.rb b/lib/unicorn/configurator.rb
+index 948c6e3..3329c10 100644
+--- a/lib/unicorn/configurator.rb
++++ b/lib/unicorn/configurator.rb
+@@ -3,11 +3,11 @@
+ 
+ # Implements a simple DSL for configuring a unicorn server.
+ #
+-# See http://unicorn.bogomips.org/examples/unicorn.conf.rb and
+-# http://unicorn.bogomips.org/examples/unicorn.conf.minimal.rb
++# See https://bogomips.org/unicorn/examples/unicorn.conf.rb and
++# https://bogomips.org/unicorn/examples/unicorn.conf.minimal.rb
+ # example configuration files.  An example config file for use with
+ # nginx is also available at
+-# http://unicorn.bogomips.org/examples/nginx.conf
++# https://bogomips.org/unicorn/examples/nginx.conf
+ #
+ # See the link:/TUNING.html document for more information on tuning unicorn.
+ class Unicorn::Configurator
+diff --git a/lib/unicorn/http_server.rb b/lib/unicorn/http_server.rb
+index 741cca5..35bd100 100644
+--- a/lib/unicorn/http_server.rb
++++ b/lib/unicorn/http_server.rb
+@@ -6,7 +6,7 @@
+ # forked worker children.
+ #
+ # Users do not need to know the internals of this class, but reading the
+-# {source}[http://bogomips.org/unicorn.git/tree/lib/unicorn/http_server.rb]
++# {source}[https://bogomips.org/unicorn.git/tree/lib/unicorn/http_server.rb]
+ # is education for programmers wishing to learn how unicorn works.
+ # See Unicorn::Configurator for information on how to configure unicorn.
+ class Unicorn::HttpServer
+-- 
+EW
