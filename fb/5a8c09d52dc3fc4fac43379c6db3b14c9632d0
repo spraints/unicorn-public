@@ -1,0 +1,71 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,AWL,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.0
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id A232D20193;
+	Fri, 28 Oct 2016 00:23:15 +0000 (UTC)
+Date: Fri, 28 Oct 2016 00:23:15 +0000
+From: Eric Wong <e@80x24.org>
+To: Hleb Valoshka <375gnu@gmail.com>
+Cc: debian-ruby <debian-ruby@lists.debian.org>,
+	Pirate Praveen <praveen@onenetbeyond.org>,
+	unicorn-public@bogomips.org
+Subject: Re: trying to update unicorn to 5.1, build failure: VERSION= must be
+ specified
+Message-ID: <20161028002315.GA15205@starla>
+References: <f1d5eacb-b6a2-be96-34aa-fe061a194a62@onenetbeyond.org>
+ <CAAB-Kcnwzc8Tcszv3FCPkyJRKRCsHRH6k_qBhKfBpSODxqKy5g@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <CAAB-Kcnwzc8Tcszv3FCPkyJRKRCsHRH6k_qBhKfBpSODxqKy5g@mail.gmail.com>
+List-Id: <unicorn-public@bogomips.org>
+
+Hleb Valoshka <375gnu@gmail.com> wrote:
+> On 9/19/16, Pirate Praveen <praveen@onenetbeyond.org> wrote:
+> > Its pushed to alioth. Can someone check?
+> >
+> > Error below:
+> >
+> > $ clean
+> > dh clean --buildsystem=ruby --with ruby,systemd
+> >    dh_testdir -O--buildsystem=ruby
+> >    dh_auto_clean -O--buildsystem=ruby
+> > 	dh_ruby --clean
+> >    dh_ruby --clean
+> > VERSION= must be specified
+> > dh_auto_clean: dh_ruby --clean returned exit code 1
+> > debian/rules:6: recipe for target 'clean' failed
+> > make: *** [clean] Error 1
+> 
+> This is not the only problem, then you should have olddoc gem, I
+> remember that I tried to fix these error, but I don't see my changes,
+> maybe I did this on my home pc, I'll look there.
+
+(oops, missed this earlier)
+
+I understand olddoc may not be worth the effort to package in
+Debian.  (I already tried to reduce dependencies in olddoc
+compared to wrongdoc, but a package is a package...)
+
+Anyways, I suggest you guys grab the generated gemspec from the
+Rubygem or tar.gz.  You already seem to be doing that with NEWS
+and the manpages to avoid a build-dep on pandoc(*).
+
+Maybe the gemspec in git could have olddoc become optional, too,
+while still remaining DRY.  The email address for the public
+mailing list is already specified in multiple places, so maybe
+over-DRY-ing isn't worth it...
+
+Anyways, feel free to email me + Cc: unicorn-public@bogomips.org
+w.r.t. any packaging/integration issues for any Free Software
+systems (not just Debian)
+
+
+(*) - I'll be switching over to perlpod at some point and
+      pod2man is standard in Debian.  I hate having to spend
+      ~30MB of bandwidth fees to get ghc + pandoc to build
+      manpages.
