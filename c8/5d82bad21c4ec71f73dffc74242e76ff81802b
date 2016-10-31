@@ -1,0 +1,55 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,AWL,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.0
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id B4BD12021E;
+	Mon, 31 Oct 2016 23:36:46 +0000 (UTC)
+Date: Mon, 31 Oct 2016 23:36:46 +0000
+From: Eric Wong <e@80x24.org>
+To: Sam Saffron <sam.saffron@gmail.com>
+Cc: unicorn-public <unicorn-public@bogomips.org>
+Subject: Re: Master wait time metric
+Message-ID: <20161031233646.GA10820@dcvr>
+References: <CAAtdryN4dbaLPZJrgdrDVkdJQXeOpmeOhpC+_u3ZpqpQcQiqJQ@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <CAAtdryN4dbaLPZJrgdrDVkdJQXeOpmeOhpC+_u3ZpqpQcQiqJQ@mail.gmail.com>
+List-Id: <unicorn-public@bogomips.org>
+
+Sam Saffron <sam.saffron@gmail.com> wrote:
+> Hi Eric / everyone :)
+> 
+> I would like to start graphing how long our master process spends
+> waiting for worker processes to be available.
+
+Fwiw, the master doesn't wait for workers to become available for
+processing requests.  But I think I know what you mean to ask :>
+
+Rather, the connection request sits in the listen queue (a kernel
+object) shared by all workers, and instrumenting this is always
+kernel-dependent (because unicorn avoids doing stuff in userspace).
+
+> This metric will allow us to quickly tell if a unicorn is being
+> overloaded and allow us to quickly remediate.
+> 
+> Once a minute I want to ask the master process how long it spent
+> waiting for child processes to become available.
+> 
+> How would I go about getting that metric?
+
+Linux-only, but you can probably look at Raindrops::LastDataRecv
+
+	https://bogomips.org/raindrops/Raindrops/LastDataRecv.html
+
+Raindrops::Middleware can give you how big the listen queue is,
+too.  Ideally, this should never exceed 1.
+
+	https://bogomips.org/raindrops/Raindrops/Middleware.html
+
+
+You can probably get the same metrics directly from the kernel
+via systemtap, dtrace, or similar, too.
