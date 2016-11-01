@@ -1,0 +1,93 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,AWL,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.0
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id D0E4520229;
+	Tue,  1 Nov 2016 18:11:57 +0000 (UTC)
+Date: Tue, 1 Nov 2016 18:11:57 +0000
+From: Eric Wong <e@80x24.org>
+To: Joe McIlvain <joe.eli.mac@gmail.com>
+Cc: unicorn-public@bogomips.org
+Subject: Re: Support for HTTP/1.0
+Message-ID: <20161101181157.GA6516@dcvr>
+References: <CAPGBM9b9Y2LHrdaUbsZX4rZfRh2xUJeb8Z3kfE9zQkn6jz9V4A@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <CAPGBM9b9Y2LHrdaUbsZX4rZfRh2xUJeb8Z3kfE9zQkn6jz9V4A@mail.gmail.com>
+List-Id: <unicorn-public@bogomips.org>
+
+Joe McIlvain <joe.eli.mac@gmail.com> wrote:
+> We work on an IoT-oriented web service that uses Unicorn.  One of our
+> requirements is to support HTTP/1.0 for low-complexity devices.
+> 
+> We've noticed that HTTP/1.0 requests to Unicorn always get HTTP/1.1
+> responses, which is invalid behaviour for the HTTP/1.0 protocol.
+> 
+> Sure enough, looking through the Unicorn source I see that the
+> "HTTP/1.1" protocol is hard-coded in the response writing logic:
+> https://github.com/defunkt/unicorn/blob/a72d2e7fbd13a6bfe64b79ae361c17ea568d4867/lib/unicorn/http_response.rb#L30
+
+Right, it's certainly faster to avoid having an extra hash
+lookup to get the correct string in the response.
+
+Ruby performance ought to be better nowadays than it was when
+the code was written, however; so maybe we can use up some
+extra cycles in the interest of correctness.
+
+> When behind our nginx/haproxy frontend, this behaviour is a little
+> more sneaky.  For "short" response payloads, the proxy will override
+> the response and always (correctly) use HTTP/1.0.  However, for "long"
+> response payloads, the content encoding is "chunked" and the proxy
+> will use "HTTP/1.1"
+
+Interesting, that sounds like a bug or misconfiguration in nginx
+or haproxy if it's giving chunked responses to 1.0 clients.
+
+Is this nginx->haproxy->unicorn  or  haproxy->nginx->unicorn?
+
+Are persistent connections from nginx->unicorn enabled?
+(I suggest keeping it disabled, the default as far as I recall)
+
+What else can you share about your nginx/haproxy version and
+configuration?
+
+> You can actually see this bug in action in the GitHub API (a prominent
+> web service using Unicorn).  If you send `curl -v --http1.0
+> https://api.github.com/gists/public`, you will get an HTTP/1.1 chunked
+> response, which an HTTP/1.0 client cannot handle.
+
+I can't seem to reproduce the chunked response.
+
+It says "HTTP/1.1", but it either has Content-Length set (if
+requested w/o gzip) or just closes the connection if requested
+with compression.  Even with the Content-Length set, the
+connection is still closed, so should be easily handled by
+1.0 parsers.
+
+> I've experimented with using puma instead of unicorn, and it behaves
+> correctly in this respect (it responds to HTTP/1.0 requests with
+> HTTP/1.0 responses).  However we'd like to keep using unicorn if
+> possible.
+
+Puma was meant for real-world HTTP clients, whereas unicorn is
+mainly designed to talk to nginx, so correctness was less of a
+priority.
+
+> Does Unicorn intend to support HTTP/1.0?
+
+We can consider it; but this is the first I recall hearing about
+this after all these years.
+
+Can you please share more info about your nginx/haproxy so
+we can poke around?  The proxies should really be massaging
+the response into something the client can handle...
+
+Strangely, I remember going out of my way to support headerless
+"HTTP/0.9" responses :>
+
+Anyways thanks for bringing this up and I look forward
+to having more info about your proxy setup.
