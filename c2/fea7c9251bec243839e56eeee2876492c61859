@@ -1,0 +1,91 @@
+Return-Path: <sam.saffron@gmail.com>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS15169 209.85.128.0/17
+X-Spam-Status: No, score=-1.2 required=3.0 tests=AWL,BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,DKIM_VALID_AU,FREEMAIL_FROM,RCVD_IN_DNSWL_LOW,RCVD_IN_MSPIKE_H3,
+	RCVD_IN_MSPIKE_WL,RCVD_IN_SORBS_SPAM,SPF_PASS shortcircuit=no autolearn=ham
+	autolearn_force=no version=3.4.0
+Received: from mail-qt0-f172.google.com (mail-qt0-f172.google.com [209.85.216.172])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+	(No client certificate requested)
+	by dcvr.yhbt.net (Postfix) with ESMTPS id B0BF020193
+	for <unicorn-public@bogomips.org>; Tue,  1 Nov 2016 08:21:32 +0000 (UTC)
+Received: by mail-qt0-f172.google.com with SMTP id n6so52697454qtd.1
+        for <unicorn-public@bogomips.org>; Tue, 01 Nov 2016 01:21:32 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20120113;
+        h=mime-version:in-reply-to:references:from:date:message-id:subject:to
+         :cc;
+        bh=QV0+pLK0w2B0e5hIC2wWQy7dOBXc4g95Q3LtfWbCiW4=;
+        b=wswK1NF6co6VScuL5gEh40fkrVVVSFz8nnYsR04Y/vwU5+akH5nIqh2o12TJT4APwd
+         5fPD5AE4q8lCFIjBcEa+R2fO6jjBhXjS2ncYt2TQ2XB1KTgUySsfSAgMzRA/0PeoJpdG
+         cDpLVlDXDQ6vkMHT0Tb4WuhW6GNa8yxzj4xTXK/Etaino8EQkwmFOYN/ZTvdd1aYKDnk
+         B6Pgv1Gg/gbWdP9SlNf1MK/6VQiyp5D9E8bwlvy9nF7wPQHGk++tTt0MxC19UBp29LCY
+         f+Jx+aoJ+zdmeLfTYRKHl22qWGyz4llpzhx0hcurmq+72JtNrscjtscoad1GEEBG7kba
+         6cPg==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20130820;
+        h=x-gm-message-state:mime-version:in-reply-to:references:from:date
+         :message-id:subject:to:cc;
+        bh=QV0+pLK0w2B0e5hIC2wWQy7dOBXc4g95Q3LtfWbCiW4=;
+        b=cNCtySxVshUve7aWAAmTDS8VVZROWiU/JwZ+tLYMQsgbxQEiXXqsTsOGDqB3AyT6al
+         J3imRm+8oQVlcKkbDyx28bIFvTaUVZ7YOvkuhzAytzZXx8Rmirolb7XVRjEEvh6Rj1ko
+         +wkCvI/sVF0HjhJ8ArU7oX73hSvLGV/Jk3xATyBGVlWPJpbSH4TbAgz1w3ZvONkfD33M
+         9AXi/myf6vWpyKkhfDKUjcC6n1qp6EWn2ggU1xCgcVXDNauKqwqSiL7WeVCW4XWS0Z95
+         3AQAsRQOC++xdHv8TjNCB0rTcznS4SQ4AIhZre5bU8YUr/fHF4MyQwDj/SFi93tuIlRe
+         IWMQ==
+X-Gm-Message-State: ABUngve8L1MycxE85bM/HefGogFsWb7lMjbAF1sAll74wf/6rkVcsoxCzesh+uOn0Necp9ZzalQsamm1nyws4Q==
+X-Received: by 10.237.42.108 with SMTP id k41mr30164307qtf.21.1477988491660;
+ Tue, 01 Nov 2016 01:21:31 -0700 (PDT)
+MIME-Version: 1.0
+Received: by 10.55.41.8 with HTTP; Tue, 1 Nov 2016 01:21:31 -0700 (PDT)
+In-Reply-To: <20161031233646.GA10820@dcvr>
+References: <CAAtdryN4dbaLPZJrgdrDVkdJQXeOpmeOhpC+_u3ZpqpQcQiqJQ@mail.gmail.com>
+ <20161031233646.GA10820@dcvr>
+From: Sam Saffron <sam.saffron@gmail.com>
+Date: Tue, 1 Nov 2016 19:21:31 +1100
+Message-ID: <CAAtdryOYrXQfnZtxUousnZrATvcfPsoQPFAzrJKU3WqN86=eLQ@mail.gmail.com>
+Subject: Re: Master wait time metric
+To: Eric Wong <e@80x24.org>
+Cc: unicorn-public <unicorn-public@bogomips.org>
+Content-Type: text/plain; charset=UTF-8
+List-Id: <unicorn-public@bogomips.org>
+
+Brilliant, this will make it super easy to write a Prometheus
+exporter, will post here once I am done.
+
+On Tue, Nov 1, 2016 at 10:36 AM, Eric Wong <e@80x24.org> wrote:
+> Sam Saffron <sam.saffron@gmail.com> wrote:
+>> Hi Eric / everyone :)
+>>
+>> I would like to start graphing how long our master process spends
+>> waiting for worker processes to be available.
+>
+> Fwiw, the master doesn't wait for workers to become available for
+> processing requests.  But I think I know what you mean to ask :>
+>
+> Rather, the connection request sits in the listen queue (a kernel
+> object) shared by all workers, and instrumenting this is always
+> kernel-dependent (because unicorn avoids doing stuff in userspace).
+>
+>> This metric will allow us to quickly tell if a unicorn is being
+>> overloaded and allow us to quickly remediate.
+>>
+>> Once a minute I want to ask the master process how long it spent
+>> waiting for child processes to become available.
+>>
+>> How would I go about getting that metric?
+>
+> Linux-only, but you can probably look at Raindrops::LastDataRecv
+>
+>         https://bogomips.org/raindrops/Raindrops/LastDataRecv.html
+>
+> Raindrops::Middleware can give you how big the listen queue is,
+> too.  Ideally, this should never exceed 1.
+>
+>         https://bogomips.org/raindrops/Raindrops/Middleware.html
+>
+>
+> You can probably get the same metrics directly from the kernel
+> via systemtap, dtrace, or similar, too.
