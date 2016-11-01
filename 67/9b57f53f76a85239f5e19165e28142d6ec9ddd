@@ -1,0 +1,106 @@
+Return-Path: <joe.eli.mac@gmail.com>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS15169 74.125.0.0/16
+X-Spam-Status: No, score=-2.7 required=3.0 tests=AWL,BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,DKIM_VALID_AU,FREEMAIL_FROM,RCVD_IN_DNSWL_NONE,RCVD_IN_MSPIKE_H3,
+	RCVD_IN_MSPIKE_WL,RCVD_IN_SORBS_SPAM,SPF_PASS shortcircuit=no autolearn=no
+	autolearn_force=no version=3.4.0
+Received: from mail-wm0-f52.google.com (mail-wm0-f52.google.com [74.125.82.52])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+	(No client certificate requested)
+	by dcvr.yhbt.net (Postfix) with ESMTPS id 44B7220229
+	for <unicorn-public@bogomips.org>; Tue,  1 Nov 2016 17:29:22 +0000 (UTC)
+Received: by mail-wm0-f52.google.com with SMTP id p190so218794625wmp.1
+        for <unicorn-public@bogomips.org>; Tue, 01 Nov 2016 10:29:22 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20120113;
+        h=mime-version:in-reply-to:references:from:date:message-id:subject:to;
+        bh=Kko6IQSTGzYNBfgAbBsG6FiLaccm4xEbFPbMmgURk8c=;
+        b=WnvWZcT+YO0Q6SKXit6NH9t7SLssOni2mGC1EtKx4CT6kDcii6PtywlaQBnTK/1JW4
+         BUINfEsl2g4lXXXXxnN0FSI84LBJzbfjaaxpWwsFsWTjXR3RcG3vcdQfY7jiiygfbUfl
+         46DVucZ3aEkM8JAQu9B34RKz4Mgrs266c80fMHX2PP3HPxLj2/ao0Y5mzn+ucVVmOuHS
+         MT9pe8yT6UPia/VAeO4Hre5j+phz1JJ9JbRq2qwI0Es+qRawrfvIhv0FCB/fEJCDqHKu
+         jqTp5eEPlikffOnHMkIFX187fy+evm/Yd/SVMVVcqRN28yuso44jpkMlrLM1PoyD6fuR
+         jBPQ==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20130820;
+        h=x-gm-message-state:mime-version:in-reply-to:references:from:date
+         :message-id:subject:to;
+        bh=Kko6IQSTGzYNBfgAbBsG6FiLaccm4xEbFPbMmgURk8c=;
+        b=h70w7rKzdor81iZAc6OKUrsRflPluEtqtBFTg404/b97XHMXxxl/zD4xKfjqBrkn/J
+         Dt9a72rsWr/Gpg1OPDp/9d36kgZ7vvrI+jluuwZWwpx2BqwI4OdrF8ODbg7QXneLG7dv
+         66jK2gAPd9L2OOXwMql+y8BmLUEel4AoyCkwu5Q37hRrxfVNkx+7UPdAFucqJZ71dZZ7
+         tRv8XsdDDzPp7H8fkXSx0Rwb/BALLZME+X6EnN+HJj0fcMZWzc/ApdQAsRZngO4bR4xy
+         XBsikQ46MWgIkG9YYVG47Tt2Ispw1ITbDkqEl0KzkgEN59T8u/h6a7WGQUR2tJIyvX+g
+         Elrw==
+X-Gm-Message-State: ABUngvcVIcvgL6B5bW5NzY/9/gS8I336c3TLjEYUyRE5wRyZOhH2bdKf7P2So2YebGBBma4yCnC40yCVfwbn8A==
+X-Received: by 10.194.75.194 with SMTP id e2mr10272wjw.7.1478021360597; Tue,
+ 01 Nov 2016 10:29:20 -0700 (PDT)
+MIME-Version: 1.0
+Received: by 10.80.142.10 with HTTP; Tue, 1 Nov 2016 10:29:19 -0700 (PDT)
+In-Reply-To: <CAPGBM9YkEnTMic9GF5hLmo9251aW-NgJUVp7JB2ayMTeUa7BVw@mail.gmail.com>
+References: <CAPGBM9ZBfV4bqF8x+JD+Khk28FHXu6NBHeLWSk8mZmP=bQ0QXg@mail.gmail.com>
+ <20161101171417.0CCED20492@dcvr.yhbt.net> <CAPGBM9YkEnTMic9GF5hLmo9251aW-NgJUVp7JB2ayMTeUa7BVw@mail.gmail.com>
+From: Joe McIlvain <joe.eli.mac@gmail.com>
+Date: Tue, 1 Nov 2016 10:29:19 -0700
+Message-ID: <CAPGBM9bQFseRtZ+Vk02mZwbYUq+iDJx2cs6t1RoPOgaU5nVDEQ@mail.gmail.com>
+Subject: Re: Undelivered Mail Returned to Sender
+To: unicorn-public@bogomips.org
+Content-Type: text/plain; charset=UTF-8
+List-Id: <unicorn-public@bogomips.org>
+
+We work on an IoT-oriented web service that uses Unicorn.  One of our
+requirements is to support HTTP/1.0 for low-complexity devices.
+
+We've noticed that HTTP/1.0 requests to Unicorn always get HTTP/1.1
+responses, which is invalid behaviour for the HTTP/1.0 protocol.
+
+Sure enough, looking through the Unicorn source I see that the
+"HTTP/1.1" protocol is hard-coded in the response writing logic:
+https://github.com/defunkt/unicorn/blob/a72d2e7fbd13a6bfe64b79ae361c17ea568d4867/lib/unicorn/http_response.rb#L30
+
+When behind our nginx/haproxy frontend, this behaviour is a little
+more sneaky.  For "short" response payloads, the proxy will override
+the response and always (correctly) use HTTP/1.0.  However, for "long"
+response payloads, the content encoding is "chunked" and the proxy
+will use "HTTP/1.1"
+
+You can actually see this bug in action in the GitHub API (a prominent
+web service using Unicorn).  If you send `curl -v --http1.0
+https://api.github.com/gists/public`, you will get an HTTP/1.1 chunked
+response, which an HTTP/1.0 client cannot handle.
+
+I've experimented with using puma instead of unicorn, and it behaves
+correctly in this respect (it responds to HTTP/1.0 requests with
+HTTP/1.0 responses).  However we'd like to keep using unicorn if
+possible.
+
+Does Unicorn intend to support HTTP/1.0?
+
+On Tue, Nov 1, 2016 at 10:18 AM, Joe McIlvain <joe.eli.mac@gmail.com> wrote:
+> We work on an IoT-oriented web service that uses Unicorn.  One of our
+> requirements is to support HTTP/1.0 for low-complexity devices.
+>
+> We've noticed that HTTP/1.0 requests to Unicorn always get HTTP/1.1
+> responses, which is invalid behaviour for the HTTP/1.0 protocol.
+>
+> Sure enough, looking through the Unicorn source I see that the "HTTP/1.1"
+> protocol is hard-coded in the response writing logic:
+> https://github.com/defunkt/unicorn/blob/a72d2e7fbd13a6bfe64b79ae361c17ea568d4867/lib/unicorn/http_response.rb#L30
+>
+> When behind our nginx/haproxy frontend, this behaviour is a little more
+> sneaky.  For "short" response payloads, the proxy will override the response
+> and always (correctly) use HTTP/1.0.  However, for "long" response payloads,
+> the content encoding is "chunked" and the proxy will use "HTTP/1.1"
+>
+> You can actually see this bug in action in the GitHub API (a prominent web
+> service using Unicorn).  If you send `curl -v --http1.0
+> https://api.github.com/gists/public`, you will get an HTTP/1.1 chunked
+> response, which an HTTP/1.0 client cannot handle.
+>
+> I've experimented with using puma instead of unicorn, and it behaves
+> correctly in this respect (it responds to HTTP/1.0 requests with HTTP/1.0
+> responses).  However we'd like to keep using unicorn if possible.
+>
+> Does Unicorn intend to support HTTP/1.0?
