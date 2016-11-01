@@ -1,0 +1,75 @@
+Return-Path: <joe.eli.mac@gmail.com>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS15169 74.125.0.0/16
+X-Spam-Status: No, score=-2.7 required=3.0 tests=AWL,BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,DKIM_VALID_AU,FREEMAIL_FROM,RCVD_IN_DNSWL_NONE,RCVD_IN_MSPIKE_H3,
+	RCVD_IN_MSPIKE_WL,RCVD_IN_SORBS_SPAM,SPF_PASS shortcircuit=no autolearn=no
+	autolearn_force=no version=3.4.0
+Received: from mail-wm0-f54.google.com (mail-wm0-f54.google.com [74.125.82.54])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+	(No client certificate requested)
+	by dcvr.yhbt.net (Postfix) with ESMTPS id F09B720492
+	for <unicorn-public@bogomips.org>; Tue,  1 Nov 2016 17:30:48 +0000 (UTC)
+Received: by mail-wm0-f54.google.com with SMTP id n67so299404404wme.1
+        for <unicorn-public@bogomips.org>; Tue, 01 Nov 2016 10:30:48 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20120113;
+        h=mime-version:from:date:message-id:subject:to;
+        bh=c1H/rzKYMZTgz/Pi22WAZYvZcH5YUkogIMvkwWgmR1s=;
+        b=lPnnVDm4jUhRltxQM8pxrrD5ypmbn2jAYI9qaXiXOieBeupqH63aMTbS6eOgT1wA6b
+         tNuu3BqXw/uh5CFGBvjQ/cUydH8mclVX9ftDblaSU1xHoYEADP7sAkTXknf7DUQHKxar
+         AR/5zCV0wwfZHueYChwE8kSSny5MXiMoQTKvuIeS/svcrUEZVlXy019Aaei99rjV5q+j
+         dS020a+0tVtZvsMizaYQI1fr9cnMq7W3u68cnZkC7xjOKYoNCfmtFhB+zL5sFHD/XERb
+         /l+FuP/RdoNI0oe7CAdnF4eXBPLhu9TA2aRHNWTYSooy6oPrHyCBz/FS/DfNsv2+vryy
+         IR3Q==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20130820;
+        h=x-gm-message-state:mime-version:from:date:message-id:subject:to;
+        bh=c1H/rzKYMZTgz/Pi22WAZYvZcH5YUkogIMvkwWgmR1s=;
+        b=dETV1BPCOtxJGnDPKm0wCwCeJDKU11FN2NV7n9n69xxkRTgRkIxI6VBELUqagvfK+P
+         KCmK+oaFTLrOUxwcNbVsS6bH/B/UnEMP3sZ8sErupPZu7sYd1f0uDVC8+XEwuMJsHOYZ
+         RkdpeQ2oEcNo9d+YwjBHJbeJWnXOMpoNvhKfm2cngb5aLefFg30GS4K2ttsjv4Xbrgjv
+         OzxTW9RlDqUZe2zuDIM1PfwV5D4F0UHrVXDgQ5tKKwC5rmfZnGJ9HTGL2IvPdg7yqs4q
+         9MQgQakLvV1Iw34I728S9TESuGJ/xBdmClw7qsFVgi96QAV6JipJWhK/vv6kMZZ5RFCE
+         FfCw==
+X-Gm-Message-State: ABUngvevFpks0qI3Bi1G9WiFj3FMszlWtJO4UtC6MP2h+Iz+TZmYDygUjPZ3rHbX4Zref91GR/2l3lvpqmpXDA==
+X-Received: by 10.28.11.17 with SMTP id 17mr2408892wml.88.1478021447300; Tue,
+ 01 Nov 2016 10:30:47 -0700 (PDT)
+MIME-Version: 1.0
+Received: by 10.80.142.10 with HTTP; Tue, 1 Nov 2016 10:30:46 -0700 (PDT)
+From: Joe McIlvain <joe.eli.mac@gmail.com>
+Date: Tue, 1 Nov 2016 10:30:46 -0700
+Message-ID: <CAPGBM9b9Y2LHrdaUbsZX4rZfRh2xUJeb8Z3kfE9zQkn6jz9V4A@mail.gmail.com>
+Subject: Support for HTTP/1.0
+To: unicorn-public@bogomips.org
+Content-Type: text/plain; charset=UTF-8
+List-Id: <unicorn-public@bogomips.org>
+
+We work on an IoT-oriented web service that uses Unicorn.  One of our
+requirements is to support HTTP/1.0 for low-complexity devices.
+
+We've noticed that HTTP/1.0 requests to Unicorn always get HTTP/1.1
+responses, which is invalid behaviour for the HTTP/1.0 protocol.
+
+Sure enough, looking through the Unicorn source I see that the
+"HTTP/1.1" protocol is hard-coded in the response writing logic:
+https://github.com/defunkt/unicorn/blob/a72d2e7fbd13a6bfe64b79ae361c17ea568d4867/lib/unicorn/http_response.rb#L30
+
+When behind our nginx/haproxy frontend, this behaviour is a little
+more sneaky.  For "short" response payloads, the proxy will override
+the response and always (correctly) use HTTP/1.0.  However, for "long"
+response payloads, the content encoding is "chunked" and the proxy
+will use "HTTP/1.1"
+
+You can actually see this bug in action in the GitHub API (a prominent
+web service using Unicorn).  If you send `curl -v --http1.0
+https://api.github.com/gists/public`, you will get an HTTP/1.1 chunked
+response, which an HTTP/1.0 client cannot handle.
+
+I've experimented with using puma instead of unicorn, and it behaves
+correctly in this respect (it responds to HTTP/1.0 requests with
+HTTP/1.0 responses).  However we'd like to keep using unicorn if
+possible.
+
+Does Unicorn intend to support HTTP/1.0?
