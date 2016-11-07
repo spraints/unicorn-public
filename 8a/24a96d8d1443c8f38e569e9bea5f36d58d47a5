@@ -1,0 +1,97 @@
+Return-Path: <olivier.faurax@anyces.com>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS39729 81.88.48.0/20
+X-Spam-Status: No, score=-6.6 required=3.0 tests=BAYES_00,RCVD_IN_DNSWL_LOW,
+	RCVD_IN_MSPIKE_H2 shortcircuit=no autolearn=ham autolearn_force=no
+	version=3.4.0
+Received: from authsmtp.register.it (authsmtp31.register.it [81.88.54.72])
+	(using TLSv1 with cipher DHE-RSA-AES128-SHA (128/128 bits))
+	(No client certificate requested)
+	by dcvr.yhbt.net (Postfix) with ESMTPS id 33CED2022A
+	for <unicorn-public@bogomips.org>; Mon,  7 Nov 2016 17:13:49 +0000 (UTC)
+Received: from [192.168.0.114] ([88.122.116.13])
+	by paganini35 with 
+	id 55Dg1u00R0HR4oQ015Dkkw; Mon, 07 Nov 2016 18:13:46 +0100
+X-Rid: olivier.faurax@anyces.com@88.122.116.13
+To: unicorn-public@bogomips.org
+From: Olivier FAURAX <olivier.faurax@anyces.com>
+Subject: Build error of 5.1.0 due to RString
+Message-ID: <5ace6a20-e094-293d-93df-b557480e12d5@anyces.com>
+Date: Mon, 7 Nov 2016 18:13:23 +0100
+User-Agent: Mozilla/5.0 (Windows NT 10.0; WOW64; rv:45.0) Gecko/20100101
+ Thunderbird/45.4.0
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Transfer-Encoding: 8bit
+List-Id: <unicorn-public@bogomips.org>
+
+Hello,
+
+I'm new to Ruby & Unicorn, and I get a build error trying to compile 
+unicorn 5.1.0.
+
+It is about a RString that has not some members, so perhaps an API has 
+been modified somewhere.
+I tried with unicorn 5.2.0, and I get the same error.
+
+Thanks in advance
+Olivier
+
+$ uname -a
+Linux git.example.com 3.16.0-76-generic #98~14.04.1-Ubuntu SMP Fri Jun 
+24 17:04:54 UTC 2016 x86_64 x86_64 x86_64 GNU/Linux
+
+$ ruby --version
+ruby 2.1.9p490 (2016-03-30 revision 54437) [x86_64-linux]
+
+$ gem install unicorn -v '5.1.0' -i vendor/bundle/ruby/2.1.0 --verbose
+GET https://api.rubygems.org/specs.4.8.gz
+200 OK
+HEAD https://api.rubygems.org/api/v1/dependencies
+200 OK
+GET https://api.rubygems.org/api/v1/dependencies?gems=unicorn
+200 OK
+GET https://api.rubygems.org/api/v1/dependencies?gems=raindrops
+200 OK
+GET https://api.rubygems.org/api/v1/dependencies?gems=kgio
+200 OK
+/opt/bitnami/apps/gitlab/htdocs/vendor/bundle/ruby/2.1.0/gems/unicorn-5.1.0/.CHANGELOG.old
+...
+[long list of unicorn-5.1.0 files]
+...
+/opt/bitnami/apps/gitlab/htdocs/vendor/bundle/ruby/2.1.0/gems/unicorn-5.1.0/unicorn.gemspec
+Building native extensions.  This could take a while...
+/opt/bitnami/ruby/bin/ruby extconf.rb
+checking for SIZEOF_OFF_T in ruby.h... yes
+checking for SIZEOF_SIZE_T in ruby.h... yes
+checking for SIZEOF_LONG in ruby.h... yes
+checking for rb_str_set_len() in ruby.h... no
+checking for rb_hash_clear() in ruby.h... no
+checking for gmtime_r() in time.h... yes
+creating Makefile
+make "DESTDIR=" clean
+make "DESTDIR="
+compiling httpdate.c
+compiling unicorn_http.c
+In file included from unicorn_http.rl:8:0:
+ext_help.h: In function ‘rb_18_str_set_len’:
+ext_help.h:18:15: error: ‘struct RString’ has no member named ‘len’
+    RSTRING(str)->len = len;
+                ^
+ext_help.h:19:15: error: ‘struct RString’ has no member named ‘ptr’
+    RSTRING(str)->ptr[len] = '\0';
+                ^
+make: *** [unicorn_http.o] Error 1
+ERROR:  Error installing unicorn:
+         ERROR: Failed to build gem native extension.
+
+     Building has failed. See above output for more information on the 
+failure.
+make failed, exit code 2
+
+Gem files will remain installed in 
+/opt/bitnami/apps/gitlab/htdocs/vendor/bundle/ruby/2.1.0/gems/unicorn-5.1.0 
+for inspection.
+Results logged to 
+/opt/bitnami/apps/gitlab/htdocs/vendor/bundle/ruby/2.1.0/extensions/x86_64-linux/2.1.0-static/unicorn-5.1.0/gem_make.out
