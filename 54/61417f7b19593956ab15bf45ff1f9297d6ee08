@@ -1,0 +1,57 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.0
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id 5A2A12022A;
+	Mon,  7 Nov 2016 20:39:20 +0000 (UTC)
+Date: Mon, 7 Nov 2016 20:39:20 +0000
+From: Eric Wong <e@80x24.org>
+To: Olivier FAURAX <olivier.faurax@anyces.com>
+Cc: unicorn-public@bogomips.org
+Subject: Re: Build error of 5.1.0 due to RString
+Message-ID: <20161107203920.GA10287@starla>
+References: <5ace6a20-e094-293d-93df-b557480e12d5@anyces.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <5ace6a20-e094-293d-93df-b557480e12d5@anyces.com>
+List-Id: <unicorn-public@bogomips.org>
+
+Olivier FAURAX <olivier.faurax@anyces.com> wrote:
+> It is about a RString that has not some members, so perhaps an API has been
+> modified somewhere.
+
+<snip>
+
+> /opt/bitnami/apps/gitlab/htdocs/vendor/bundle/ruby/2.1.0/gems/unicorn-5.1.0/unicorn.gemspec
+> Building native extensions.  This could take a while...
+> /opt/bitnami/ruby/bin/ruby extconf.rb
+> checking for SIZEOF_OFF_T in ruby.h... yes
+> checking for SIZEOF_SIZE_T in ruby.h... yes
+> checking for SIZEOF_LONG in ruby.h... yes
+
+OK, ruby.h is there, so development headers exist...
+
+> checking for rb_str_set_len() in ruby.h... no
+> checking for rb_hash_clear() in ruby.h... no
+
+These last two lines do not look right.  Can you show us your
+mkmf.log file?  The output you originally posted is not enough
+as it doesn't show the long compiler options and paths used.
+
+Perhaps a library file is missing for static linking,
+since these function checks require.
+
+I'm not familiar with bitnami and how it builds/installs
+Ruby, so maybe it's missing libruby*static.a or looking
+in the wrong place somehow.
+
+<snip> The failing code should've never been compiled
+in the first place and should probably be removed.
+However, the rb_hash_clear() detection is still necessary...
+
+Thanks for reporting this.  You might want to loop in somebody
+familiar with bitnami to poke around, too.
