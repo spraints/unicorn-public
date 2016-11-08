@@ -1,0 +1,75 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.0
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id 1EB882022C;
+	Tue,  8 Nov 2016 09:43:59 +0000 (UTC)
+Date: Tue, 8 Nov 2016 09:43:58 +0000
+From: Eric Wong <e@80x24.org>
+To: Olivier FAURAX <olivier.faurax@anyces.com>
+Cc: unicorn-public@bogomips.org
+Subject: Re: Build error of 5.1.0 due to RString
+Message-ID: <20161108094358.GA25172@starla>
+References: <20161107203920.GA10287@starla>
+ <02994a55-9c07-a3c5-f06b-a4c15551a67e@anyces.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <02994a55-9c07-a3c5-f06b-a4c15551a67e@anyces.com>
+List-Id: <unicorn-public@bogomips.org>
+
+Olivier FAURAX <olivier.faurax@anyces.com> wrote:
+> Thanks for the support!
+> 
+> Here is the mkmf.log:
+> $ cat ./vendor/bundle/ruby/2.1.0/extensions/x86_64-linux/2.1.0-static/unicorn-5.1.0/mkmf.log
+
+No problem, trimming out irrelevant parts...
+
+> have_func: checking for rb_str_set_len() in ruby.h... --------------------
+> no
+> 
+> "gcc -o conftest -I/opt/bitnami/ruby/include/ruby-2.1.0/x86_64-linux
+> -I/opt/bitnami/ruby/include/ruby-2.1.0/ruby/backward
+> -I/opt/bitnami/ruby/include/ruby-2.1.0 -I. -DAI_ADDRCONFIG=0
+> -I/bitnami/megastack-linux-x64/output/sqlite/include
+> -I/opt/bitnami/common/include -I/opt/bitnami/common/include/sasl
+> -I/opt/bitnami/common/include   -fPIC -I/opt/bitnami/common/include -fPIC
+> -I/opt/bitnami/common/include -I/opt/bitnami/common/include -fPIC
+> -I/bitnami/megastack-linux-x64/output/ImageMagick/include/ImageMagick
+> -I/bitnami/megastack-linux-x64/output/ImageMagick/include/ImageMagick -O3
+> conftest.c  -L. -L/opt/bitnami/ruby/lib -Wl,-R/opt/bitnami/ruby/lib -L.
+> -L/opt/bitnami/common/lib -L/opt/bitnami/common/lib
+> -L/bitnami/megastack-linux-x64/output/sqlite/lib
+> -L/bitnami/megastack-linux-x64/output/python/lib -L/opt/bitnami/common/lib
+> -L/bitnami/megastack-linux-x64/output/ImageMagick/lib
+> -L/bitnami/megastack-linux-x64/output/ImageMagick/lib -fstack-protector
+> -rdynamic -Wl,-export-dynamic  -m64   -Wl,-R -Wl,/opt/bitnami/ruby/lib
+> -L/opt/bitnami/ruby/lib -lruby-static  -lpthread -lrt -lgmp -ldl -lcrypt -lm
+> -lc"
+> /usr/bin/ld: /opt/bitnami/ruby/lib/libruby-static.a(string.o): unrecognized
+> relocation (0x2a) in section `.text'
+> /usr/bin/ld: final link failed: Bad value
+> collect2: error: ld returned 1 exit status
+
+As I suspected, something is wrong with the install or build
+of Ruby itself (not unicorn).
+
+Does Bitnami build your Ruby installation or do you build and
+install Ruby in your local environment using Bitnami?
+
+It could be they used a buggy version of binutils
+(or you have a buggy version installed locally).
+
+Can you ask the Bitnami folks for help?
+
+Thanks.
+
+
+[ Btw, with the '+' in your Subject: line, was it from following
+  the mailto: link on the https://bogomips.org/unicorn-public/
+  mail archive links?
+  The archive code might need to switch to %20 for escaping spaces... ]
