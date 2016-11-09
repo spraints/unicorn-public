@@ -1,0 +1,78 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.0
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id D997A2021E;
+	Wed,  9 Nov 2016 20:56:44 +0000 (UTC)
+From: Eric Wong <e@80x24.org>
+To: unicorn-public@bogomips.org
+Cc: Eric Wong <e@80x24.org>
+Subject: [PATCH] drop rb_str_set_len compatibility replacement
+Date: Wed,  9 Nov 2016 20:56:41 +0000
+Message-Id: <20161109205641.2350-1-e@80x24.org>
+List-Id: <unicorn-public@bogomips.org>
+
+While it is innocuous after compiling, it can be a confusing
+source of errors for users with broken installations of Ruby
+itself:
+
+https://bogomips.org/unicorn-public/5ace6a20-e094-293d-93df-b557480e12d5@anyces.com/
+https://bogomips.org/unicorn-public/02994a55-9c07-a3c5-f06b-a4c15551a67e@anyces.com/
+
+rb_str_set_len has been provided since Ruby 1.8.7+, so we have
+not needed it since we dropped all 1.8.x support in unicorn 5.x.
+---
+ ext/unicorn_http/ext_help.h | 20 --------------------
+ ext/unicorn_http/extconf.rb |  2 +-
+ 2 files changed, 1 insertion(+), 21 deletions(-)
+
+diff --git a/ext/unicorn_http/ext_help.h b/ext/unicorn_http/ext_help.h
+index c87c272..747c36c 100644
+--- a/ext/unicorn_http/ext_help.h
++++ b/ext/unicorn_http/ext_help.h
+@@ -1,26 +1,6 @@
+ #ifndef ext_help_h
+ #define ext_help_h
+ 
+-#ifndef RSTRING_PTR
+-#define RSTRING_PTR(s) (RSTRING(s)->ptr)
+-#endif /* !defined(RSTRING_PTR) */
+-#ifndef RSTRING_LEN
+-#define RSTRING_LEN(s) (RSTRING(s)->len)
+-#endif /* !defined(RSTRING_LEN) */
+-
+-#ifndef HAVE_RB_STR_SET_LEN
+-#  ifdef RUBINIUS
+-#    error we should never get here with current Rubinius (1.x)
+-#  endif
+-/* this is taken from Ruby 1.8.7, 1.8.6 may not have it */
+-static void rb_18_str_set_len(VALUE str, long len)
+-{
+-  RSTRING(str)->len = len;
+-  RSTRING(str)->ptr[len] = '\0';
+-}
+-#  define rb_str_set_len(str,len) rb_18_str_set_len(str,len)
+-#endif /* !defined(HAVE_RB_STR_SET_LEN) */
+-
+ /* not all Ruby implementations support frozen objects (Rubinius does not) */
+ #if defined(OBJ_FROZEN)
+ #  define assert_frozen(f) assert(OBJ_FROZEN(f) && "unfrozen object")
+diff --git a/ext/unicorn_http/extconf.rb b/ext/unicorn_http/extconf.rb
+index 1da0282..2fc60fe 100644
+--- a/ext/unicorn_http/extconf.rb
++++ b/ext/unicorn_http/extconf.rb
+@@ -4,7 +4,7 @@
+ have_macro("SIZEOF_OFF_T", "ruby.h") or check_sizeof("off_t", "sys/types.h")
+ have_macro("SIZEOF_SIZE_T", "ruby.h") or check_sizeof("size_t", "sys/types.h")
+ have_macro("SIZEOF_LONG", "ruby.h") or check_sizeof("long", "sys/types.h")
+-have_func("rb_str_set_len", "ruby.h")
++have_func("rb_str_set_len", "ruby.h") or abort 'Ruby 1.9.3+ required'
+ have_func("rb_hash_clear", "ruby.h") # Ruby 2.0+
+ have_func("gmtime_r", "time.h")
+ 
+-- 
+EW
+
