@@ -1,0 +1,61 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.0
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id 94A322021E;
+	Fri, 11 Nov 2016 07:07:09 +0000 (UTC)
+Date: Fri, 11 Nov 2016 07:07:09 +0000
+From: Eric Wong <e@80x24.org>
+To: Joe McIlvain <joe.eli.mac@gmail.com>
+Cc: unicorn-public@bogomips.org
+Subject: Re: Support for HTTP/1.0
+Message-ID: <20161111070709.GA13984@whir>
+References: <CAPGBM9b9Y2LHrdaUbsZX4rZfRh2xUJeb8Z3kfE9zQkn6jz9V4A@mail.gmail.com>
+ <20161101181157.GA6516@dcvr>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <20161101181157.GA6516@dcvr>
+List-Id: <unicorn-public@bogomips.org>
+
+Eric Wong <e@80x24.org> wrote:
+> Is this nginx->haproxy->unicorn  or  haproxy->nginx->unicorn?
+>
+> Are persistent connections from nginx->unicorn enabled?
+> (I suggest keeping it disabled, the default as far as I recall)
+> 
+> What else can you share about your nginx/haproxy version and
+> configuration?
+
+(out-of-order)
+
+Ping?   With my nginx (1.6.2 on Debian jessie) -> unicorn config on
+I can confirm nginx is sending 1.0 requests to backends, which
+ought to prevent Rack::Chunked from chunking, at least...
+
+Haven't looked at haproxy in a while... :x
+
+> Joe McIlvain <joe.eli.mac@gmail.com> wrote:
+> > Sure enough, looking through the Unicorn source I see that the
+> > "HTTP/1.1" protocol is hard-coded in the response writing logic:
+> > https://github.com/defunkt/unicorn/blob/a72d2e7fbd13a6bfe64b79ae361c17ea568d4867/lib/unicorn/http_response.rb#L30
+> 
+> Right, it's certainly faster to avoid having an extra hash
+> lookup to get the correct string in the response.
+
+There's also several places where we assume "HTTP/1.1"
+that would involve deeper changes than merely taking
+the version string: the wacky[1] check_client_connection
++ response_start_sent logic
+
+So more work would be necessary to respond with HTTP/1.0...
+
+But I've been thinking about ways to cleanup and micro-optimize
+that a bit more, anyways...
+
+
+[1] https://bogomips.org/unicorn-public/?q=s:%22combating+nginx+499%22
+    (weirdest. feature. ever.)
