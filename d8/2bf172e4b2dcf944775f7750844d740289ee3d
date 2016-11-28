@@ -1,0 +1,69 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.0
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id 4E50A1FBB0;
+	Mon, 28 Nov 2016 17:57:35 +0000 (UTC)
+Date: Mon, 28 Nov 2016 17:57:35 +0000
+From: Eric Wong <e@80x24.org>
+To: Peter Giacomo Lombardo <peter.lombardo@instana.com>
+Cc: unicorn-public@bogomips.org
+Subject: Re: Storing Multiple Blocks for Configurator Hooks
+Message-ID: <20161128175735.GA25338@starla>
+References: <5B3FDDDF-5910-4672-84CA-ED07A7CEC8C6@instana.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <5B3FDDDF-5910-4672-84CA-ED07A7CEC8C6@instana.com>
+List-Id: <unicorn-public@bogomips.org>
+
+Peter Giacomo Lombardo <peter.lombardo@instana.com> wrote:
+> Please excuse if this has been discussed or already decided upon - searches came up with nothing.
+
+Nope, I don't recall this coming up on the list.
+
+> Has unicorn considered allowing multiple blocks to be supplied for Configurator Hooks (e.g. after_fork et. al.)?
+
+Yes, but only briefly in the earliest stages of the project.  I
+rejected it since it make things more difficult to debug and
+track down.
+
+Nowadays, it could break an existing use case:
+
+	after_fork do
+	  # ... many lines
+	end
+	after_fork {} # nothing, temporarily disable initial block
+
+	(I realize putting " if false" after "end" can also disable
+	 the block, but I suspect many folks who configure unicorn
+	 are not regularly Rubyists).
+
+> Currently, it seems that only one block can be specified:
+> https://bogomips.org/unicorn.git/tree/lib/unicorn/configurator.rb#n628
+> 
+> If instead this were stored as an array of blocks, gems could register their own blocks to be run when the hooks are called which would result in less end-user burden and easier on-ramping to get a running system.  
+
+It seems like it would be a management problem if the config got
+too big and were split into many pieces.  It would be extra bad
+if it were difficult to know ordering (FIFO? LIFO?) and which
+part of the config each part is in.
+
+You can manage an array yourself:
+
+	af_cb = []
+	after_fork { af_cb.each(&:call) }
+	af_cb << lambda { ... }
+	af_cb << lambda { ... }
+
+> (Confronting the ActiveRecord establish_connection and Redis re-connect seem to be a rite of passage into using Unicorn)
+
+preload_app has always defaulted to "false" for this reason :)
+
+Also, isn't a mere disconnect all that's necessary nowadays, as
+connections are made on demand?  At least that's how Sequel
+behaves.  I haven't touched AR/Rails in years (since a JS
+engine became mandatory).
