@@ -1,0 +1,85 @@
+Return-Path: <peter.lombardo@instana.com>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS15169 209.85.128.0/17
+X-Spam-Status: No, score=-2.8 required=3.0 tests=AWL,BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,RCVD_IN_DNSWL_NONE,RCVD_IN_MSPIKE_H3,RCVD_IN_MSPIKE_WL,
+	RCVD_IN_SORBS_SPAM shortcircuit=no autolearn=no autolearn_force=no
+	version=3.4.0
+Received: from mail-wj0-f169.google.com (mail-wj0-f169.google.com [209.85.210.169])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+	(No client certificate requested)
+	by dcvr.yhbt.net (Postfix) with ESMTPS id 900E71FBB0
+	for <unicorn-public@bogomips.org>; Mon, 28 Nov 2016 16:26:43 +0000 (UTC)
+Received: by mail-wj0-f169.google.com with SMTP id v7so120823000wjy.2
+        for <unicorn-public@bogomips.org>; Mon, 28 Nov 2016 08:26:43 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=instana-com.20150623.gappssmtp.com; s=20150623;
+        h=from:content-transfer-encoding:subject:message-id:date:to
+         :mime-version;
+        bh=8UU8fH0CpCvELLE7UDZTXDv+dozzs/MnN69rGU0U6hA=;
+        b=UQgCAeb5cm/qqvgWMc4jTZV0NeU0tf95DEVvQiXADRFndoI7feEi6/mvwNvTcbt7hR
+         rKN6ecxD8uxTGfF15dOjzdtXRCgUCCC8eyx/aKmpF2O4QGLNMHtNeZMW9aNZIBU0YNq0
+         gxrpc9DIlP86XU+NC8RL0/3ZJT/LPUfPFx/5dDzP33gqp57jpcHgMnP1wF55JTLojwtD
+         outLDAfLqnZmn2fKkC7t/ahxmHCOKRYML/w27kW5XYGGslhchBn9myb/qlukYVqT7MdV
+         NNvt+Xol3LWl0YesYjEL7ww7bdLNVxC6fX1O1biAjBYkheVT5/E91ht4OwwfU/vM+tk0
+         JABw==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20130820;
+        h=x-gm-message-state:from:content-transfer-encoding:subject
+         :message-id:date:to:mime-version;
+        bh=8UU8fH0CpCvELLE7UDZTXDv+dozzs/MnN69rGU0U6hA=;
+        b=YZ7Z8OPTJmAdEFhjUwN5eO4ehzr1/sW4fEJ1KfRVWeqwBfabcewDNWQFgD3MzsfMc6
+         VQdu5pWwfUm8h+kXL6BxZiPD6bjSMHzMpyWcRqx2oDnu3lKjddmnMgr9Uy7wqzj2hHyz
+         DWMkVOWvSb3ZGHWYx5XA4OFqO4crlZNkgClMG5+hdhCTYvDdmx7DcCJWyefbLW11OYYr
+         5rXX06CGbd52feVeAKLR+frIATvHn4KN77mP/U1enI3rAblq9s75jLlg+L4xlz3/wPkZ
+         k8Hu+XzYEWv0p3TkprPJJgowsKvOWq8VJpcqhIYuA3RDpNU80kTjiZNdh0bXlYXnco+O
+         vuzg==
+X-Gm-Message-State: AKaTC02cW1bfk2nnwD7X0Hk+g16u8kgBjGKDLepRQCSbFicxVWEGvkETpMsVQM9b6SkOiXoA
+X-Received: by 10.194.81.233 with SMTP id d9mr23929433wjy.118.1480350401764;
+        Mon, 28 Nov 2016 08:26:41 -0800 (PST)
+Received: from [10.0.12.100] (host86-34-dynamic.181-80-r.retail.telecomitalia.it. [80.181.34.86])
+        by smtp.gmail.com with ESMTPSA id n5sm28630193wmf.0.2016.11.28.08.26.40
+        for <unicorn-public@bogomips.org>
+        (version=TLS1 cipher=ECDHE-RSA-AES128-SHA bits=128/128);
+        Mon, 28 Nov 2016 08:26:41 -0800 (PST)
+From: Peter Giacomo Lombardo <peter.lombardo@instana.com>
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: quoted-printable
+Subject: Storing Multiple Blocks for Configurator Hooks
+Message-Id: <5B3FDDDF-5910-4672-84CA-ED07A7CEC8C6@instana.com>
+Date: Mon, 28 Nov 2016 17:26:39 +0100
+To: unicorn-public@bogomips.org
+Mime-Version: 1.0 (Mac OS X Mail 9.3 \(3124\))
+X-Mailer: Apple Mail (2.3124)
+List-Id: <unicorn-public@bogomips.org>
+
+Please excuse if this has been discussed or already decided upon - =
+searches came up with nothing.
+
+Has unicorn considered allowing multiple blocks to be supplied for =
+Configurator Hooks (e.g. after_fork et. al.)?
+
+Currently, it seems that only one block can be specified:
+https://bogomips.org/unicorn.git/tree/lib/unicorn/configurator.rb#n628
+
+If instead this were stored as an array of blocks, gems could register =
+their own blocks to be run when the hooks are called which would result =
+in less end-user burden and easier on-ramping to get a running system. =20=
+
+
+(Confronting the ActiveRecord establish_connection and Redis re-connect =
+seem to be a rite of passage into using Unicorn)
+
+Has this already been discussed/decided upon?
+
+Best,
+Peter
+
+=E2=80=94
+Peter Giacomo Lombardo
+Ruby Instrumentation Lead
+https://github.com/pglombardo
+
+Instana, Inc
+https://www.instana.com=
