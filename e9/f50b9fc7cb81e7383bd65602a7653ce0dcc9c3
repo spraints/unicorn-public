@@ -1,0 +1,65 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.0
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id 7258E1FBB0;
+	Tue, 29 Nov 2016 00:00:47 +0000 (UTC)
+Date: Tue, 29 Nov 2016 00:00:47 +0000
+From: Eric Wong <e@80x24.org>
+To: unicorn-public@bogomips.org
+Subject: [RFC] TUNING: document THP caveat for Linux users
+Message-ID: <20161129000047.GA25322@whir>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+List-Id: <unicorn-public@bogomips.org>
+
+This probably applies to other kernels, too, but I'm most
+familiar with Linux.
+---
+ It took me a while to get the wording below to this point.
+ Maybe there's not enough detail for folks unfamiliar with
+ how OSes work, or maybe there's too much and will be TL;DR-ed...
+
+ TUNING | 20 +++++++++++++++++++-
+ 1 file changed, 19 insertions(+), 1 deletion(-)
+
+diff --git a/TUNING b/TUNING
+index 247090b..1f55228 100644
+--- a/TUNING
++++ b/TUNING
+@@ -72,10 +72,28 @@ See Unicorn::Configurator for details on the config file format.
+   have them unbuffered (File#sync = true) or they are
+   record(line)-buffered in userspace before any writes.
+ 
+-== Kernel Parameters (Linux sysctl)
++== Kernel Parameters (Linux sysctl and sysfs)
+ 
+ WARNING: Do not change system parameters unless you know what you're doing!
+ 
++* Transparent hugepages (THP) improves performance in many cases,
++  but can also increase memory use when relying on a
++  copy-on-write(CoW)-friendly GC (Ruby 2.0+) with "preload_app true".
++  CoW operates at the page level, so writing to a huge page would
++  trigger a 2 MB copy (x86-64), as opposed to a 4 KB copy on a
++  regular (non-huge) page.
++
++  Consider only allowing THP to be used when requested via the
++  madvise(2) syscall:
++
++	echo madvise >/sys/kernel/mm/transparent_hugepage/enabled
++
++  Or disabling it system-wide, via "never".
++
++  n.b. "page" in this context only applies to the OS kernel,
++  Ruby GC implementations also use this term for the same concept
++  in a way that is agnostic to the OS.
++
+ * net.core.rmem_max and net.core.wmem_max can increase the allowed
+   size of :rcvbuf and :sndbuf respectively. This is mostly only useful
+   for UNIX domain sockets which do not have auto-tuning buffer sizes.
+-- 
+EW
