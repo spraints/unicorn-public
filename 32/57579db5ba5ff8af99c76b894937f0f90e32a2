@@ -1,0 +1,130 @@
+Return-Path: <peter.lombardo@instana.com>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS15169 209.85.128.0/17
+X-Spam-Status: No, score=-2.5 required=3.0 tests=BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,RCVD_IN_DNSWL_NONE,RCVD_IN_MSPIKE_H2,RCVD_IN_SORBS_SPAM
+	shortcircuit=no autolearn=no autolearn_force=no version=3.4.0
+Received: from mail-wj0-f176.google.com (mail-wj0-f176.google.com [209.85.210.176])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+	(No client certificate requested)
+	by dcvr.yhbt.net (Postfix) with ESMTPS id CDD911FC96
+	for <unicorn-public@bogomips.org>; Tue, 29 Nov 2016 21:29:37 +0000 (UTC)
+Received: by mail-wj0-f176.google.com with SMTP id xy5so157022738wjc.0
+        for <unicorn-public@bogomips.org>; Tue, 29 Nov 2016 13:29:37 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=instana-com.20150623.gappssmtp.com; s=20150623;
+        h=mime-version:subject:from:in-reply-to:date:cc
+         :content-transfer-encoding:message-id:references:to;
+        bh=+f+37FE4y01S1xGkzAX4BuqmQ6uheDagrxA8RsytvKs=;
+        b=PwiiFBUS7N0flp0IrD1GGi5E/fNm0JWthD3mVr8CQq+e4HcnO0M9MJKrRNHK0iXwOC
+         F0sv+q0nR28S9YjHxaZzMIadzcKclZuSpwV2hIMvmGp9O5EO3UnUbx7uVezsX3RqODbj
+         0AnHtbUp5ROjsQ67qGP/PjEoCV62AGNHJFLrt+tIRXxpEx67XxyUu6bo/ILKInfFzg2G
+         spq3yowKR40r9qSC2Q8gA5BrGUeOuesDX82WUeWix5CEDsCKH2DxEDboWgPHYkhecYCZ
+         Ey3XzudpFI6rQjA9zj3NLQy9eyxZr94QSvtM5a9oHB+tcaPBp5+hZmS5dT0ZZ9Ggb+nb
+         pHRg==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20130820;
+        h=x-gm-message-state:mime-version:subject:from:in-reply-to:date:cc
+         :content-transfer-encoding:message-id:references:to;
+        bh=+f+37FE4y01S1xGkzAX4BuqmQ6uheDagrxA8RsytvKs=;
+        b=VSDL8ohK7EbtOdME0LBnP8XlAyx1roOUfJRo65Q9IKL8uOLvyFVN+FTqK6MUl+T2Mq
+         QFSTdPFrpGW4f0Hz5VP5mXaYWzZdUby2KdsEJnKYL+dWqL8WPEIiEu2ixXZwHXFArvwD
+         jW9H7hOafE6cAgAkXVE8JzUqZYdJbLLpoqkdiUoSHnsQ6J2zhDxNIAPdnEqWcL+Km4HJ
+         3Q9owtAPsP8exGx0wcqgRGdugjhLOie9TbzfsdqNyv7gn479UWS9MGHT0qBBQutw/TBl
+         LCJJyKcd4MYyA1awcmiagh60EEO/cjMYdkhEQbHfhKT69LgPlLlvtz4p0bddTu0h0lMc
+         lLuA==
+X-Gm-Message-State: AKaTC01D65sxxeh4kPnmuKoTalNFvZV3AXkE0Nyu3sDg3jZaBSu8OXlKn8q1WHCBg1ChbxFo
+X-Received: by 10.194.243.106 with SMTP id wx10mr30122792wjc.191.1480454976174;
+        Tue, 29 Nov 2016 13:29:36 -0800 (PST)
+Received: from [10.8.0.10] ([94.242.246.13])
+        by smtp.gmail.com with ESMTPSA id b3sm53473864wjy.40.2016.11.29.13.29.26
+        (version=TLS1 cipher=ECDHE-RSA-AES128-SHA bits=128/128);
+        Tue, 29 Nov 2016 13:29:32 -0800 (PST)
+Content-Type: text/plain; charset=utf-8
+Mime-Version: 1.0 (Mac OS X Mail 9.3 \(3124\))
+Subject: Re: Storing Multiple Blocks for Configurator Hooks
+From: Peter Giacomo Lombardo <peter.lombardo@instana.com>
+In-Reply-To: <20161128175735.GA25338@starla>
+Date: Tue, 29 Nov 2016 22:29:23 +0100
+Cc: unicorn-public@bogomips.org
+Content-Transfer-Encoding: quoted-printable
+Message-Id: <FCFF18BC-4119-4BD6-996E-2E69BEE3A058@instana.com>
+References: <5B3FDDDF-5910-4672-84CA-ED07A7CEC8C6@instana.com> <20161128175735.GA25338@starla>
+To: Eric Wong <e@80x24.org>
+X-Mailer: Apple Mail (2.3124)
+List-Id: <unicorn-public@bogomips.org>
+
+The use case I had in mind would be for gems to include the block =
+registration in their own code and bypass entirely the Unicorn config.  =
+And therefore bypassing entirely the need for any end user modification =
+of the unicorn config file.
+
+A gem could include in their code:
+
+if defined?(::Unicorn)
+  Unicorn.after_fork do
+    # after fork work
+  end
+end
+
+> It seems like it would be a management problem if the config got
+> too big and were split into many pieces.  It would be extra bad
+> if it were difficult to know ordering (FIFO? LIFO?) and which
+> part of the config each part is in.
+
+That=E2=80=99s a valid concern but in my experience, every gem that =
+required an after_fork call has been an island and order independent =
+from each other.  I=E2=80=99m sure there are exceptions but those would =
+be edge cases.
+
+Plus in all, I can only think of 6-10 common gems off-hand that require =
+manual after_fork additions.  I think the total number of subscribers to =
+this feature would be limited in the scope of a single application.
+
+>=20
+> You can manage an array yourself:
+>=20
+> 	af_cb =3D []
+> 	after_fork { af_cb.each(&:call) }
+> 	af_cb << lambda { ... }
+> 	af_cb << lambda { =E2=80=A6 }
+
+
+My reason for asking is that as a gem author, asking a user to modify =
+their unicorn config isn=E2=80=99t ideal.  The best solution would be if =
+my gem could auto register a block to be run post fork and not require =
+the user to do anything (zero config).
+
+>> (Confronting the ActiveRecord establish_connection and Redis =
+re-connect seem to be a rite of passage into using Unicorn)
+>=20
+> preload_app has always defaulted to "false" for this reason :)
+
+Oddly I never realized that - thanks :-)  Unfortunately major =
+orgs/gems/libs that have Unicorn instructions almost always require =
+preload_app true. (for whatever various reasoning)
+
+> Also, isn't a mere disconnect all that's necessary nowadays, as
+> connections are made on demand?  At least that's how Sequel
+> behaves.  I haven't touched AR/Rails in years (since a JS
+> engine became mandatory).
+
+Definitely true.  The harder case is for background threads and/or actor =
+threads.  Only the calling thread is copied to the new process and =
+others are non-existent in the new process.  after_fork is a handy hook =
+to re-init any background/actor threads needed.
+
+In any case, those are my thoughts.  Not critical but more of a helpful =
+nice to have.
+
+Best,
+Peter
+
+=E2=80=94
+Peter Giacomo Lombardo
+Ruby Instrumentation Lead
+https://github.com/pglombardo
+
+Instana, Inc
+https://www.instana.com=
