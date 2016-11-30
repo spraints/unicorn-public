@@ -1,0 +1,97 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.0
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id 6E0ED1FC96;
+	Wed, 30 Nov 2016 04:26:29 +0000 (UTC)
+Date: Wed, 30 Nov 2016 04:26:29 +0000
+From: Eric Wong <e@80x24.org>
+To: Peter Giacomo Lombardo <peter.lombardo@instana.com>
+Cc: unicorn-public@bogomips.org
+Subject: Re: Storing Multiple Blocks for Configurator Hooks
+Message-ID: <20161130042629.GA7258@starla>
+References: <5B3FDDDF-5910-4672-84CA-ED07A7CEC8C6@instana.com>
+ <20161128175735.GA25338@starla>
+ <FCFF18BC-4119-4BD6-996E-2E69BEE3A058@instana.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+Content-Transfer-Encoding: 8bit
+In-Reply-To: <FCFF18BC-4119-4BD6-996E-2E69BEE3A058@instana.com>
+List-Id: <unicorn-public@bogomips.org>
+
+Peter Giacomo Lombardo <peter.lombardo@instana.com> wrote:
+> The use case I had in mind would be for gems to include the
+> block registration in their own code and bypass entirely the
+> Unicorn config.  And therefore bypassing entirely the need for
+> any end user modification of the unicorn config file.
+> 
+> A gem could include in their code:
+> 
+> if defined?(::Unicorn)
+>   Unicorn.after_fork do
+>     # after fork work
+>   end
+> end
+
+I will not introduce a new API like this; it tends to lock
+people into unicorn (something I have always been completely
+opposed to).
+
+There are plenty of other Rack servers which also fork;
+and I also don't want gem authors to have to deal with dozens
+of new APIs across different servers.
+
+> My reason for asking is that as a gem author, asking a user to
+> modify their unicorn config isn’t ideal.  The best solution
+> would be if my gem could auto register a block to be run post
+> fork and not require the user to do anything (zero config).
+
+Agreed.  ruby-core may still decide on a common API for atfork
+callbacks:
+
+	https://bugs.ruby-lang.org/issues/5446
+
+
+
+One workaround you can use today is detecting $$ (Process.pid)
+changes at runtime.  Checking $$ is always thread-safe and
+reasonably performant.
+
+This workaround may even be better from a safety perspective:
+implementing atfork callbacks is tricky to do correctly in
+the presence of threads,  POSIX even got it wrong with
+pthread_atfork and had to introduce "_Fork".
+
+
+The main thing you need to avoid in client libraries is sending
+a high-level "i-am-disconnecting" message over the socket from
+multiple children.  Just close(2) the FD, and the parent can
+even keep using the original socket.
+
+So, in other words, avoid things like the "quit" command in
+memcached, NNTP, etc, or any form of SSL_shutdown(3ssl);
+just issue the close(2) syscall on the FD in the child.
+
+That all depends on client libraries, of course; but it's
+completely server-agnostic.
+
+I would be more than glad to help any library authors with
+clarifying and implementing this properly.  Just respond
+here or Cc: me on whatever relevant mailing lists for that
+library.
+
+> >> (Confronting the ActiveRecord establish_connection and Redis re-connect seem to be a rite of passage into using Unicorn)
+> > 
+> > preload_app has always defaulted to "false" for this reason :)
+> 
+> Oddly I never realized that - thanks :-)  Unfortunately major
+> orgs/gems/libs that have Unicorn instructions almost always
+> require preload_app true. (for whatever various reasoning)
+
+Yeah, it's unfortunate that apps are developed for any
+particular server in mind these days.  It defeats the
+point of Rack :<
