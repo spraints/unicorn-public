@@ -1,0 +1,61 @@
+Return-Path: <jcmorrow@thoughtbot.com>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS15169 209.85.128.0/17
+X-Spam-Status: No, score=-3.4 required=3.0 tests=AWL,BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,RCVD_IN_DNSWL_LOW,RCVD_IN_MSPIKE_H3,RCVD_IN_MSPIKE_WL,SPF_PASS
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.0
+Received: from mail-qt0-f179.google.com (mail-qt0-f179.google.com [209.85.216.179])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+	(No client certificate requested)
+	by dcvr.yhbt.net (Postfix) with ESMTPS id 609A31FBB0
+	for <unicorn-public@bogomips.org>; Thu,  8 Dec 2016 17:01:44 +0000 (UTC)
+Received: by mail-qt0-f179.google.com with SMTP id c47so417276532qtc.2
+        for <unicorn-public@bogomips.org>; Thu, 08 Dec 2016 09:01:44 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=thoughtbot-com.20150623.gappssmtp.com; s=20150623;
+        h=mime-version:from:date:message-id:subject:to;
+        bh=gOTdps8i+1GHRc9O5p6po3I1TDdgxeMJb5+wFzQT49Y=;
+        b=AIqeHYeXO4JTcOTeRnXy85lRE3L0KyWGCmsV5G///mZLTRrZ2+KpLtEMZzfJxfAin8
+         vu0/MZmWJbvxI9fqLRAQ+CReQWS3zaa+SbQGpq/c22SUH3eSn1B09qDBwmkG7egqNKU7
+         0B8tAjXJESRvByxV3lwT8cCtgTuxutBv2an+ZweEwHZb6m0iXi1yEzrEJY+BwlJakehF
+         22cV4h+vsXbbCatP3f8e6oND11/bI1LmYiJUM/C1Z8OyB6dSt/qA841rHQEyRetQknKi
+         L0mp4neWYOva8HgJ9bmiXV+gzqaviXUKhPhIiM/heyfWVynZ+sS7xR2StkUkoouZzo+J
+         /5Zg==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20130820;
+        h=x-gm-message-state:mime-version:from:date:message-id:subject:to;
+        bh=gOTdps8i+1GHRc9O5p6po3I1TDdgxeMJb5+wFzQT49Y=;
+        b=BAsFnegRqvMk2OV8gytDdXdH4+v21ynFwqW5+jnBms13mk5I/McXdnKiO/Kp51uFEq
+         MgW6LstR3gf8k7b9qJpPIOyOREsa8xulkh7sIEUcK6RegBVO+cpNy6Ddj4fnBeROqdQU
+         /+VYZvt6tRz6cT/vSFR8OmeVR6eZJbaZTxIJ8POQL8zpGsOq8OL9hBG4LNPnAY195y12
+         he+OOL5Q/9tAWex93AcLm97kc5jdt33aYNFGSOelnOxrygQWz6JmUP6pmA70gtmQiz6A
+         MFmUalXONPr4Ehqh8msy/j+fWF1RP1qlJEHUEJRlgjx6GEcdSR+r1I9vQ7IWAQ49VMik
+         N4mw==
+X-Gm-Message-State: AKaTC039KYCz7LU9ZcYJ5mpig38lHaJjebB3vOchIgutP/FQogOLdSkqIZ6CamvO20DIfXS7bPlLFHn1DmGDEvs2
+X-Received: by 10.200.37.52 with SMTP id 49mr63584542qtm.240.1481216503443;
+ Thu, 08 Dec 2016 09:01:43 -0800 (PST)
+MIME-Version: 1.0
+Received: by 10.12.173.104 with HTTP; Thu, 8 Dec 2016 09:01:43 -0800 (PST)
+From: Josh Morrow <jcmorrow@thoughtbot.com>
+Date: Thu, 8 Dec 2016 09:01:43 -0800
+Message-ID: <CAHdu2E5BX_fzNqrHxekOcfUYr4bLRWP90nC92eSRu_3HPToV8Q@mail.gmail.com>
+Subject: SIGWINCH with Forego/Heroku Local
+To: unicorn-public@bogomips.org
+Content-Type: text/plain; charset=UTF-8
+List-Id: <unicorn-public@bogomips.org>
+
+Hello!
+
+ I've recently been using unicorn in my rails development environment,
+and it's been almost entirely great so far. I do have one question
+about how to address an issue: `WINCH` signals coming from my
+terminal. I run with the `heroku local` command, which runs
+https://github.com/ddollar/forego under the hood. Forego does not
+identify STDIN as a tty (because it's not really). This means that
+whenever I resize my terminal Unicorn attempts to stop all workers as
+per https://github.com/defunkt/unicorn/blob/3dbbda30f02a40025abdee395fb0803985046db6/lib/unicorn/http_server.rb#L297-L305.
+What is the correct way to fix this issue? Should something in Unicorn
+change? (perhaps we use some other criteria than stdin?)
+
+Thanks!
