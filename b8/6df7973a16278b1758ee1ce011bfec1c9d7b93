@@ -1,0 +1,49 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.0
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id 3ED8A1FBB0;
+	Thu,  8 Dec 2016 18:40:54 +0000 (UTC)
+Date: Thu, 8 Dec 2016 18:40:54 +0000
+From: Eric Wong <e@80x24.org>
+To: Josh Morrow <jcmorrow@thoughtbot.com>
+Cc: unicorn-public@bogomips.org
+Subject: Re: SIGWINCH with Forego/Heroku Local
+Message-ID: <20161208184054.GA5417@starla>
+References: <CAHdu2E5BX_fzNqrHxekOcfUYr4bLRWP90nC92eSRu_3HPToV8Q@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <CAHdu2E5BX_fzNqrHxekOcfUYr4bLRWP90nC92eSRu_3HPToV8Q@mail.gmail.com>
+List-Id: <unicorn-public@bogomips.org>
+
+Josh Morrow <jcmorrow@thoughtbot.com> wrote:
+> Hello!
+> 
+>  I've recently been using unicorn in my rails development environment,
+> and it's been almost entirely great so far. I do have one question
+> about how to address an issue: `WINCH` signals coming from my
+> terminal. I run with the `heroku local` command, which runs
+> https://github.com/ddollar/forego under the hood. Forego does not
+> identify STDIN as a tty (because it's not really). This means that
+> whenever I resize my terminal Unicorn attempts to stop all workers as
+> per https://github.com/defunkt/unicorn/blob/3dbbda30f02a40025abdee395fb0803985046db6/lib/unicorn/http_server.rb#L297-L305.
+> What is the correct way to fix this issue? Should something in Unicorn
+> change? (perhaps we use some other criteria than stdin?)
+
+Resetting the SIGWINCH handler to the default in the before_fork
+handler will work:
+
+	before_fork do |server, worker|
+	  # runs in the master
+	  trap(:WINCH, 'DEFAULT')
+	end
+
+
+Fwiw, we switched to checking stdin last year so SIGWINCH could
+be usable with foreman and other process managers:
+
+https://bogomips.org/unicorn-public/etPan.555b4293.5b47a5b7.e617@danbookpro/T/
