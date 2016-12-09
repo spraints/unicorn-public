@@ -1,0 +1,43 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.0
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id 0BCAA2093C;
+	Fri,  9 Dec 2016 01:55:37 +0000 (UTC)
+Date: Fri, 9 Dec 2016 01:55:36 +0000
+From: Eric Wong <e@80x24.org>
+To: Josh Morrow <jcmorrow@thoughtbot.com>
+Cc: unicorn-public@bogomips.org
+Subject: Re: SIGWINCH with Forego/Heroku Local
+Message-ID: <20161209015536.GA28543@starla>
+References: <CAHdu2E5BX_fzNqrHxekOcfUYr4bLRWP90nC92eSRu_3HPToV8Q@mail.gmail.com>
+ <20161208184054.GA5417@starla>
+ <CAHdu2E6=qv1gmLGbZfrivhX5vVYgMq7cwOpCZ9yvFGTR17Prfw@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <CAHdu2E6=qv1gmLGbZfrivhX5vVYgMq7cwOpCZ9yvFGTR17Prfw@mail.gmail.com>
+List-Id: <unicorn-public@bogomips.org>
+
+(please don't drop the public list/archive address from the Cc:)
+
+Josh Morrow <jcmorrow@thoughtbot.com> wrote:
+> Eric Wong <e@80x24.org> wrote:
+> > Fwiw, we switched to checking stdin last year so SIGWINCH could
+> > be usable with foreman and other process managers:
+> 
+> In foreman `$stdin.tty?` returns `true`. In ForeGO it returns `nil` : (.
+
+`nil` or `false`?  With how unicorn uses it, it doesn't matter,
+but it should really be `false` there based on reading the
+rb_io_isatty function in io.c of the MRI source.
+
+But anyways, I suspect ForeGO redirects the stdin to /dev/null
+(you can check with lsof); which is totally reasonable for
+running daemons.
+
+That is why I recommended the before_fork workaround to
+trap(:WINCH, "DEFAULT") to restore the default noop behavior.
