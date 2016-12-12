@@ -1,0 +1,139 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,AWL,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.0
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id D78BA1FF40;
+	Mon, 12 Dec 2016 02:10:00 +0000 (UTC)
+Date: Mon, 12 Dec 2016 02:10:00 +0000
+From: Eric Wong <e@80x24.org>
+To: unicorn-public@bogomips.org
+Subject: WTF is up with memory usage nowadays?
+Message-ID: <20161212021000.GA15226@untitled>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+List-Id: <unicorn-public@bogomips.org>
+
+<rant> Came across this in my feeds today:
+
+https://about.gitlab.com/2016/12/11/proposed-server-purchase-for-gitlab-com/
+
+... Yeah, they cite 0.5 GB of memory usage per unicorn worker.
+I guess this is typical nowadays, but damn, it sucks :<
+
+This is not the future I had in mind or ever wanted unicorn to
+be associated with back in 2009 when I started.
+
+I don't think it's the fault of unicorn itself; unicorn recycles
+request buffers, uses pre-frozen hash keys, and even
+uses String#clear nowadays to discard heap memory, and never
+buffers more than it has to.
+
+Since day one, unicorn was built to handle multi-gigabyte
+uploads and responses; even from a crappy 256MB laptop.
+"curl -T-" is my co-pilot :)
+
+
+So... I guess the problem is up the stack in the app or
+framework.  Maybe Rails?  *shrug*  I don't use that anymore...
+
+I remember using Rails over a decade ago and being shocked at
+50MB (yes, fifty megabytes) of RSS usage.  This was on 32-bit,
+but even in the worst case on 64-bit, it would be 100MB.
+Of course, nowadays Rails has grown to the point where I'm
+afraid to go near it; instead I work directly off Rack.
+
+And yes, I still freak out nowadays when my Rack processes
+exceed 100MB...
+
+
+So, what can and should we do about it?
+
+* First step: Limit ourselves.
+
+  Use slower, older hardware, slower Internet connection so you
+  force yourself to eke out every bit of performance out of
+  what you have.
+
+  It's utterly hilarious for me to hear about people complain
+  about laptops which can "only" have 16GB RAM.
+
+  I've definitely made transgressions in the past, and the worst
+  code I've written was on powerful hardware.
+
+
+Disclaimer: Some of the following may not be very Ruby-ish :P
+And everything else is optional and the result of the first step
+above.
+
+* Recycle.  Don't waste object slots: {Array,Hash,String}#clear
+  can allow you to recycle heap memory for large objects
+  and minimize GC pressure.  Using thread-local variables
+  in your app helps maintain compatibility with multi-threaded
+  Rack servers; or perhaps go Rack env-local for compatibility
+  with single-threaded non-blocking servers.
+
+
+* Can't recycle?  Discard objects you don't need, ASAP,
+  and continue #clear-ing what you can. Take advantage
+  of streaming built into Rack.
+
+  The Rack response body only needs to respond to #each.
+  There should be no reason to build giant response
+  documents in memory before sending them to a client.
+
+  unicorn can't do the following for you automatically since
+  we don't know how/if a Rack app will reuse a string;
+  but upstack authors can String#clear after yielding
+  in #each to ensure any malloced heap memory is immediately
+  available for future use (but beware of downstream middlewares
+  which do not expect this, too(**)):
+
+    def each
+      # .. do something to generate a giant string
+      yield giant_string
+      giant_string.clear # String#clear
+    end
+
+  A Rack response body may also respond to #close; it can
+  be used to explicitly release any response-local resources.
+  Rack::TempfileReaper + Rack::BodyProxy is an example of
+  this for Tempfiles.
+
+  Smaller functions and smaller code helps keep this manageable.
+
+* Avoid slurping.  Large datasets do not need everything up
+  front.  For example, threading 10K messages entirely
+  in memory is no problem: just don't load entire messages
+  into memory up front, only what you need.
+  JWZ's algorithm was doing this in the 90s:
+  https://www.jwz.org/doc/threading.html
+
+Disclaimer: Some of these things may hurt throughput and
+performance in benchmarks, especially with smaller datasets;
+but I consider predictable and consistent performance more
+far more important than burst throughput.
+
+
+** Know your entire stack; top to bottom.
+   You ought to be able to track every single line of code
+   in a high-level Rack app you maintain down through each
+   and every layer of framework, middleware, Rack server,
+   Ruby VM, C library, down to the OS kernel.
+
+   Yes, this limits you to using smaller and simpler stacks :P
+
+
+*** Why stick with Ruby if you care about memory usage?
+
+I'm too impatient to wait on compilers, and don't like the extra
+storage of binaries.  Scripting languages forces authors to
+distribute (hopefully non-obfuscated) code; reducing network and
+storage costs, and that also lowers the barrier from user to
+hacker.  Fwiw, I actually prefer Perl5 with the predictability
+(and caveats of) refcounting over a GC like Ruby's.
+
+</rant>
