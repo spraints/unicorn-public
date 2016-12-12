@@ -1,0 +1,100 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,AWL,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.0
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id 6C5F11FF40;
+	Mon, 12 Dec 2016 05:48:10 +0000 (UTC)
+Date: Mon, 12 Dec 2016 05:48:10 +0000
+From: Eric Wong <e@80x24.org>
+To: Sam Saffron <sam.saffron@gmail.com>
+Cc: unicorn-public@bogomips.org
+Subject: Re: WTF is up with memory usage nowadays?
+Message-ID: <20161212054810.GA5880@starla>
+References: <20161212021000.GA15226@untitled>
+ <CAAtdryNVQhXXGH_scT2kVeDQS8LexPYyGbS3bj0C5DkY88sftw@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <CAAtdryNVQhXXGH_scT2kVeDQS8LexPYyGbS3bj0C5DkY88sftw@mail.gmail.com>
+List-Id: <unicorn-public@bogomips.org>
+
+Sam Saffron <sam.saffron@gmail.com> wrote:
+> As to who is at fault here, it is a little bit of "everyone" in a big bucket.
+
+I agree.  At least everyone who was blindly upgrading hardware :)
+
+But yeah, memory usage really is a whack-a-mole affair and
+programmers need to constantly watch out for this.
+
+> - The new GC is far more memory hungry than 1.9 line, even with
+> `RUBY_GC_HEAP_OLDOBJECT_LIMIT_FACTOR=1.5` it is still a lot more space
+> than it used to
+> 
+> - Ruby have been very slow at dealing with the "elephant in the room"
+> which is larger processes, stuff like
+> https://bugs.ruby-lang.org/issues/12967 goes ignored and is sadly
+> unlikely to happen for upcoming release
+
+I suggest re-ping ruby-core every week or two about these things.
+Goes for anyone for just about any maintained project :)
+Sometimes stuff is honestly forgotten, not conciously ignored.
+
+> - The current focus for "Ruby" is 3x3 (ruby 3 being 3 times faster)
+> ... there is no focus on reducing memory usage
+
+Yeah, I was disappointed about that, too.  And I think it was
+too lofty of a goal and marketing hype.
+
+> - Most people use default c memory allocator, despite tcmalloc
+> offering quite a decent win
+> https://github.com/SamSaffron/allocator_bench
+
+I haven't checked in a while, but doesn't tcmalloc hold
+once-allocated memory forever?  But yeah, I remember tcmalloc
+having good fragmentation avoidance, at least.
+
+Unfortunately, tcmalloc being C++ means it's less-debuggable to
+ordinary C programmers; so it wasn't something I wanted to deal
+with myself.
+
+And I thought jemalloc was the accepted standard, nowadays;
+though I don't notice a difference from glibc
+(I cap both at one arena for MRI).
+
+> - mime types gem is a pariah... apparently EVERY install of rails
+> needs to hold 46 megabytes of mime types in memory cause ... I don't
+> know why ... (even with 'mime/types/columnar')
+
+Eeep!  I guess I'm lucky to not have that...
+
+> - Booting a rails app eats up half a million slots in your ruby heaps,
+> clearly the vast majority of this is unneeded waste. Stuff like
+> keeping the string "MIT" in memory 125 times forever cause "rubygems",
+> jumps out.  There is zero focus anywhere to fix this issue.
+
+...Or that problem.  Though I do sometimes wish pure Ruby could
+have a reasonable way to use the rb_fstring C API
+(for dedupe+freeze).
+
+But yeah; aside from obscure projects, I've mostly left Ruby due
+to the expectation to use JS, accept ToS and have accounts on
+non-Free services; in addition to...
+
+> - Ruby heaps grow too fast, even if you put on the breaks, it is hard
+> to diagnose how you reached 7000 heaps at runtime when 6000 of them
+> are empty.
+
+...the unpredictability of GC.
+
+> Overall there is tons that can be done, but unfortunately there is no
+> focus anywhere to fix stuff.
+
+Maybe it starts with things like not top posting :)
+Unfortunately, most mail processing software, even Email::MIME
+in Perl (which I use for hosting the archives), still requires
+loading an entire message into memory :<  Gross, but at least
+I only have one full message in memory at once; even for
+rendering threads with 368 messages
