@@ -1,0 +1,205 @@
+Return-Path: <hukl@berlin.ccc.de>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS31400 84.200.0.0/16
+X-Spam-Status: No, score=-1.4 required=3.0 tests=AWL,BAYES_00,SPF_NEUTRAL
+	shortcircuit=no autolearn=no autolearn_force=no version=3.4.0
+Received: from post.smyck.org (post.smyck.org [84.200.79.200])
+	(using TLSv1.2 with cipher AECDH-AES256-SHA (256/256 bits))
+	(No client certificate requested)
+	by dcvr.yhbt.net (Postfix) with ESMTPS id 2A4B41FF76
+	for <unicorn-public@bogomips.org>; Mon, 12 Dec 2016 09:49:53 +0000 (UTC)
+Received: from spam.local (unknown [127.0.1.2])
+	by post.smyck.org (Postfix) with ESMTP id 10DA01C57D
+	for <unicorn-public@bogomips.org>; Mon, 12 Dec 2016 09:49:47 +0000 (UTC)
+Received: from post.smyck.org ([84.200.79.200])
+	by spam.local (spam.local [127.0.1.2]) (amavisd-new, port 10024)
+	with ESMTP id EFqKVTmPJx2F for <unicorn-public@bogomips.org>;
+	Mon, 12 Dec 2016 09:49:45 +0000 (UTC)
+Received: from twelve.fritz.box (unknown [IPv6:2a02:8109:8080:4db:b8e3:4e76:5f71:4c63])
+	by post.smyck.org (Postfix) with ESMTPSA id 795221C578
+	for <unicorn-public@bogomips.org>; Mon, 12 Dec 2016 09:49:45 +0000 (UTC)
+Message-ID: <584E72BB.70303@berlin.ccc.de>
+Date: Mon, 12 Dec 2016 10:49:47 +0100
+From: hukl <hukl@berlin.ccc.de>
+User-Agent: Postbox 5.0.9 (Macintosh/20161202)
+MIME-Version: 1.0
+To: unicorn-public@bogomips.org
+Subject: Re: WTF is up with memory usage nowadays?
+References: <20161212021000.GA15226@untitled>
+In-Reply-To: <20161212021000.GA15226@untitled>
+Content-Type: text/plain; charset=UTF-8; format=flowed
+Content-Transfer-Encoding: 8bit
+List-Id: <unicorn-public@bogomips.org>
+
+I agree with most of what you've written. I drew my conclusions a while 
+ago and switched to using Erlang (not Elixir!) for all my backend jobs 
+in the past couple of years. In a way it is a more constraint / 
+restricted environment. There are less libraries and frameworks 
+available and the language itself is smaller in terms of available 
+constructs, ways of doing things and how dynamic it feels. But I like 
+the constraints. A small language is easier to reason about especially 
+if there are not 23 different ways of assigning a value to a variable etc.
+
+Looking back at my Ruby times I often feel like that Ruby was not 
+created with the intention to become a universal, high performance 
+backend programming language and its amazing that still it got that far. 
+Unicorn was one of the big steps enabling us to build somewhat large 
+scale backend and that was a big help.
+
+However it feels like people keep putting lipstick on a pig, hoping that 
+eventually it will become a shiny, metallic, high performance backend 
+programming environment. But it will always remain a pig … or Ruby - no 
+matter how many layers of lipstick or abstractions you put on it - and 
+in Rubyland people love adding more layers :)
+
+I'm happy with Erlang now because it feels much more designed for the 
+task and it has a very interesting and practical mix of design decisions.
+
+What you've described is not an isolated Ruby problem of course as the 
+general trend is always towards more abstractions than less, but I guess 
+its a little amplified in this particular eco system.
+
+Coming back to what I initially wrote:
+
+I agree with most of what you've written, I just came to a different 
+conclusion which is basically giving up the constraint or desire to keep 
+programming in Ruby. (But I'm still reading this mailing list ;) )
+
+~ John
+
+
+
+
+
+
+
+
+
+
+
+Eric Wong wrote:
+> <rant>  Came across this in my feeds today:
+>
+> https://about.gitlab.com/2016/12/11/proposed-server-purchase-for-gitlab-com/
+>
+> ... Yeah, they cite 0.5 GB of memory usage per unicorn worker.
+> I guess this is typical nowadays, but damn, it sucks :<
+>
+> This is not the future I had in mind or ever wanted unicorn to
+> be associated with back in 2009 when I started.
+>
+> I don't think it's the fault of unicorn itself; unicorn recycles
+> request buffers, uses pre-frozen hash keys, and even
+> uses String#clear nowadays to discard heap memory, and never
+> buffers more than it has to.
+>
+> Since day one, unicorn was built to handle multi-gigabyte
+> uploads and responses; even from a crappy 256MB laptop.
+> "curl -T-" is my co-pilot :)
+>
+>
+> So... I guess the problem is up the stack in the app or
+> framework.  Maybe Rails?  *shrug*  I don't use that anymore...
+>
+> I remember using Rails over a decade ago and being shocked at
+> 50MB (yes, fifty megabytes) of RSS usage.  This was on 32-bit,
+> but even in the worst case on 64-bit, it would be 100MB.
+> Of course, nowadays Rails has grown to the point where I'm
+> afraid to go near it; instead I work directly off Rack.
+>
+> And yes, I still freak out nowadays when my Rack processes
+> exceed 100MB...
+>
+>
+> So, what can and should we do about it?
+>
+> * First step: Limit ourselves.
+>
+>    Use slower, older hardware, slower Internet connection so you
+>    force yourself to eke out every bit of performance out of
+>    what you have.
+>
+>    It's utterly hilarious for me to hear about people complain
+>    about laptops which can "only" have 16GB RAM.
+>
+>    I've definitely made transgressions in the past, and the worst
+>    code I've written was on powerful hardware.
+>
+>
+> Disclaimer: Some of the following may not be very Ruby-ish :P
+> And everything else is optional and the result of the first step
+> above.
+>
+> * Recycle.  Don't waste object slots: {Array,Hash,String}#clear
+>    can allow you to recycle heap memory for large objects
+>    and minimize GC pressure.  Using thread-local variables
+>    in your app helps maintain compatibility with multi-threaded
+>    Rack servers; or perhaps go Rack env-local for compatibility
+>    with single-threaded non-blocking servers.
+>
+>
+> * Can't recycle?  Discard objects you don't need, ASAP,
+>    and continue #clear-ing what you can. Take advantage
+>    of streaming built into Rack.
+>
+>    The Rack response body only needs to respond to #each.
+>    There should be no reason to build giant response
+>    documents in memory before sending them to a client.
+>
+>    unicorn can't do the following for you automatically since
+>    we don't know how/if a Rack app will reuse a string;
+>    but upstack authors can String#clear after yielding
+>    in #each to ensure any malloced heap memory is immediately
+>    available for future use (but beware of downstream middlewares
+>    which do not expect this, too(**)):
+>
+>      def each
+>        # .. do something to generate a giant string
+>        yield giant_string
+>        giant_string.clear # String#clear
+>      end
+>
+>    A Rack response body may also respond to #close; it can
+>    be used to explicitly release any response-local resources.
+>    Rack::TempfileReaper + Rack::BodyProxy is an example of
+>    this for Tempfiles.
+>
+>    Smaller functions and smaller code helps keep this manageable.
+>
+> * Avoid slurping.  Large datasets do not need everything up
+>    front.  For example, threading 10K messages entirely
+>    in memory is no problem: just don't load entire messages
+>    into memory up front, only what you need.
+>    JWZ's algorithm was doing this in the 90s:
+>    https://www.jwz.org/doc/threading.html
+>
+> Disclaimer: Some of these things may hurt throughput and
+> performance in benchmarks, especially with smaller datasets;
+> but I consider predictable and consistent performance more
+> far more important than burst throughput.
+>
+>
+> ** Know your entire stack; top to bottom.
+>     You ought to be able to track every single line of code
+>     in a high-level Rack app you maintain down through each
+>     and every layer of framework, middleware, Rack server,
+>     Ruby VM, C library, down to the OS kernel.
+>
+>     Yes, this limits you to using smaller and simpler stacks :P
+>
+>
+> *** Why stick with Ruby if you care about memory usage?
+>
+> I'm too impatient to wait on compilers, and don't like the extra
+> storage of binaries.  Scripting languages forces authors to
+> distribute (hopefully non-obfuscated) code; reducing network and
+> storage costs, and that also lowers the barrier from user to
+> hacker.  Fwiw, I actually prefer Perl5 with the predictability
+> (and caveats of) refcounting over a GC like Ruby's.
+>
+> </rant>
+> --
+> unsubscribe: unicorn-public+unsubscribe@bogomips.org
+> archive: https://bogomips.org/unicorn-public/
+>
