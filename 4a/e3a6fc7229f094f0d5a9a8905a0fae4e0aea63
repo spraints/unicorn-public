@@ -1,0 +1,210 @@
+Return-Path: <sam.saffron@gmail.com>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS15169 209.85.128.0/17
+X-Spam-Status: No, score=-1.5 required=3.0 tests=AWL,BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,DKIM_VALID_AU,FREEMAIL_FROM,RCVD_IN_DNSWL_LOW,RCVD_IN_MSPIKE_H3,
+	RCVD_IN_MSPIKE_WL,SPF_PASS shortcircuit=no autolearn=ham autolearn_force=no
+	version=3.4.0
+Received: from mail-qt0-f178.google.com (mail-qt0-f178.google.com [209.85.216.178])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+	(No client certificate requested)
+	by dcvr.yhbt.net (Postfix) with ESMTPS id 73C0D1FF40
+	for <unicorn-public@bogomips.org>; Mon, 12 Dec 2016 04:06:01 +0000 (UTC)
+Received: by mail-qt0-f178.google.com with SMTP id p16so65939810qta.0
+        for <unicorn-public@bogomips.org>; Sun, 11 Dec 2016 20:06:01 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20120113;
+        h=mime-version:in-reply-to:references:from:date:message-id:subject:to;
+        bh=XgIw2FqQl9NIeDBzrPPfCXTqiGbtPuMzGsejWkS8pmQ=;
+        b=hATfBVbJU5NWJGQ/XD8OMhNkYHkA2eQiPJeO9j3rxsa5s8ZCKPI5yY6sOomBL/U5gf
+         s8eY+sAsPsXdQfSZEBoi55zm9GJWQUduS0PlXQ0RpIr7TEMgwPFVscaT4m5HIyAxEzMp
+         BjkL0JZXedSUkqw9P0UQtvbk3Ay78uOUO+xrQqbIjbVznOz3MqZFom076fPIAQoTm6bV
+         m9d9uUxYryMHKDNhPfIdeY0mVveL96pOPr9Yuj6AdySQo53lTBsE+x8NKT0BPC2Sx2R6
+         p2LFWVgW8pci6oKUHOPFWH/9Yn6C3ch1cb1UiK3H4E2WW4+ex3WfvN7w63c5avdx4hSK
+         z09g==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20130820;
+        h=x-gm-message-state:mime-version:in-reply-to:references:from:date
+         :message-id:subject:to;
+        bh=XgIw2FqQl9NIeDBzrPPfCXTqiGbtPuMzGsejWkS8pmQ=;
+        b=bfwFTOjxffWsdEsRaSBcRzCpwb6MgDVOmSZzPDPTgMCZhFuq89mMM3NYG53NfA4OlD
+         MxYp6fE45fFZBeSMerHqZuy7IOclZIRRYZxTfE3NUUvJxi3lWRj+K20fE+a5MvTcWZ8C
+         9j5Mii4sO1a4V66e/AG6Par/m1jEsyHO5w4k8ms3S3CdZlftMbLw+7Qt36f3evKyeYRD
+         tze/tZ2rRU9+7e3KkQzUFVzk959vvpES8LUjtr8Tkunj5jbSQRIM6D5+GV6ed0S6fYHB
+         PqBn3RaReh5k8qir+hYghToX4zCkwKHXfk6URm+5IsGkylaO0rStY6wRaye30TyItVDY
+         C6qg==
+X-Gm-Message-State: AKaTC00Dnk6eO3g/grGzwLmPgUb4LQ0RykGGo23bnmdnwEyGvMVDsJty945k/LgS0I+1exgtdAeFb7W7q1Nmqw==
+X-Received: by 10.200.37.76 with SMTP id 12mr77420113qtn.129.1481515560171;
+ Sun, 11 Dec 2016 20:06:00 -0800 (PST)
+MIME-Version: 1.0
+Received: by 10.55.150.70 with HTTP; Sun, 11 Dec 2016 20:05:59 -0800 (PST)
+In-Reply-To: <20161212021000.GA15226@untitled>
+References: <20161212021000.GA15226@untitled>
+From: Sam Saffron <sam.saffron@gmail.com>
+Date: Mon, 12 Dec 2016 15:05:59 +1100
+Message-ID: <CAAtdryNVQhXXGH_scT2kVeDQS8LexPYyGbS3bj0C5DkY88sftw@mail.gmail.com>
+Subject: Re: WTF is up with memory usage nowadays?
+To: unicorn-public <unicorn-public@bogomips.org>
+Content-Type: text/plain; charset=UTF-8
+List-Id: <unicorn-public@bogomips.org>
+
+As to who is at fault here, it is a little bit of "everyone" in a big bucket.
+
+- The new GC is far more memory hungry than 1.9 line, even with
+`RUBY_GC_HEAP_OLDOBJECT_LIMIT_FACTOR=1.5` it is still a lot more space
+than it used to
+
+- Ruby have been very slow at dealing with the "elephant in the room"
+which is larger processes, stuff like
+https://bugs.ruby-lang.org/issues/12967 goes ignored and is sadly
+unlikely to happen for upcoming release
+
+- The current focus for "Ruby" is 3x3 (ruby 3 being 3 times faster)
+... there is no focus on reducing memory usage
+
+- Most people use default c memory allocator, despite tcmalloc
+offering quite a decent win
+https://github.com/SamSaffron/allocator_bench
+
+- mime types gem is a pariah... apparently EVERY install of rails
+needs to hold 46 megabytes of mime types in memory cause ... I don't
+know why ... (even with 'mime/types/columnar')
+
+- Booting a rails app eats up half a million slots in your ruby heaps,
+clearly the vast majority of this is unneeded waste. Stuff like
+keeping the string "MIT" in memory 125 times forever cause "rubygems",
+jumps out.  There is zero focus anywhere to fix this issue.
+
+- Ruby heaps grow too fast, even if you put on the breaks, it is hard
+to diagnose how you reached 7000 heaps at runtime when 6000 of them
+are empty.
+
+Overall there is tons that can be done, but unfortunately there is no
+focus anywhere to fix stuff.
+
+On Mon, Dec 12, 2016 at 1:10 PM, Eric Wong <e@80x24.org> wrote:
+> <rant> Came across this in my feeds today:
+>
+> https://about.gitlab.com/2016/12/11/proposed-server-purchase-for-gitlab-com/
+>
+> ... Yeah, they cite 0.5 GB of memory usage per unicorn worker.
+> I guess this is typical nowadays, but damn, it sucks :<
+>
+> This is not the future I had in mind or ever wanted unicorn to
+> be associated with back in 2009 when I started.
+>
+> I don't think it's the fault of unicorn itself; unicorn recycles
+> request buffers, uses pre-frozen hash keys, and even
+> uses String#clear nowadays to discard heap memory, and never
+> buffers more than it has to.
+>
+> Since day one, unicorn was built to handle multi-gigabyte
+> uploads and responses; even from a crappy 256MB laptop.
+> "curl -T-" is my co-pilot :)
+>
+>
+> So... I guess the problem is up the stack in the app or
+> framework.  Maybe Rails?  *shrug*  I don't use that anymore...
+>
+> I remember using Rails over a decade ago and being shocked at
+> 50MB (yes, fifty megabytes) of RSS usage.  This was on 32-bit,
+> but even in the worst case on 64-bit, it would be 100MB.
+> Of course, nowadays Rails has grown to the point where I'm
+> afraid to go near it; instead I work directly off Rack.
+>
+> And yes, I still freak out nowadays when my Rack processes
+> exceed 100MB...
+>
+>
+> So, what can and should we do about it?
+>
+> * First step: Limit ourselves.
+>
+>   Use slower, older hardware, slower Internet connection so you
+>   force yourself to eke out every bit of performance out of
+>   what you have.
+>
+>   It's utterly hilarious for me to hear about people complain
+>   about laptops which can "only" have 16GB RAM.
+>
+>   I've definitely made transgressions in the past, and the worst
+>   code I've written was on powerful hardware.
+>
+>
+> Disclaimer: Some of the following may not be very Ruby-ish :P
+> And everything else is optional and the result of the first step
+> above.
+>
+> * Recycle.  Don't waste object slots: {Array,Hash,String}#clear
+>   can allow you to recycle heap memory for large objects
+>   and minimize GC pressure.  Using thread-local variables
+>   in your app helps maintain compatibility with multi-threaded
+>   Rack servers; or perhaps go Rack env-local for compatibility
+>   with single-threaded non-blocking servers.
+>
+>
+> * Can't recycle?  Discard objects you don't need, ASAP,
+>   and continue #clear-ing what you can. Take advantage
+>   of streaming built into Rack.
+>
+>   The Rack response body only needs to respond to #each.
+>   There should be no reason to build giant response
+>   documents in memory before sending them to a client.
+>
+>   unicorn can't do the following for you automatically since
+>   we don't know how/if a Rack app will reuse a string;
+>   but upstack authors can String#clear after yielding
+>   in #each to ensure any malloced heap memory is immediately
+>   available for future use (but beware of downstream middlewares
+>   which do not expect this, too(**)):
+>
+>     def each
+>       # .. do something to generate a giant string
+>       yield giant_string
+>       giant_string.clear # String#clear
+>     end
+>
+>   A Rack response body may also respond to #close; it can
+>   be used to explicitly release any response-local resources.
+>   Rack::TempfileReaper + Rack::BodyProxy is an example of
+>   this for Tempfiles.
+>
+>   Smaller functions and smaller code helps keep this manageable.
+>
+> * Avoid slurping.  Large datasets do not need everything up
+>   front.  For example, threading 10K messages entirely
+>   in memory is no problem: just don't load entire messages
+>   into memory up front, only what you need.
+>   JWZ's algorithm was doing this in the 90s:
+>   https://www.jwz.org/doc/threading.html
+>
+> Disclaimer: Some of these things may hurt throughput and
+> performance in benchmarks, especially with smaller datasets;
+> but I consider predictable and consistent performance more
+> far more important than burst throughput.
+>
+>
+> ** Know your entire stack; top to bottom.
+>    You ought to be able to track every single line of code
+>    in a high-level Rack app you maintain down through each
+>    and every layer of framework, middleware, Rack server,
+>    Ruby VM, C library, down to the OS kernel.
+>
+>    Yes, this limits you to using smaller and simpler stacks :P
+>
+>
+> *** Why stick with Ruby if you care about memory usage?
+>
+> I'm too impatient to wait on compilers, and don't like the extra
+> storage of binaries.  Scripting languages forces authors to
+> distribute (hopefully non-obfuscated) code; reducing network and
+> storage costs, and that also lowers the barrier from user to
+> hacker.  Fwiw, I actually prefer Perl5 with the predictability
+> (and caveats of) refcounting over a GC like Ruby's.
+>
+> </rant>
+> --
+> unsubscribe: unicorn-public+unsubscribe@bogomips.org
+> archive: https://bogomips.org/unicorn-public/
+>
