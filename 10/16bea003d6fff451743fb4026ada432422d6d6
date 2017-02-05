@@ -1,0 +1,52 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.0
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id 24FEA1FAFC;
+	Sun,  5 Feb 2017 08:37:45 +0000 (UTC)
+Date: Sun, 5 Feb 2017 08:37:45 +0000
+From: Eric Wong <e@80x24.org>
+To: Aashish Kiran <aashish.kiran@gmail.com>
+Cc: unicorn-public@bogomips.org
+Subject: Re: Unicorn could not find log file
+Message-ID: <20170205083744.GA22618@starla>
+References: <CADgDTzTJDCjJU2YRU+hWzArRKCUSi-MbyqAGyPEoQTcE=hPPJQ@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <CADgDTzTJDCjJU2YRU+hWzArRKCUSi-MbyqAGyPEoQTcE=hPPJQ@mail.gmail.com>
+List-Id: <unicorn-public@bogomips.org>
+
+Aashish Kiran <aashish.kiran@gmail.com> wrote:
+> Hi,
+> I facing the following error, inspite of creating
+> ~/apps/voice_rules/shared/log/unicorn.stderr.log.
+> Can you help.
+> 
+> 
+> $ bundle exec unicorn -c config/unicorn.rb
+> 
+> /home/chittimilla/.rvm/gems/ruby-2.2.3@voice_rules/gems/unicorn-5.2.0/lib/unicorn/http_server.rb:762:in
+> `initialize': No such file or directory @ rb_sysopen -
+> ~/apps/voice_rules/shared/log/unicorn.stderr.log (Errno::ENOENT)
+
+I guess you have the literal "~/" in your config/unicorn.rb?
+
+Instead of the "~/", you should probably have the value of
+the HOME environment variable.
+
+In other words, use:
+
+  stderr_path "#{ENV['HOME']}/apps/voice_rules/shared/log/unicorn.stderr.log"
+
+Not this:
+
+  stderr_path "~/apps/voice_rules/shared/log/unicorn.stderr.log"
+
+
+The "~/" is only evaluated to be the value of ENV['HOME']
+by your shell (probably bash if you use a GNU/Linux system).
+Most other tools (like unicorn) will interpret '~/' literally.
