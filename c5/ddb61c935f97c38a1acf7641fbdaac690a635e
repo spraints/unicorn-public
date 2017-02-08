@@ -1,0 +1,74 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.0
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id 639C91FAF4;
+	Wed,  8 Feb 2017 20:00:51 +0000 (UTC)
+Date: Wed, 8 Feb 2017 20:00:51 +0000
+From: Eric Wong <e@80x24.org>
+To: unicorn-public@bogomips.org
+Subject: Re: WTF is up with memory usage nowadays?
+Message-ID: <20170208200050.GA10723@whir>
+References: <20161212021000.GA15226@untitled>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <20161212021000.GA15226@untitled>
+List-Id: <unicorn-public@bogomips.org>
+
+Eric Wong <e@80x24.org> wrote:
+>   The Rack response body only needs to respond to #each.
+>   There should be no reason to build giant response
+>   documents in memory before sending them to a client.
+> 
+>   unicorn can't do the following for you automatically since
+>   we don't know how/if a Rack app will reuse a string;
+>   but upstack authors can String#clear after yielding
+>   in #each to ensure any malloced heap memory is immediately
+>   available for future use (but beware of downstream middlewares
+>   which do not expect this, too(**)):
+> 
+>     def each
+>       # .. do something to generate a giant string
+>       yield giant_string
+
+... The yield above is so unicorn (or any server) can call
+IO#write or similar (send(,_nonblock), write_nonblock, etc...).
+
+That means once IO#write is complete, the contents of the string
+is shipped off to the OS TCP stack and Ruby can forget about it:
+
+>       giant_string.clear # String#clear
+>     end
+
+However, this is largely ineffective since Ruby 2.0.0 - 2.4.0
+has a thread-safety fix which causes excessive garbage:
+
+https://svn.ruby-lang.org/cgi-bin/viewvc.cgi?view=revision&revision=34847
+https://svn.ruby-lang.org/cgi-bin/viewvc.cgi/trunk/io.c?r1=34847&r2=34846&pathrev=34847
+
+And it looks like that went unnoticed for a few years...
+Shame on all of us! :<
+
+Anyways, it looks like an acceptable fix finally got accepted
+for Ruby 2.5 (December 2017): https://bugs.ruby-lang.org/issues/13085
+
+I've considered backporting a workaround into unicorn; but I'm
+leaning against it since most apps do not recycle buffers at the
+moment, so they make a lot of garbage, anyways.
+
+Another place unicorn uses IO#write is buffering large files in
+the TeeInput class; but I'm not sure if enough people care about
+large uploads.  Embarrassingly, most of the large I/O apps I
+maintain are still on 1.9.3, so I did not notice it :x
+In any case, anybody running an up-to-date trunk or willing
+to wait until Ruby 2.5 won't have to worry or think about this.
+
+
+But yeah, all of this means there's still a both a runtime and
+code complexity cost for supporting 1:1 native threads (at least
+the way MRI does it).  This cost is there regardless of whether
+or not the code you run uses threads.
