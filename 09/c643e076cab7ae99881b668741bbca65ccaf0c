@@ -1,0 +1,53 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.0
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id 9C4BC1FC46
+	for <unicorn-public@bogomips.org>; Fri, 10 Feb 2017 19:12:01 +0000 (UTC)
+From: Eric Wong <e@80x24.org>
+To: unicorn-public@bogomips.org
+Subject: [PATCH] tee_input: simplify condition for IO#write
+Date: Fri, 10 Feb 2017 19:12:01 +0000
+Message-Id: <20170210191201.3025-1-e@80x24.org>
+List-Id: <unicorn-public@bogomips.org>
+
+IO#write already elides the write(2) syscall for empty buffers,
+so there's no need to complicate our instruction sequence
+footprint for the rare case of an empty buffer.
+
+The only cases a Rack app will have an empty buffer are:
+
+1) `env['rack.input'].read` without args
+2) `env['rack.input'].gets`
+
+Neither of these calls are safe for server-independent Rack apps
+as the client can OOM the app.
+
+unicorn itself provides no facility for limiting maximum
+rack.input size.  Instead, unicorn relies on nginx to limit
+input size using the client_max_body_size directive.
+---
+ lib/unicorn/tee_input.rb | 4 +---
+ 1 file changed, 1 insertion(+), 3 deletions(-)
+
+diff --git a/lib/unicorn/tee_input.rb b/lib/unicorn/tee_input.rb
+index 3c6d18a..6f66162 100644
+--- a/lib/unicorn/tee_input.rb
++++ b/lib/unicorn/tee_input.rb
+@@ -125,9 +125,7 @@ def consume!
+   end
+ 
+   def tee(buffer)
+-    if buffer && buffer.size > 0
+-      @tmp.write(buffer)
+-    end
++    @tmp.write(buffer) if buffer
+     buffer
+   end
+ end
+-- 
+EW
+
