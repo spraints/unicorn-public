@@ -1,0 +1,43 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS12876 163.172.0.0/16
+X-Spam-Status: No, score=-2.6 required=3.0 tests=BAYES_00,RCVD_IN_MSPIKE_BL,
+	RCVD_IN_MSPIKE_ZBI,RCVD_IN_XBL,SPF_FAIL,SPF_HELO_FAIL shortcircuit=no
+	autolearn=no autolearn_force=no version=3.4.0
+Received: from 80x24.org (tor-exit-readme.memcpy.io [163.172.67.180])
+	by dcvr.yhbt.net (Postfix) with ESMTP id 173541FC44
+	for <unicorn-public@bogomips.org>; Mon, 13 Feb 2017 18:27:58 +0000 (UTC)
+From: Eric Wong <e@80x24.org>
+To: unicorn-public@bogomips.org
+Subject: [PATCH] http_request: freeze constant strings passed IO#write
+Date: Mon, 13 Feb 2017 18:27:53 +0000
+Message-Id: <20170213182753.5067-1-e@80x24.org>
+List-Id: <unicorn-public@bogomips.org>
+
+This ensures we won't have duplicate objects in Ruby 2.0-2.4.
+For Ruby 2.5.0dev+, this avoids any duplicate cleanup
+introduced as of r57471: https://bugs.ruby-lang.org/issues/13085
+---
+ lib/unicorn/http_request.rb | 5 +----
+ 1 file changed, 1 insertion(+), 4 deletions(-)
+
+diff --git a/lib/unicorn/http_request.rb b/lib/unicorn/http_request.rb
+index 0c1f9bb..c176083 100644
+--- a/lib/unicorn/http_request.rb
++++ b/lib/unicorn/http_request.rb
+@@ -24,10 +24,7 @@ class Unicorn::HttpParser
+   NULL_IO = StringIO.new("")
+ 
+   # :stopdoc:
+-  # A frozen format for this is about 15% faster
+-  # Drop these frozen strings when Ruby 2.2 becomes more prevalent,
+-  # 2.2+ optimizes hash assignments when used with literal string keys
+-  HTTP_RESPONSE_START = [ 'HTTP', '/1.1 ']
++  HTTP_RESPONSE_START = [ 'HTTP'.freeze, '/1.1 '.freeze ]
+   @@input_class = Unicorn::TeeInput
+   @@check_client_connection = false
+ 
+-- 
+EW
+
