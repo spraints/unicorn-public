@@ -1,0 +1,76 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.0
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id D7D07201B0;
+	Tue, 21 Feb 2017 19:53:50 +0000 (UTC)
+Date: Tue, 21 Feb 2017 19:53:50 +0000
+From: Eric Wong <e@80x24.org>
+To: Jeremy Evans <code@jeremyevans.net>
+Cc: unicorn-public@bogomips.org
+Subject: Re: Patch: Add support for chroot to Worker#user
+Message-ID: <20170221195350.GB26617@whir>
+References: <20170221192421.GI93742@jeremyevans.local>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <20170221192421.GI93742@jeremyevans.local>
+List-Id: <unicorn-public@bogomips.org>
+
+Jeremy Evans <code@jeremyevans.net> wrote:
+> Any chrooting would need to happen inside Worker#user, because
+> you can't chroot until after you have parsed the list of groups,
+> and you must chroot before dropping root privileges.
+> 
+> chroot is an important security feature, so that if the unicorn
+> process is exploited, file system access is limited to the chroot
+> directory instead of the entire system.
+
+I'm hesitant to document this as "an important security feature".
+
+Perhaps "an extra layer of security" is more accurate,
+as there are ways of breaking out of a chroot.
+
+> This is not a complete patch as it does not include tests. I can
+> add tests if you would consider accepting this feature.
+
+I wouldn't worry about automated tests if elevated privileges
+are required.
+
+> -  # Changes the worker process to the specified +user+ and +group+
+> +  # Changes the worker process to the specified +user+ and +group+,
+> +  # and chroots to the current working directory if +chroot+ is set.
+>    # This is only intended to be called from within the worker
+>    # process from the +after_fork+ hook.  This should be called in
+>    # the +after_fork+ hook after any privileged functions need to be
+> @@ -123,7 +124,7 @@ def close # :nodoc:
+>    # directly back to the caller (usually the +after_fork+ hook.
+>    # These errors commonly include ArgumentError for specifying an
+>    # invalid user/group and Errno::EPERM for insufficient privileges
+> -  def user(user, group = nil)
+> +  def user(user, group = nil, chroot = false)
+>      # we do not protect the caller, checking Process.euid == 0 is
+>      # insufficient because modern systems have fine-grained
+>      # capabilities.  Let the caller handle any and all errors.
+> @@ -134,6 +135,10 @@ def user(user, group = nil)
+>        Process.initgroups(user, gid)
+>        Process::GID.change_privilege(gid)
+>      end
+> +    if chroot
+> +      Dir.chroot(Dir.pwd)
+> +      Dir.chdir('/')
+> +    end
+
+Perhaps this can be made more flexible by allowing chroot to
+any specified directory, not just pwd.  Something like:
+
+    chroot = Dir.pwd if chroot == true
+    if chroot
+      Dir.chroot(chroot)
+      Dir.chdir('/')
+    end
+
+Anyways I'm inclined to accept this feature.
