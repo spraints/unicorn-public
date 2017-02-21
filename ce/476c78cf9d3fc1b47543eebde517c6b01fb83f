@@ -1,0 +1,195 @@
+Return-Path: <code@jeremyevans.net>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS40173 216.86.168.0/24
+X-Spam-Status: No, score=-3.7 required=3.0 tests=BAYES_00,RCVD_IN_DNSWL_LOW,
+	SPF_HELO_PASS shortcircuit=no autolearn=ham autolearn_force=no version=3.4.0
+Received: from mxout-08.mxes.net (mxout-08.mxes.net [216.86.168.183])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by dcvr.yhbt.net (Postfix) with ESMTPS id 6EB10201B0
+	for <unicorn-public@bogomips.org>; Tue, 21 Feb 2017 20:49:23 +0000 (UTC)
+Received: from battleground.jeremyevans.local (unknown [73.90.99.19])
+	(using TLSv1.2 with cipher DHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by smtp.mxes.net (Postfix) with ESMTPSA id F245C509B6;
+	Tue, 21 Feb 2017 15:49:21 -0500 (EST)
+Received: from jeremyevans.local (speedstar.jeremyevans.local [10.187.8.2])
+	by battleground.jeremyevans.local (OpenSMTPD) with ESMTP id 781d6812;
+	Tue, 21 Feb 2017 12:49:20 -0800 (PST)
+Date: Tue, 21 Feb 2017 12:49:20 -0800
+From: Jeremy Evans <code@jeremyevans.net>
+To: Eric Wong <e@80x24.org>
+Cc: unicorn-public@bogomips.org
+Subject: Re: Patch: Add after_worker_exit configuration option
+Message-ID: <20170221204920.GL93742@jeremyevans.local>
+References: <20170221191923.GH93742@jeremyevans.local>
+ <20170221194320.GA26617@whir>
+ <20170221200216.GJ93742@jeremyevans.local>
+ <20170221201526.GA7035@starla>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20170221201526.GA7035@starla>
+User-Agent: Mutt/1.7.2 (2016-11-26)
+List-Id: <unicorn-public@bogomips.org>
+
+On 02/21 08:15, Eric Wong wrote:
+> Jeremy Evans <code@jeremyevans.net> wrote:
+> > On 02/21 07:43, Eric Wong wrote:
+> > > Jeremy Evans <code@jeremyevans.net> wrote:
+> > > > This option can be used to implement custom behavior for handling
+> > > > worker exits.  For example, let's say you have a specific request
+> > > > that crashes a worker process, which you expect to be due to a
+> > > > improperly programmed C extension. By modifying your worker to
+> > > > save request related data in a temporary file and using this option,
+> > > > you can get a record of what request is crashing the application,
+> > > > which will make debugging easier.
+> > > > 
+> > > > This is not a complete patch as it doesn't include tests, but
+> > > > before writing tests I wanted to see if this is something you'd
+> > > > consider including in unicorn.
+> > > 
+> > > What advantage does this have over Ruby's builtin at_exit?
+> > 
+> > at_exit is not called if the interpreter crashes:
+> > 
+> > ruby -e 'at_exit{File.write('a.txt', 'a')}; Process.kill :SEGV, $$' 2>/dev/null
+> > ([ -f a.txt ] && echo at_exit called) || echo at_exit not called
+> 
+> Ah, thanks.  I didn't read the code carefully, enough.
+> The commit message and documentation should reflect that it's
+> called in the master and not the worker.
+> 
+> Anyways, this is probably OK since I can't think of a less
+> intrusive or more generic (across all Rack servers) way of doing
+> it.  So I'm inclined to accept some version of this.
+> 
+> > --- a/lib/unicorn/http_server.rb
+> > +++ b/lib/unicorn/http_server.rb
+> > @@ -14,7 +14,8 @@ class Unicorn::HttpServer
+> >    attr_accessor :app, :timeout, :worker_processes,
+> >                  :before_fork, :after_fork, :before_exec,
+> >                  :listener_opts, :preload_app,
+> > -                :orig_app, :config, :ready_pipe, :user
+> > +                :orig_app, :config, :ready_pipe, :user,
+> > +                :after_worker_exit
+> 
+> I've been trying to reduce the method entry overhead across
+> the board.  Since this is a new field, can it be attr_writer
+> solely for configurator?
+> 
+> I don't think there's reader dependency other than below...
+> 
+> > @@ -395,8 +396,7 @@ def reap_all_workers
+> >          proc_name 'master'
+> >        else
+> >          worker = @workers.delete(wpid) and worker.close rescue nil
+> > -        m = "reaped #{status.inspect} worker=#{worker.nr rescue 'unknown'}"
+> > -        status.success? ? logger.info(m) : logger.error(m)
+> > +        after_worker_exit.call(self, worker, status)
+> 
+> Which can be made to access the ivar directly:
+> 
+> 	   @after_worker_exit.call(self, worker, status)
+
+Here's a revised patch that should address the issues you identified:
+
+From 91b95652e4bdb7fc9af77e9ac06ad7400faef796 Mon Sep 17 00:00:00 2001
+From: Jeremy Evans <code@jeremyevans.net>
+Date: Fri, 17 Feb 2017 16:12:33 -0800
+Subject: [PATCH] Add after_worker_exit configuration option
+
+This option is executed in the master process following all
+worker process exits.  It is most useful in the case where
+the worker process crashes the ruby interpreter, as the worker
+process may not be able to send error notifications
+appropriately.
+
+For example, let's say you have a specific request that crashes a
+worker process, which you expect to be due to a improperly
+programmed C extension. By modifying your worker to save request
+related data in a temporary file and using this option, you can get
+a record of what request is crashing the application, which will
+make debugging easier.
+
+Example:
+
+after_worker_exit do |server, worker, status|
+  server.logger.info "worker #{status.success? ? 'exit' : 'crash'}: #{status}"
+
+  file = "request.#{status.pid}.txt"
+  if File.exist?(file)
+    do_something_with(File.read(file)) unless status.success?
+    File.delete(file)
+  end
+end
+---
+ lib/unicorn/configurator.rb | 21 +++++++++++++++++++++
+ lib/unicorn/http_server.rb  |  4 ++--
+ 2 files changed, 23 insertions(+), 2 deletions(-)
+
+diff --git a/lib/unicorn/configurator.rb b/lib/unicorn/configurator.rb
+index 3329c10..5bad925 100644
+--- a/lib/unicorn/configurator.rb
++++ b/lib/unicorn/configurator.rb
+@@ -41,6 +41,14 @@ class Unicorn::Configurator
+     :before_exec => lambda { |server|
+         server.logger.info("forked child re-executing...")
+       },
++    :after_worker_exit => lambda { |server, worker, status|
++        m = "reaped #{status.inspect} worker=#{worker.nr rescue 'unknown'}"
++        if status.success?
++          server.logger.info(m)
++        else
++          server.logger.error(m)
++        end
++      },
+     :pid => nil,
+     :preload_app => false,
+     :check_client_connection => false,
+@@ -151,6 +159,19 @@ def after_fork(*args, &block)
+     set_hook(:after_fork, block_given? ? block : args[0])
+   end
+ 
++  # sets after_worker_exit hook to a given block.  This block will be called
++  # by the master process after a worker exits:
++  #
++  #  after_fork do |server,worker,status|
++  #    # status is a Process::Status instance for the exited worker process
++  #    unless status.success?
++  #      server.logger.error("worker process failure: #{status.inspect}")
++  #    end
++  #  end
++  def after_worker_exit(*args, &block)
++    set_hook(:after_worker_exit, block_given? ? block : args[0], 3)
++  end
++
+   # sets before_fork got be a given Proc object.  This Proc
+   # object will be called by the master process before forking
+   # each worker.
+diff --git a/lib/unicorn/http_server.rb b/lib/unicorn/http_server.rb
+index 35bd100..c2086cb 100644
+--- a/lib/unicorn/http_server.rb
++++ b/lib/unicorn/http_server.rb
+@@ -15,6 +15,7 @@ class Unicorn::HttpServer
+                 :before_fork, :after_fork, :before_exec,
+                 :listener_opts, :preload_app,
+                 :orig_app, :config, :ready_pipe, :user
++  attr_writer   :after_worker_exit
+ 
+   attr_reader :pid, :logger
+   include Unicorn::SocketHelper
+@@ -395,8 +396,7 @@ def reap_all_workers
+         proc_name 'master'
+       else
+         worker = @workers.delete(wpid) and worker.close rescue nil
+-        m = "reaped #{status.inspect} worker=#{worker.nr rescue 'unknown'}"
+-        status.success? ? logger.info(m) : logger.error(m)
++        @after_worker_exit.call(self, worker, status)
+       end
+     rescue Errno::ECHILD
+       break
+-- 
+2.11.0
+
