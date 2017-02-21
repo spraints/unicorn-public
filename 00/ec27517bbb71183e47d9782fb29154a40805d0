@@ -1,0 +1,104 @@
+Return-Path: <code@jeremyevans.net>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS40173 216.86.168.0/24
+X-Spam-Status: No, score=-3.7 required=3.0 tests=BAYES_00,RCVD_IN_DNSWL_LOW,
+	SPF_HELO_PASS shortcircuit=no autolearn=ham autolearn_force=no version=3.4.0
+Received: from mxout-08.mxes.net (mxout-08.mxes.net [216.86.168.183])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by dcvr.yhbt.net (Postfix) with ESMTPS id A7FBF201B0
+	for <unicorn-public@bogomips.org>; Tue, 21 Feb 2017 20:15:09 +0000 (UTC)
+Received: from battleground.jeremyevans.local (unknown [73.90.99.19])
+	(using TLSv1.2 with cipher DHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by smtp.mxes.net (Postfix) with ESMTPSA id 28250509B6;
+	Tue, 21 Feb 2017 15:15:07 -0500 (EST)
+Received: from jeremyevans.local (speedstar.jeremyevans.local [10.187.8.2])
+	by battleground.jeremyevans.local (OpenSMTPD) with ESMTP id b808c1db;
+	Tue, 21 Feb 2017 12:15:07 -0800 (PST)
+Date: Tue, 21 Feb 2017 12:15:07 -0800
+From: Jeremy Evans <code@jeremyevans.net>
+To: Eric Wong <e@80x24.org>
+Cc: unicorn-public@bogomips.org
+Subject: Re: Patch: Add support for chroot to Worker#user
+Message-ID: <20170221201507.GK93742@jeremyevans.local>
+References: <20170221192421.GI93742@jeremyevans.local>
+ <20170221195350.GB26617@whir>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20170221195350.GB26617@whir>
+User-Agent: Mutt/1.7.2 (2016-11-26)
+List-Id: <unicorn-public@bogomips.org>
+
+On 02/21 07:53, Eric Wong wrote:
+> Jeremy Evans <code@jeremyevans.net> wrote:
+> > Any chrooting would need to happen inside Worker#user, because
+> > you can't chroot until after you have parsed the list of groups,
+> > and you must chroot before dropping root privileges.
+> > 
+> > chroot is an important security feature, so that if the unicorn
+> > process is exploited, file system access is limited to the chroot
+> > directory instead of the entire system.
+> 
+> I'm hesitant to document this as "an important security feature".
+> 
+> Perhaps "an extra layer of security" is more accurate,
+> as there are ways of breaking out of a chroot.
+
+That's fine.  Note that while breaking out of a chroot is easy if you
+have root privileges, it is difficult to break out of a chroot
+if root privileges have been dropped.  There are a couple of
+possibilities listed at https://github.com/earthquake/chw00t, neither of
+which is likely in environments where unicorn is typically deployed.
+
+> 
+> > This is not a complete patch as it does not include tests. I can
+> > add tests if you would consider accepting this feature.
+> 
+> I wouldn't worry about automated tests if elevated privileges
+> are required.
+> 
+> > -  # Changes the worker process to the specified +user+ and +group+
+> > +  # Changes the worker process to the specified +user+ and +group+,
+> > +  # and chroots to the current working directory if +chroot+ is set.
+> >    # This is only intended to be called from within the worker
+> >    # process from the +after_fork+ hook.  This should be called in
+> >    # the +after_fork+ hook after any privileged functions need to be
+> > @@ -123,7 +124,7 @@ def close # :nodoc:
+> >    # directly back to the caller (usually the +after_fork+ hook.
+> >    # These errors commonly include ArgumentError for specifying an
+> >    # invalid user/group and Errno::EPERM for insufficient privileges
+> > -  def user(user, group = nil)
+> > +  def user(user, group = nil, chroot = false)
+> >      # we do not protect the caller, checking Process.euid == 0 is
+> >      # insufficient because modern systems have fine-grained
+> >      # capabilities.  Let the caller handle any and all errors.
+> > @@ -134,6 +135,10 @@ def user(user, group = nil)
+> >        Process.initgroups(user, gid)
+> >        Process::GID.change_privilege(gid)
+> >      end
+> > +    if chroot
+> > +      Dir.chroot(Dir.pwd)
+> > +      Dir.chdir('/')
+> > +    end
+> 
+> Perhaps this can be made more flexible by allowing chroot to
+> any specified directory, not just pwd.  Something like:
+> 
+>     chroot = Dir.pwd if chroot == true
+>     if chroot
+>       Dir.chroot(chroot)
+>       Dir.chdir('/')
+>     end
+> 
+> Anyways I'm inclined to accept this feature.
+
+I had basically the same code originally, but wanted to minimize the API
+surface to increase the likelihood for acceptance.  So I'm definitely in
+favor of that change.
+
+Thanks,
+Jeremy
+
