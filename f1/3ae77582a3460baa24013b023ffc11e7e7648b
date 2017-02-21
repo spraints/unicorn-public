@@ -1,0 +1,60 @@
+Return-Path: <code@jeremyevans.net>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS40173 216.86.168.0/24
+X-Spam-Status: No, score=-3.7 required=3.0 tests=BAYES_00,RCVD_IN_DNSWL_LOW,
+	SPF_HELO_PASS shortcircuit=no autolearn=ham autolearn_force=no version=3.4.0
+Received: from mxout-08.mxes.net (mxout-08.mxes.net [216.86.168.183])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by dcvr.yhbt.net (Postfix) with ESMTPS id 3CECB2022D
+	for <unicorn-public@bogomips.org>; Tue, 21 Feb 2017 20:02:19 +0000 (UTC)
+Received: from battleground.jeremyevans.local (unknown [73.90.99.19])
+	(using TLSv1.2 with cipher DHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by smtp.mxes.net (Postfix) with ESMTPSA id D050D509BD;
+	Tue, 21 Feb 2017 15:02:17 -0500 (EST)
+Received: from jeremyevans.local (speedstar.jeremyevans.local [10.187.8.2])
+	by battleground.jeremyevans.local (OpenSMTPD) with ESMTP id 63564242;
+	Tue, 21 Feb 2017 12:02:16 -0800 (PST)
+Date: Tue, 21 Feb 2017 12:02:16 -0800
+From: Jeremy Evans <code@jeremyevans.net>
+To: Eric Wong <e@80x24.org>
+Cc: unicorn-public@bogomips.org
+Subject: Re: Patch: Add after_worker_exit configuration option
+Message-ID: <20170221200216.GJ93742@jeremyevans.local>
+References: <20170221191923.GH93742@jeremyevans.local>
+ <20170221194320.GA26617@whir>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20170221194320.GA26617@whir>
+User-Agent: Mutt/1.7.2 (2016-11-26)
+List-Id: <unicorn-public@bogomips.org>
+
+On 02/21 07:43, Eric Wong wrote:
+> Jeremy Evans <code@jeremyevans.net> wrote:
+> > This option can be used to implement custom behavior for handling
+> > worker exits.  For example, let's say you have a specific request
+> > that crashes a worker process, which you expect to be due to a
+> > improperly programmed C extension. By modifying your worker to
+> > save request related data in a temporary file and using this option,
+> > you can get a record of what request is crashing the application,
+> > which will make debugging easier.
+> > 
+> > This is not a complete patch as it doesn't include tests, but
+> > before writing tests I wanted to see if this is something you'd
+> > consider including in unicorn.
+> 
+> What advantage does this have over Ruby's builtin at_exit?
+
+at_exit is not called if the interpreter crashes:
+
+ruby -e 'at_exit{File.write('a.txt', 'a')}; Process.kill :SEGV, $$' 2>/dev/null
+([ -f a.txt ] && echo at_exit called) || echo at_exit not called
+
+> 
+> AFAIK, at_exit may be registered inside after_fork hooks to the
+> same effect.
+> 
+> Thanks.
