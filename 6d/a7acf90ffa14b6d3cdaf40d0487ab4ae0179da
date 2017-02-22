@@ -1,0 +1,103 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.0
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id 5E54C201B0;
+	Wed, 22 Feb 2017 18:33:52 +0000 (UTC)
+Date: Wed, 22 Feb 2017 18:33:52 +0000
+From: Eric Wong <e@80x24.org>
+To: Simon Eskildsen <simon.eskildsen@shopify.com>
+Cc: unicorn-public@bogomips.org, raindrops-public@bogomips.org
+Subject: Re: check_client_connection using getsockopt(2)
+Message-ID: <20170222183352.GA28771@starla>
+References: <CAO3HKM49+aLD=KLij3zhJqkWnR7bCWVan0mOvxD85xfrW8RXOw@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+Content-Transfer-Encoding: 8bit
+In-Reply-To: <CAO3HKM49+aLD=KLij3zhJqkWnR7bCWVan0mOvxD85xfrW8RXOw@mail.gmail.com>
+List-Id: <unicorn-public@bogomips.org>
+
+Simon Eskildsen <simon.eskildsen@shopify.com> wrote:
+
+<snip> great to know it's still working after all these years :>
+
+> This confirms Eric's comment that the existing
+> `check_client_connection` works perfectly on loopback, but as soon as
+> you put an actual network between the Unicorn and client—it's only
+> effective 20% of the time, even with `TCP_NODELAY`. I'm assuming, due
+> to buffering, even when disabling Nagle's. As we're changing our
+> architecture, we move from ngx (lb) -> ngx (host) -> unicorn to ngx
+> (lb) -> unicorn. That means this patch will no longer work for us.
+
+Side comment: I'm a bit curious how you guys arrived at removing
+nginx at the host level (if you're allowed to share that info)
+
+I've mainly kept nginx on the same host as unicorn, but used
+haproxy or similar (with minimal buffering) at the LB level.
+That allows better filesystem load distribution for large uploads.
+
+> I propose instead of the early `write(2)` hack, that we use
+> `getsockopt(2)` with the `TCP_INFO` flag and read the state of the
+> socket. If it's in `CLOSE_WAIT` or `CLOSE`, we kill the connection and
+> move on to the next.
+> 
+> https://github.com/torvalds/linux/blob/8fa3b6f9392bf6d90cb7b908e07bd90166639f0a/include/uapi/linux/tcp.h#L163
+> 
+> This is not going to be portable, but we can do this on only Linux
+> which I suspect is where most production deployments of Unicorn that
+> would benefit from this feature run. It's not useful in development
+> (which is likely more common to not be Linux). We could also introduce
+> it under a new configuration option if desired. In my testing, this
+> works to reject 100% of requests early when not on loopback.
+
+Good to know about it's effectiveness!  I don't mind adding
+Linux-only features as long as existing functionality still
+works on the server-oriented *BSDs.
+
+> The code is essentially:
+> 
+> def client_closed?
+>   tcp_info = socket.getsockopt(Socket::SOL_TCP, Socket::TCP_INFO)
+>   state = tcp_info.unpack("c")[0]
+>   state == TCP_CLOSE || state == TCP_CLOSE_WAIT
+> end
+
++Cc: raindrops-public@bogomips.org -> https://bogomips.org/raindrops-public/
+
+Fwiw, raindrops (already a dependency of unicorn) has TCP_INFO
+support under Linux:
+
+https://bogomips.org/raindrops.git/tree/ext/raindrops/linux_tcp_info.c
+
+I haven't used it, much, but FreeBSD also implements a subset of
+this feature, nowadays, and ought to be supportable, too.  We
+can look into adding it for raindrops.
+
+I don't know about other BSDs...
+
+> This could be called at the top of `#process_client` in `http_server.rb`.
+> 
+> Would there be interest in this upstream? Any comments on this
+> proposed implementation? Currently, we're using a middleware with the
+> Rack hijack API, but this seems like it belongs at the webserver
+> level.
+
+I guess hijack means you have to discard other middlewares and
+the normal rack response handling in unicorn?  If so, ouch!
+
+Unfortunately, without hijack, there's no portable way in Rack
+to get at the underlying IO object; so I guess this needs to
+be done at the server level...
+
+So yeah, I guess it belongs in the webserver.
+
+I think we can automatically use TCP_INFO if available for
+check_client_connection; then fall back to the old early write
+hack for Unix sockets and systems w/o TCP_INFO (which would set
+the response_start_sent flag).
+
+No need to introduce yet another configuration option.
