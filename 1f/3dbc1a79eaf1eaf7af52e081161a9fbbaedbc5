@@ -1,0 +1,135 @@
+Return-Path: <code@jeremyevans.net>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS40173 216.86.168.0/24
+X-Spam-Status: No, score=-3.7 required=3.0 tests=AWL,BAYES_00,
+	RCVD_IN_DNSWL_LOW,SPF_HELO_PASS shortcircuit=no autolearn=ham
+	autolearn_force=no version=3.4.0
+Received: from mxout-08.mxes.net (mxout-08.mxes.net [216.86.168.183])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by dcvr.yhbt.net (Postfix) with ESMTPS id 3A5B12022D
+	for <unicorn-public@bogomips.org>; Thu, 23 Feb 2017 18:49:39 +0000 (UTC)
+Received: from battleground.jeremyevans.local (unknown [73.90.99.19])
+	(using TLSv1.2 with cipher DHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by smtp.mxes.net (Postfix) with ESMTPSA id 2FF75509BF
+	for <unicorn-public@bogomips.org>; Thu, 23 Feb 2017 13:49:38 -0500 (EST)
+Received: from jeremyevans.local (speedstar.jeremyevans.local [10.187.8.2])
+	by battleground.jeremyevans.local (OpenSMTPD) with ESMTP id b2387cf2
+	for <unicorn-public@bogomips.org>;
+	Thu, 23 Feb 2017 10:49:37 -0800 (PST)
+Date: Thu, 23 Feb 2017 10:49:37 -0800
+From: Jeremy Evans <code@jeremyevans.net>
+To: unicorn-public@bogomips.org
+Subject: Patch: Add after_worker_ready configuration option V2
+Message-ID: <20170223184937.GC67612@jeremyevans.local>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+User-Agent: Mutt/1.7.2 (2016-11-26)
+List-Id: <unicorn-public@bogomips.org>
+
+Here's V2 of the after_worker_ready patch.  This adds some more
+documentation, and tries to give a better description of the
+advantages in the commit message.
+
+From cbc6fe845ade8946b7db2ecd2b86a0bd8e18bbb8 Mon Sep 17 00:00:00 2001
+From: Jeremy Evans <code@jeremyevans.net>
+Date: Tue, 21 Feb 2017 16:33:09 -0800
+Subject: [PATCH] Add after_worker_ready configuration option
+
+This adds a hook that is called after the application has
+been loaded by the worker process, directly before it starts
+accepting requests.  This hook is necessary if your application
+needs to gain access to resources during initialization,
+and then drop privileges before serving requests.
+
+This is especially useful in conjunction with chroot support
+so the app can load all the normal ruby libraries it needs
+to function, and then chroot before accepting requests.
+
+If you are preloading the app, it's possible to drop privileges
+or chroot in after_fork, but if you are not preloading the app,
+the only way to currently do this is to override the private
+HttpServer#init_worker_process method, and overriding private
+methods is a recipe for future breakage if the internals are
+modified.  This hook allows for such functionality to be
+supported and not break in future versions of Unicorn.
+---
+ lib/unicorn/configurator.rb | 22 ++++++++++++++++++++++
+ lib/unicorn/http_server.rb  |  4 ++--
+ 2 files changed, 24 insertions(+), 2 deletions(-)
+
+diff --git a/lib/unicorn/configurator.rb b/lib/unicorn/configurator.rb
+index 1e2b6e4..7ed5ffa 100644
+--- a/lib/unicorn/configurator.rb
++++ b/lib/unicorn/configurator.rb
+@@ -49,6 +49,9 @@ class Unicorn::Configurator
+           server.logger.error(m)
+         end
+       },
++    :after_worker_ready => lambda { |server, worker|
++        server.logger.info("worker=#{worker.nr} ready")
++      },
+     :pid => nil,
+     :preload_app => false,
+     :check_client_connection => false,
+@@ -172,6 +175,21 @@ def after_worker_exit(*args, &block)
+     set_hook(:after_worker_exit, block_given? ? block : args[0], 3)
+   end
+ 
++  # sets after_worker_ready hook to a given block.  This block will be called
++  # by a worker process after it has been fully loaded, directly before it
++  # starts responding to requests:
++  #
++  #  after_worker_ready do |server,worker|
++  #    server.logger.info("worker #{worker.nr} ready, dropping privileges")
++  #    worker.user('username', 'groupname')
++  #  end
++  #
++  # Do not use Configurator#user if you rely on changing users in the
++  # after_worker_ready hook.
++  def after_worker_ready(*args, &block)
++    set_hook(:after_worker_ready, block_given? ? block : args[0])
++  end
++
+   # sets before_fork got be a given Proc object.  This Proc
+   # object will be called by the master process before forking
+   # each worker.
+@@ -569,6 +587,10 @@ def working_directory(path)
+   # This switch will occur after calling the after_fork hook, and only
+   # if the Worker#user method is not called in the after_fork hook
+   # +group+ is optional and will not change if unspecified.
++  #
++  # Do not use Configurator#user if you rely on changing users in the
++  # after_worker_ready hook.  Instead, you need to call Worker#user
++  # directly in after_worker_ready.
+   def user(user, group = nil)
+     # raises ArgumentError on invalid user/group
+     Etc.getpwnam(user)
+diff --git a/lib/unicorn/http_server.rb b/lib/unicorn/http_server.rb
+index c2086cb..ef897ad 100644
+--- a/lib/unicorn/http_server.rb
++++ b/lib/unicorn/http_server.rb
+@@ -15,7 +15,7 @@ class Unicorn::HttpServer
+                 :before_fork, :after_fork, :before_exec,
+                 :listener_opts, :preload_app,
+                 :orig_app, :config, :ready_pipe, :user
+-  attr_writer   :after_worker_exit
++  attr_writer   :after_worker_exit, :after_worker_ready
+ 
+   attr_reader :pid, :logger
+   include Unicorn::SocketHelper
+@@ -644,7 +644,7 @@ def worker_loop(worker)
+     trap(:USR1) { nr = -65536 }
+ 
+     ready = readers.dup
+-    @logger.info "worker=#{worker.nr} ready"
++    @after_worker_ready.call(self, worker)
+ 
+     begin
+       nr < 0 and reopen_worker_logs(worker.nr)
+-- 
+2.11.0
+
