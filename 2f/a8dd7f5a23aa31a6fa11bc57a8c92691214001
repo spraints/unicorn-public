@@ -1,0 +1,152 @@
+Return-Path: <code@jeremyevans.net>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS40173 216.86.168.0/24
+X-Spam-Status: No, score=-3.7 required=3.0 tests=AWL,BAYES_00,
+	RCVD_IN_DNSWL_LOW,SPF_HELO_PASS shortcircuit=no autolearn=ham
+	autolearn_force=no version=3.4.0
+Received: from mxout-08.mxes.net (mxout-08.mxes.net [216.86.168.183])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by dcvr.yhbt.net (Postfix) with ESMTPS id 08FE520254
+	for <unicorn-public@bogomips.org>; Thu, 23 Feb 2017 20:00:32 +0000 (UTC)
+Received: from battleground.jeremyevans.local (unknown [73.90.99.19])
+	(using TLSv1.2 with cipher DHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by smtp.mxes.net (Postfix) with ESMTPSA id 96736509C3;
+	Thu, 23 Feb 2017 15:00:30 -0500 (EST)
+Received: from jeremyevans.local (speedstar.jeremyevans.local [10.187.8.2])
+	by battleground.jeremyevans.local (OpenSMTPD) with ESMTP id 5b95db7d;
+	Thu, 23 Feb 2017 12:00:29 -0800 (PST)
+Date: Thu, 23 Feb 2017 12:00:29 -0800
+From: Jeremy Evans <code@jeremyevans.net>
+To: Eric Wong <e@80x24.org>
+Cc: unicorn-public@bogomips.org
+Subject: Re: Patch: Add after_worker_ready configuration option
+Message-ID: <20170223200029.GD67612@jeremyevans.local>
+References: <20170223004911.GD81807@jeremyevans.local>
+ <20170223023221.GB15864@starla>
+ <20170223034336.GE81807@jeremyevans.local>
+ <20170223092309.GA28620@whir>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20170223092309.GA28620@whir>
+User-Agent: Mutt/1.7.2 (2016-11-26)
+List-Id: <unicorn-public@bogomips.org>
+
+On 02/23 09:23, Eric Wong wrote:
+> Jeremy Evans <code@jeremyevans.net> wrote:
+> > On 02/23 02:32, Eric Wong wrote:
+> > > Jeremy Evans <code@jeremyevans.net> wrote:
+> > > Anyways, I'm somewhat inclined to accept this as well, but will
+> > > think about it a bit, too.
+> > > 
+> > > One problem I have with this change is that it requires users
+> > > read more documentation and know more caveats to use.
+> >  
+> > It's unfortunate, but I think it's necessary in this case. Unicorn's
+> > default behavior works for most users, but this makes it so you
+> > don't have to override HttpServer#init_worker_process to get similar
+> > functionality.
+> 
+> Yeah.  Unfortunately, with every option comes more
+> support/maintenance overhead.  So I'm trying to make sure we've
+> explored every possible avenue before adding this new option.
+
+I agree.  If I knew of a way to get this functionality without
+overriding a private method, I would use it.  I'm not sure there is a
+way currently, which I why I worked on the patch.
+
+> > >     So I'm wondering if there can be some of that which could be
+> > >     trimmed out someday or made optional, somehow.
+> > 
+> > I'm not sure how open you are to a plugin-like system for Unicorn, where
+> > you can have separate files for separate features, and users can choose
+> > which features the want to use.  This limits memory usage so that you
+> > don't pay a memory cost for features you don't use.  This is the
+> > approach used by Sequel, Roda, and Rodauth (other libraries I maintain),
+> > and if you are interested in a similar system for Unicorn, I would be
+> > happy to work on one.
+> 
+> Not really.  As I've stated many times in the past, unicorn is
+> just one of many servers available for Rack users; so I've been
+> against people building too many dependencies on unicorn, that
+> comes at the expense of other servers.
+ 
+True, but there are features that only unicorn provides.  If you want
+those features, you have to use unicorn anyway. 
+
+> What I had in mind was having a shim process which does socket
+> setup, user switching, etc. before exec-ing unicorn in cases
+> where a systemd-like spawner is not used.  But it's probably too
+> small to make an impact on real apps anyways, since Ruby still
+> has tons of methods which never get called, either.
+
+I could see that decreasing memory usage slightly, but I agree it's
+unlikely to make a significant impact.
+
+> > I do have a couple of additional patches I plan to send, but I think it
+> > may be better to ask here first.
+> > 
+> > One is that SIGUSR1 handling doesn't work well with chroot if the log
+> > file is outside of the chroot, since the worker process may not have
+> > access to reopen the file.  One simple fix is to reopen the logs in
+> > the master process, then send SIGQUIT instead of SIGUSR1 to the child
+> > processes.  Are you open to a patch that does that?
+> 
+> Right now, the worker exits with some log spew if reopening
+> logs fails, and the worker respawns anyways, correct?
+> 
+> Perhaps that mapping can be made automatic if chroot is
+> enabled.  I wonder if that's too much magic...
+> Or the log spew could be suppressed when the error
+> is ENOENT and chroot is enabled.
+> 
+> The sysadmin could also send SIGHUP to reload everything
+> and respawn all children.
+> 
+> So, I'm wondering if using SIGHUP is too much of a burden, or if
+> automatic USR1 => QUIT mapping for chroot users is too magical.
+
+SIGHUP is actually fine.  I didn't realize it reopened log files
+in the master process, but apparently it does, so I can just use
+SIGHUP instead of SIGUSR1.
+
+> > The second feature is more exotic security feature called fork+exec.
+> > The current issue with unicorn's direct forking of children is that
+> > forked children share the memory layout of the server.  This is good
+> > from a memory usage standpoint due to CoW memory.  However, if there
+> > is a memory vulnerability in the unicorn application, this makes it
+> > easier to exploit, since if the a unicorn worker process crashes, the
+> > master process will fork a child with pretty much the same memory
+> > layout.  This allows address space discovery attacks.  Using fork+exec,
+> > each child process would have a unique address space for ASLR, on
+> > most Unix-like systems (Linux, MacOS X, NetBSD, OpenBSD, Solaris).
+> > There are additional security advantages from fork+exec on OpenBSD, but
+> > all Unix-like systems that use ASLR can benefit from the unique
+> > memory layout per process.
+> 
+> It depends how intrusive the implementation is...
+
+That I don't know yet.  I haven't implemented fork+exec before, so I'm
+not sure how many changes are needed. I probably won't be able to work
+on this right away.
+
+> Is this merely calling exec in the worker?
+> 
+> I'm not sure if your use of "fork+exec" is merely the two
+> well-known syscalls combined, or if there's something else;
+> I'll assume the former, since that's enough to have a
+> unique address space for Ruby bytecode.
+> 
+> Can this be done in an after_fork/after_worker_ready hook?
+> 
+> Socket inheritance can be done the same way it handles USR2
+> upgrades and systemd socket inheritance.
+
+I expect in addition to socket inheritance, we will need to handle pipe
+inheritance for the @to_io and @master pipes in the worker.
+
+Thanks,
+Jeremy
