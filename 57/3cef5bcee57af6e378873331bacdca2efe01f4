@@ -1,0 +1,116 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.0
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id 4FC90201B0;
+	Thu, 23 Feb 2017 02:32:21 +0000 (UTC)
+Date: Thu, 23 Feb 2017 02:32:21 +0000
+From: Eric Wong <e@80x24.org>
+To: Jeremy Evans <code@jeremyevans.net>
+Cc: unicorn-public@bogomips.org
+Subject: Re: Patch: Add after_worker_ready configuration option
+Message-ID: <20170223023221.GB15864@starla>
+References: <20170223004911.GD81807@jeremyevans.local>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <20170223004911.GD81807@jeremyevans.local>
+List-Id: <unicorn-public@bogomips.org>
+
+Jeremy Evans <code@jeremyevans.net> wrote:
+> This adds a hook that is called after the application has
+> been loaded by the worker process, directly before it starts
+> accepting requests.  This hook is necessary if your application
+> needs to get gain access to resources during initialization,
+> and then drop privileges before serving requests.
+> 
+> This is especially useful in conjunction with chroot support
+> so the app can load all the normal ruby libraries it needs
+> to function, and then chroot before accepting requests.
+> 
+> If you are preloading the app, it's possible to drop privileges
+> or chroot in after_fork, but if you are not preloading the app,
+> there is not currently a properly place to handle this, hence
+> the reason for this feature.
+
+This means using Unicorn::Worker#user directly,
+and not Unicorn::Configurator#user.  OK...
+
+Also, were you planning to send a v2 for chroot support?
+I'm fine with either.
+
+> --- a/lib/unicorn/configurator.rb
+> +++ b/lib/unicorn/configurator.rb
+
+> @@ -162,7 +165,7 @@ def after_fork(*args, &block)
+>    # sets after_worker_exit hook to a given block.  This block will be called
+>    # by the master process after a worker exits:
+>    #
+> -  #  after_fork do |server,worker,status|
+> +  #  after_worker_exit do |server,worker,status|
+>    #    # status is a Process::Status instance for the exited worker process
+>    #    unless status.success?
+>    #      server.logger.error("worker process failure: #{status.inspect}")
+
+This looks like an unrelated hunk which belongs in a separate
+patch.  I can squeeze in a separate fix for this (credited to
+you) or you can send a separate patch.
+
+> @@ -172,6 +175,18 @@ def after_worker_exit(*args, &block)
+>      set_hook(:after_worker_exit, block_given? ? block : args[0], 3)
+>    end
+>  
+> +  # sets after_worker_ready hook to a given block.  This block will be called
+> +  # by a worker process after it has been fully loaded, directly before it
+> +  # starts responding to requests:
+> +  #
+> +  #  after_worker_ready do |server,worker|
+> +  #    server.logger.info("worker #{worker.nr} ready, dropping privileges")
+> +  #    worker.user('username', 'groupname')
+> +  #  end
+
+The documentation should probably say something along the lines
+of:
+
+    Do not use Unicorn::Configurator#user if you rely on
+    changing users in the after_worker_ready hook.
+
+And maybe corresponding documentation for Unicorn::Configurator#user,
+too.
+
+Anyways, I'm somewhat inclined to accept this as well, but will
+think about it a bit, too.
+
+One problem I have with this change is that it requires users
+read more documentation and know more caveats to use.
+
+Adding to that, Unicorn::Configurator#user has been favored
+(documentation-wise) over Unicorn::Worker#user in the past;
+so it's a bit of a reversal(*)
+
+Based on the series of changes you're making, I'm sensing you're
+working on some complex system which might need more security
+than a typical app.
+
+I know you use OpenBSD, and I don't know much about the init
+system or how deployment works, there.
+
+Nowadays, it seems more common things (binding sockets,
+switching users, chrooting, etc..) is handled by init systems
+(at least systemd); and having that functionality in unicorn
+would mean redundant bloat.
+
+It would be useful to me and folks who won't use these features
+to understand how and why they're used.  That can help justify
+the (admittedly small) memory overhead which comes with it.
+
+Thanks.
+
+
+(*) Fwiw, I wasn't thrilled to add user switching to unicorn back
+    in 2009/2010, as it should not need to run privileged ports.
+    So I'm wondering if there can be some of that which could be
+    trimmed out someday or made optional, somehow.
