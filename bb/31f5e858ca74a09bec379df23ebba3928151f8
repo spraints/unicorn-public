@@ -1,0 +1,41 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.0
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id 0D3AD2022D
+	for <unicorn-public@bogomips.org>; Thu, 23 Feb 2017 18:07:50 +0000 (UTC)
+From: Eric Wong <e@80x24.org>
+To: unicorn-public@bogomips.org
+Subject: [PATCH] http_response: clear header buffer before response body iteration
+Date: Thu, 23 Feb 2017 18:07:49 +0000
+Message-Id: <20170223180749.29081-1-e@80x24.org>
+List-Id: <unicorn-public@bogomips.org>
+
+To alleviate some memory pressure during response body
+iteration, rely on String#clear to free(3) memory used for the
+large header buffer.  Given the size of some response headers
+such as cookies, this can release several kilobytes of malloc
+heap memory for immediate use by other layers of the application
+stack.
+---
+ lib/unicorn/http_response.rb | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/lib/unicorn/http_response.rb b/lib/unicorn/http_response.rb
+index ec128e4..284fc68 100644
+--- a/lib/unicorn/http_response.rb
++++ b/lib/unicorn/http_response.rb
+@@ -49,6 +49,7 @@ def http_response_write(socket, status, headers, body,
+         end
+       end
+       socket.write(buf << "\r\n".freeze)
++      buf.clear
+     end
+ 
+     if hijack
+-- 
+EW
+
