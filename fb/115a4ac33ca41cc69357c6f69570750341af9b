@@ -1,0 +1,98 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.0
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id 6BC6B201B0;
+	Thu, 23 Feb 2017 03:52:34 +0000 (UTC)
+Date: Thu, 23 Feb 2017 03:52:34 +0000
+From: Eric Wong <e@80x24.org>
+To: Simon Eskildsen <simon.eskildsen@shopify.com>
+Cc: unicorn-public@bogomips.org, raindrops-public@bogomips.org
+Subject: Re: check_client_connection using getsockopt(2)
+Message-ID: <20170223035234.GA26415@whir>
+References: <CAO3HKM49+aLD=KLij3zhJqkWnR7bCWVan0mOvxD85xfrW8RXOw@mail.gmail.com>
+ <20170222183352.GA28771@starla>
+ <CAO3HKM7m7_9Fr6N8Wobqb3nqKCwJt4rxog=1ZLv_LraYeR9FUw@mail.gmail.com>
+ <20170223014223.GA15864@starla>
+ <CAO3HKM6AFH2cg1nxVTCfq6jNshaOZEPgPivdFQGz7ovZzWzKFQ@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <CAO3HKM6AFH2cg1nxVTCfq6jNshaOZEPgPivdFQGz7ovZzWzKFQ@mail.gmail.com>
+List-Id: <unicorn-public@bogomips.org>
+
+Simon Eskildsen <simon.eskildsen@shopify.com> wrote:
+> On Wed, Feb 22, 2017 at 8:42 PM, Eric Wong <e@80x24.org> wrote:
+> > Simon Eskildsen <simon.eskildsen@shopify.com> wrote:
+> >> I meant to ask, in Raindrops why do you use the netlink API to get the
+> >> socket backlog instead of `getsockopt(2)` with `TCP_INFO` to get
+> >> `tcpi_unacked`? (as described in
+> >> http://www.ryanfrantz.com/posts/apache-tcp-backlog/) We use this to
+> >> monitor socket backlogs with a sidekick Ruby daemon. Although we're
+> >> looking to replace it with a middleware to simplify for Kubernetes.
+> >> It's one of our main metrics for monitoring performance, especially
+> >> around deploys.
+> >
+> > The netlink API allows independently-spawned processes to
+> > monitor others; so it can be system-wide.  TCP_INFO requires the
+> > process doing the checking to also have the socket open.
+> >
+> > I guess this reasoning for using netlink is invalid for containers,
+> > though...
+> 
+> If you namespace the network it's problematic, yeah. I'm considering
+> right now putting Raindrops in a middleware with the netlink API
+> inside the container, but it feels weird. That said, if you consider
+> the alternative of using `getsockopt(2)` on the listening socket, I
+> don't know how you'd get access to the Unicorn listening socket from a
+> middleware. Would it be nuts to expose a hook in Unicorn that allows
+> periodic execution for monitoring listening stats from Raindrops on
+> the listening socket? It seems somewhat of a narrow use-case, but on
+> the other hand I'm also not a fan of doing
+> `Raindrops::Linux.tcp_listener_stats("localhost:#{ENV["PORT"}")`, but
+> that might be less ugly.
+
+Yeah, all options get pretty ugly since Rack doesn't expose that
+in a standardized way.  Unicorn::HttpServer::LISTENERS is a
+historical constant which stores all listeners used by some
+parts of raindrops.
+
+Maybe relying on ObjectSpace or walking the LISTEN_FDS env from
+systemd is acceptable for other servers *shrug*
+
+
+Another way might be to rely on tcpi_last_data_recv in struct
+tcp_info from each and every client socket.  That should tell
+you when a client stopped writing to the socket, which works for
+most HTTP requests.  You could use the same getsockopt() call
+you'd use for check_client_connection to read that field.
+
+However, this won't be visible until the client is accept()ed.
+
+raindrops actually has some support for this, but it was
+ugly, too (hooking into *accept* methods):
+https://bogomips.org/raindrops/Raindrops/LastDataRecv.html
+
+Perhaps refinements could be used, nowadays (I've never used
+them).  Just throwing options out there...
+
+
+In any case, what I definitely do not want is to introduced more
+specialized configuration or API which might lock people into
+unicorn or having to burden people with versioning incompatibilies.
+
+> > (*) So I've been wondering if adding a "unicorn-mode" to an
+> >     existing C10K, slow-client-capable Ruby/Rack server +
+> >     reverse proxy makes sense for containerized deploys.
+> >     Maybe...
+> 
+> I'd love to hear more about this idea. What are you contemplating?
+
+Maybe another time, and not on the unicorn list.  I don't feel
+comfortable writing about unrelated/tangential projects on the
+unicorn list, even if I'm the leader of both projects.  Anyways,
+this other server is also in the rack README.md and I've been
+announcing it on ruby-talk since 2013.
