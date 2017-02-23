@@ -1,0 +1,130 @@
+Return-Path: <simon.eskildsen@shopify.com>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-3.8 required=3.0 tests=BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,DKIM_VALID_AU,RCVD_IN_DNSWL_LOW,SPF_PASS shortcircuit=no
+	autolearn=unavailable autolearn_force=no version=3.4.0
+Received: from mail-wm0-x235.google.com (mail-wm0-x235.google.com [IPv6:2a00:1450:400c:c09::235])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+	(No client certificate requested)
+	by dcvr.yhbt.net (Postfix) with ESMTPS id C27F92022D
+	for <unicorn-public@bogomips.org>; Thu, 23 Feb 2017 02:42:06 +0000 (UTC)
+Received: by mail-wm0-x235.google.com with SMTP id r141so1136966wmg.1
+        for <unicorn-public@bogomips.org>; Wed, 22 Feb 2017 18:42:06 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=shopify.com; s=google;
+        h=mime-version:in-reply-to:references:from:date:message-id:subject:to
+         :cc;
+        bh=SOzUF0xalaJZ0iy7HfyZrTFdYhHQ2s23hl77hT0yjsY=;
+        b=QXdRKHG6jioRAMfTlc8dETjTN4EPc1hDlrsiCBnMUeoqhRlrtg2Z/NtuBeP4MdczFm
+         ro9uY7IHEb03GU6/NhvbWADyJ5zMJJo/JrfjuXYkkjHlYMT7RnEuIDtsAUSBMUQiO1yy
+         kYBxH93XEb0Rf/tjT13TcM67JVPlGugwlofVE=
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20161025;
+        h=x-gm-message-state:mime-version:in-reply-to:references:from:date
+         :message-id:subject:to:cc;
+        bh=SOzUF0xalaJZ0iy7HfyZrTFdYhHQ2s23hl77hT0yjsY=;
+        b=O5GRZ2qRt4us7EGRTxYKTFYr/ITmWkL3YKBo7CKkBa6t1BjWdxeGKEmmvo1+bHN1Tu
+         Z6NHDxkltmvnF+tGnMbAmNNTbFsBlW/WGPk3Imr00EGCKNOfCN2LnPqlvOxYqSCg5i7R
+         yJHDbE7qCWaxb0akfJXTKKdcGmZ+82zic58epFxl1iXA8GwMwhlILi+Z6JhJLDkbf9tI
+         +lDHleJloxEClfHqew1qHrv1v7DSfBjWaWHS+++dbML975jSl7Jc4m74rdUVlcARbQxD
+         1ypMX7PQ8Ml7FcLgGswlgVloxfxFocQH6OF13Eka7qCBnTV2Lz3wc1ynur83x8wb9RJS
+         hJHQ==
+X-Gm-Message-State: AMke39lY/YtoeGylrpKj+zK3ET7abr5y027vbTtadfMNkJeV4ouq6Lhjo02XKW+t5yVNYiGF3Y8lNfy+hRp1Nhh8
+X-Received: by 10.28.148.66 with SMTP id w63mr817771wmd.43.1487817725194; Wed,
+ 22 Feb 2017 18:42:05 -0800 (PST)
+MIME-Version: 1.0
+Received: by 10.28.224.197 with HTTP; Wed, 22 Feb 2017 18:42:04 -0800 (PST)
+In-Reply-To: <20170223014223.GA15864@starla>
+References: <CAO3HKM49+aLD=KLij3zhJqkWnR7bCWVan0mOvxD85xfrW8RXOw@mail.gmail.com>
+ <20170222183352.GA28771@starla> <CAO3HKM7m7_9Fr6N8Wobqb3nqKCwJt4rxog=1ZLv_LraYeR9FUw@mail.gmail.com>
+ <20170223014223.GA15864@starla>
+From: Simon Eskildsen <simon.eskildsen@shopify.com>
+Date: Wed, 22 Feb 2017 21:42:04 -0500
+Message-ID: <CAO3HKM6AFH2cg1nxVTCfq6jNshaOZEPgPivdFQGz7ovZzWzKFQ@mail.gmail.com>
+Subject: Re: check_client_connection using getsockopt(2)
+To: Eric Wong <e@80x24.org>
+Cc: unicorn-public@bogomips.org, raindrops-public@bogomips.org
+Content-Type: text/plain; charset=UTF-8
+List-Id: <unicorn-public@bogomips.org>
+
+On Wed, Feb 22, 2017 at 8:42 PM, Eric Wong <e@80x24.org> wrote:
+> Simon Eskildsen <simon.eskildsen@shopify.com> wrote:
+>
+> <snip> Thanks for the writeup!
+>
+> Another sidenote: It seems nginx <-> unicorn is a bit odd
+> for deployment in a containerized environment(*).
+>
+>> I meant to ask, in Raindrops why do you use the netlink API to get the
+>> socket backlog instead of `getsockopt(2)` with `TCP_INFO` to get
+>> `tcpi_unacked`? (as described in
+>> http://www.ryanfrantz.com/posts/apache-tcp-backlog/) We use this to
+>> monitor socket backlogs with a sidekick Ruby daemon. Although we're
+>> looking to replace it with a middleware to simplify for Kubernetes.
+>> It's one of our main metrics for monitoring performance, especially
+>> around deploys.
+>
+> The netlink API allows independently-spawned processes to
+> monitor others; so it can be system-wide.  TCP_INFO requires the
+> process doing the checking to also have the socket open.
+>
+> I guess this reasoning for using netlink is invalid for containers,
+> though...
+
+If you namespace the network it's problematic, yeah. I'm considering
+right now putting Raindrops in a middleware with the netlink API
+inside the container, but it feels weird. That said, if you consider
+the alternative of using `getsockopt(2)` on the listening socket, I
+don't know how you'd get access to the Unicorn listening socket from a
+middleware. Would it be nuts to expose a hook in Unicorn that allows
+periodic execution for monitoring listening stats from Raindrops on
+the listening socket? It seems somewhat of a narrow use-case, but on
+the other hand I'm also not a fan of doing
+`Raindrops::Linux.tcp_listener_stats("localhost:#{ENV["PORT"}")`, but
+that might be less ugly.
+
+>
+>> I was going to use `env["unicorn.socket"]`/`env["puma.socket"]`, but
+>> you could also do `env.delete("hijack_io")` after hijacking to allow
+>> Unicorn to still render the response. Unfortunately the
+>> `<webserver>.socket` key is not part of the Rack standard, so I'm
+>> hesitant to use it. When this gets into Unicorn I'm planning to
+>> propose it upstream to Puma as well.
+>
+> I was going to say env.delete("rack.hijack_io") is dangerous
+> (since env could be copied by middleware); but apparently not:
+> rack.hijack won't work with a copied env, either.
+> You only need to delete with the same env object you call
+> rack.hijack with.
+>
+> But calling rack.hijack followed by env.delete may still
+> have unintended side-effects in other servers; so I guess
+> we (again) cannot rely on hijack working portably.
+
+Exactly, it gives the illusion of portability but e.g. Puma stores an
+instance variable to check whether a middleware hijacked, rendering
+the `env#delete` option useless.
+
+>
+>> Cool. How would you suggest I check for TCP_INFO compatible platforms
+>> in Unicorn? Is `RUBY_PLATFORM.ends_with?("linux".freeze)` sufficient
+>> or do you prefer another mechanism? I agree that we should fall back
+>> to the write hack on other platforms.
+>
+> The Raindrops::TCP_Info class should be undefined on unsupported
+> platforms, so I think you can check for that, instead.  Then it
+> should be transparent to add FreeBSD support from unicorn's
+> perspective.
+
+Perfect. I'll start working on a patch.
+
+>
+>
+> (*) So I've been wondering if adding a "unicorn-mode" to an
+>     existing C10K, slow-client-capable Ruby/Rack server +
+>     reverse proxy makes sense for containerized deploys.
+>     Maybe...
+
+I'd love to hear more about this idea. What are you contemplating?
