@@ -1,0 +1,136 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.0
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id E1CCF201A9;
+	Thu, 23 Feb 2017 09:23:09 +0000 (UTC)
+Date: Thu, 23 Feb 2017 09:23:09 +0000
+From: Eric Wong <e@80x24.org>
+To: Jeremy Evans <code@jeremyevans.net>
+Cc: unicorn-public@bogomips.org
+Subject: Re: Patch: Add after_worker_ready configuration option
+Message-ID: <20170223092309.GA28620@whir>
+References: <20170223004911.GD81807@jeremyevans.local>
+ <20170223023221.GB15864@starla>
+ <20170223034336.GE81807@jeremyevans.local>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <20170223034336.GE81807@jeremyevans.local>
+List-Id: <unicorn-public@bogomips.org>
+
+Jeremy Evans <code@jeremyevans.net> wrote:
+
+<snip> acknowledging everything above.
+
+> On 02/23 02:32, Eric Wong wrote:
+> > Jeremy Evans <code@jeremyevans.net> wrote:
+> > Anyways, I'm somewhat inclined to accept this as well, but will
+> > think about it a bit, too.
+> > 
+> > One problem I have with this change is that it requires users
+> > read more documentation and know more caveats to use.
+>  
+> It's unfortunate, but I think it's necessary in this case. Unicorn's
+> default behavior works for most users, but this makes it so you
+> don't have to override HttpServer#init_worker_process to get similar
+> functionality.
+
+Yeah.  Unfortunately, with every option comes more
+support/maintenance overhead.  So I'm trying to make sure we've
+explored every possible avenue before adding this new option.
+
+<snip>
+
+> > (*) Fwiw, I wasn't thrilled to add user switching to unicorn back
+> >     in 2009/2010, as it should not need to run privileged ports.
+> 
+> I think had you not added it, there wouldn't be a need for a chroot
+> patch, since otherwise one would assume any user that wanted to
+> drop privileges would just run the necessary code themselves.
+> 
+> One thing to keep in mind is that if you did not add the user switching
+> code, developers who need it would implement it themselves, and would
+> likely miss things like initgroups.
+
+Heh.  As I was mentioning above, every feature can come with
+new, unintended consequences :>  But yeah, maybe push things
+up to Ruby stdlib, or systemd...
+
+> >     So I'm wondering if there can be some of that which could be
+> >     trimmed out someday or made optional, somehow.
+> 
+> I'm not sure how open you are to a plugin-like system for Unicorn, where
+> you can have separate files for separate features, and users can choose
+> which features the want to use.  This limits memory usage so that you
+> don't pay a memory cost for features you don't use.  This is the
+> approach used by Sequel, Roda, and Rodauth (other libraries I maintain),
+> and if you are interested in a similar system for Unicorn, I would be
+> happy to work on one.
+
+Not really.  As I've stated many times in the past, unicorn is
+just one of many servers available for Rack users; so I've been
+against people building too many dependencies on unicorn, that
+comes at the expense of other servers.
+
+What I had in mind was having a shim process which does socket
+setup, user switching, etc. before exec-ing unicorn in cases
+where a systemd-like spawner is not used.  But it's probably too
+small to make an impact on real apps anyways, since Ruby still
+has tons of methods which never get called, either.
+
+> I do have a couple of additional patches I plan to send, but I think it
+> may be better to ask here first.
+> 
+> One is that SIGUSR1 handling doesn't work well with chroot if the log
+> file is outside of the chroot, since the worker process may not have
+> access to reopen the file.  One simple fix is to reopen the logs in
+> the master process, then send SIGQUIT instead of SIGUSR1 to the child
+> processes.  Are you open to a patch that does that?
+
+Right now, the worker exits with some log spew if reopening
+logs fails, and the worker respawns anyways, correct?
+
+Perhaps that mapping can be made automatic if chroot is
+enabled.  I wonder if that's too much magic...
+Or the log spew could be suppressed when the error
+is ENOENT and chroot is enabled.
+
+The sysadmin could also send SIGHUP to reload everything
+and respawn all children.
+
+So, I'm wondering if using SIGHUP is too much of a burden, or if
+automatic USR1 => QUIT mapping for chroot users is too magical.
+
+(trying to avoid adding more options + documentation, as always :)
+
+> The second feature is more exotic security feature called fork+exec.
+> The current issue with unicorn's direct forking of children is that
+> forked children share the memory layout of the server.  This is good
+> from a memory usage standpoint due to CoW memory.  However, if there
+> is a memory vulnerability in the unicorn application, this makes it
+> easier to exploit, since if the a unicorn worker process crashes, the
+> master process will fork a child with pretty much the same memory
+> layout.  This allows address space discovery attacks.  Using fork+exec,
+> each child process would have a unique address space for ASLR, on
+> most Unix-like systems (Linux, MacOS X, NetBSD, OpenBSD, Solaris).
+> There are additional security advantages from fork+exec on OpenBSD, but
+> all Unix-like systems that use ASLR can benefit from the unique
+> memory layout per process.
+
+It depends how intrusive the implementation is...
+
+Is this merely calling exec in the worker?
+
+I'm not sure if your use of "fork+exec" is merely the two
+well-known syscalls combined, or if there's something else;
+I'll assume the former, since that's enough to have a
+unique address space for Ruby bytecode.
+
+Can this be done in an after_fork/after_worker_ready hook?
+
+Socket inheritance can be done the same way it handles USR2
+upgrades and systemd socket inheritance.
