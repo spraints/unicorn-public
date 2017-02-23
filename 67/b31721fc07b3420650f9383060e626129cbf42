@@ -1,0 +1,212 @@
+Return-Path: <code@jeremyevans.net>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS40173 216.86.168.0/24
+X-Spam-Status: No, score=-3.7 required=3.0 tests=BAYES_00,RCVD_IN_DNSWL_LOW,
+	SPF_HELO_PASS shortcircuit=no autolearn=ham autolearn_force=no version=3.4.0
+Received: from mxout-08.mxes.net (mxout-08.mxes.net [216.86.168.183])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by dcvr.yhbt.net (Postfix) with ESMTPS id 6A4D22022D
+	for <unicorn-public@bogomips.org>; Thu, 23 Feb 2017 03:43:39 +0000 (UTC)
+Received: from battleground.jeremyevans.local (unknown [73.90.99.19])
+	(using TLSv1.2 with cipher DHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by smtp.mxes.net (Postfix) with ESMTPSA id EBCFE509BB;
+	Wed, 22 Feb 2017 22:43:37 -0500 (EST)
+Received: from jeremyevans.local (speedstar.jeremyevans.local [10.187.8.2])
+	by battleground.jeremyevans.local (OpenSMTPD) with ESMTP id 03a64c51;
+	Wed, 22 Feb 2017 19:43:36 -0800 (PST)
+Date: Wed, 22 Feb 2017 19:43:36 -0800
+From: Jeremy Evans <code@jeremyevans.net>
+To: Eric Wong <e@80x24.org>
+Cc: unicorn-public@bogomips.org
+Subject: Re: Patch: Add after_worker_ready configuration option
+Message-ID: <20170223034336.GE81807@jeremyevans.local>
+References: <20170223004911.GD81807@jeremyevans.local>
+ <20170223023221.GB15864@starla>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20170223023221.GB15864@starla>
+User-Agent: Mutt/1.7.2 (2016-11-26)
+List-Id: <unicorn-public@bogomips.org>
+
+On 02/23 02:32, Eric Wong wrote:
+> Jeremy Evans <code@jeremyevans.net> wrote:
+> > This adds a hook that is called after the application has
+> > been loaded by the worker process, directly before it starts
+> > accepting requests.  This hook is necessary if your application
+> > needs to get gain access to resources during initialization,
+> > and then drop privileges before serving requests.
+> > 
+> > This is especially useful in conjunction with chroot support
+> > so the app can load all the normal ruby libraries it needs
+> > to function, and then chroot before accepting requests.
+> > 
+> > If you are preloading the app, it's possible to drop privileges
+> > or chroot in after_fork, but if you are not preloading the app,
+> > there is not currently a properly place to handle this, hence
+> > the reason for this feature.
+> 
+> This means using Unicorn::Worker#user directly,
+> and not Unicorn::Configurator#user.  OK...
+
+Correct.  We could add configuration support to specify when to call
+Worker#user, but that seems like overkill.
+ 
+> Also, were you planning to send a v2 for chroot support?
+> I'm fine with either.
+
+Sorry about that, I will send a v2 for chroot support tomorrow.
+
+> 
+> > --- a/lib/unicorn/configurator.rb
+> > +++ b/lib/unicorn/configurator.rb
+> 
+> > @@ -162,7 +165,7 @@ def after_fork(*args, &block)
+> >    # sets after_worker_exit hook to a given block.  This block will be called
+> >    # by the master process after a worker exits:
+> >    #
+> > -  #  after_fork do |server,worker,status|
+> > +  #  after_worker_exit do |server,worker,status|
+> >    #    # status is a Process::Status instance for the exited worker process
+> >    #    unless status.success?
+> >    #      server.logger.error("worker process failure: #{status.inspect}")
+> 
+> This looks like an unrelated hunk which belongs in a separate
+> patch.  I can squeeze in a separate fix for this (credited to
+> you) or you can send a separate patch.
+ 
+Correct, this was an unrelated bug in my last patch.  I'll separate this
+hunk into a separate patch.
+
+> > @@ -172,6 +175,18 @@ def after_worker_exit(*args, &block)
+> >      set_hook(:after_worker_exit, block_given? ? block : args[0], 3)
+> >    end
+> >  
+> > +  # sets after_worker_ready hook to a given block.  This block will be called
+> > +  # by a worker process after it has been fully loaded, directly before it
+> > +  # starts responding to requests:
+> > +  #
+> > +  #  after_worker_ready do |server,worker|
+> > +  #    server.logger.info("worker #{worker.nr} ready, dropping privileges")
+> > +  #    worker.user('username', 'groupname')
+> > +  #  end
+> 
+> The documentation should probably say something along the lines
+> of:
+> 
+>     Do not use Unicorn::Configurator#user if you rely on
+>     changing users in the after_worker_ready hook.
+> 
+> And maybe corresponding documentation for Unicorn::Configurator#user,
+> too.
+
+OK, I'll update the documentation to be more complete.
+
+> Anyways, I'm somewhat inclined to accept this as well, but will
+> think about it a bit, too.
+> 
+> One problem I have with this change is that it requires users
+> read more documentation and know more caveats to use.
+ 
+It's unfortunate, but I think it's necessary in this case. Unicorn's
+default behavior works for most users, but this makes it so you
+don't have to override HttpServer#init_worker_process to get similar
+functionality.
+
+> Adding to that, Unicorn::Configurator#user has been favored
+> (documentation-wise) over Unicorn::Worker#user in the past;
+> so it's a bit of a reversal(*)
+
+I think Configurator#user still makes sense for most users.  As the
+documentation mentions, directly calling Worker#user should only
+be done if Configurator#user is not sufficient.
+
+> Based on the series of changes you're making, I'm sensing you're
+> working on some complex system which might need more security
+> than a typical app.
+
+These patches are related to all applications using Unicorn that I run
+on OpenBSD (about 20 separate applications).  They are designed to
+to reduce the attack surface if an attacker is able to find a
+remote code execution vulnerability in one of the applications.
+
+In addition to chroot(2), after chrooting, these applications also
+use pledge(2), which is an OpenBSD-specific system call filter
+(similar in principle to seccomp(2) in Linux).
+
+> I know you use OpenBSD, and I don't know much about the init
+> system or how deployment works, there.
+ 
+It's a very simple sh(1) based-init system, similar to traditional Unix.
+Most OpenBSD system daemons will start as root, chroot to a specific
+directory, drop privileges (possibly separate privileges in separate
+daemon processes connected via IPC), and finally use pledge(2) to limit
+what each process can actually use in terms of system calls.
+
+> Nowadays, it seems more common things (binding sockets,
+> switching users, chrooting, etc..) is handled by init systems
+> (at least systemd); and having that functionality in unicorn
+> would mean redundant bloat.
+
+I believe only Linux uses a systemd-like approach, and while most
+Linux systems use systemd these days, usage is not universal
+(notable exceptions are Slackware, Void, and Gentoo).  But my
+knowledge of other operating systems is not very broad.
+
+> It would be useful to me and folks who won't use these features
+> to understand how and why they're used.  That can help justify
+> the (admittedly small) memory overhead which comes with it.
+
+True.  I'm sorry the commit messages didn't provide a more thorough
+explanation.  I will try to improve that in the future.
+
+> (*) Fwiw, I wasn't thrilled to add user switching to unicorn back
+>     in 2009/2010, as it should not need to run privileged ports.
+
+I think had you not added it, there wouldn't be a need for a chroot
+patch, since otherwise one would assume any user that wanted to
+drop privileges would just run the necessary code themselves.
+
+One thing to keep in mind is that if you did not add the user switching
+code, developers who need it would implement it themselves, and would
+likely miss things like initgroups.
+
+>     So I'm wondering if there can be some of that which could be
+>     trimmed out someday or made optional, somehow.
+
+I'm not sure how open you are to a plugin-like system for Unicorn, where
+you can have separate files for separate features, and users can choose
+which features the want to use.  This limits memory usage so that you
+don't pay a memory cost for features you don't use.  This is the
+approach used by Sequel, Roda, and Rodauth (other libraries I maintain),
+and if you are interested in a similar system for Unicorn, I would be
+happy to work on one.
+
+I do have a couple of additional patches I plan to send, but I think it
+may be better to ask here first.
+
+One is that SIGUSR1 handling doesn't work well with chroot if the log
+file is outside of the chroot, since the worker process may not have
+access to reopen the file.  One simple fix is to reopen the logs in
+the master process, then send SIGQUIT instead of SIGUSR1 to the child
+processes.  Are you open to a patch that does that?
+
+The second feature is more exotic security feature called fork+exec.
+The current issue with unicorn's direct forking of children is that
+forked children share the memory layout of the server.  This is good
+from a memory usage standpoint due to CoW memory.  However, if there
+is a memory vulnerability in the unicorn application, this makes it
+easier to exploit, since if the a unicorn worker process crashes, the
+master process will fork a child with pretty much the same memory
+layout.  This allows address space discovery attacks.  Using fork+exec,
+each child process would have a unique address space for ASLR, on
+most Unix-like systems (Linux, MacOS X, NetBSD, OpenBSD, Solaris).
+There are additional security advantages from fork+exec on OpenBSD, but
+all Unix-like systems that use ASLR can benefit from the unique
+memory layout per process.
+
+Thanks,
+Jeremy
