@@ -1,0 +1,117 @@
+Return-Path: <simon.eskildsen@shopify.com>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-3.7 required=3.0 tests=AWL,BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,DKIM_VALID_AU,RCVD_IN_DNSWL_LOW,SPF_PASS shortcircuit=no
+	autolearn=ham autolearn_force=no version=3.4.0
+Received: from mail-wm0-x233.google.com (mail-wm0-x233.google.com [IPv6:2a00:1450:400c:c09::233])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+	(No client certificate requested)
+	by dcvr.yhbt.net (Postfix) with ESMTPS id F23AC201B0
+	for <unicorn-public@bogomips.org>; Sat, 25 Feb 2017 16:19:18 +0000 (UTC)
+Received: by mail-wm0-x233.google.com with SMTP id r141so34543842wmg.1
+        for <unicorn-public@bogomips.org>; Sat, 25 Feb 2017 08:19:18 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=shopify.com; s=google;
+        h=mime-version:in-reply-to:references:from:date:message-id:subject:to;
+        bh=MxznaV+bcXk4/6xNa8o5tF0wIOvrnvc1xpnCjEUEsjA=;
+        b=SrXd6FP5jsASKg6x40CFXiMQ+q2YI05TnFEXwKRhX/ib2zLhO1TG4qAmms1smy7wLl
+         tSyvYTX9edtkTZmg5lpSiB9y5xllm/5mHiFSgPe+o5kyVmKRUOOGNwP/ev2jvDBiuq9s
+         9MyT0409SZEz8olgWY0TnD1KxkhyCO5bvo0YE=
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20161025;
+        h=x-gm-message-state:mime-version:in-reply-to:references:from:date
+         :message-id:subject:to;
+        bh=MxznaV+bcXk4/6xNa8o5tF0wIOvrnvc1xpnCjEUEsjA=;
+        b=Hu0O6fyZhLHMPX6c5VDAsxejs4jyUsWAnWJFcWfdSfInxP5idnFpHn2uoPuEDsEWLN
+         f/zldRvE5KmEsxvBoze+11LAYlTzmNWCrHLMo+nRSoLGLeTypse/qCgv722IuihGsXCp
+         dMLS7QqTq4qXdgmt+n92xZ1hirmp9O5tVFriYP5neUNFhBr9EAcvxRmHXjfcsplXoisZ
+         AKT3vb5ff2kwp2TxevUJQ3xyjj0xKJLVHa2sgpiW5qScwKvhHwBZyZQVsWICmx6HBBB3
+         du/Tbb6xS+tm1p6KXRpl6x8NzNZx8h1TjlBA4+GBQbDIhsmMv7tOWo/spOTc+1IJTo8R
+         yzSA==
+X-Gm-Message-State: AMke39nrieTRwqk/CiDfNLpOmkdb0udwQGB5KV1V1x+oUPLPaxhv+GkEuQfvIXbZUOpnLhsUl2nXx6Vj983NAAsb
+X-Received: by 10.28.148.66 with SMTP id w63mr7407312wmd.43.1488039556475;
+ Sat, 25 Feb 2017 08:19:16 -0800 (PST)
+MIME-Version: 1.0
+Received: by 10.28.197.66 with HTTP; Sat, 25 Feb 2017 08:19:15 -0800 (PST)
+In-Reply-To: <CAO3HKM7u0kx79Ae4HM+vc4Op6PZxpU3tm-maL1rKJgc1x6i3=A@mail.gmail.com>
+References: <CAO3HKM7u0kx79Ae4HM+vc4Op6PZxpU3tm-maL1rKJgc1x6i3=A@mail.gmail.com>
+From: Simon Eskildsen <simon.eskildsen@shopify.com>
+Date: Sat, 25 Feb 2017 11:19:15 -0500
+Message-ID: <CAO3HKM76Pu-YB8h7caxhqNDvcOXbBT_eZYoMhy7gLkb7-O2bNA@mail.gmail.com>
+Subject: Re: [PATCH] check_client_connection: use tcp state on linux
+To: unicorn-public@bogomips.org
+Content-Type: text/plain; charset=UTF-8
+List-Id: <unicorn-public@bogomips.org>
+
+I left out a TCPSocket check, we'll need a `socket.is_a?(TCPSocket)`
+in there. I'll wait with sending an updated patch in case you have
+other comments. I'm also not entirely sure we need the `socket.close`.
+What do you think?
+
+On Sat, Feb 25, 2017 at 9:03 AM, Simon Eskildsen
+<simon.eskildsen@shopify.com> wrote:
+> The implementation of the check_client_connection causing an early write is
+> ineffective when not performed on loopback. In my testing, when on non-loopback,
+> such as another host, we only see a 10-20% rejection rate with TCP_NODELAY of
+> clients that are closed. This means 90-80% of responses in this case are
+> rendered in vain.
+>
+> This patch uses getosockopt(2) with TCP_INFO on Linux to read the socket state.
+> If the socket is in a state where it doesn't take a response, we'll abort the
+> request with a similar error as to what write(2) would give us on a closed
+> socket in case of an error.
+>
+> In my testing, this has a 100% rejection rate. This testing was conducted with
+> the following script:
+>
+> 100.times do |i|
+>   client = TCPSocket.new("some-unicorn", 20_000)
+>   client.write("GET /collections/#{rand(10000)}
+> HTTP/1.1\r\nHost:walrusser.myshopify.com\r\n\r\n")
+>   client.close
+> end
+> ---
+>  lib/unicorn/http_request.rb | 19 +++++++++++++++----
+>  1 file changed, 15 insertions(+), 4 deletions(-)
+>
+> diff --git a/lib/unicorn/http_request.rb b/lib/unicorn/http_request.rb
+> index 0c1f9bb..b4c95fc 100644
+> --- a/lib/unicorn/http_request.rb
+> +++ b/lib/unicorn/http_request.rb
+> @@ -31,6 +31,9 @@ class Unicorn::HttpParser
+>    @@input_class = Unicorn::TeeInput
+>    @@check_client_connection = false
+>
+> +  # TCP_TIME_WAIT: 6, TCP_CLOSE: 7, TCP_CLOSE_WAIT: 8, TCP_LAST_ACK: 9
+> +  IGNORED_CHECK_CLIENT_SOCKET_STATES = (6..9)
+> +
+>    def self.input_class
+>      @@input_class
+>    end
+> @@ -83,10 +86,18 @@ def read(socket)
+>        false until add_parse(socket.kgio_read!(16384))
+>      end
+>
+> -    # detect if the socket is valid by writing a partial response:
+> -    if @@check_client_connection && headers?
+> -      self.response_start_sent = true
+> -      HTTP_RESPONSE_START.each { |c| socket.write(c) }
+> +    # detect if the socket is valid by checking client connection.
+> +    if @@check_client_connection
+> +      if defined?(Raindrops::TCP_Info)
+> +        tcp_info = Raindrops::TCP_Info.new(socket)
+> +        if IGNORED_CHECK_CLIENT_SOCKET_STATES.cover?(tcp_info.state)
+> +          socket.close
+> +          raise Errno::EPIPE
+> +        end
+> +      elsif headers?
+> +        self.response_start_sent = true
+> +        HTTP_RESPONSE_START.each { |c| socket.write(c) }
+> +      end
+>      end
+>
+>      e['rack.input'] = 0 == content_length ?
+> --
+> 2.11.0
