@@ -1,0 +1,115 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.0
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id 409D1201B0;
+	Sat, 25 Feb 2017 23:12:44 +0000 (UTC)
+Date: Sat, 25 Feb 2017 23:12:44 +0000
+From: Eric Wong <e@80x24.org>
+To: Simon Eskildsen <simon.eskildsen@shopify.com>
+Cc: unicorn-public@bogomips.org
+Subject: Re: [PATCH] check_client_connection: use tcp state on linux
+Message-ID: <20170225231243.GA6224@dcvr.yhbt.net>
+References: <CAO3HKM7u0kx79Ae4HM+vc4Op6PZxpU3tm-maL1rKJgc1x6i3=A@mail.gmail.com>
+ <CAO3HKM76Pu-YB8h7caxhqNDvcOXbBT_eZYoMhy7gLkb7-O2bNA@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <CAO3HKM76Pu-YB8h7caxhqNDvcOXbBT_eZYoMhy7gLkb7-O2bNA@mail.gmail.com>
+List-Id: <unicorn-public@bogomips.org>
+
+Simon Eskildsen <simon.eskildsen@shopify.com> wrote:
+ 
+> On Sat, Feb 25, 2017 at 9:03 AM, Simon Eskildsen
+> <simon.eskildsen@shopify.com> wrote:
+> > The implementation of the check_client_connection causing an early write is
+> > ineffective when not performed on loopback. In my testing, when on non-loopback,
+> > such as another host, we only see a 10-20% rejection rate with TCP_NODELAY of
+> > clients that are closed. This means 90-80% of responses in this case are
+> > rendered in vain.
+> >
+> > This patch uses getosockopt(2) with TCP_INFO on Linux to read the socket state.
+> > If the socket is in a state where it doesn't take a response, we'll abort the
+> > request with a similar error as to what write(2) would give us on a closed
+> > socket in case of an error.
+> >
+> > In my testing, this has a 100% rejection rate. This testing was conducted with
+> > the following script:
+
+Good to know!
+
+> > diff --git a/lib/unicorn/http_request.rb b/lib/unicorn/http_request.rb
+> > index 0c1f9bb..b4c95fc 100644
+> > --- a/lib/unicorn/http_request.rb
+> > +++ b/lib/unicorn/http_request.rb
+> > @@ -31,6 +31,9 @@ class Unicorn::HttpParser
+> >    @@input_class = Unicorn::TeeInput
+> >    @@check_client_connection = false
+> >
+> > +  # TCP_TIME_WAIT: 6, TCP_CLOSE: 7, TCP_CLOSE_WAIT: 8, TCP_LAST_ACK: 9
+> > +  IGNORED_CHECK_CLIENT_SOCKET_STATES = (6..9)
+
+Thanks for documenting the numbers.
+
+I prefer we use a hash or case statement.  Both allow more
+optimization in the YARV VM of CRuby (opt_aref and
+opt_case_dispatch in insns.def).  case _might_ be a little
+faster if there's no constant lookup overhead, but 
+a microbench or dumping the bytecode will be necessary
+to be sure :)
+
+A hash or a case can also help portability-wise in case
+we hit a system where these numbers are non-sequential;
+or if we forgot something.
+
+> > -    # detect if the socket is valid by writing a partial response:
+> > -    if @@check_client_connection && headers?
+> > -      self.response_start_sent = true
+> > -      HTTP_RESPONSE_START.each { |c| socket.write(c) }
+> > +    # detect if the socket is valid by checking client connection.
+> > +    if @@check_client_connection
+
+We can probably split everything inside this if to a new
+method, this avoid penalizing people who don't use this feature.
+Using check_client_connection will already have a high cost,
+since it requires at least one extra syscall.
+
+> > +      if defined?(Raindrops::TCP_Info)
+
+...because defined? only needs to be checked once for the
+lifetime of the process; we can define different methods
+at load time to avoid the check for each and every request.
+
+> > +        tcp_info = Raindrops::TCP_Info.new(socket)
+> > +        if IGNORED_CHECK_CLIENT_SOCKET_STATES.cover?(tcp_info.state)
+> > +          socket.close
+
+Right, no need to socket.close, here; handle_error does it.
+
+> > +          raise Errno::EPIPE
+
+Since we don't print out the backtrace in handle_error, we
+can raise without a backtrace to avoid excess garbage.
+
+> > +        end
+> > +      elsif headers?
+> > +        self.response_start_sent = true
+> > +        HTTP_RESPONSE_START.each { |c| socket.write(c) }
+> > +      end
+> >      end
+
+> I left out a TCPSocket check, we'll need a `socket.is_a?(TCPSocket)`
+> in there. I'll wait with sending an updated patch in case you have
+> other comments. I'm also not entirely sure we need the `socket.close`.
+> What do you think?
+
+Yep, we need to account for the UNIX socket case.  I forget if
+kgio even makes them different...
+
+Anyways I won't be online much for a few days, and it's the
+weekend, so no rush :)
+
+Thanks.
