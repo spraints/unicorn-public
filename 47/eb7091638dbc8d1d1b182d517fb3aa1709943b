@@ -1,0 +1,193 @@
+Return-Path: <simon.eskildsen@shopify.com>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-3.4 required=3.0 tests=AWL,BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,DKIM_VALID_AU,RCVD_IN_DNSWL_NONE,SPF_PASS shortcircuit=no
+	autolearn=ham autolearn_force=no version=3.4.0
+Received: from mail-wr0-x235.google.com (mail-wr0-x235.google.com [IPv6:2a00:1450:400c:c0c::235])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+	(No client certificate requested)
+	by dcvr.yhbt.net (Postfix) with ESMTPS id 8D74C201B0
+	for <unicorn-public@bogomips.org>; Mon, 27 Feb 2017 11:44:39 +0000 (UTC)
+Received: by mail-wr0-x235.google.com with SMTP id l37so6314967wrc.1
+        for <unicorn-public@bogomips.org>; Mon, 27 Feb 2017 03:44:39 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=shopify.com; s=google;
+        h=mime-version:in-reply-to:references:from:date:message-id:subject:to
+         :cc:content-transfer-encoding;
+        bh=g+2o6FAIMACXrDLmStxuzHzMncgQ/Q7BCBwqH/CBb94=;
+        b=SnGr+ArfxanI6u5Gm50Fj+Yj3Q+bzr6pKocOSuJb4HQP6MEsIVHmCuGNVqTKScXfDA
+         2MzzLuSy4xVQA0/l9wUUlx0tWz/8nJRb+TQAWaTTbbEeps87BBZwm74TXtumGgtbltNW
+         frx4N3E/8lI1tPEnxhaY6Uqky6HzC4SMlF5C0=
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20161025;
+        h=x-gm-message-state:mime-version:in-reply-to:references:from:date
+         :message-id:subject:to:cc:content-transfer-encoding;
+        bh=g+2o6FAIMACXrDLmStxuzHzMncgQ/Q7BCBwqH/CBb94=;
+        b=V7GMje/ZZUGX+3d3fKe8k8ypvF9XLqOEYoSyOquQFQ+UdwSregX/14JwHBkby0gKSy
+         tiCNZhptlaXzEQw10WU0f9+Qu4Ky2WP84nHXomlDY5uZ0XhIC9UTUP+AgdLof2JVM8qR
+         YPk7I9UYhc+1PE+0yQlD4f7LzvVF82cpVkqyJqeOu2sslXkEJPpRoVIp4pKnYNxEYXks
+         mxBeGFTCeGVrDO14FH3xs3vZsZFYSBpeQYWzAld9qUCE98VJ3pz9cAp+ZArzm4g6BJ26
+         JClleO+FPYY5pEoyiX2SJkUmcqWwRHazM8WlVrE1ao2IKFH8XJiFM/OyAs2ysg4gfbtX
+         HM4g==
+X-Gm-Message-State: AMke39mIk3PbCflCAIxVDigKgxNGt3Uzi0G5noxoZCxuKxXRDbDb6HDCIk/LxQjLIMGChFgFk7+He3vBGoE6wyfY
+X-Received: by 10.223.153.168 with SMTP id y37mr9699633wrb.193.1488195877100;
+ Mon, 27 Feb 2017 03:44:37 -0800 (PST)
+MIME-Version: 1.0
+Received: by 10.28.197.66 with HTTP; Mon, 27 Feb 2017 03:44:36 -0800 (PST)
+In-Reply-To: <20170225231243.GA6224@dcvr.yhbt.net>
+References: <CAO3HKM7u0kx79Ae4HM+vc4Op6PZxpU3tm-maL1rKJgc1x6i3=A@mail.gmail.com>
+ <CAO3HKM76Pu-YB8h7caxhqNDvcOXbBT_eZYoMhy7gLkb7-O2bNA@mail.gmail.com> <20170225231243.GA6224@dcvr.yhbt.net>
+From: Simon Eskildsen <simon.eskildsen@shopify.com>
+Date: Mon, 27 Feb 2017 06:44:36 -0500
+Message-ID: <CAO3HKM6H33D5=3=TwPJYKST26dkVyh4dkfebxFpf5c7h+jv7XQ@mail.gmail.com>
+Subject: Re: [PATCH] check_client_connection: use tcp state on linux
+To: Eric Wong <e@80x24.org>
+Cc: unicorn-public@bogomips.org
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
+List-Id: <unicorn-public@bogomips.org>
+
+> I prefer we use a hash or case statement.  Both allow more
+> optimization in the YARV VM of CRuby (opt_aref and
+> opt_case_dispatch in insns.def).  case _might_ be a little
+> faster if there's no constant lookup overhead, but
+> a microbench or dumping the bytecode will be necessary
+> to be sure :)
+>
+> A hash or a case can also help portability-wise in case
+> we hit a system where these numbers are non-sequential;
+> or if we forgot something.
+
+Good point. I double checked all the states on Linux and found that we
+were missing TCP_CLOSING [1] [2]. This is a state where the other side
+is closed, and you have buffered data on your side. It doesn't seem
+like this would ever happen in Unicorn, but I think we should include
+it for completeness. This also means the range becomes non-sequential.
+I looked at Illumus (solaris-derived) [3] and BSD [4] and for the TCP
+states we're interested in it also appears to have a non-continues
+range.
+
+My co-worker, Kir Shatrov, benchmarked a bunch of approaches to the
+state check and found that case is a good solution [5].  Due to the
+realness of non-sequential states in common operating systems, I think
+case is the way to go here as you suggested. I've made sure to
+short-circuit the common-case of TCP_ESTABLISHED. I've only seen
+CLOSE_WAIT in testing, but in the wild-life of large production scale
+I would assume you would see TIME_WAIT and CLOSE. LAST_ACK_CLOSING it
+seems pretty unlikely to hit, but not impossible. As with CLOSING,
+I've included LAST_ACK_CLOSING for completeness.
+
+[1] https://github.com/torvalds/linux/blob/5924bbecd0267d87c24110cbe2041b50=
+75173a25/include/net/tcp_states.h#L27
+[2] https://github.com/torvalds/linux/blob/ca78d3173cff3503bcd15723b049757f=
+75762d15/net/ipv4/tcp.c#L228
+[3] https://github.com/freebsd/freebsd/blob/386ddae58459341ec56760470780581=
+4a2128a57/sys/netinet/tcp_fsm.h
+[4] https://github.com/illumos/illumos-gate/blob/f7877f5d39900cfd8b20dd673e=
+5ccc1ef7cc7447/usr/src/uts/common/netinet/tcp_fsm.h
+[5] https://gist.github.com/kirs/11ba4ce84c08188c9f7eba9c639616a5
+
+> Yep, we need to account for the UNIX socket case.  I forget if
+> kgio even makes them different...
+
+I read the implementation and verified by dumping the class when
+testing on some test boxes. You are right=E2=80=94it's a simple Kgio::Socke=
+t
+object, not differentiating between Kgio::TCPSocket and
+Kgio::UnixSocket at the class level. Kgio only does this if they're
+explicitly passed to override the class returned from #try_accept.
+Unicorn doesn't do this.
+
+I've tried to find a way to determine the socket domain (INET vs.
+UNIX) on the socket object, but neither Ruby's Socket class nor Kgio
+seems to expose this. I'm not entirely sure what the simplest way to
+do this check would be. We could have the accept loop pass the correct
+class to #try_accept based on the listening socket that came back from
+#accept. If we passed the listening socket to #read after accept, we'd
+know.. but I don't like that the request knows about the listener
+either. Alternatively, we could expose the socket domain in Kgio, but
+that'll be problematic in the near-ish future as you've mentioned
+wanting to move away from Kgio as Ruby's IO library is at parity as
+per Ruby 2.4.
+
+What do you suggest pursuing here to check whether the client socket
+is a TCP socket?
+
+Below is a patch addressing the other concerns. I had to include
+require raindrops so the `defined?` check would do the right thing, as
+the only other file that requires Raindrops is the worker one which is
+loaded after http_request. I can change the load-order or require
+raindrops in lib/unicorn.rb if you prefer.
+
+Missing is the socket type check. Thanks for your feedback!
+
+---
+ lib/unicorn/http_request.rb | 31 ++++++++++++++++++++++++++-----
+ 1 file changed, 26 insertions(+), 5 deletions(-)
+
+diff --git a/lib/unicorn/http_request.rb b/lib/unicorn/http_request.rb
+index 0c1f9bb..eedccac 100644
+--- a/lib/unicorn/http_request.rb
++++ b/lib/unicorn/http_request.rb
+@@ -2,6 +2,7 @@
+ # :enddoc:
+ # no stable API here
+ require 'unicorn_http'
++require 'raindrops'
+
+ # TODO: remove redundant names
+ Unicorn.const_set(:HttpRequest, Unicorn::HttpParser)
+@@ -29,6 +30,7 @@ class Unicorn::HttpParser
+   # 2.2+ optimizes hash assignments when used with literal string keys
+   HTTP_RESPONSE_START =3D [ 'HTTP', '/1.1 ']
+   @@input_class =3D Unicorn::TeeInput
++  @@raindrops_tcp_info_defined =3D defined?(Raindrops::TCP_Info)
+   @@check_client_connection =3D false
+
+   def self.input_class
+@@ -83,11 +85,7 @@ def read(socket)
+       false until add_parse(socket.kgio_read!(16384))
+     end
+
+-    # detect if the socket is valid by writing a partial response:
+-    if @@check_client_connection && headers?
+-      self.response_start_sent =3D true
+-      HTTP_RESPONSE_START.each { |c| socket.write(c) }
+-    end
++    check_client_connection(socket) if @@check_client_connection
+
+     e['rack.input'] =3D 0 =3D=3D content_length ?
+                       NULL_IO : @@input_class.new(socket, self)
+@@ -108,4 +106,27 @@ def call
+   def hijacked?
+     env.include?('rack.hijack_io'.freeze)
+   end
++
++  private
++
++  def check_client_connection(socket)
++    if @@raindrops_tcp_info_defined
++      tcp_info =3D Raindrops::TCP_Info.new(socket)
++      raise Errno::EPIPE, "client closed connection".freeze, [] if
+closed_state?(tcp_info.state)
++    elsif headers?
++      self.response_start_sent =3D true
++      HTTP_RESPONSE_START.each { |c| socket.write(c) }
++    end
++  end
++
++  def closed_state?(state)
++    case state
++    when 1 # ESTABLISHED
++      false
++    when 6, 7, 8, 9, 11 # TIME_WAIT, CLOSE, CLOSE_WAIT, LAST_ACK, CLOSING
++      true
++    else
++      false
++    end
++  end
+ end
+--=20
+2.11.0
