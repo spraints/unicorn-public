@@ -1,0 +1,159 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.0
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id 0D5BA202C9;
+	Tue, 28 Feb 2017 21:12:55 +0000 (UTC)
+Date: Tue, 28 Feb 2017 21:12:54 +0000
+From: Eric Wong <e@80x24.org>
+To: Simon Eskildsen <simon.eskildsen@shopify.com>
+Cc: unicorn-public@bogomips.org
+Subject: Re: [PATCH] check_client_connection: use tcp state on linux
+Message-ID: <20170228211254.GA3868@whir>
+References: <CAO3HKM7u0kx79Ae4HM+vc4Op6PZxpU3tm-maL1rKJgc1x6i3=A@mail.gmail.com>
+ <CAO3HKM76Pu-YB8h7caxhqNDvcOXbBT_eZYoMhy7gLkb7-O2bNA@mail.gmail.com>
+ <20170225231243.GA6224@dcvr.yhbt.net>
+ <CAO3HKM6H33D5=3=TwPJYKST26dkVyh4dkfebxFpf5c7h+jv7XQ@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+Content-Transfer-Encoding: 8bit
+In-Reply-To: <CAO3HKM6H33D5=3=TwPJYKST26dkVyh4dkfebxFpf5c7h+jv7XQ@mail.gmail.com>
+List-Id: <unicorn-public@bogomips.org>
+
+Simon Eskildsen <simon.eskildsen@shopify.com> wrote:
+
+<snip>
+> I would assume you would see TIME_WAIT and CLOSE. LAST_ACK_CLOSING it
+> seems pretty unlikely to hit, but not impossible. As with CLOSING,
+> I've included LAST_ACK_CLOSING for completeness.
+
+Did you mean "LAST_ACK, and CLOSING"? (not joined by underscore)
+
+Anyways, thanks for testing and adding
+
+> <e@80x24.org> wrote:
+> > Yep, we need to account for the UNIX socket case.  I forget if
+> > kgio even makes them different...
+> 
+> I read the implementation and verified by dumping the class when
+> testing on some test boxes. You are right—it's a simple Kgio::Socket
+> object, not differentiating between Kgio::TCPSocket and
+> Kgio::UnixSocket at the class level. Kgio only does this if they're
+> explicitly passed to override the class returned from #try_accept.
+> Unicorn doesn't do this.
+> 
+> I've tried to find a way to determine the socket domain (INET vs.
+> UNIX) on the socket object, but neither Ruby's Socket class nor Kgio
+> seems to expose this. I'm not entirely sure what the simplest way to
+> do this check would be. We could have the accept loop pass the correct
+> class to #try_accept based on the listening socket that came back from
+> #accept. If we passed the listening socket to #read after accept, we'd
+> know.. but I don't like that the request knows about the listener
+> either. Alternatively, we could expose the socket domain in Kgio, but
+> that'll be problematic in the near-ish future as you've mentioned
+> wanting to move away from Kgio as Ruby's IO library is at parity as
+> per Ruby 2.4.
+> 
+> What do you suggest pursuing here to check whether the client socket
+> is a TCP socket?
+
+I think passing the listening socket is the best way to go about
+detecting whether a socket is INET or UNIX, for now.
+
+You're right about kgio, I'd rather not make more changes to
+kgio but we will still need it to for Ruby <2.2.x users.
+
+And #read is an overloaded name, feel free to change it :)
+
+> Below is a patch addressing the other concerns. I had to include
+> require raindrops so the `defined?` check would do the right thing, as
+> the only other file that requires Raindrops is the worker one which is
+> loaded after http_request. I can change the load-order or require
+> raindrops in lib/unicorn.rb if you prefer.
+
+The require is fine.  However we do not need a class variable,
+below...
+
+>  # TODO: remove redundant names
+>  Unicorn.const_set(:HttpRequest, Unicorn::HttpParser)
+> @@ -29,6 +30,7 @@ class Unicorn::HttpParser
+>    # 2.2+ optimizes hash assignments when used with literal string keys
+>    HTTP_RESPONSE_START = [ 'HTTP', '/1.1 ']
+>    @@input_class = Unicorn::TeeInput
+> +  @@raindrops_tcp_info_defined = defined?(Raindrops::TCP_Info)
+
+I prefer we avoid adding this cvar, instead...
+
+>    @@check_client_connection = false
+> 
+>    def self.input_class
+> @@ -83,11 +85,7 @@ def read(socket)
+>        false until add_parse(socket.kgio_read!(16384))
+>      end
+> 
+> -    # detect if the socket is valid by writing a partial response:
+> -    if @@check_client_connection && headers?
+> -      self.response_start_sent = true
+> -      HTTP_RESPONSE_START.each { |c| socket.write(c) }
+> -    end
+> +    check_client_connection(socket) if @@check_client_connection
+> 
+>      e['rack.input'] = 0 == content_length ?
+>                        NULL_IO : @@input_class.new(socket, self)
+> @@ -108,4 +106,27 @@ def call
+>    def hijacked?
+>      env.include?('rack.hijack_io'.freeze)
+>    end
+
+... we can have different methods defined:
+
+   if defined?(Raindrops::TCP_Info) # Linux, maybe FreeBSD
+     def check_client_connection(client, listener) # :nodoc:
+     ...
+     end
+   else # portable version
+     def check_client_connection(client, listener) # :nodoc:
+     ...
+     end
+   end
+
+And eliminate the class variable entirely.
+
+> +
+> +  private
+
+I prefer to avoid marking methods as 'private' to ease any
+ad-hoc unit testing which may come up.  Instead, rely on :nodoc:
+directives to discourage people from depending on it.
+
+Thanks.
+
+> +  def check_client_connection(socket)
+> +    if @@raindrops_tcp_info_defined
+> +      tcp_info = Raindrops::TCP_Info.new(socket)
+> +      raise Errno::EPIPE, "client closed connection".freeze, [] if
+> closed_state?(tcp_info.state)
+> +    elsif headers?
+> +      self.response_start_sent = true
+> +      HTTP_RESPONSE_START.each { |c| socket.write(c) }
+> +    end
+> +  end
+> +
+> +  def closed_state?(state)
+> +    case state
+> +    when 1 # ESTABLISHED
+> +      false
+> +    when 6, 7, 8, 9, 11 # TIME_WAIT, CLOSE, CLOSE_WAIT, LAST_ACK, CLOSING
+> +      true
+> +    else
+> +      false
+> +    end
+> +  end
+>  end
+
+closed_state? looks good to me, good call on short-circuiting
+the common case of ESTABLISHED!
