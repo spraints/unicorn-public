@@ -1,0 +1,46 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.0
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id D7DB0202C9
+	for <unicorn-public@bogomips.org>; Tue, 28 Feb 2017 23:00:26 +0000 (UTC)
+From: Eric Wong <e@80x24.org>
+To: unicorn-public@bogomips.org
+Subject: [PATCH] t0011-active-unix-socket.sh: fix race condition in test
+Date: Tue, 28 Feb 2017 23:00:25 +0000
+Message-Id: <20170228230025.18558-1-e@80x24.org>
+List-Id: <unicorn-public@bogomips.org>
+
+Killing the master process may lead to the worker dying on its
+own (as designed); before kill(1) has had an opportunity to send
+the second kill(2) syscall on the worker process.
+
+Killing the worker before the master might also lead to a
+needless respawn, so merely kill the master and let the worker
+follow it in death.
+
+This race condition occasionally caused test failures on slow,
+uniprocessor hardware.
+---
+ t/t0011-active-unix-socket.sh | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/t/t0011-active-unix-socket.sh b/t/t0011-active-unix-socket.sh
+index d256f5c..fae0b6c 100755
+--- a/t/t0011-active-unix-socket.sh
++++ b/t/t0011-active-unix-socket.sh
+@@ -52,7 +52,7 @@ t_begin "worker pid unchanged (again)" && {
+ }
+ 
+ t_begin "nuking the existing Unicorn succeeds" && {
+-	kill -9 $unicorn_pid $worker_pid
++	kill -9 $unicorn_pid
+ 	while kill -0 $unicorn_pid
+ 	do
+ 		sleep 1
+-- 
+EW
+
