@@ -1,0 +1,50 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.0
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id 6B8B920133;
+	Wed,  1 Mar 2017 03:18:28 +0000 (UTC)
+Date: Wed, 1 Mar 2017 03:18:28 +0000
+From: Eric Wong <e@80x24.org>
+To: Simon Eskildsen <simon.eskildsen@shopify.com>
+Cc: unicorn-public@bogomips.org
+Subject: Re: [PATCH] check_client_connection: use tcp state on linux
+Message-ID: <20170301031828.GA19430@dcvr>
+References: <CAO3HKM7u0kx79Ae4HM+vc4Op6PZxpU3tm-maL1rKJgc1x6i3=A@mail.gmail.com>
+ <CAO3HKM76Pu-YB8h7caxhqNDvcOXbBT_eZYoMhy7gLkb7-O2bNA@mail.gmail.com>
+ <20170225231243.GA6224@dcvr.yhbt.net>
+ <CAO3HKM6H33D5=3=TwPJYKST26dkVyh4dkfebxFpf5c7h+jv7XQ@mail.gmail.com>
+ <20170228211254.GA3868@whir>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20170228211254.GA3868@whir>
+List-Id: <unicorn-public@bogomips.org>
+
+> Simon Eskildsen <simon.eskildsen@shopify.com> wrote:
+> > +      tcp_info = Raindrops::TCP_Info.new(socket)
+> > +      raise Errno::EPIPE, "client closed connection".freeze, [] if
+> > closed_state?(tcp_info.state)
+
+Also, I guess if you're using this frequently, it might make
+sense to keep the tcp_info object around and recycle it
+using the Raindrops::TCP_Info#get! method.
+
+#get! has always been supported in raindrops, but I just noticed
+RDoc wasn't picking it up properly :x
+
+Anyways I've fixed the documentation over on the raindrops list
+
+  https://bogomips.org/raindrops-public/20170301025541.26183-1-e@80x24.org/
+  ("[PATCH] ext: fix documentation for C ext-defined classes")
+
+  https://bogomips.org/raindrops-public/20170301025546.26233-1-e@80x24.org/
+  ("[PATCH] TCP_Info: custom documentation for #get!")
+
+... and updated the RDoc on https://bogomips.org/raindrops/
+
+Heck, I wonder if it even makes sense to reuse a frozen empty
+Array when raising the exception...
