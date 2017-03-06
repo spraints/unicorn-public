@@ -1,0 +1,343 @@
+Return-Path: <simon.eskildsen@shopify.com>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-3.4 required=3.0 tests=AWL,BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,DKIM_VALID_AU,RCVD_IN_DNSWL_NONE,SPF_PASS shortcircuit=no
+	autolearn=ham autolearn_force=no version=3.4.0
+Received: from mail-wr0-x22d.google.com (mail-wr0-x22d.google.com [IPv6:2a00:1450:400c:c0c::22d])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+	(No client certificate requested)
+	by dcvr.yhbt.net (Postfix) with ESMTPS id E9F5D20133
+	for <unicorn-public@bogomips.org>; Mon,  6 Mar 2017 21:32:04 +0000 (UTC)
+Received: by mail-wr0-x22d.google.com with SMTP id u108so126051838wrb.3
+        for <unicorn-public@bogomips.org>; Mon, 06 Mar 2017 13:32:04 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=shopify.com; s=google;
+        h=mime-version:in-reply-to:references:from:date:message-id:subject:to
+         :cc;
+        bh=tZXlXjpo+clN6HXA+xYJJDHeX6e5pMoNJfoo3zmc68o=;
+        b=OZvCeIxnczbsTNsgbHeNVH4ClvWk+sZjYL2QkZ/G95gIMZNcY2zYAzTPq4s6knL9jV
+         zNAqgI2e1cm6+2QYp005i/cQi4ePRZ2I9/hGRLumEdMi+k4/7AbybFb5QjMoEJx7ysuC
+         7IJe0uVAordbIznuzKpba6Ag26iJEPw2qhBpg=
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20161025;
+        h=x-gm-message-state:mime-version:in-reply-to:references:from:date
+         :message-id:subject:to:cc;
+        bh=tZXlXjpo+clN6HXA+xYJJDHeX6e5pMoNJfoo3zmc68o=;
+        b=kqWXbVhur3n/I7kreagk/erduN5dDAWAWamEUQJD3BuzUUH3vGJOEUsoK/VrHX/wbQ
+         Btn/hPrJzJUJBs6I3u8ryhtQH1SSKSH+dIzFpmiLKiifPkN6JSoKpFiO6b0d6vfXjsUi
+         Uz33kVIfqEcD0yqecIgyeFRnEkcz/mWw8QqQ5OYaU2Xv2s2HH/euyrVwrfrx3xD7xtD8
+         St3rDyclnb3TBCVJZXIKuCYZiTYYtZt2IkmjvK/ONk+nYA3a8JTpn1sa9aDGvhvbUinH
+         erfnB4koZkGnfUOGYYtTL3hAQynSVXBeaAvYnURWO+8Qyxyhmnp27BL6EErME3S4bL61
+         v6Xg==
+X-Gm-Message-State: AMke39ktbAjnGhrsSe3Y2JrH4A91B/w+yUwwAH7ZsW5nah1wgn77pzrqYHutLludiDWlWlkRjvSh6F+XMXnVUYiF
+X-Received: by 10.223.182.133 with SMTP id j5mr18151149wre.19.1488835923069;
+ Mon, 06 Mar 2017 13:32:03 -0800 (PST)
+MIME-Version: 1.0
+Received: by 10.28.229.14 with HTTP; Mon, 6 Mar 2017 13:32:02 -0800 (PST)
+In-Reply-To: <20170301031828.GA19430@dcvr>
+References: <CAO3HKM7u0kx79Ae4HM+vc4Op6PZxpU3tm-maL1rKJgc1x6i3=A@mail.gmail.com>
+ <CAO3HKM76Pu-YB8h7caxhqNDvcOXbBT_eZYoMhy7gLkb7-O2bNA@mail.gmail.com>
+ <20170225231243.GA6224@dcvr.yhbt.net> <CAO3HKM6H33D5=3=TwPJYKST26dkVyh4dkfebxFpf5c7h+jv7XQ@mail.gmail.com>
+ <20170228211254.GA3868@whir> <20170301031828.GA19430@dcvr>
+From: Simon Eskildsen <simon.eskildsen@shopify.com>
+Date: Mon, 6 Mar 2017 16:32:02 -0500
+Message-ID: <CAO3HKM5eVdohNWm-wFX+o1GH3H5j1LgKPYh9H5S2GgfBoOQMfA@mail.gmail.com>
+Subject: Re: [PATCH] check_client_connection: use tcp state on linux
+To: Eric Wong <e@80x24.org>
+Cc: unicorn-public@bogomips.org
+Content-Type: text/plain; charset=UTF-8
+List-Id: <unicorn-public@bogomips.org>
+
+Here's another update Eric!
+
+* Use a frozen empty array and a class variable for TCP_Info to avoid
+garbage. As far as I can tell, this shouldn't result in any garbage on
+any requests (other than on the first request).
+* Pass listener socket to #read to only check the client connection on
+a TCP server.
+* Short circuit CLOSE_WAIT after ESTABLISHED since in my testing it's
+the most common state after ESTABLISHED, it makes the numbers
+un-ordered, though. But comment should make it OK.
+* Definition of of `check_client_connection` based on whether
+Raindrops::TCP_Info is defined, instead of the class variable
+approach.
+* Changed the unit tests to pass a `nil` listener.
+
+Tested on our staging environment, and still works like a dream.
+
+I should note that I got the idea between this patch into Puma as well!
+
+https://github.com/puma/puma/pull/1227
+
+
+---
+ lib/unicorn/http_request.rb | 44 ++++++++++++++++++++++++++++++++++++++------
+ lib/unicorn/http_server.rb  |  6 +++---
+ test/unit/test_request.rb   | 28 ++++++++++++++--------------
+ 3 files changed, 55 insertions(+), 23 deletions(-)
+
+diff --git a/lib/unicorn/http_request.rb b/lib/unicorn/http_request.rb
+index 0c1f9bb..21a99ef 100644
+--- a/lib/unicorn/http_request.rb
++++ b/lib/unicorn/http_request.rb
+@@ -2,6 +2,7 @@
+ # :enddoc:
+ # no stable API here
+ require 'unicorn_http'
++require 'raindrops'
+
+ # TODO: remove redundant names
+ Unicorn.const_set(:HttpRequest, Unicorn::HttpParser)
+@@ -28,6 +29,7 @@ class Unicorn::HttpParser
+   # Drop these frozen strings when Ruby 2.2 becomes more prevalent,
+   # 2.2+ optimizes hash assignments when used with literal string keys
+   HTTP_RESPONSE_START = [ 'HTTP', '/1.1 ']
++  EMPTY_ARRAY = [].freeze
+   @@input_class = Unicorn::TeeInput
+   @@check_client_connection = false
+
+@@ -62,7 +64,7 @@ def self.check_client_connection=(bool)
+   # returns an environment hash suitable for Rack if successful
+   # This does minimal exception trapping and it is up to the caller
+   # to handle any socket errors (e.g. user aborted upload).
+-  def read(socket)
++  def read(socket, listener)
+     clear
+     e = env
+
+@@ -83,11 +85,7 @@ def read(socket)
+       false until add_parse(socket.kgio_read!(16384))
+     end
+
+-    # detect if the socket is valid by writing a partial response:
+-    if @@check_client_connection && headers?
+-      self.response_start_sent = true
+-      HTTP_RESPONSE_START.each { |c| socket.write(c) }
+-    end
++    check_client_connection(socket, listener) if @@check_client_connection
+
+     e['rack.input'] = 0 == content_length ?
+                       NULL_IO : @@input_class.new(socket, self)
+@@ -108,4 +106,38 @@ def call
+   def hijacked?
+     env.include?('rack.hijack_io'.freeze)
+   end
++
++  if defined?(Raindrops::TCP_Info)
++    def check_client_connection(socket, listener) # :nodoc:
++      if Kgio::TCPServer === listener
++        @@tcp_info ||= Raindrops::TCP_Info.new(socket)
++        @@tcp_info.get!(socket)
++        raise Errno::EPIPE, "client closed connection".freeze,
+EMPTY_ARRAY if closed_state?(@@tcp_info.state)
++      else
++        write_http_header(socket)
++      end
++    end
++
++    def closed_state?(state) # :nodoc:
++      case state
++      when 1 # ESTABLISHED
++        false
++      when 8, 6, 7, 9, 11 # CLOSE_WAIT, TIME_WAIT, CLOSE, LAST_ACK, CLOSING
++        true
++      else
++        false
++      end
++    end
++  else
++    def check_client_connection(socket, listener) # :nodoc:
++      write_http_header(socket)
++    end
++  end
++
++  def write_http_header(socket) # :nodoc:
++    if headers?
++      self.response_start_sent = true
++      HTTP_RESPONSE_START.each { |c| socket.write(c) }
++    end
++  end
+ end
+diff --git a/lib/unicorn/http_server.rb b/lib/unicorn/http_server.rb
+index 35bd100..4190641 100644
+--- a/lib/unicorn/http_server.rb
++++ b/lib/unicorn/http_server.rb
+@@ -558,8 +558,8 @@ def e100_response_write(client, env)
+
+   # once a client is accepted, it is processed in its entirety here
+   # in 3 easy steps: read request, call app, write app response
+-  def process_client(client)
+-    status, headers, body = @app.call(env = @request.read(client))
++  def process_client(client, listener)
++    status, headers, body = @app.call(env = @request.read(client, listener))
+
+     begin
+       return if @request.hijacked?
+@@ -655,7 +655,7 @@ def worker_loop(worker)
+         # Unicorn::Worker#kgio_tryaccept is not like accept(2) at all,
+         # but that will return false
+         if client = sock.kgio_tryaccept
+-          process_client(client)
++          process_client(client, sock)
+           nr += 1
+           worker.tick = time_now.to_i
+         end
+diff --git a/test/unit/test_request.rb b/test/unit/test_request.rb
+index f0ccaf7..dbe8af7 100644
+--- a/test/unit/test_request.rb
++++ b/test/unit/test_request.rb
+@@ -30,7 +30,7 @@ def setup
+   def test_options
+     client = MockRequest.new("OPTIONS * HTTP/1.1\r\n" \
+                              "Host: foo\r\n\r\n")
+-    env = @request.read(client)
++    env = @request.read(client, nil)
+     assert_equal '', env['REQUEST_PATH']
+     assert_equal '', env['PATH_INFO']
+     assert_equal '*', env['REQUEST_URI']
+@@ -40,7 +40,7 @@ def test_options
+   def test_absolute_uri_with_query
+     client = MockRequest.new("GET http://e:3/x?y=z HTTP/1.1\r\n" \
+                              "Host: foo\r\n\r\n")
+-    env = @request.read(client)
++    env = @request.read(client, nil)
+     assert_equal '/x', env['REQUEST_PATH']
+     assert_equal '/x', env['PATH_INFO']
+     assert_equal 'y=z', env['QUERY_STRING']
+@@ -50,7 +50,7 @@ def test_absolute_uri_with_query
+   def test_absolute_uri_with_fragment
+     client = MockRequest.new("GET http://e:3/x#frag HTTP/1.1\r\n" \
+                              "Host: foo\r\n\r\n")
+-    env = @request.read(client)
++    env = @request.read(client, nil)
+     assert_equal '/x', env['REQUEST_PATH']
+     assert_equal '/x', env['PATH_INFO']
+     assert_equal '', env['QUERY_STRING']
+@@ -61,7 +61,7 @@ def test_absolute_uri_with_fragment
+   def test_absolute_uri_with_query_and_fragment
+     client = MockRequest.new("GET http://e:3/x?a=b#frag HTTP/1.1\r\n" \
+                              "Host: foo\r\n\r\n")
+-    env = @request.read(client)
++    env = @request.read(client, nil)
+     assert_equal '/x', env['REQUEST_PATH']
+     assert_equal '/x', env['PATH_INFO']
+     assert_equal 'a=b', env['QUERY_STRING']
+@@ -73,7 +73,7 @@ def test_absolute_uri_unsupported_schemes
+     %w(ssh+http://e/ ftp://e/x http+ssh://e/x).each do |abs_uri|
+       client = MockRequest.new("GET #{abs_uri} HTTP/1.1\r\n" \
+                                "Host: foo\r\n\r\n")
+-      assert_raises(HttpParserError) { @request.read(client) }
++      assert_raises(HttpParserError) { @request.read(client, nil) }
+     end
+   end
+
+@@ -81,7 +81,7 @@ def test_x_forwarded_proto_https
+     client = MockRequest.new("GET / HTTP/1.1\r\n" \
+                              "X-Forwarded-Proto: https\r\n" \
+                              "Host: foo\r\n\r\n")
+-    env = @request.read(client)
++    env = @request.read(client, nil)
+     assert_equal "https", env['rack.url_scheme']
+     res = @lint.call(env)
+   end
+@@ -90,7 +90,7 @@ def test_x_forwarded_proto_http
+     client = MockRequest.new("GET / HTTP/1.1\r\n" \
+                              "X-Forwarded-Proto: http\r\n" \
+                              "Host: foo\r\n\r\n")
+-    env = @request.read(client)
++    env = @request.read(client, nil)
+     assert_equal "http", env['rack.url_scheme']
+     res = @lint.call(env)
+   end
+@@ -99,14 +99,14 @@ def test_x_forwarded_proto_invalid
+     client = MockRequest.new("GET / HTTP/1.1\r\n" \
+                              "X-Forwarded-Proto: ftp\r\n" \
+                              "Host: foo\r\n\r\n")
+-    env = @request.read(client)
++    env = @request.read(client, nil)
+     assert_equal "http", env['rack.url_scheme']
+     res = @lint.call(env)
+   end
+
+   def test_rack_lint_get
+     client = MockRequest.new("GET / HTTP/1.1\r\nHost: foo\r\n\r\n")
+-    env = @request.read(client)
++    env = @request.read(client, nil)
+     assert_equal "http", env['rack.url_scheme']
+     assert_equal '127.0.0.1', env['REMOTE_ADDR']
+     res = @lint.call(env)
+@@ -114,7 +114,7 @@ def test_rack_lint_get
+
+   def test_no_content_stringio
+     client = MockRequest.new("GET / HTTP/1.1\r\nHost: foo\r\n\r\n")
+-    env = @request.read(client)
++    env = @request.read(client, nil)
+     assert_equal StringIO, env['rack.input'].class
+   end
+
+@@ -122,7 +122,7 @@ def test_zero_content_stringio
+     client = MockRequest.new("PUT / HTTP/1.1\r\n" \
+                              "Content-Length: 0\r\n" \
+                              "Host: foo\r\n\r\n")
+-    env = @request.read(client)
++    env = @request.read(client, nil)
+     assert_equal StringIO, env['rack.input'].class
+   end
+
+@@ -130,7 +130,7 @@ def test_real_content_not_stringio
+     client = MockRequest.new("PUT / HTTP/1.1\r\n" \
+                              "Content-Length: 1\r\n" \
+                              "Host: foo\r\n\r\n")
+-    env = @request.read(client)
++    env = @request.read(client, nil)
+     assert_equal Unicorn::TeeInput, env['rack.input'].class
+   end
+
+@@ -141,7 +141,7 @@ def test_rack_lint_put
+       "Content-Length: 5\r\n" \
+       "\r\n" \
+       "abcde")
+-    env = @request.read(client)
++    env = @request.read(client, nil)
+     assert ! env.include?(:http_body)
+     res = @lint.call(env)
+   end
+@@ -167,7 +167,7 @@ def client.kgio_read!(*args)
+       "\r\n")
+     count.times { assert_equal bs, client.syswrite(buf) }
+     assert_equal 0, client.sysseek(0)
+-    env = @request.read(client)
++    env = @request.read(client, nil)
+     assert ! env.include?(:http_body)
+     assert_equal length, env['rack.input'].size
+     count.times {
+-- 
+2.11.0
+
+On Tue, Feb 28, 2017 at 10:18 PM, Eric Wong <e@80x24.org> wrote:
+>> Simon Eskildsen <simon.eskildsen@shopify.com> wrote:
+>> > +      tcp_info = Raindrops::TCP_Info.new(socket)
+>> > +      raise Errno::EPIPE, "client closed connection".freeze, [] if
+>> > closed_state?(tcp_info.state)
+>
+> Also, I guess if you're using this frequently, it might make
+> sense to keep the tcp_info object around and recycle it
+> using the Raindrops::TCP_Info#get! method.
+>
+> #get! has always been supported in raindrops, but I just noticed
+> RDoc wasn't picking it up properly :x
+>
+> Anyways I've fixed the documentation over on the raindrops list
+>
+>   https://bogomips.org/raindrops-public/20170301025541.26183-1-e@80x24.org/
+>   ("[PATCH] ext: fix documentation for C ext-defined classes")
+>
+>   https://bogomips.org/raindrops-public/20170301025546.26233-1-e@80x24.org/
+>   ("[PATCH] TCP_Info: custom documentation for #get!")
+>
+> ... and updated the RDoc on https://bogomips.org/raindrops/
+>
+> Heck, I wonder if it even makes sense to reuse a frozen empty
+> Array when raising the exception...
