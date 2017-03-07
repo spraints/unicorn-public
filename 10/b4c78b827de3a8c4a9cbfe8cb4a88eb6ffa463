@@ -1,0 +1,114 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.0
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id D9A3D1FBEC;
+	Tue,  7 Mar 2017 22:50:45 +0000 (UTC)
+Date: Tue, 7 Mar 2017 22:50:45 +0000
+From: Eric Wong <e@80x24.org>
+To: Simon Eskildsen <simon.eskildsen@shopify.com>
+Cc: unicorn-public@bogomips.org, Aman Gupta <aman@tmm1.net>
+Subject: Re: [PATCH] check_client_connection: use tcp state on linux
+Message-ID: <20170307225045.GA19463@whir>
+References: <CAO3HKM7u0kx79Ae4HM+vc4Op6PZxpU3tm-maL1rKJgc1x6i3=A@mail.gmail.com>
+ <CAO3HKM76Pu-YB8h7caxhqNDvcOXbBT_eZYoMhy7gLkb7-O2bNA@mail.gmail.com>
+ <20170225231243.GA6224@dcvr.yhbt.net>
+ <CAO3HKM6H33D5=3=TwPJYKST26dkVyh4dkfebxFpf5c7h+jv7XQ@mail.gmail.com>
+ <20170228211254.GA3868@whir>
+ <20170301031828.GA19430@dcvr>
+ <CAO3HKM5eVdohNWm-wFX+o1GH3H5j1LgKPYh9H5S2GgfBoOQMfA@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <CAO3HKM5eVdohNWm-wFX+o1GH3H5j1LgKPYh9H5S2GgfBoOQMfA@mail.gmail.com>
+List-Id: <unicorn-public@bogomips.org>
+
+Simon Eskildsen <simon.eskildsen@shopify.com> wrote:
+> Here's another update Eric!
+
+Thanks, a few teeny issues fixed up locally (but commented
+inline, below).
+
+However, there's a bigger problem which I'm Cc:-ing Aman about
+for tmm1/gctools changing process_client in the internal API.
+
+I won't burden him maintaining extra versions, nor will I force
+users to use a certain version of unicorn or gctools to match.
+
+Aman: for reference, relevant messages in the archives:
+
+https://bogomips.org/unicorn-public/?q=d:20170222-+check_client_connection&x=t
+
+(TL;DR: I don't expect Aman will have to do anything,
+ just keeping him in the loop)
+
+> +++ b/lib/unicorn/http_server.rb
+> @@ -558,8 +558,8 @@ def e100_response_write(client, env)
+> 
+>    # once a client is accepted, it is processed in its entirety here
+>    # in 3 easy steps: read request, call app, write app response
+> -  def process_client(client)
+> -    status, headers, body = @app.call(env = @request.read(client))
+> +  def process_client(client, listener)
+> +    status, headers, body = @app.call(env = @request.read(client, listener))
+
+I can squash this fix in, locally:
+
+diff --git a/lib/unicorn/oob_gc.rb b/lib/unicorn/oob_gc.rb
+index 5572e59..74a1d51 100644
+--- a/lib/unicorn/oob_gc.rb
++++ b/lib/unicorn/oob_gc.rb
+@@ -67,8 +67,8 @@ def self.new(app, interval = 5, path = %r{\A/})
+ 
+   #:stopdoc:
+   PATH_INFO = "PATH_INFO"
+-  def process_client(client)
+-    super(client) # Unicorn::HttpServer#process_client
++  def process_client(client, listener)
++    super(client, listener) # Unicorn::HttpServer#process_client
+     if OOBGC_PATH =~ OOBGC_ENV[PATH_INFO] && ((@@nr -= 1) <= 0)
+       @@nr = OOBGC_INTERVAL
+       OOBGC_ENV.clear
+
+However, https://github.com/tmm1/gctools also depends on this
+undocumented internal API of ours; and I will not consider
+breaking it for release...
+
+Pushed to the "ccc-tcp" branch @ git://bogomips.org/unicorn
+(commit beaee769c6553bf4e0260be2507b8235f0aa764f)
+
+>      begin
+>        return if @request.hijacked?
+> @@ -655,7 +655,7 @@ def worker_loop(worker)
+>          # Unicorn::Worker#kgio_tryaccept is not like accept(2) at all,
+>          # but that will return false
+>          if client = sock.kgio_tryaccept
+> -          process_client(client)
+> +          process_client(client, sock)
+>            nr += 1
+>            worker.tick = time_now.to_i
+>          end
+
+
+> @@ -28,6 +29,7 @@ class Unicorn::HttpParser
+>    # Drop these frozen strings when Ruby 2.2 becomes more prevalent,
+>    # 2.2+ optimizes hash assignments when used with literal string keys
+>    HTTP_RESPONSE_START = [ 'HTTP', '/1.1 ']
+> +  EMPTY_ARRAY = [].freeze
+
+(minor) this was made before commit e06b699683738f22
+("http_request: freeze constant strings passed IO#write")
+but I've trivially fixed it up, locally.
+
+> +    def check_client_connection(socket, listener) # :nodoc:
+> +      if Kgio::TCPServer === listener
+> +        @@tcp_info ||= Raindrops::TCP_Info.new(socket)
+> +        @@tcp_info.get!(socket)
+> +        raise Errno::EPIPE, "client closed connection".freeze,
+> EMPTY_ARRAY if closed_state?(@@tcp_info.state)
+
+(minor) I needed to wrap that line since I use gigantic fonts
+(fixed up locally)
