@@ -1,0 +1,83 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.0
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id E9BB4202FB;
+	Wed,  8 Mar 2017 06:02:57 +0000 (UTC)
+From: Eric Wong <e@80x24.org>
+To: unicorn-public@bogomips.org
+Cc: Simon Eskildsen <simon.eskildsen@shopify.com>
+Subject: [PATCH 3/3] support "struct tcp_info" on non-Linux and Ruby 2.2+
+Date: Wed,  8 Mar 2017 06:02:57 +0000
+Message-Id: <20170308060257.23740-4-e@80x24.org>
+In-Reply-To: <20170308060257.23740-1-e@80x24.org>
+References: <20170308060257.23740-1-e@80x24.org>
+List-Id: <unicorn-public@bogomips.org>
+
+Ruby 2.2+ can show "struct tcp_info" as a string via
+Socket::Option#inspect, and we can attempt to parse it
+out to extract the information we need.
+
+Parsing this string is inefficient, but does not depend on the
+ordering of the tcp_info struct.
+---
+ lib/unicorn/http_request.rb | 32 +++++++++++++++++++++++++++++++-
+ 1 file changed, 31 insertions(+), 1 deletion(-)
+
+diff --git a/lib/unicorn/http_request.rb b/lib/unicorn/http_request.rb
+index 68bde16..c08097c 100644
+--- a/lib/unicorn/http_request.rb
++++ b/lib/unicorn/http_request.rb
+@@ -29,6 +29,7 @@ class Unicorn::HttpParser
+   EMPTY_ARRAY = [].freeze
+   @@input_class = Unicorn::TeeInput
+   @@check_client_connection = false
++  @@tcpi_inspect_ok = true
+ 
+   def self.input_class
+     @@input_class
+@@ -127,8 +128,37 @@ def closed_state?(state) # :nodoc:
+       end
+     end
+   else
++
++    # Ruby 2.2+ can show struct tcp_info as a string Socket::Option#inspect.
++    # Not that efficient, but probably still better than doing unnecessary
++    # work after a client gives up.
+     def check_client_connection(socket) # :nodoc:
+-      write_http_header(socket)
++      if Unicorn::TCPClient === socket && @@tcpi_inspect_ok
++        opt = socket.getsockopt(:IPPROTO_TCP, :TCP_INFO).inspect
++        if opt =~ /\bstate=(\S+)/
++          @@tcpi_inspect_ok = true
++          raise Errno::EPIPE, "client closed connection".freeze,
++                EMPTY_ARRAY if closed_state_str?($1)
++        else
++          @@tcpi_inspect_ok = false
++          write_http_header(socket)
++        end
++        opt.clear
++      else
++        write_http_header(socket)
++      end
++    end
++
++    def closed_state_str?(state)
++      case state
++      when 'ESTABLISHED'
++        false
++      # not a typo, ruby maps TCP_CLOSE (no 'D') to state=CLOSED (w/ 'D')
++      when 'CLOSE_WAIT', 'TIME_WAIT', 'CLOSED', 'LAST_ACK', 'CLOSING'
++        true
++      else
++        false
++      end
+     end
+   end
+ 
+-- 
+EW
+
