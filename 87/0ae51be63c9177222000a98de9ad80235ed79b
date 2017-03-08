@@ -1,0 +1,119 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.0
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id 8026E202DA;
+	Wed,  8 Mar 2017 06:02:57 +0000 (UTC)
+From: Eric Wong <e@80x24.org>
+To: unicorn-public@bogomips.org
+Cc: Simon Eskildsen <simon.eskildsen@shopify.com>
+Subject: [PATCH 1/3] new test for check_client_connection
+Date: Wed,  8 Mar 2017 06:02:55 +0000
+Message-Id: <20170308060257.23740-2-e@80x24.org>
+In-Reply-To: <20170308060257.23740-1-e@80x24.org>
+References: <20170308060257.23740-1-e@80x24.org>
+List-Id: <unicorn-public@bogomips.org>
+
+This was a bit tricky to test, but it's probably more reliable
+now that we're relying on TCP_INFO.
+
+Based on test by Simon Eskildsen <simon.eskildsen@shopify.com>:
+  https://bogomips.org/unicorn-public/CAO3HKM49+aLD=KLij3zhJqkWnR7bCWVan0mOvxD85xfrW8RXOw@mail.gmail.com/
+---
+ test/unit/test_ccc.rb | 81 +++++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 81 insertions(+)
+ create mode 100644 test/unit/test_ccc.rb
+
+diff --git a/test/unit/test_ccc.rb b/test/unit/test_ccc.rb
+new file mode 100644
+index 0000000..22b1a9c
+--- /dev/null
++++ b/test/unit/test_ccc.rb
+@@ -0,0 +1,81 @@
++require 'socket'
++require 'unicorn'
++require 'io/wait'
++require 'tempfile'
++require 'test/unit'
++
++class TestCccTCPI < Test::Unit::TestCase
++  def test_ccc_tcpi
++    start_pid = $$
++    host = '127.0.0.1'
++    srv = TCPServer.new(host, 0)
++    port = srv.addr[1]
++    err = Tempfile.new('unicorn_ccc')
++    rd, wr = IO.pipe
++    pid = fork do
++      reqs = 0
++      rd.close
++      worker_pid = nil
++      app = lambda do |env|
++        worker_pid ||= begin
++          at_exit { wr.write(reqs.to_s) if worker_pid == $$ }
++          $$
++        end
++        reqs += 1
++        sleep(1) if env['PATH_INFO'] == '/sleep'
++        [ 200, [ %w(Content-Length 0),  %w(Content-Type text/plain) ], [] ]
++      end
++      ENV['UNICORN_FD'] = srv.fileno.to_s
++      opts = {
++        listeners: [ "#{host}:#{port}" ],
++        stderr_path: err.path,
++        check_client_connection: true,
++      }
++      uni = Unicorn::HttpServer.new(app, opts)
++      uni.start.join
++    end
++    wr.close
++
++    # make sure the server is running, at least
++    client = TCPSocket.new(host, port)
++    client.write("GET / HTTP/1.1\r\nHost: example.com\r\n\r\n")
++    assert client.wait_readable(10), 'never got response from server'
++    res = client.read
++    assert_match %r{\AHTTP/1\.1 200}, res, 'got part of first response'
++    assert_match %r{\r\n\r\n\z}, res, 'got end of response, server is ready'
++    client.close
++
++    # start a slow request...
++    sleeper = TCPSocket.new(host, port)
++    sleeper.write("GET /sleep HTTP/1.1\r\nHost: example.com\r\n\r\n")
++
++    # and a bunch of aborted ones
++    nr = 100
++    nr.times do |i|
++      client = TCPSocket.new(host, port)
++      client.write("GET /collections/#{rand(10000)} HTTP/1.1\r\n" \
++                   "Host: example.com\r\n\r\n")
++      client.close
++    end
++    sleeper.close
++    kpid = pid
++    pid = nil
++    Process.kill(:QUIT, kpid)
++    _, status = Process.waitpid2(kpid)
++    assert status.success?
++    reqs = rd.read.to_i
++    warn "server got #{reqs} requests with #{nr} CCC aborted\n" if $DEBUG
++    assert_operator reqs, :<, nr
++    assert_operator reqs, :>=, 2, 'first 2 requests got through, at least'
++  ensure
++    return if start_pid != $$
++    srv.close if srv
++    if pid
++      Process.kill(:QUIT, pid)
++      _, status = Process.waitpid2(pid)
++      assert status.success?
++    end
++    err.close! if err
++    rd.close if rd
++  end
++end
+-- 
+EW
+
