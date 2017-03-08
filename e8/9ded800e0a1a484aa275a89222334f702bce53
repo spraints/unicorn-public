@@ -1,0 +1,109 @@
+Return-Path: <simon.eskildsen@shopify.com>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-3.7 required=3.0 tests=AWL,BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,DKIM_VALID_AU,RCVD_IN_DNSWL_LOW,SPF_PASS shortcircuit=no
+	autolearn=ham autolearn_force=no version=3.4.0
+Received: from mail-wm0-x232.google.com (mail-wm0-x232.google.com [IPv6:2a00:1450:400c:c09::232])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+	(No client certificate requested)
+	by dcvr.yhbt.net (Postfix) with ESMTPS id ECDA7202F8
+	for <unicorn-public@bogomips.org>; Wed,  8 Mar 2017 10:14:13 +0000 (UTC)
+Received: by mail-wm0-x232.google.com with SMTP id t189so26558593wmt.1
+        for <unicorn-public@bogomips.org>; Wed, 08 Mar 2017 02:14:13 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=shopify.com; s=google;
+        h=mime-version:in-reply-to:references:from:date:message-id:subject:to
+         :cc;
+        bh=/goQy9ELj57MoOCkpgmS6sXEnsXYC98PQhatXmk0Nxg=;
+        b=SljoGfGXkZXoFAX2sArt/DqZy1sRN5c2sgLht7S5E8Ogg++BAvdD3arNhu2zUAblgJ
+         Pn/BUp4oZk7jqwDrsLNTg4hsDAdEFEIQFh8ycNa4WhiUZc00j1v6Y88IKoP7FbyoDE9X
+         bYSL06645f/+V3y7ldYmBpshjwpEbOLApvUp8=
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20161025;
+        h=x-gm-message-state:mime-version:in-reply-to:references:from:date
+         :message-id:subject:to:cc;
+        bh=/goQy9ELj57MoOCkpgmS6sXEnsXYC98PQhatXmk0Nxg=;
+        b=M1vSSD92YddRH4RlyVn9zfAPOQWb5QCIJZkKAShChWWjhjEgDHTNKg/K3YrNdaYtNq
+         CxC08jtWPgcXe1D85tcH6+C04pmvOXXRcqZyVCiunKmIrUd4bK3TNXOsxlVkt4G2AJkO
+         VSH+XczRgMymrcIOhU41GP995TN5cj/NjD/Z1DzkUNC2uQyavmjwF1mxoSI2QXEZevrJ
+         YKiOfD6SbaOX6HvQF/Y2/epkz04vJ7GDeBHCokFRcUwWOCN76TWhnCtBgErEY5h9a4Xv
+         cJpv0WS1CGcbd7elmzcAPntaecXbjQxHdAUO79P9w+TNoYUYAtlYT07WqVQ4j+6Eewvb
+         q6Kw==
+X-Gm-Message-State: AMke39mo0C0FoejAUyl+P1cIirMRSDceYevadWpox5dgOOzPn3Tk9cPfQucb2JOG+nl503YHN82YYQWDUZor1Dge
+X-Received: by 10.28.29.201 with SMTP id d192mr22979673wmd.94.1488968052534;
+ Wed, 08 Mar 2017 02:14:12 -0800 (PST)
+MIME-Version: 1.0
+Received: by 10.28.229.14 with HTTP; Wed, 8 Mar 2017 02:14:12 -0800 (PST)
+In-Reply-To: <20170308060257.23740-1-e@80x24.org>
+References: <20170308060257.23740-1-e@80x24.org>
+From: Simon Eskildsen <simon.eskildsen@shopify.com>
+Date: Wed, 8 Mar 2017 05:14:12 -0500
+Message-ID: <CAO3HKM7LFEaCmjxDSTzjYUuYiqcC76aTXGk58GumipGCd7zMWw@mail.gmail.com>
+Subject: Re: [PATCH 0/3] TCP_INFO check_client_connection followups
+To: Eric Wong <e@80x24.org>
+Cc: unicorn-public@bogomips.org
+Content-Type: text/plain; charset=UTF-8
+List-Id: <unicorn-public@bogomips.org>
+
+This looks great Eric. Thanks for taking this to the finish line!
+
+On Wed, Mar 8, 2017 at 1:02 AM, Eric Wong <e@80x24.org> wrote:
+> This series goes on top of Simon's excellent work to get
+> a TCP_INFO-based check_client_connection working under Linux.
+>
+> First off, add a test extracted from one of Simon's messages;
+> then revert the signature changes to existing methods to
+> avoid breaking tmm1/gctools, and finally add a more portable
+> fallback for Ruby 2.2+ users (tested on FreeBSD).
+>
+> Further work will improve portability of raindrops for FreeBSD
+> (and maybe other *BSDs incidentally, too).  That will be sent to
+> raindrops-public@bogomips => https://bogomips.org/raindrops-public/
+>
+> Eric Wong (3):
+>   new test for check_client_connection
+>   revert signature change to HttpServer#process_client
+>   support "struct tcp_info" on non-Linux and Ruby 2.2+
+>
+>  lib/unicorn/http_request.rb  | 42 +++++++++++++++++++----
+>  lib/unicorn/http_server.rb   |  6 ++--
+>  lib/unicorn/oob_gc.rb        |  4 +--
+>  lib/unicorn/socket_helper.rb | 16 +++++++--
+>  test/unit/test_ccc.rb        | 81 ++++++++++++++++++++++++++++++++++++++++++++
+>  test/unit/test_request.rb    | 28 +++++++--------
+>  6 files changed, 150 insertions(+), 27 deletions(-)
+>  create mode 100644 test/unit/test_ccc.rb
+>
+> Also pushed to the ccc-tcp-v3 branch:
+>
+> The following changes since commit 73e1ce827faad59bfcaff0bc758c8255a5e4f747:
+>
+>   t0011-active-unix-socket.sh: fix race condition in test (2017-03-01 00:24:04 +0000)
+>
+> are available in the git repository at:
+>
+>   git://bogomips.org/unicorn ccc-tcp-v3
+>
+> for you to fetch changes up to 873218e317773462be2a72556d26dc4a723cc7be:
+>
+>   support "struct tcp_info" on non-Linux and Ruby 2.2+ (2017-03-08 05:39:55 +0000)
+>
+> ----------------------------------------------------------------
+> Eric Wong (3):
+>       new test for check_client_connection
+>       revert signature change to HttpServer#process_client
+>       support "struct tcp_info" on non-Linux and Ruby 2.2+
+>
+> Simon Eskildsen (1):
+>       check_client_connection: use tcp state on linux
+>
+>  lib/unicorn/http_request.rb  | 73 ++++++++++++++++++++++++++++++++++++---
+>  lib/unicorn/socket_helper.rb | 16 +++++++--
+>  test/unit/test_ccc.rb        | 81 ++++++++++++++++++++++++++++++++++++++++++++
+>  3 files changed, 163 insertions(+), 7 deletions(-)
+>  create mode 100644 test/unit/test_ccc.rb
+>
+> --
+> EW
