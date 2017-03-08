@@ -1,0 +1,207 @@
+Return-Path: <code@jeremyevans.net>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS40173 216.86.168.0/24
+X-Spam-Status: No, score=-3.7 required=3.0 tests=BAYES_00,RCVD_IN_DNSWL_LOW,
+	SPF_HELO_PASS shortcircuit=no autolearn=ham autolearn_force=no version=3.4.0
+Received: from mxout-08.mxes.net (mxout-08.mxes.net [216.86.168.183])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by dcvr.yhbt.net (Postfix) with ESMTPS id 6BFD6202D7
+	for <unicorn-public@bogomips.org>; Wed,  8 Mar 2017 18:44:35 +0000 (UTC)
+Received: from battleground.jeremyevans.local (unknown [73.90.99.19])
+	(using TLSv1.2 with cipher DHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by smtp.mxes.net (Postfix) with ESMTPSA id D75D5509BE
+	for <unicorn-public@bogomips.org>; Wed,  8 Mar 2017 13:44:33 -0500 (EST)
+Received: from jeremyevans.local (speedstar.jeremyevans.local [10.187.8.2])
+	by battleground.jeremyevans.local (OpenSMTPD) with ESMTP id 01817b8f
+	for <unicorn-public@bogomips.org>;
+	Wed, 8 Mar 2017 10:44:32 -0800 (PST)
+Date: Wed, 8 Mar 2017 10:44:32 -0800
+From: Jeremy Evans <code@jeremyevans.net>
+To: unicorn-public@bogomips.org
+Subject: [PATCH] Add worker_exec configuration option
+Message-ID: <20170308184432.GA35527@jeremyevans.local>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+User-Agent: Mutt/1.7.2 (2016-11-26)
+List-Id: <unicorn-public@bogomips.org>
+
+The worker_exec configuration option makes all worker processes
+exec after forking.  This initializes the worker processes with
+separate memory layouts, defeating address space discovery
+attacks on operating systems supporting address space layout
+randomization, such as Linux, MacOS X, NetBSD, OpenBSD, and
+Solaris.
+
+Support for execing workers is very similar to support for reexecing
+the master process.  The main difference is the worker's to_i and
+master pipes also need to be inherited after worker exec just as the
+listening sockets need to be inherited after reexec.
+---
+ lib/unicorn/configurator.rb | 10 ++++++++
+ lib/unicorn/http_server.rb  | 56 ++++++++++++++++++++++++++++++++++++++++++---
+ lib/unicorn/worker.rb       |  5 ++--
+ 3 files changed, 66 insertions(+), 5 deletions(-)
+
+diff --git a/lib/unicorn/configurator.rb b/lib/unicorn/configurator.rb
+index 7ed5ffa..f69f220 100644
+--- a/lib/unicorn/configurator.rb
++++ b/lib/unicorn/configurator.rb
+@@ -53,6 +53,7 @@ class Unicorn::Configurator
+         server.logger.info("worker=#{worker.nr} ready")
+       },
+     :pid => nil,
++    :worker_exec => false,
+     :preload_app => false,
+     :check_client_connection => false,
+     :rewindable_input => true, # for Rack 2.x: (Rack::VERSION[0] <= 1),
+@@ -239,6 +240,15 @@ def timeout(seconds)
+     set[:timeout] = seconds > max ? max : seconds
+   end
+ 
++  # Whether to exec in each worker process after forking.  This changes the
++  # memory layout of each worker process, which is a security feature designed
++  # to defeat possible address space discovery attacks.  Note that using
++  # worker_exec only makes sense if you are not preloading the application,
++  # and will result in higher memory usage.
++  def worker_exec(bool)
++    set_bool(:worker_exec, bool)
++  end
++
+   # sets the current number of worker_processes to +nr+.  Each worker
+   # process will serve exactly one client at a time.  You can
+   # increment or decrement this value at runtime by sending SIGTTIN
+diff --git a/lib/unicorn/http_server.rb b/lib/unicorn/http_server.rb
+index ef897ad..d68d7d8 100644
+--- a/lib/unicorn/http_server.rb
++++ b/lib/unicorn/http_server.rb
+@@ -15,7 +15,7 @@ class Unicorn::HttpServer
+                 :before_fork, :after_fork, :before_exec,
+                 :listener_opts, :preload_app,
+                 :orig_app, :config, :ready_pipe, :user
+-  attr_writer   :after_worker_exit, :after_worker_ready
++  attr_writer   :after_worker_exit, :after_worker_ready, :worker_exec
+ 
+   attr_reader :pid, :logger
+   include Unicorn::SocketHelper
+@@ -105,6 +105,14 @@ def initialize(app, options = {})
+     # list of signals we care about and trap in master.
+     @queue_sigs = [
+       :WINCH, :QUIT, :INT, :TERM, :USR1, :USR2, :HUP, :TTIN, :TTOU ]
++
++    if worker_nr = ENV['UNICORN_WORKER_NR']
++      @worker_nr = worker_nr.to_i
++      @master_pid = Process.ppid
++    else
++      @master_pid = $$
++    end
++
+   end
+ 
+   # Runs the thing.  Returns self so you can run join on it
+@@ -113,7 +121,6 @@ def start
+     # this pipe is used to wake us up from select(2) in #join when signals
+     # are trapped.  See trap_deferred.
+     @self_pipe.replace(Unicorn.pipe)
+-    @master_pid = $$
+ 
+     # setup signal handlers before writing pid file in case people get
+     # trigger happy and send signals as soon as the pid file exists.
+@@ -459,6 +466,39 @@ def reexec
+     proc_name 'master (old)'
+   end
+ 
++  def worker_exec(worker)
++    listener_fds = {}
++    LISTENERS.each do |sock|
++      sock.close_on_exec = false
++      listener_fds[sock.fileno] = sock
++    end
++    ENV['UNICORN_FD'] = listener_fds.keys.join(',')
++    ENV['UNICORN_WORKER_NR'] = worker.nr.to_s
++    ENV['UNICORN_WORKER_TO_IO'] = worker.to_io.fileno.to_s
++    ENV['UNICORN_WORKER_MASTER'] = worker.master.fileno.to_s
++    Dir.chdir(START_CTX[:cwd])
++    cmd = [ START_CTX[0] ].concat(START_CTX[:argv])
++
++    listener_fds[worker.to_io.fileno] = worker.to_io
++    listener_fds[worker.master.fileno] = worker.master
++
++    # avoid leaking FDs we don't know about, but let before_exec
++    # unset FD_CLOEXEC, if anything else in the app eventually
++    # relies on FD inheritence.
++    (3..1024).each do |io|
++      next if listener_fds.include?(io)
++      io = IO.for_fd(io) rescue next
++      io.autoclose = false
++      io.close_on_exec = true
++    end
++
++    # exec(command, hash) works in at least 1.9.1+, but will only be
++    # required in 1.9.4/2.0.0 at earliest.
++    cmd << listener_fds
++    logger.info "executing worker #{cmd.inspect} (in #{Dir.pwd})"
++    exec(*cmd)
++  end
++
+   # forcibly terminate all workers that haven't checked in in timeout seconds.  The timeout is implemented using an unlinked File
+   def murder_lazy_workers
+     next_sleep = @timeout - 1
+@@ -495,6 +535,12 @@ def after_fork_internal
+   end
+ 
+   def spawn_missing_workers
++    if @worker_nr
++      worker = Unicorn::Worker.new(@worker_nr, [ENV["UNICORN_WORKER_TO_IO"], ENV["UNICORN_WORKER_MASTER"]].map{|i| Kgio::Pipe.for_fd(i.to_i)})
++      worker_loop(worker)
++      exit
++    end
++
+     worker_nr = -1
+     until (worker_nr += 1) == @worker_processes
+       @workers.value?(worker_nr) and next
+@@ -505,7 +551,11 @@ def spawn_missing_workers
+         worker.atfork_parent
+       else
+         after_fork_internal
+-        worker_loop(worker)
++        if @worker_exec
++          worker_exec(worker)
++        else
++          worker_loop(worker)
++        end
+         exit
+       end
+     end
+diff --git a/lib/unicorn/worker.rb b/lib/unicorn/worker.rb
+index e22c1bf..8bbac5e 100644
+--- a/lib/unicorn/worker.rb
++++ b/lib/unicorn/worker.rb
+@@ -12,18 +12,19 @@ class Unicorn::Worker
+   # :stopdoc:
+   attr_accessor :nr, :switched
+   attr_reader :to_io # IO.select-compatible
++  attr_reader :master
+ 
+   PER_DROP = Raindrops::PAGE_SIZE / Raindrops::SIZE
+   DROPS = []
+ 
+-  def initialize(nr)
++  def initialize(nr, pipe=nil)
+     drop_index = nr / PER_DROP
+     @raindrop = DROPS[drop_index] ||= Raindrops.new(PER_DROP)
+     @offset = nr % PER_DROP
+     @raindrop[@offset] = 0
+     @nr = nr
+     @switched = false
+-    @to_io, @master = Unicorn.pipe
++    @to_io, @master = pipe || Unicorn.pipe
+   end
+ 
+   def atfork_child # :nodoc:
+-- 
+2.11.0
+
