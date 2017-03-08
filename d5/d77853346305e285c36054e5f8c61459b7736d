@@ -1,0 +1,290 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.0
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id BB077202F8;
+	Wed,  8 Mar 2017 06:02:57 +0000 (UTC)
+From: Eric Wong <e@80x24.org>
+To: unicorn-public@bogomips.org
+Cc: Simon Eskildsen <simon.eskildsen@shopify.com>,
+	Aman Gupta <aman@tmm1.net>
+Subject: [PATCH 2/3] revert signature change to HttpServer#process_client
+Date: Wed,  8 Mar 2017 06:02:56 +0000
+Message-Id: <20170308060257.23740-3-e@80x24.org>
+In-Reply-To: <20170308060257.23740-1-e@80x24.org>
+References: <20170308060257.23740-1-e@80x24.org>
+List-Id: <unicorn-public@bogomips.org>
+
+We can force kgio_tryaccept to return an internal class
+for TCP objects by subclassing Kgio::TCPServer.
+
+This avoids breakage in any unfortunate projects which depend on
+our undocumented internal APIs, such as gctools
+<https://github.com/tmm1/gctools>
+
+Cc: Aman Gupta <aman@tmm1.net>
+---
+ lib/unicorn/http_request.rb  | 10 +++++-----
+ lib/unicorn/http_server.rb   |  6 +++---
+ lib/unicorn/oob_gc.rb        |  4 ++--
+ lib/unicorn/socket_helper.rb | 16 ++++++++++++++--
+ test/unit/test_request.rb    | 28 ++++++++++++++--------------
+ 5 files changed, 38 insertions(+), 26 deletions(-)
+
+diff --git a/lib/unicorn/http_request.rb b/lib/unicorn/http_request.rb
+index 9acde50..68bde16 100644
+--- a/lib/unicorn/http_request.rb
++++ b/lib/unicorn/http_request.rb
+@@ -61,7 +61,7 @@ def self.check_client_connection=(bool)
+   # returns an environment hash suitable for Rack if successful
+   # This does minimal exception trapping and it is up to the caller
+   # to handle any socket errors (e.g. user aborted upload).
+-  def read(socket, listener)
++  def read(socket)
+     clear
+     e = env
+ 
+@@ -82,7 +82,7 @@ def read(socket, listener)
+       false until add_parse(socket.kgio_read!(16384))
+     end
+ 
+-    check_client_connection(socket, listener) if @@check_client_connection
++    check_client_connection(socket) if @@check_client_connection
+ 
+     e['rack.input'] = 0 == content_length ?
+                       NULL_IO : @@input_class.new(socket, self)
+@@ -105,8 +105,8 @@ def hijacked?
+   end
+ 
+   if defined?(Raindrops::TCP_Info)
+-    def check_client_connection(socket, listener) # :nodoc:
+-      if Kgio::TCPServer === listener
++    def check_client_connection(socket) # :nodoc:
++      if Unicorn::TCPClient === socket
+         @@tcp_info ||= Raindrops::TCP_Info.new(socket)
+         @@tcp_info.get!(socket)
+         raise Errno::EPIPE, "client closed connection".freeze,
+@@ -127,7 +127,7 @@ def closed_state?(state) # :nodoc:
+       end
+     end
+   else
+-    def check_client_connection(socket, listener) # :nodoc:
++    def check_client_connection(socket) # :nodoc:
+       write_http_header(socket)
+     end
+   end
+diff --git a/lib/unicorn/http_server.rb b/lib/unicorn/http_server.rb
+index 2aa1072..c2086cb 100644
+--- a/lib/unicorn/http_server.rb
++++ b/lib/unicorn/http_server.rb
+@@ -558,8 +558,8 @@ def e100_response_write(client, env)
+ 
+   # once a client is accepted, it is processed in its entirety here
+   # in 3 easy steps: read request, call app, write app response
+-  def process_client(client, listener)
+-    status, headers, body = @app.call(env = @request.read(client, listener))
++  def process_client(client)
++    status, headers, body = @app.call(env = @request.read(client))
+ 
+     begin
+       return if @request.hijacked?
+@@ -655,7 +655,7 @@ def worker_loop(worker)
+         # Unicorn::Worker#kgio_tryaccept is not like accept(2) at all,
+         # but that will return false
+         if client = sock.kgio_tryaccept
+-          process_client(client, sock)
++          process_client(client)
+           nr += 1
+           worker.tick = time_now.to_i
+         end
+diff --git a/lib/unicorn/oob_gc.rb b/lib/unicorn/oob_gc.rb
+index 74a1d51..5572e59 100644
+--- a/lib/unicorn/oob_gc.rb
++++ b/lib/unicorn/oob_gc.rb
+@@ -67,8 +67,8 @@ def self.new(app, interval = 5, path = %r{\A/})
+ 
+   #:stopdoc:
+   PATH_INFO = "PATH_INFO"
+-  def process_client(client, listener)
+-    super(client, listener) # Unicorn::HttpServer#process_client
++  def process_client(client)
++    super(client) # Unicorn::HttpServer#process_client
+     if OOBGC_PATH =~ OOBGC_ENV[PATH_INFO] && ((@@nr -= 1) <= 0)
+       @@nr = OOBGC_INTERVAL
+       OOBGC_ENV.clear
+diff --git a/lib/unicorn/socket_helper.rb b/lib/unicorn/socket_helper.rb
+index df8315e..5371413 100644
+--- a/lib/unicorn/socket_helper.rb
++++ b/lib/unicorn/socket_helper.rb
+@@ -3,6 +3,18 @@
+ require 'socket'
+ 
+ module Unicorn
++
++  # Instead of using a generic Kgio::Socket for everything,
++  # tag TCP sockets so we can use TCP_INFO under Linux without
++  # incurring extra syscalls for Unix domain sockets.
++  # TODO: remove these when we remove kgio
++  TCPClient = Class.new(Kgio::Socket) # :nodoc:
++  class TCPSrv < Kgio::TCPServer # :nodoc:
++    def kgio_tryaccept # :nodoc:
++      super(TCPClient)
++    end
++  end
++
+   module SocketHelper
+ 
+     # internal interface
+@@ -148,7 +160,7 @@ def new_tcp_server(addr, port, opt)
+       end
+       sock.bind(Socket.pack_sockaddr_in(port, addr))
+       sock.autoclose = false
+-      Kgio::TCPServer.for_fd(sock.fileno)
++      TCPSrv.for_fd(sock.fileno)
+     end
+ 
+     # returns rfc2732-style (e.g. "[::1]:666") addresses for IPv6
+@@ -185,7 +197,7 @@ def sock_name(sock)
+     def server_cast(sock)
+       begin
+         Socket.unpack_sockaddr_in(sock.getsockname)
+-        Kgio::TCPServer.for_fd(sock.fileno)
++        TCPSrv.for_fd(sock.fileno)
+       rescue ArgumentError
+         Kgio::UNIXServer.for_fd(sock.fileno)
+       end
+diff --git a/test/unit/test_request.rb b/test/unit/test_request.rb
+index dbe8af7..f0ccaf7 100644
+--- a/test/unit/test_request.rb
++++ b/test/unit/test_request.rb
+@@ -30,7 +30,7 @@ def setup
+   def test_options
+     client = MockRequest.new("OPTIONS * HTTP/1.1\r\n" \
+                              "Host: foo\r\n\r\n")
+-    env = @request.read(client, nil)
++    env = @request.read(client)
+     assert_equal '', env['REQUEST_PATH']
+     assert_equal '', env['PATH_INFO']
+     assert_equal '*', env['REQUEST_URI']
+@@ -40,7 +40,7 @@ def test_options
+   def test_absolute_uri_with_query
+     client = MockRequest.new("GET http://e:3/x?y=z HTTP/1.1\r\n" \
+                              "Host: foo\r\n\r\n")
+-    env = @request.read(client, nil)
++    env = @request.read(client)
+     assert_equal '/x', env['REQUEST_PATH']
+     assert_equal '/x', env['PATH_INFO']
+     assert_equal 'y=z', env['QUERY_STRING']
+@@ -50,7 +50,7 @@ def test_absolute_uri_with_query
+   def test_absolute_uri_with_fragment
+     client = MockRequest.new("GET http://e:3/x#frag HTTP/1.1\r\n" \
+                              "Host: foo\r\n\r\n")
+-    env = @request.read(client, nil)
++    env = @request.read(client)
+     assert_equal '/x', env['REQUEST_PATH']
+     assert_equal '/x', env['PATH_INFO']
+     assert_equal '', env['QUERY_STRING']
+@@ -61,7 +61,7 @@ def test_absolute_uri_with_fragment
+   def test_absolute_uri_with_query_and_fragment
+     client = MockRequest.new("GET http://e:3/x?a=b#frag HTTP/1.1\r\n" \
+                              "Host: foo\r\n\r\n")
+-    env = @request.read(client, nil)
++    env = @request.read(client)
+     assert_equal '/x', env['REQUEST_PATH']
+     assert_equal '/x', env['PATH_INFO']
+     assert_equal 'a=b', env['QUERY_STRING']
+@@ -73,7 +73,7 @@ def test_absolute_uri_unsupported_schemes
+     %w(ssh+http://e/ ftp://e/x http+ssh://e/x).each do |abs_uri|
+       client = MockRequest.new("GET #{abs_uri} HTTP/1.1\r\n" \
+                                "Host: foo\r\n\r\n")
+-      assert_raises(HttpParserError) { @request.read(client, nil) }
++      assert_raises(HttpParserError) { @request.read(client) }
+     end
+   end
+ 
+@@ -81,7 +81,7 @@ def test_x_forwarded_proto_https
+     client = MockRequest.new("GET / HTTP/1.1\r\n" \
+                              "X-Forwarded-Proto: https\r\n" \
+                              "Host: foo\r\n\r\n")
+-    env = @request.read(client, nil)
++    env = @request.read(client)
+     assert_equal "https", env['rack.url_scheme']
+     res = @lint.call(env)
+   end
+@@ -90,7 +90,7 @@ def test_x_forwarded_proto_http
+     client = MockRequest.new("GET / HTTP/1.1\r\n" \
+                              "X-Forwarded-Proto: http\r\n" \
+                              "Host: foo\r\n\r\n")
+-    env = @request.read(client, nil)
++    env = @request.read(client)
+     assert_equal "http", env['rack.url_scheme']
+     res = @lint.call(env)
+   end
+@@ -99,14 +99,14 @@ def test_x_forwarded_proto_invalid
+     client = MockRequest.new("GET / HTTP/1.1\r\n" \
+                              "X-Forwarded-Proto: ftp\r\n" \
+                              "Host: foo\r\n\r\n")
+-    env = @request.read(client, nil)
++    env = @request.read(client)
+     assert_equal "http", env['rack.url_scheme']
+     res = @lint.call(env)
+   end
+ 
+   def test_rack_lint_get
+     client = MockRequest.new("GET / HTTP/1.1\r\nHost: foo\r\n\r\n")
+-    env = @request.read(client, nil)
++    env = @request.read(client)
+     assert_equal "http", env['rack.url_scheme']
+     assert_equal '127.0.0.1', env['REMOTE_ADDR']
+     res = @lint.call(env)
+@@ -114,7 +114,7 @@ def test_rack_lint_get
+ 
+   def test_no_content_stringio
+     client = MockRequest.new("GET / HTTP/1.1\r\nHost: foo\r\n\r\n")
+-    env = @request.read(client, nil)
++    env = @request.read(client)
+     assert_equal StringIO, env['rack.input'].class
+   end
+ 
+@@ -122,7 +122,7 @@ def test_zero_content_stringio
+     client = MockRequest.new("PUT / HTTP/1.1\r\n" \
+                              "Content-Length: 0\r\n" \
+                              "Host: foo\r\n\r\n")
+-    env = @request.read(client, nil)
++    env = @request.read(client)
+     assert_equal StringIO, env['rack.input'].class
+   end
+ 
+@@ -130,7 +130,7 @@ def test_real_content_not_stringio
+     client = MockRequest.new("PUT / HTTP/1.1\r\n" \
+                              "Content-Length: 1\r\n" \
+                              "Host: foo\r\n\r\n")
+-    env = @request.read(client, nil)
++    env = @request.read(client)
+     assert_equal Unicorn::TeeInput, env['rack.input'].class
+   end
+ 
+@@ -141,7 +141,7 @@ def test_rack_lint_put
+       "Content-Length: 5\r\n" \
+       "\r\n" \
+       "abcde")
+-    env = @request.read(client, nil)
++    env = @request.read(client)
+     assert ! env.include?(:http_body)
+     res = @lint.call(env)
+   end
+@@ -167,7 +167,7 @@ def client.kgio_read!(*args)
+       "\r\n")
+     count.times { assert_equal bs, client.syswrite(buf) }
+     assert_equal 0, client.sysseek(0)
+-    env = @request.read(client, nil)
++    env = @request.read(client)
+     assert ! env.include?(:http_body)
+     assert_equal length, env['rack.input'].size
+     count.times {
+-- 
+EW
+
