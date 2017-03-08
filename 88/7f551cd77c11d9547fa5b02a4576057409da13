@@ -1,0 +1,176 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.0
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id 52B77202D7;
+	Wed,  8 Mar 2017 20:02:56 +0000 (UTC)
+Date: Wed, 8 Mar 2017 20:02:56 +0000
+From: Eric Wong <e@80x24.org>
+To: Jeremy Evans <code@jeremyevans.net>
+Cc: unicorn-public@bogomips.org
+Subject: Re: [PATCH] Add worker_exec configuration option
+Message-ID: <20170308200256.GA21719@whir>
+References: <20170308184432.GA35527@jeremyevans.local>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <20170308184432.GA35527@jeremyevans.local>
+List-Id: <unicorn-public@bogomips.org>
+
+Jeremy Evans <code@jeremyevans.net> wrote:
+> The worker_exec configuration option makes all worker processes
+> exec after forking.  This initializes the worker processes with
+> separate memory layouts, defeating address space discovery
+> attacks on operating systems supporting address space layout
+> randomization, such as Linux, MacOS X, NetBSD, OpenBSD, and
+> Solaris.
+> 
+> Support for execing workers is very similar to support for reexecing
+> the master process.  The main difference is the worker's to_i and
+> master pipes also need to be inherited after worker exec just as the
+> listening sockets need to be inherited after reexec.
+
+Thanks, this seems like an acceptable feature.
+Some comments below....
+
+> +++ b/lib/unicorn/http_server.rb
+> @@ -105,6 +105,14 @@ def initialize(app, options = {})
+>      # list of signals we care about and trap in master.
+>      @queue_sigs = [
+>        :WINCH, :QUIT, :INT, :TERM, :USR1, :USR2, :HUP, :TTIN, :TTOU ]
+> +
+> +    if worker_nr = ENV['UNICORN_WORKER_NR']
+> +      @worker_nr = worker_nr.to_i
+> +      @master_pid = Process.ppid
+> +    else
+> +      @master_pid = $$
+> +    end
+> +
+>    end
+
+We should nil @worker_nr in the normal case to avoid introducing
+new warnings on uninitialized ivars.
+
+>    # Runs the thing.  Returns self so you can run join on it
+> @@ -113,7 +121,6 @@ def start
+>      # this pipe is used to wake us up from select(2) in #join when signals
+>      # are trapped.  See trap_deferred.
+>      @self_pipe.replace(Unicorn.pipe)
+> -    @master_pid = $$
+
+Any particular reason setting @master_pid was moved to initialize?
+
+Maybe we (or anybody else) has tests or other code which do:
+
+	  foo = Unicorn::HttpServer.new ...
+	  pid = fork do
+	    foo.start.join
+	  end
+
+Which would be broken by the movement from start => initialize
+
+Again, I don't consider this a stable API and don't want people
+depending on our internals; but I will also avoid breaking
+existing behavior whenever possible.
+
+> @@ -459,6 +466,39 @@ def reexec
+>      proc_name 'master (old)'
+>    end
+>  
+> +  def worker_exec(worker)
+> +    listener_fds = {}
+> +    LISTENERS.each do |sock|
+> +      sock.close_on_exec = false
+> +      listener_fds[sock.fileno] = sock
+> +    end
+> +    ENV['UNICORN_FD'] = listener_fds.keys.join(',')
+> +    ENV['UNICORN_WORKER_NR'] = worker.nr.to_s
+
+> +    ENV['UNICORN_WORKER_TO_IO'] = worker.to_io.fileno.to_s
+> +    ENV['UNICORN_WORKER_MASTER'] = worker.master.fileno.to_s
+
+We can cram these two FDs into one UNICORN_WORKER_FD
+comma-delimited variable like UNICORN_FD.  The underlying
+getenv/setenv/putenv functions are all O(n), so keeping env
+smaller would be nice.
+
+And we can even avoid modifying ENV on Ruby 1.9+ by
+using exec(env, cmd, options...) or even Process.spawn (see below)
+
+> +    Dir.chdir(START_CTX[:cwd])
+> +    cmd = [ START_CTX[0] ].concat(START_CTX[:argv])
+> +
+> +    listener_fds[worker.to_io.fileno] = worker.to_io
+> +    listener_fds[worker.master.fileno] = worker.master
+> +
+> +    # avoid leaking FDs we don't know about, but let before_exec
+> +    # unset FD_CLOEXEC, if anything else in the app eventually
+> +    # relies on FD inheritence.
+
+Comment seems blindly copy+pasted, since before_exec does not
+seem to exist, for this...
+
+> +    (3..1024).each do |io|
+> +      next if listener_fds.include?(io)
+> +      io = IO.for_fd(io) rescue next
+> +      io.autoclose = false
+> +      io.close_on_exec = true
+> +    end
+
+I suppose we should probably use Process.getrlimit, here,
+maybe skip the loop entirely for Ruby 2.0.0+ (which made
+close-on-exec the default).
+
+This will be a separate patch...
+
+
+Since there's no before_exec hook as with SIGUSR2, I think we
+can do all of this setup in master and use Process.spawn instead
+of fork+exec explicitly.  Process.spawn transparently allows the use
+of vfork+exec to avoid fork overhead on some systems.
+
+> +    # exec(command, hash) works in at least 1.9.1+, but will only be
+> +    # required in 1.9.4/2.0.0 at earliest.
+
+I guess it's time to update that comment, since 1.9.4 never
+happened :)
+
+> +    cmd << listener_fds
+> +    logger.info "executing worker #{cmd.inspect} (in #{Dir.pwd})"
+> +    exec(*cmd)
+> +  end
+> +
+>    # forcibly terminate all workers that haven't checked in in timeout seconds.  The timeout is implemented using an unlinked File
+>    def murder_lazy_workers
+>      next_sleep = @timeout - 1
+> @@ -495,6 +535,12 @@ def after_fork_internal
+>    end
+>  
+>    def spawn_missing_workers
+> +    if @worker_nr
+> +      worker = Unicorn::Worker.new(@worker_nr, [ENV["UNICORN_WORKER_TO_IO"], ENV["UNICORN_WORKER_MASTER"]].map{|i| Kgio::Pipe.for_fd(i.to_i)})
+
+Please keep new code wrapped to 80 chars or less.  I'm still
+using hardware that predates this project and my eyes will
+only get worse with age.
+
+> @@ -505,7 +551,11 @@ def spawn_missing_workers
+>          worker.atfork_parent
+>        else
+>          after_fork_internal
+> -        worker_loop(worker)
+> +        if @worker_exec
+> +          worker_exec(worker)
+> +        else
+> +          worker_loop(worker)
+> +        end
+
+I prefer the ternary operator for simple cases like this.  It is
+more compact in terms of screen space and VM bytecode.  But this
+may not be changed at all if we switch to using Process.spawn,
+instead.
+
+The rest looks fine.  Thanks.
