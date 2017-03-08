@@ -1,0 +1,44 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.0
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id 2CA3D1FBEC
+	for <unicorn-public@bogomips.org>; Wed,  8 Mar 2017 05:01:21 +0000 (UTC)
+From: Eric Wong <e@80x24.org>
+To: unicorn-public@bogomips.org
+Subject: [PATCH] oob_gc: rely on opt_aref_with optimization on Ruby 2.2+
+Date: Wed,  8 Mar 2017 05:01:21 +0000
+Message-Id: <20170308050121.5575-1-e@80x24.org>
+List-Id: <unicorn-public@bogomips.org>
+
+Maybe oob_gc probably isn't heavily used anymore, maybe
+some Ruby 2.2+ users will benefit from this constant
+reduction.
+
+Followup-to: fb2f10e1d7a72e67 ("reduce constants and optimize for Ruby 2.2")
+---
+ lib/unicorn/oob_gc.rb | 3 +--
+ 1 file changed, 1 insertion(+), 2 deletions(-)
+
+diff --git a/lib/unicorn/oob_gc.rb b/lib/unicorn/oob_gc.rb
+index 5572e59..c4741a0 100644
+--- a/lib/unicorn/oob_gc.rb
++++ b/lib/unicorn/oob_gc.rb
+@@ -66,10 +66,9 @@ def self.new(app, interval = 5, path = %r{\A/})
+   end
+ 
+   #:stopdoc:
+-  PATH_INFO = "PATH_INFO"
+   def process_client(client)
+     super(client) # Unicorn::HttpServer#process_client
+-    if OOBGC_PATH =~ OOBGC_ENV[PATH_INFO] && ((@@nr -= 1) <= 0)
++    if OOBGC_PATH =~ OOBGC_ENV['PATH_INFO'] && ((@@nr -= 1) <= 0)
+       @@nr = OOBGC_INTERVAL
+       OOBGC_ENV.clear
+       disabled = GC.enable
+-- 
+EW
+
