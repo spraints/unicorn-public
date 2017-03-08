@@ -1,0 +1,73 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.0
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id D33D820133;
+	Wed,  8 Mar 2017 07:44:48 +0000 (UTC)
+Date: Wed, 8 Mar 2017 07:44:48 +0000
+From: Eric Wong <e@80x24.org>
+To: Jeremy Evans <code@jeremyevans.net>
+Cc: unicorn-public@bogomips.org
+Subject: [PATCH] doc: add version annotations for new features
+Message-ID: <20170308074448.GA24983@starla>
+References: <20170223184937.GC67612@jeremyevans.local>
+ <20170223202902.GA25576@whir>
+ <20170308072934.GA9819@starla>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <20170308072934.GA9819@starla>
+List-Id: <unicorn-public@bogomips.org>
+
+I suppose this is a good idea, too.
+
+Will merge before the 5.3.0 RCs and release (soonish, I think...)
+
+-------8<--------
+Subject: [PATCH] doc: add version annotations for new features
+
+We will inevitably have people running old unicorn versions
+for many years to come; but they may be reading the latest
+documentation online.
+
+Annotate when the new features (will) appear to avoid misleading
+users on old versions.
+---
+ lib/unicorn/configurator.rb | 2 ++
+ lib/unicorn/worker.rb       | 5 ++++-
+ 2 files changed, 6 insertions(+), 1 deletion(-)
+
+diff --git a/lib/unicorn/configurator.rb b/lib/unicorn/configurator.rb
+index 7ed5ffa..3eb8c22 100644
+--- a/lib/unicorn/configurator.rb
++++ b/lib/unicorn/configurator.rb
+@@ -186,6 +186,8 @@ def after_worker_exit(*args, &block)
+   #
+   # Do not use Configurator#user if you rely on changing users in the
+   # after_worker_ready hook.
++  #
++  # after_worker_ready is only available in unicorn 5.3.0+
+   def after_worker_ready(*args, &block)
+     set_hook(:after_worker_ready, block_given? ? block : args[0])
+   end
+diff --git a/lib/unicorn/worker.rb b/lib/unicorn/worker.rb
+index e22c1bf..2f5b6a6 100644
+--- a/lib/unicorn/worker.rb
++++ b/lib/unicorn/worker.rb
+@@ -124,7 +124,10 @@ def close # :nodoc:
+   # Any and all errors raised within this method will be propagated
+   # directly back to the caller (usually the +after_fork+ hook.
+   # These errors commonly include ArgumentError for specifying an
+-  # invalid user/group and Errno::EPERM for insufficient privileges
++  # invalid user/group and Errno::EPERM for insufficient privileges.
++  #
++  # chroot support is only available in unicorn 5.3.0+
++  # user and group switching appeared in unicorn 0.94.0 (2009-11-05)
+   def user(user, group = nil, chroot = false)
+     # we do not protect the caller, checking Process.euid == 0 is
+     # insufficient because modern systems have fine-grained
+-- 
+EW
