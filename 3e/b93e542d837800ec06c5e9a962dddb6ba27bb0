@@ -1,0 +1,74 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.0
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id E12C81FC43;
+	Fri, 10 Mar 2017 20:34:42 +0000 (UTC)
+From: Eric Wong <e@80x24.org>
+To: unicorn-public@bogomips.org
+Cc: Eric Wong <e@80x24.org>
+Subject: [PATCH] test_exec: SO_KEEPALIVE value only needs to be true
+Date: Fri, 10 Mar 2017 20:34:31 +0000
+Message-Id: <20170310203431.28067-1-e@80x24.org>
+List-Id: <unicorn-public@bogomips.org>
+
+On FreeBSD 10.3, the value of SO_KEEPALIVE returned by
+getsockopt is 8, even when set to '1' via setsockopt.
+Relax the test to only ensure the boolean value is
+interpreted as "true".
+
+Verified independently of Ruby using the following:
+--------8<---------
+    #include <sys/types.h>
+    #include <sys/socket.h>
+    #include <stdio.h>
+
+static int err(const char *msg)
+{
+	perror(msg);
+	return 1;
+}
+
+int main(void)
+{
+	int sv[2];
+	int set = 1;
+	int got;
+	socklen_t len = (socklen_t)sizeof(int);
+	int rc;
+
+	rc = socketpair(PF_LOCAL, SOCK_STREAM, 0, sv);
+	if (rc) return err("socketpair failed");
+
+	rc = setsockopt(sv[0], SOL_SOCKET, SO_KEEPALIVE, &set, len);
+	if (rc) return err("setsockopt failed");
+
+	rc = getsockopt(sv[0], SOL_SOCKET, SO_KEEPALIVE, &got, &len);
+	if (rc) return err("getsockopt failed");
+
+	printf("got: %d\n", got);
+	return 0;
+}
+---
+ test/exec/test_exec.rb | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/test/exec/test_exec.rb b/test/exec/test_exec.rb
+index ca0b7bc..37ba90f 100644
+--- a/test/exec/test_exec.rb
++++ b/test/exec/test_exec.rb
+@@ -142,7 +142,7 @@ def test_inherit_listener_unspecified
+     res = hit(["http://#@addr:#@port/"])
+     assert_equal [ "HI\n" ], res
+     assert_shutdown(pid)
+-    assert_equal 1, sock.getsockopt(:SOL_SOCKET, :SO_KEEPALIVE).int,
++    assert sock.getsockopt(:SOL_SOCKET, :SO_KEEPALIVE).bool,
+                 'unicorn should always set SO_KEEPALIVE on inherited sockets'
+   ensure
+     sock.close if sock
+-- 
+EW
+
