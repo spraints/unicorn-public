@@ -1,0 +1,48 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.0
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id 1DEE01FC43;
+	Fri, 10 Mar 2017 21:51:03 +0000 (UTC)
+Date: Fri, 10 Mar 2017 21:51:02 +0000
+From: Eric Wong <e@80x24.org>
+To: unicorn-public@bogomips.org
+Cc: Jeremy Evans <code@jeremyevans.net>
+Subject: [PATCH] test-lib: expr(1) portability fix
+Message-ID: <20170310215102.GA25161@plume>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+List-Id: <unicorn-public@bogomips.org>
+
+GNU expr supports '+' to match one or more occurrences, but
+it seems the expr(1) on my FreeBSD installation does not.
+---
+ This only covers the Bourne sh integration tests in t/
+
+ I still don't trust the Ruby language (and test libraries
+ written in it) to not change incompatibility after all these years...
+
+ t/test-lib.sh | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/t/test-lib.sh b/t/test-lib.sh
+index 28d6a88..7f97958 100644
+--- a/t/test-lib.sh
++++ b/t/test-lib.sh
+@@ -106,8 +106,8 @@ check_stderr () {
+ # unicorn_setup
+ unicorn_setup () {
+ 	eval $(unused_listen)
+-	port=$(expr $listen : '[^:]*:\([0-9]\+\)')
+-	host=$(expr $listen : '\([^:]*\):[0-9]\+')
++	port=$(expr $listen : '[^:]*:\([0-9]*\)')
++	host=$(expr $listen : '\([^:][^:]*\):[0-9][0-9]*')
+ 
+ 	rtmpfiles unicorn_config pid r_err r_out fifo tmp ok
+ 	cat > $unicorn_config <<EOF
+-- 
+EW
