@@ -1,0 +1,162 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS35592 89.187.128.0/19
+X-Spam-Status: No, score=-2.2 required=3.0 tests=AWL,BAYES_00,
+	RCVD_IN_MSPIKE_BL,RCVD_IN_MSPIKE_ZBI,RCVD_IN_XBL,SPF_FAIL,SPF_HELO_FAIL,
+	T_FILL_THIS_FORM_SHORT shortcircuit=no autolearn=no autolearn_force=no
+	version=3.4.0
+Received: from 80x24.org (exit1.torproxy.org [89.187.142.208])
+	by dcvr.yhbt.net (Postfix) with ESMTP id 163B91FC43
+	for <unicorn-public@bogomips.org>; Fri, 10 Mar 2017 21:26:16 +0000 (UTC)
+From: Eric Wong <e@80x24.org>
+To: unicorn-public@bogomips.org
+Subject: [PATCH] tests: keep disabled tests defined
+Date: Fri, 10 Mar 2017 21:26:14 +0000
+Message-Id: <20170310212614.20670-1-e@80x24.org>
+List-Id: <unicorn-public@bogomips.org>
+
+Some versions of test-unit will fail if an unspecified test is
+attempted via "-n", so we need to define an empty test.
+
+We cannot use "skip", either, as that seems exclusive to
+minitest; and we won't use minitest since it has more
+incompatible changes than test-unit over the last 8 years.
+---
+ test/exec/test_exec.rb          |  7 ++++---
+ test/unit/test_http_parser.rb   | 18 ------------------
+ test/unit/test_socket_helper.rb | 12 ++++++++----
+ test/unit/test_util.rb          |  4 ++--
+ 4 files changed, 14 insertions(+), 27 deletions(-)
+
+diff --git a/test/exec/test_exec.rb b/test/exec/test_exec.rb
+index ca0b7bc..4941c4e 100644
+--- a/test/exec/test_exec.rb
++++ b/test/exec/test_exec.rb
+@@ -97,6 +97,9 @@ def teardown
+   end
+ 
+   def test_sd_listen_fds_emulation
++    # [ruby-core:69895] [Bug #11336] fixed by r51576
++    return if RUBY_VERSION.to_f < 2.3
++
+     File.open("config.ru", "wb") { |fp| fp.write(HI) }
+     sock = TCPServer.new(@addr, @port)
+ 
+@@ -124,9 +127,7 @@ def test_sd_listen_fds_emulation
+     end
+   ensure
+     sock.close if sock
+-    # disabled test on old Rubies: https://bugs.ruby-lang.org/issues/11336
+-    # [ruby-core:69895] [Bug #11336] fixed by r51576
+-  end if RUBY_VERSION.to_f >= 2.3
++  end
+ 
+   def test_inherit_listener_unspecified
+     File.open("config.ru", "wb") { |fp| fp.write(HI) }
+diff --git a/test/unit/test_http_parser.rb b/test/unit/test_http_parser.rb
+index 7cbc0f8..31e6f71 100644
+--- a/test/unit/test_http_parser.rb
++++ b/test/unit/test_http_parser.rb
+@@ -851,24 +851,6 @@ def test_empty_header
+     assert_equal '', parser.env['HTTP_HOST']
+   end
+ 
+-  # so we don't  care about the portability of this test
+-  # if it doesn't leak on Linux, it won't leak anywhere else
+-  # unless your C compiler or platform is otherwise broken
+-  LINUX_PROC_PID_STATUS = "/proc/self/status"
+-  def test_memory_leak
+-    match_rss = /^VmRSS:\s+(\d+)/
+-    if File.read(LINUX_PROC_PID_STATUS) =~ match_rss
+-      before = $1.to_i
+-      1000000.times { Unicorn::HttpParser.new }
+-      File.read(LINUX_PROC_PID_STATUS) =~ match_rss
+-      after = $1.to_i
+-      diff = after - before
+-      assert(diff < 10000, "memory grew more than 10M: #{diff}")
+-    end
+-  end if RUBY_PLATFORM =~ /linux/ &&
+-         File.readable?(LINUX_PROC_PID_STATUS) &&
+-         !defined?(RUBY_ENGINE)
+-
+   def test_memsize
+     require 'objspace'
+     if ObjectSpace.respond_to?(:memsize_of)
+diff --git a/test/unit/test_socket_helper.rb b/test/unit/test_socket_helper.rb
+index 7526e82..8699409 100644
+--- a/test/unit/test_socket_helper.rb
++++ b/test/unit/test_socket_helper.rb
+@@ -150,28 +150,31 @@ def test_sock_name
+   end
+ 
+   def test_tcp_defer_accept_default
++    return unless defined?(TCP_DEFER_ACCEPT)
+     port = unused_port @test_addr
+     name = "#@test_addr:#{port}"
+     sock = bind_listen(name)
+     cur = sock.getsockopt(Socket::SOL_TCP, TCP_DEFER_ACCEPT).unpack('i')[0]
+     assert cur >= 1
+-  end if defined?(TCP_DEFER_ACCEPT)
++  end
+ 
+   def test_tcp_defer_accept_disable
++    return unless defined?(TCP_DEFER_ACCEPT)
+     port = unused_port @test_addr
+     name = "#@test_addr:#{port}"
+     sock = bind_listen(name, :tcp_defer_accept => false)
+     cur = sock.getsockopt(Socket::SOL_TCP, TCP_DEFER_ACCEPT).unpack('i')[0]
+     assert_equal 0, cur
+-  end if defined?(TCP_DEFER_ACCEPT)
++  end
+ 
+   def test_tcp_defer_accept_nr
++    return unless defined?(TCP_DEFER_ACCEPT)
+     port = unused_port @test_addr
+     name = "#@test_addr:#{port}"
+     sock = bind_listen(name, :tcp_defer_accept => 60)
+     cur = sock.getsockopt(Socket::SOL_TCP, TCP_DEFER_ACCEPT).unpack('i')[0]
+     assert cur > 1
+-  end if defined?(TCP_DEFER_ACCEPT)
++  end
+ 
+   def test_ipv6only
+     port = begin
+@@ -186,6 +189,7 @@ def test_ipv6only
+   end
+ 
+   def test_reuseport
++    return unless defined?(Socket::SO_REUSEPORT)
+     port = unused_port @test_addr
+     name = "#@test_addr:#{port}"
+     sock = bind_listen(name, :reuseport => true)
+@@ -193,5 +197,5 @@ def test_reuseport
+     assert_operator cur, :>, 0
+   rescue Errno::ENOPROTOOPT
+     # kernel does not support SO_REUSEPORT (older Linux)
+-  end if defined?(Socket::SO_REUSEPORT)
++  end
+ end
+diff --git a/test/unit/test_util.rb b/test/unit/test_util.rb
+index 4d17a16..dc6302e 100644
+--- a/test/unit/test_util.rb
++++ b/test/unit/test_util.rb
+@@ -69,7 +69,7 @@ def test_reopen_logs_renamed_with_encoding
+       }
+     }
+     tmp.close!
+-  end if STDIN.respond_to?(:external_encoding)
++  end
+ 
+   def test_reopen_logs_renamed_with_internal_encoding
+     tmp = Tempfile.new('')
+@@ -101,5 +101,5 @@ def test_reopen_logs_renamed_with_internal_encoding
+       }
+     }
+     tmp.close!
+-  end if STDIN.respond_to?(:external_encoding)
++  end
+ end
+-- 
+EW
+
