@@ -1,0 +1,52 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS200651 185.100.86.0/24
+X-Spam-Status: No, score=-2.9 required=3.0 tests=AWL,BAYES_00,RCVD_IN_XBL,
+	RDNS_NONE,SPF_FAIL,SPF_HELO_FAIL shortcircuit=no autolearn=no
+	autolearn_force=no version=3.4.0
+Received: from 80x24.org (unknown [185.100.86.69])
+	by dcvr.yhbt.net (Postfix) with ESMTP id 245561FC43
+	for <unicorn-public@bogomips.org>; Fri, 10 Mar 2017 23:01:21 +0000 (UTC)
+From: Eric Wong <e@80x24.org>
+To: unicorn-public@bogomips.org
+Subject: [PATCH] freebsd: avoid EINVAL when setting accept filter
+Date: Fri, 10 Mar 2017 23:01:17 +0000
+Message-Id: <20170310230117.5874-1-e@80x24.org>
+List-Id: <unicorn-public@bogomips.org>
+
+Accept filters can only be set on listen sockets, and it also
+fails with EINVAL if it's already set.
+
+Untested, but I suppose changing the accept filter on a listening
+socket is not supported, either; since that could affect in-flight
+sockets.
+---
+ lib/unicorn/socket_helper.rb | 7 +++++--
+ 1 file changed, 5 insertions(+), 2 deletions(-)
+
+diff --git a/lib/unicorn/socket_helper.rb b/lib/unicorn/socket_helper.rb
+index df8315e..7aa2bb0 100644
+--- a/lib/unicorn/socket_helper.rb
++++ b/lib/unicorn/socket_helper.rb
+@@ -63,12 +63,15 @@ def set_tcp_sockopt(sock, opt)
+       elsif respond_to?(:accf_arg)
+         name = opt[:accept_filter]
+         name = DEFAULTS[:accept_filter] if name.nil?
++        sock.listen(opt[:backlog])
++        got = (sock.getsockopt(:SOL_SOCKET, :SO_ACCEPTFILTER) rescue nil).to_s
++        arg = accf_arg(name)
+         begin
+-          sock.setsockopt(:SOL_SOCKET, :SO_ACCEPTFILTER, accf_arg(name))
++          sock.setsockopt(:SOL_SOCKET, :SO_ACCEPTFILTER, arg)
+         rescue => e
+           logger.error("#{sock_name(sock)} " \
+                        "failed to set accept_filter=#{name} (#{e.inspect})")
+-        end
++        end if arg != got
+       end
+     end
+ 
+-- 
+EW
+
