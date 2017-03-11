@@ -1,0 +1,83 @@
+Return-Path: <code@jeremyevans.net>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS40173 216.86.168.0/24
+X-Spam-Status: No, score=-3.7 required=3.0 tests=BAYES_00,RCVD_IN_DNSWL_LOW,
+	SPF_HELO_PASS shortcircuit=no autolearn=ham autolearn_force=no version=3.4.0
+Received: from mxout-08.mxes.net (mxout-08.mxes.net [216.86.168.183])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by dcvr.yhbt.net (Postfix) with ESMTPS id 2906D201C2
+	for <unicorn-public@bogomips.org>; Sat, 11 Mar 2017 05:26:55 +0000 (UTC)
+Received: from battleground.jeremyevans.local (unknown [73.90.99.19])
+	(using TLSv1.2 with cipher DHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by smtp.mxes.net (Postfix) with ESMTPSA id A4B55509B6;
+	Sat, 11 Mar 2017 00:26:53 -0500 (EST)
+Received: from jeremyevans.local (speedstar.jeremyevans.local [10.187.8.2])
+	by battleground.jeremyevans.local (OpenSMTPD) with ESMTP id 6af95333;
+	Fri, 10 Mar 2017 21:26:52 -0800 (PST)
+Date: Fri, 10 Mar 2017 21:26:52 -0800
+From: Jeremy Evans <code@jeremyevans.net>
+To: Eric Wong <e@80x24.org>
+Cc: unicorn-public@bogomips.org
+Subject: Re: [PATCH] Add worker_exec configuration option V2
+Message-ID: <20170311052652.GB80208@jeremyevans.local>
+References: <20170308184432.GA35527@jeremyevans.local>
+ <20170308200256.GA21719@whir>
+ <20170309194119.GD35527@jeremyevans.local>
+ <20170310211907.GA5022@untitled>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20170310211907.GA5022@untitled>
+User-Agent: Mutt/1.7.2 (2016-11-26)
+List-Id: <unicorn-public@bogomips.org>
+
+On 03/10 09:19, Eric Wong wrote:
+> Jeremy Evans <code@jeremyevans.net> wrote:
+> > Here's V2 of the patch, which I think should address all of the issues
+> > you pointed out.
+> 
+> Thanks.  Pushed to git://80x24.org/unicorn worker_exec I can add
+> tests, later, or you can.  I also had some FreeBSD test fixes
+> (which might apply to OpenBSD) on a VM somewhere which I'll Cc:
+> you on: there was also just SO_KEEPALIVE fix I posted:
+> 
+>   https://bogomips.org/unicorn-public/20170310203431.28067-1-e@80x24.org/raw
+
+The C test code also returns 8 on OpenBSD, FWIW.  I'm happy to test any
+test fixes on OpenBSD, just let me know.
+
+> 
+> >      worker_nr = -1
+> >      until (worker_nr += 1) == @worker_processes
+> >        @workers.value?(worker_nr) and next
+> >        worker = Unicorn::Worker.new(worker_nr)
+> >        before_fork.call(self, worker)
+> > -      if pid = fork
+> > -        @workers[pid] = worker
+> > -        worker.atfork_parent
+> > +
+> > +      pid = if @worker_exec
+> > +        worker_spawn(worker)
+> >        else
+> > -        after_fork_internal
+> > -        worker_loop(worker)
+> > -        exit
+> > +        fork do
+> > +          after_fork_internal
+> > +          worker_loop(worker)
+> > +          exit
+> > +        end
+> 
+> I prefer to avoid the block with fork.  The block deepens the
+> stack for the running app, so it can affect GC efficiency.
+> 
+> Can be fixed in a separate patch...
+
+That makes sense.  If you would like me to send a separate patch to fix
+it, I can do that.
+
+Thanks,
+Jeremy
