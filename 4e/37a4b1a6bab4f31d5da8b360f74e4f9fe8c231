@@ -1,0 +1,79 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.0
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id 73118202C1;
+	Sat, 11 Mar 2017 07:18:49 +0000 (UTC)
+Date: Sat, 11 Mar 2017 07:18:49 +0000
+From: Eric Wong <e@80x24.org>
+To: Jeremy Evans <code@jeremyevans.net>
+Cc: unicorn-public@bogomips.org
+Subject: Re: [PATCH] Add worker_exec configuration option V2
+Message-ID: <20170311071849.GA25506@whir>
+References: <20170308184432.GA35527@jeremyevans.local>
+ <20170308200256.GA21719@whir>
+ <20170309194119.GD35527@jeremyevans.local>
+ <20170310211907.GA5022@untitled>
+ <20170311052652.GB80208@jeremyevans.local>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <20170311052652.GB80208@jeremyevans.local>
+List-Id: <unicorn-public@bogomips.org>
+
+Jeremy Evans <code@jeremyevans.net> wrote:
+> On 03/10 09:19, Eric Wong wrote:
+> > tests, later, or you can.  I also had some FreeBSD test fixes
+> > (which might apply to OpenBSD) on a VM somewhere which I'll Cc:
+> > you on: there was also just SO_KEEPALIVE fix I posted:
+> > 
+> >   https://bogomips.org/unicorn-public/20170310203431.28067-1-e@80x24.org/raw
+> 
+> The C test code also returns 8 on OpenBSD, FWIW.  I'm happy to test any
+> test fixes on OpenBSD, just let me know.
+
+Thanks. I'll be happy to help fix any OpenBSD failures you see
+from "gmake check"  I don't think the accept_filter fixes apply
+to OpenBSD, but I guess the expr(1) fix did.
+
+Thank you.
+
+Same goes for NetBSD, DragonflyBSD or any other completely
+Free/Open Source OSes anybody else here uses.
+
+> > Jeremy Evans <code@jeremyevans.net> wrote:
+> > > -      if pid = fork
+> > > -        @workers[pid] = worker
+> > > -        worker.atfork_parent
+> > > +
+> > > +      pid = if @worker_exec
+> > > +        worker_spawn(worker)
+> > >        else
+> > > -        after_fork_internal
+> > > -        worker_loop(worker)
+> > > -        exit
+> > > +        fork do
+> > > +          after_fork_internal
+> > > +          worker_loop(worker)
+> > > +          exit
+> > > +        end
+> > 
+> > I prefer to avoid the block with fork.  The block deepens the
+> > stack for the running app, so it can affect GC efficiency.
+> > 
+> > Can be fixed in a separate patch...
+> 
+> That makes sense.  If you would like me to send a separate patch to fix
+> it, I can do that.
+
+Yes, please.
+
+Not sure if we should automate the stack depth test...
+I resisted it in the past since it might be too fragile
+w.r.t changes to Ruby (even using "unicorn" via the
+RubyGems-generated wrapper deepens it by 2).
+
+Thanks again.
