@@ -1,0 +1,114 @@
+Return-Path: <code@jeremyevans.net>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS40173 216.86.168.0/24
+X-Spam-Status: No, score=-3.7 required=3.0 tests=AWL,BAYES_00,
+	RCVD_IN_DNSWL_LOW,RCVD_IN_MSPIKE_H2,SPF_HELO_PASS shortcircuit=no
+	autolearn=ham autolearn_force=no version=3.4.0
+Received: from mxout-08.mxes.net (mxout-08.mxes.net [216.86.168.183])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by dcvr.yhbt.net (Postfix) with ESMTPS id EB3B71FC43
+	for <unicorn-public@bogomips.org>; Mon, 13 Mar 2017 15:33:01 +0000 (UTC)
+Received: from battleground.jeremyevans.local (unknown [73.90.99.19])
+	(using TLSv1.2 with cipher DHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by smtp.mxes.net (Postfix) with ESMTPSA id 6E339509B8;
+	Mon, 13 Mar 2017 11:33:00 -0400 (EDT)
+Received: from jeremyevans.local (speedstar.jeremyevans.local [10.187.8.2])
+	by battleground.jeremyevans.local (OpenSMTPD) with ESMTP id 91e071d0;
+	Mon, 13 Mar 2017 08:32:58 -0700 (PDT)
+Date: Mon, 13 Mar 2017 08:32:58 -0700
+From: Jeremy Evans <code@jeremyevans.net>
+To: Eric Wong <e@80x24.org>
+Cc: unicorn-public@bogomips.org
+Subject: Re: [PATCH] Add worker_exec configuration option V2
+Message-ID: <20170313153258.GE80208@jeremyevans.local>
+References: <20170308184432.GA35527@jeremyevans.local>
+ <20170308200256.GA21719@whir>
+ <20170309194119.GD35527@jeremyevans.local>
+ <20170310211907.GA5022@untitled>
+ <20170311052652.GB80208@jeremyevans.local>
+ <20170311071849.GA25506@whir>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20170311071849.GA25506@whir>
+User-Agent: Mutt/1.7.2 (2016-11-26)
+List-Id: <unicorn-public@bogomips.org>
+
+On 03/11 07:18, Eric Wong wrote:
+> Jeremy Evans <code@jeremyevans.net> wrote:
+> > On 03/10 09:19, Eric Wong wrote:
+> > > Jeremy Evans <code@jeremyevans.net> wrote:
+> > > > -      if pid = fork
+> > > > -        @workers[pid] = worker
+> > > > -        worker.atfork_parent
+> > > > +
+> > > > +      pid = if @worker_exec
+> > > > +        worker_spawn(worker)
+> > > >        else
+> > > > -        after_fork_internal
+> > > > -        worker_loop(worker)
+> > > > -        exit
+> > > > +        fork do
+> > > > +          after_fork_internal
+> > > > +          worker_loop(worker)
+> > > > +          exit
+> > > > +        end
+> > > 
+> > > I prefer to avoid the block with fork.  The block deepens the
+> > > stack for the running app, so it can affect GC efficiency.
+> > > 
+> > > Can be fixed in a separate patch...
+> > 
+> > That makes sense.  If you would like me to send a separate patch to fix
+> > it, I can do that.
+> 
+> Yes, please.
+> 
+> Not sure if we should automate the stack depth test...
+> I resisted it in the past since it might be too fragile
+> w.r.t changes to Ruby (even using "unicorn" via the
+> RubyGems-generated wrapper deepens it by 2).
+
+Here's a patch to fix the stack depth issue:
+
+From aa4914846a0870e5b01530a47d6dbfe09aeb39ce Mon Sep 17 00:00:00 2001
+From: Jeremy Evans <code@jeremyevans.net>
+Date: Mon, 13 Mar 2017 08:28:54 -0700
+Subject: [PATCH] Don't pass a block for fork when forking workers
+
+This reduces the stack depth, making GC more efficient.
+---
+ lib/unicorn/http_server.rb | 14 ++++++--------
+ 1 file changed, 6 insertions(+), 8 deletions(-)
+
+diff --git a/lib/unicorn/http_server.rb b/lib/unicorn/http_server.rb
+index a5bd2c4..023df10 100644
+--- a/lib/unicorn/http_server.rb
++++ b/lib/unicorn/http_server.rb
+@@ -541,14 +541,12 @@ def spawn_missing_workers
+       worker = Unicorn::Worker.new(worker_nr)
+       before_fork.call(self, worker)
+ 
+-      pid = if @worker_exec
+-        worker_spawn(worker)
+-      else
+-        fork do
+-          after_fork_internal
+-          worker_loop(worker)
+-          exit
+-        end
++      pid = @worker_exec ?  worker_spawn(worker) : fork
++      
++      unless pid
++        after_fork_internal
++        worker_loop(worker)
++        exit
+       end
+ 
+       @workers[pid] = worker
+-- 
+2.11.0
+
