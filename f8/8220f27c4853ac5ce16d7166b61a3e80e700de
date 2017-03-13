@@ -1,0 +1,83 @@
+Return-Path: <simon.eskildsen@shopify.com>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-3.7 required=3.0 tests=AWL,BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,DKIM_VALID_AU,RCVD_IN_DNSWL_LOW,SPF_PASS shortcircuit=no
+	autolearn=ham autolearn_force=no version=3.4.0
+Received: from mail-wm0-x22a.google.com (mail-wm0-x22a.google.com [IPv6:2a00:1450:400c:c09::22a])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+	(No client certificate requested)
+	by dcvr.yhbt.net (Postfix) with ESMTPS id 8DC0420375
+	for <unicorn-public@bogomips.org>; Mon, 13 Mar 2017 20:16:16 +0000 (UTC)
+Received: by mail-wm0-x22a.google.com with SMTP id v186so49281354wmd.0
+        for <unicorn-public@bogomips.org>; Mon, 13 Mar 2017 13:16:16 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=shopify.com; s=google;
+        h=mime-version:in-reply-to:references:from:date:message-id:subject:to
+         :cc;
+        bh=44D60+mhBdTP+eJhfIJLQtkMO8IUVaJ169gXGRdImFQ=;
+        b=fwCiuZGFsuscerxHH5PlgNLntTzdv/10kmgSPZTAFljBPAv91b3Ls/rIDVVnUumYqS
+         P0hs6oTwm6fc4xo98D06ffGq6khvKQHsV+xejlO6CTYtK8WtWsHPASL382POgiYCu41q
+         p1UchHNFnnVCfxrLYfm8zW9DqaY/oRxBI4Br4=
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20161025;
+        h=x-gm-message-state:mime-version:in-reply-to:references:from:date
+         :message-id:subject:to:cc;
+        bh=44D60+mhBdTP+eJhfIJLQtkMO8IUVaJ169gXGRdImFQ=;
+        b=coKvUr5/Yivwji2eBRenRi7hY6ffPHjsrypV3PDccXMuIiwVp2iTV34iC75Fa9j8Ks
+         64TpB08BshQlVWU7ZOUjAPNIxmZbtpvYflr2EqUVsGh4gezDRkWk06+mhHDrtTaWgYAs
+         9/a1dxWIqoC8VJG5Nkl9/GLc+wwf8LLe8eygkyk/Ijqiptr5BI81E1sR8b2Vc1SiQ1o0
+         FGXj45IKyCoBQDk5IpGSUl+hFmMhxiJQ84ntJSCAR2PKUJ5hhsyr8UPuY9wcfYBunXRj
+         ilFOm3KVcVe2DnaIh/uLKDYEGJ/qFxMUs5Tx+k1rdG0d9KNWl9ZZV3kyIDWmtd6/CXMW
+         D+mw==
+X-Gm-Message-State: AFeK/H3W7mbXIfeQBlmujEMVlSoyS2Sk0DGbB5L87TFDGEldInMWPwf0IiSW7n8NO3qS+ILZfmoe1cD+qYvMMAbp
+X-Received: by 10.28.152.212 with SMTP id a203mr12483296wme.7.1489436174493;
+ Mon, 13 Mar 2017 13:16:14 -0700 (PDT)
+MIME-Version: 1.0
+Received: by 10.28.229.14 with HTTP; Mon, 13 Mar 2017 13:16:13 -0700 (PDT)
+In-Reply-To: <CAO3HKM6GA8orbY37aDwQbq5Dy7m+FGOyJ0Rsmvr+LaFNfkc7qA@mail.gmail.com>
+References: <CAO3HKM7u0kx79Ae4HM+vc4Op6PZxpU3tm-maL1rKJgc1x6i3=A@mail.gmail.com>
+ <CAO3HKM76Pu-YB8h7caxhqNDvcOXbBT_eZYoMhy7gLkb7-O2bNA@mail.gmail.com>
+ <20170225231243.GA6224@dcvr.yhbt.net> <CAO3HKM6H33D5=3=TwPJYKST26dkVyh4dkfebxFpf5c7h+jv7XQ@mail.gmail.com>
+ <20170228211254.GA3868@whir> <20170301031828.GA19430@dcvr>
+ <CAO3HKM5eVdohNWm-wFX+o1GH3H5j1LgKPYh9H5S2GgfBoOQMfA@mail.gmail.com>
+ <20170307225045.GA19463@whir> <20170308002608.GA382@whir> <CAO3HKM6GA8orbY37aDwQbq5Dy7m+FGOyJ0Rsmvr+LaFNfkc7qA@mail.gmail.com>
+From: Simon Eskildsen <simon.eskildsen@shopify.com>
+Date: Mon, 13 Mar 2017 16:16:13 -0400
+Message-ID: <CAO3HKM6AgbekeHAMKOE1GM7S8mnE-rCjF0cLKaGQU6EvS=SB=w@mail.gmail.com>
+Subject: Re: [PATCH] check_client_connection: use tcp state on linux
+To: Eric Wong <e@80x24.org>
+Cc: unicorn-public@bogomips.org
+Content-Type: text/plain; charset=UTF-8
+List-Id: <unicorn-public@bogomips.org>
+
+I've put ccc-tcp-v3 in production today--it appears to be working as
+expected, still rejecting at the exact same rate as before (100-200
+per second for us during steady-state).
+
+On Wed, Mar 8, 2017 at 7:06 AM, Simon Eskildsen
+<simon.eskildsen@shopify.com> wrote:
+> Patch-set looks great Eric, thanks!
+>
+> I'm hoping to test this in production later this week or next, but
+> we're a year behind on Unicorn (ugh), so will need to carefully roll
+> that out.
+>
+> On Tue, Mar 7, 2017 at 7:26 PM, Eric Wong <e@80x24.org> wrote:
+>> Eric Wong <e@80x24.org> wrote:
+>>> Simon Eskildsen <simon.eskildsen@shopify.com> wrote:
+>>> > @@ -28,6 +29,7 @@ class Unicorn::HttpParser
+>>> >    # Drop these frozen strings when Ruby 2.2 becomes more prevalent,
+>>> >    # 2.2+ optimizes hash assignments when used with literal string keys
+>>> >    HTTP_RESPONSE_START = [ 'HTTP', '/1.1 ']
+>>> > +  EMPTY_ARRAY = [].freeze
+>>>
+>>> (minor) this was made before commit e06b699683738f22
+>>> ("http_request: freeze constant strings passed IO#write")
+>>> but I've trivially fixed it up, locally.
+>>
+>> And I actually screwed it up, pushed out ccc-tcp-v2 branch
+>> with that fix squashed in :x
+>>
+>> Writing tests, now...
