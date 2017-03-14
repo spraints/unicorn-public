@@ -1,0 +1,58 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.0
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id 3017E201C2;
+	Tue, 14 Mar 2017 19:20:17 +0000 (UTC)
+Date: Tue, 14 Mar 2017 19:20:17 +0000
+From: Eric Wong <e@80x24.org>
+To: Simon Eskildsen <simon.eskildsen@shopify.com>
+Cc: unicorn-public@bogomips.org
+Subject: [PATCH ccc-tcp-v3] http_request: reduce insn size for
+ check_client_connection
+Message-ID: <20170314192016.GA27213@whir>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+List-Id: <unicorn-public@bogomips.org>
+
+Unlike constants and instance variables, class variable access
+is not optimized in the mainline Ruby VM.  Use a constant
+instead, to take advantage of inline constant caching.
+
+This further reduces runtime instruction size by avoiding a
+branch by allocating the Raindrops::TCP_Info object up front.
+
+This reduces the method size by roughly 300 bytes on 64-bit.
+---
+  Also pushed to git://bogomips.org/unicorn ccc-tcp-v3
+
+ lib/unicorn/http_request.rb | 7 ++++---
+ 1 file changed, 4 insertions(+), 3 deletions(-)
+
+diff --git a/lib/unicorn/http_request.rb b/lib/unicorn/http_request.rb
+index c08097c..9010007 100644
+--- a/lib/unicorn/http_request.rb
++++ b/lib/unicorn/http_request.rb
+@@ -106,12 +106,13 @@ def hijacked?
+   end
+ 
+   if defined?(Raindrops::TCP_Info)
++    TCPI = Raindrops::TCP_Info.allocate
++
+     def check_client_connection(socket) # :nodoc:
+       if Unicorn::TCPClient === socket
+-        @@tcp_info ||= Raindrops::TCP_Info.new(socket)
+-        @@tcp_info.get!(socket)
++        # Raindrops::TCP_Info#get!, #state (reads struct tcp_info#tcpi_state)
+         raise Errno::EPIPE, "client closed connection".freeze,
+-              EMPTY_ARRAY if closed_state?(@@tcp_info.state)
++              EMPTY_ARRAY if closed_state?(TCPI.get!(socket).state)
+       else
+         write_http_header(socket)
+       end
+-- 
+EW
