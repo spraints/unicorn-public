@@ -1,0 +1,52 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.0
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id 5778C201C2;
+	Tue, 14 Mar 2017 16:41:45 +0000 (UTC)
+Date: Tue, 14 Mar 2017 16:41:45 +0000
+From: Eric Wong <e@80x24.org>
+To: Simon Eskildsen <simon.eskildsen@shopify.com>
+Cc: unicorn-public@bogomips.org
+Subject: Re: [PATCH] check_client_connection: use tcp state on linux
+Message-ID: <20170314164145.GA23365@dcvr>
+References: <CAO3HKM6H33D5=3=TwPJYKST26dkVyh4dkfebxFpf5c7h+jv7XQ@mail.gmail.com>
+ <20170228211254.GA3868@whir>
+ <20170301031828.GA19430@dcvr>
+ <CAO3HKM5eVdohNWm-wFX+o1GH3H5j1LgKPYh9H5S2GgfBoOQMfA@mail.gmail.com>
+ <20170307225045.GA19463@whir>
+ <20170308002608.GA382@whir>
+ <CAO3HKM6GA8orbY37aDwQbq5Dy7m+FGOyJ0Rsmvr+LaFNfkc7qA@mail.gmail.com>
+ <CAO3HKM6AgbekeHAMKOE1GM7S8mnE-rCjF0cLKaGQU6EvS=SB=w@mail.gmail.com>
+ <20170313203723.GA10573@starla>
+ <CAO3HKM4CfcRs7yN-=uRosq=e2nzwOjq81mjTcxu2H4AQNxLdxw@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <CAO3HKM4CfcRs7yN-=uRosq=e2nzwOjq81mjTcxu2H4AQNxLdxw@mail.gmail.com>
+List-Id: <unicorn-public@bogomips.org>
+
+Simon Eskildsen <simon.eskildsen@shopify.com> wrote:
+> Looks like Puma encountered some issues with some Linux distro's
+> kernels not supporting this. That's crazy..
+> 
+> https://github.com/puma/puma/issues/1241
+
+No, it's not a Linux kernel problem.
+
+That looks like a Unix socket they're using, but they only use
+TCPServer.for_fd in their import_from_env function, and
+inherit_unix_listener leaves TCPServer objects as-is.
+
+TCPServer.for_fd won't barf if given a Unix socket.
+In other words, this is fine:
+
+     u = UNIXServer.new '/tmp/foo'
+     t = TCPServer.for_fd(u.fileno)
+     t.accept
+
+Feel free to forward this to them, I do not use non-Free
+messaging systems (and I hate centralized ones).
