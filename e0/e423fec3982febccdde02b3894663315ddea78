@@ -1,0 +1,58 @@
+Return-Path: <simon.eskildsen@shopify.com>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-3.4 required=3.0 tests=AWL,BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,DKIM_VALID_AU,RCVD_IN_DNSWL_NONE,SPF_PASS shortcircuit=no
+	autolearn=ham autolearn_force=no version=3.4.0
+Received: from mail-wr0-x22a.google.com (mail-wr0-x22a.google.com [IPv6:2a00:1450:400c:c0c::22a])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+	(No client certificate requested)
+	by dcvr.yhbt.net (Postfix) with ESMTPS id EC97620373
+	for <unicorn-public@bogomips.org>; Tue, 14 Mar 2017 16:14:38 +0000 (UTC)
+Received: by mail-wr0-x22a.google.com with SMTP id u48so127488729wrc.0
+        for <unicorn-public@bogomips.org>; Tue, 14 Mar 2017 09:14:38 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=shopify.com; s=google;
+        h=mime-version:in-reply-to:references:from:date:message-id:subject:to
+         :cc;
+        bh=tq0NBBKtOAa3ELhSWo24qFU5YY+bLOnJKy0gj33ACkg=;
+        b=HNXCIuMabPIXI/mgnL8MW7q2uBmsBXYIB6itS7O7L8allsWIBMVpUr/p0QOvq0bN0k
+         hA9R4M9E3IoKojquEI3LqUSvgW0n3eSXorEnCpJjR71GXWtUhGx4wI08AZ5gJWExs1VE
+         in/maUsNjlTSMrCEJ5P85kqe6zkJ5DCCAT/yQ=
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20161025;
+        h=x-gm-message-state:mime-version:in-reply-to:references:from:date
+         :message-id:subject:to:cc;
+        bh=tq0NBBKtOAa3ELhSWo24qFU5YY+bLOnJKy0gj33ACkg=;
+        b=c8l8CiOKsdrY0auOhy5ZXzEMXt/ccUaCdDIN7rxipNVfA6B8V8S3TbE3i2cb+Ml93I
+         dkdjzucg7LNjNtVVGBufgsXwBAu4Ytv9NmvJNKh+6eu3GcYN+nLLv3q+7SO7zK+dMErB
+         MWhHIeRbdaXjaW9dgoZnwcf6PqKhR4XJS4TLK72s83GVFt4BwOuTSoisMMhwMzP3hRY9
+         Djj2rPHEz1sikQFFGFHnbmmv3nnhz0ZM8QWqODiFj6PAyPmosWSGpFOxmd5Lc+kVesJT
+         d6EC+0Ga54TdihHlhF5edRd+I3UhxaTKftXrD7cDJp80dLPQjQg1xZ+j2GqMAHKY9JE3
+         Jd9g==
+X-Gm-Message-State: AMke39k+BedAlF7QyPD8YGb72X4e4yPDM3JNQ5BEMAONQTFg/OHeP3eZ9vo6S5IiWelgOSfXk9rV1F+ohwd3eGrE
+X-Received: by 10.223.182.133 with SMTP id j5mr37619268wre.19.1489508077162;
+ Tue, 14 Mar 2017 09:14:37 -0700 (PDT)
+MIME-Version: 1.0
+Received: by 10.28.229.14 with HTTP; Tue, 14 Mar 2017 09:14:36 -0700 (PDT)
+In-Reply-To: <20170313203723.GA10573@starla>
+References: <CAO3HKM76Pu-YB8h7caxhqNDvcOXbBT_eZYoMhy7gLkb7-O2bNA@mail.gmail.com>
+ <20170225231243.GA6224@dcvr.yhbt.net> <CAO3HKM6H33D5=3=TwPJYKST26dkVyh4dkfebxFpf5c7h+jv7XQ@mail.gmail.com>
+ <20170228211254.GA3868@whir> <20170301031828.GA19430@dcvr>
+ <CAO3HKM5eVdohNWm-wFX+o1GH3H5j1LgKPYh9H5S2GgfBoOQMfA@mail.gmail.com>
+ <20170307225045.GA19463@whir> <20170308002608.GA382@whir> <CAO3HKM6GA8orbY37aDwQbq5Dy7m+FGOyJ0Rsmvr+LaFNfkc7qA@mail.gmail.com>
+ <CAO3HKM6AgbekeHAMKOE1GM7S8mnE-rCjF0cLKaGQU6EvS=SB=w@mail.gmail.com> <20170313203723.GA10573@starla>
+From: Simon Eskildsen <simon.eskildsen@shopify.com>
+Date: Tue, 14 Mar 2017 12:14:36 -0400
+Message-ID: <CAO3HKM4CfcRs7yN-=uRosq=e2nzwOjq81mjTcxu2H4AQNxLdxw@mail.gmail.com>
+Subject: Re: [PATCH] check_client_connection: use tcp state on linux
+To: Eric Wong <e@80x24.org>
+Cc: unicorn-public@bogomips.org
+Content-Type: text/plain; charset=UTF-8
+List-Id: <unicorn-public@bogomips.org>
+
+Looks like Puma encountered some issues with some Linux distro's
+kernels not supporting this. That's crazy..
+
+https://github.com/puma/puma/issues/1241
