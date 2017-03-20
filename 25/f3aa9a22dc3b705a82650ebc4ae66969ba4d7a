@@ -1,0 +1,141 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-3.7 required=3.0 tests=ALL_TRUSTED,AWL,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.0
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id 5A0C02090A
+	for <unicorn-public@bogomips.org>; Mon, 20 Mar 2017 20:08:46 +0000 (UTC)
+From: Eric Wong <e@80x24.org>
+To: unicorn-public@bogomips.org
+Subject: [PATCH] input: update documentation and hide internals.
+Date: Mon, 20 Mar 2017 20:08:46 +0000
+Message-Id: <20170320200846.16248-1-e@80x24.org>
+List-Id: <unicorn-public@bogomips.org>
+
+rack 2.x exists nowadays still allows rewindable input as an
+option, and we will still enable it by default to avoid breaking
+any existing code.
+
+Hide the internal documentation since we do not want people
+depending on unicorn internals; so there's no reason to confuse
+or overwhelm people with documentation about it.  Arguably,
+TeeInput and StreamInput should not be documented publically at
+all, but I guess that ship has long sailed...
+---
+ lib/unicorn/configurator.rb | 13 ++++++-------
+ lib/unicorn/stream_input.rb |  9 +++++----
+ lib/unicorn/tee_input.rb    | 14 +++++++-------
+ 3 files changed, 18 insertions(+), 18 deletions(-)
+
+diff --git a/lib/unicorn/configurator.rb b/lib/unicorn/configurator.rb
+index 7ed5ffa..9f7f56f 100644
+--- a/lib/unicorn/configurator.rb
++++ b/lib/unicorn/configurator.rb
+@@ -55,7 +55,7 @@ class Unicorn::Configurator
+     :pid => nil,
+     :preload_app => false,
+     :check_client_connection => false,
+-    :rewindable_input => true, # for Rack 2.x: (Rack::VERSION[0] <= 1),
++    :rewindable_input => true,
+     :client_body_buffer_size => Unicorn::Const::MAX_BODY,
+   }
+   #:startdoc:
+@@ -505,13 +505,12 @@ def preload_app(bool)
+   # Disabling rewindability can improve performance by lowering
+   # I/O and memory usage for applications that accept uploads.
+   # Keep in mind that the Rack 1.x spec requires
+-  # \env[\"rack.input\"] to be rewindable, so this allows
+-  # intentionally violating the current Rack 1.x spec.
++  # \env[\"rack.input\"] to be rewindable,
++  # but the Rack 2.x spec does not.
+   #
+-  # +rewindable_input+ defaults to +true+ when used with Rack 1.x for
+-  # Rack conformance.  When Rack 2.x is finalized, this will most
+-  # likely default to +false+ while still conforming to the newer
+-  # (less demanding) spec.
++  # +rewindable_input+ defaults to +true+ for compatibility.
++  # Setting it to +false+ may be safe for applications and
++  # frameworks developed for Rack 2.x and later.
+   def rewindable_input(bool)
+     set_bool(:rewindable_input, bool)
+   end
+diff --git a/lib/unicorn/stream_input.rb b/lib/unicorn/stream_input.rb
+index de5aeea..41d28a0 100644
+--- a/lib/unicorn/stream_input.rb
++++ b/lib/unicorn/stream_input.rb
+@@ -1,16 +1,17 @@
+ # -*- encoding: binary -*-
+ 
+-# When processing uploads, Unicorn may expose a StreamInput object under
+-# "rack.input" of the (future) Rack (2.x) environment.
++# When processing uploads, unicorn may expose a StreamInput object under
++# "rack.input" of the Rack environment when
++# Unicorn::Configurator#rewindable_input is set to +false+
+ class Unicorn::StreamInput
+   # The I/O chunk size (in +bytes+) for I/O operations where
+   # the size cannot be user-specified when a method is called.
+   # The default is 16 kilobytes.
+-  @@io_chunk_size = Unicorn::Const::CHUNK_SIZE
++  @@io_chunk_size = Unicorn::Const::CHUNK_SIZE # :nodoc:
+ 
+   # Initializes a new StreamInput object.  You normally do not have to call
+   # this unless you are writing an HTTP server.
+-  def initialize(socket, request)
++  def initialize(socket, request) # :nodoc:
+     @chunked = request.content_length.nil?
+     @socket = socket
+     @parser = request
+diff --git a/lib/unicorn/tee_input.rb b/lib/unicorn/tee_input.rb
+index 6f66162..2ccc2d9 100644
+--- a/lib/unicorn/tee_input.rb
++++ b/lib/unicorn/tee_input.rb
+@@ -1,6 +1,6 @@
+ # -*- encoding: binary -*-
+ 
+-# acts like tee(1) on an input input to provide a input-like stream
++# Acts like tee(1) on an input input to provide a input-like stream
+ # while providing rewindable semantics through a File/StringIO backing
+ # store.  On the first pass, the input is only read on demand so your
+ # Rack application can use input notification (upload progress and
+@@ -9,22 +9,22 @@
+ # strict interpretation of Rack::Lint::InputWrapper functionality and
+ # will not support any deviations from it.
+ #
+-# When processing uploads, Unicorn exposes a TeeInput object under
+-# "rack.input" of the Rack environment.
++# When processing uploads, unicorn exposes a TeeInput object under
++# "rack.input" of the Rack environment by default.
+ class Unicorn::TeeInput < Unicorn::StreamInput
+   # The maximum size (in +bytes+) to buffer in memory before
+   # resorting to a temporary file.  Default is 112 kilobytes.
+-  @@client_body_buffer_size = Unicorn::Const::MAX_BODY
++  @@client_body_buffer_size = Unicorn::Const::MAX_BODY # :nodoc:
+ 
+   # sets the maximum size of request bodies to buffer in memory,
+   # amounts larger than this are buffered to the filesystem
+-  def self.client_body_buffer_size=(bytes)
++  def self.client_body_buffer_size=(bytes) # :nodoc:
+     @@client_body_buffer_size = bytes
+   end
+ 
+   # returns the maximum size of request bodies to buffer in memory,
+   # amounts larger than this are buffered to the filesystem
+-  def self.client_body_buffer_size
++  def self.client_body_buffer_size # :nodoc:
+     @@client_body_buffer_size
+   end
+ 
+@@ -37,7 +37,7 @@ def new_tmpio # :nodoc:
+ 
+   # Initializes a new TeeInput object.  You normally do not have to call
+   # this unless you are writing an HTTP server.
+-  def initialize(socket, request)
++  def initialize(socket, request) # :nodoc:
+     @len = request.content_length
+     super
+     @tmp = @len && @len <= @@client_body_buffer_size ?
+-- 
+EW
+
