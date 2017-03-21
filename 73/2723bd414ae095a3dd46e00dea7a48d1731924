@@ -1,0 +1,37 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS60404 5.2.64.0/20
+X-Spam-Status: No, score=-1.8 required=3.0 tests=BAYES_00,RCVD_IN_MSPIKE_BL,
+	RCVD_IN_MSPIKE_ZBI,RCVD_IN_XBL,RDNS_NONE,SPF_FAIL,SPF_HELO_FAIL
+	shortcircuit=no autolearn=no autolearn_force=no version=3.4.0
+Received: from 80x24.org (unknown [5.2.75.199])
+	by dcvr.yhbt.net (Postfix) with ESMTP id 10E8420958
+	for <unicorn-public@bogomips.org>; Tue, 21 Mar 2017 01:21:59 +0000 (UTC)
+From: Eric Wong <e@80x24.org>
+To: unicorn-public@bogomips.org
+Subject: [PATCH] http_server: initialize @pid ivar
+Date: Tue, 21 Mar 2017 01:21:57 +0000
+Message-Id: <20170321012157.5848-1-e@80x24.org>
+List-Id: <unicorn-public@bogomips.org>
+
+This quiets down warnings when run with '-w'
+---
+ lib/unicorn/http_server.rb | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/lib/unicorn/http_server.rb b/lib/unicorn/http_server.rb
+index ef897ad..4a2ccce 100644
+--- a/lib/unicorn/http_server.rb
++++ b/lib/unicorn/http_server.rb
+@@ -89,6 +89,7 @@ def initialize(app, options = {})
+     @self_pipe = []
+     @workers = {} # hash maps PIDs to Workers
+     @sig_queue = [] # signal queue used for self-piping
++    @pid = nil
+ 
+     # we try inheriting listeners first, so we bind them later.
+     # we don't write the pid file until we've bound listeners in case
+-- 
+EW
+
