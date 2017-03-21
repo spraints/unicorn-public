@@ -1,0 +1,65 @@
+Return-Path: <smartj@gmail.com>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS3215 2.6.0.0/16
+X-Spam-Status: No, score=-3.6 required=3.0 tests=AWL,BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,DKIM_VALID_AU,FREEMAIL_FROM,RCVD_IN_DNSWL_LOW,SPF_PASS
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.0
+Received: from mail-it0-x234.google.com (mail-it0-x234.google.com [IPv6:2607:f8b0:4001:c0b::234])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+	(No client certificate requested)
+	by dcvr.yhbt.net (Postfix) with ESMTPS id 6452D2095B
+	for <unicorn-public@bogomips.org>; Tue, 21 Mar 2017 18:44:36 +0000 (UTC)
+Received: by mail-it0-x234.google.com with SMTP id y18so13646979itc.0
+        for <unicorn-public@bogomips.org>; Tue, 21 Mar 2017 11:44:36 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20161025;
+        h=mime-version:from:date:message-id:subject:to;
+        bh=YkJX5GV99jbPENjLBompThClQAYmFWSR2yK0h4gy7hE=;
+        b=iePvIs14zjMO7uG9D3Lxsrgdhn1lyW2L+6pc2cjkUXgiMqdIq4ljhIGDZ3Evv4qN8D
+         17g2WRtpTewYcCAFD+bM8e6oKaQtsJXDXF//YT7B6nXPnhlDIng2igB7nt1KmA+HAIo+
+         IalI4s8jmwh7VrU3bmAEibIT52RjIBGDP5ZlstelPSt6l68JWYFHodJYC6fD5A10kQkn
+         P8N/gKjUlkwMGIa6JaghdkJfG8Xonww8PA4EvJwXtzRDjs4SRrn8Qu8Q4Epbiibpw9BQ
+         pc6j7PGfwQegvDT9N9JxqpRARttY6HI4szJeq7FSEEHLinLgW6wi8+pjtt2NcBqXRLhs
+         TbwA==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20161025;
+        h=x-gm-message-state:mime-version:from:date:message-id:subject:to;
+        bh=YkJX5GV99jbPENjLBompThClQAYmFWSR2yK0h4gy7hE=;
+        b=qnqLgIypEkovid8bRKrl61KkCGn1Mo9z7eeRoqFGUviJMq6VbKCvaUiKiJJSxcUAlh
+         r2ZqeuAuOlE9fr/3aDh9fLcQlRJjQLCaMwq1z1EPydIjTv2Gz5YTaGwERVBMQUcNg/hx
+         JHLMPAHKQ37aqEjhNYAQf4y6FdcwblkUDb+plR/i4Vgm7w5Q4ReIJvd+lfcJhE09w56x
+         23z752YW8vT1WM5B/xz8Am5nOnC6X0Un8j/lxeWy2RA2pjaTFMD2yGgqGT64MhF0LsVu
+         dXckryxwJ2nfFidtlZb525dYkRgbSXWvD6kF6e7NjEE/0J+xUj6e6jApV79IdOrpFfDr
+         OQcQ==
+X-Gm-Message-State: AFeK/H0iqEQgZ+SgPa4N47sG/o4W561wl0gYbAgIvH4cg+lHfZXPEFFVyFMcC4ihFbFXD07VBlovxHDTOdyVLg==
+X-Received: by 10.36.104.18 with SMTP id v18mr4125612itb.36.1490121875048;
+ Tue, 21 Mar 2017 11:44:35 -0700 (PDT)
+MIME-Version: 1.0
+Received: by 10.79.97.133 with HTTP; Tue, 21 Mar 2017 11:44:14 -0700 (PDT)
+From: John Smart <smartj@gmail.com>
+Date: Tue, 21 Mar 2017 11:44:14 -0700
+Message-ID: <CALPE1+VypRNKgC3_RitSkZPrRGFHfjY+-33BD3AkFy53Y-rQ=g@mail.gmail.com>
+Subject: Rack::Request#params EOFError
+To: unicorn-public@bogomips.org
+Content-Type: text/plain; charset=UTF-8
+List-Id: <unicorn-public@bogomips.org>
+
+I found an interesting bug today.  When sending a form multipart >
+112KB, I noticed that Rack::Request#params was empty. This only occurs
+when using Unicorn, and does not occur when using Thin.
+
+I dug into Rack source and noticed that any EOFError raised while
+reading the body input stream will cause the post body input stream to
+be ignored:
+
+https://github.com/rack/rack/blob/cabaa58fe6ac355623746e287475af88c9395d66/lib/rack/request.rb#L357
+
+When multipart > 112KB, I noticed that Unicorn tees the input stream
+to a temporary file.  I was wondering: might Unicorn::TeeInput raise
+an EOFError as part of normal operation when reaching the end of the
+input stream?  If so, this would break the Rack spec.  I only tested
+this on Darwin, still working on a self-contained repro.
+
+I ended up raising client_body_buffer_size to 1MB as a work-around.
+I'm wondering if this is a bug?
