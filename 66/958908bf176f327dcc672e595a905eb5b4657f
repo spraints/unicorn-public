@@ -1,0 +1,123 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,BAYES_00
+	shortcircuit=no autolearn=unavailable autolearn_force=no version=3.4.0
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id 39E1020958;
+	Tue, 21 Mar 2017 02:55:54 +0000 (UTC)
+Date: Tue, 21 Mar 2017 02:55:54 +0000
+From: Eric Wong <e@80x24.org>
+To: Simon Eskildsen <simon.eskildsen@shopify.com>,
+	unicorn-public@bogomips.org
+Cc: raindrops-public@bogomips.org, Jeremy Evans <code@jeremyevans.net>
+Subject: [PATCH (ccc)] http_request: support proposed Raindrops::TCP states on
+Message-ID: <20170321025554.GA15807@starla>
+References: <20170316031652.17433-1-e@80x24.org>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <20170316031652.17433-1-e@80x24.org>
+List-Id: <unicorn-public@bogomips.org>
+
+TCP states names/numbers seem stable for each OS, but differ in
+name and numeric values between them.  So I started upon this
+patch series for raindrops last week:
+
+  https://bogomips.org/raindrops-public/20170316031652.17433-1-e@80x24.org/T/
+
+And things seem to be alright, for the most part.  Anyways
+here's a proposed patch for unicorn which takes advantage of
+the above (proposed) changes for raindrops and will allow
+unicorn to support check_client_connection
+
+Also Cc:-ing Jeremy to see if he has any input on the OpenBSD
+side of things.
+
+This goes on top of commit 20c66dbf1ebd0ca993e7a79c9d0d833d747df358
+("http_request: reduce insn size for check_client_connection")
+at: git://bogomips.org/unicorn ccc-tcp-v3
+
+-------8<--------
+Subject: [PATCH] http_request: support proposed Raindrops::TCP states on
+ non-Linux
+
+raindrops 0.18+ will have Raindrops::TCP state hash for portable
+mapping of TCP states to their respective numeric values.  This
+was necessary because TCP state numbers (and even macro names)
+differ between FreeBSD and Linux (and possibly other OSes).
+
+Favor using the Raindrops::TCP state hash if available, but
+fall back to the hard-coded values since older versions of
+raindrops did not support TCP_INFO on non-Linux systems.
+
+While we're in the area, favor "const_defined?" over "defined?"
+to reduce the inline constant cache footprint for branches
+which are only evaluated once.
+
+Patches to implement Raindrops::TCP for FreeBSD are available at:
+
+  https://bogomips.org/raindrops-public/20170316031652.17433-1-e@80x24.org/T/
+---
+ lib/unicorn/http_request.rb | 38 +++++++++++++++++++++++++++++---------
+ 1 file changed, 29 insertions(+), 9 deletions(-)
+
+diff --git a/lib/unicorn/http_request.rb b/lib/unicorn/http_request.rb
+index 9010007..7253497 100644
+--- a/lib/unicorn/http_request.rb
++++ b/lib/unicorn/http_request.rb
+@@ -105,7 +105,7 @@ def hijacked?
+     env.include?('rack.hijack_io'.freeze)
+   end
+ 
+-  if defined?(Raindrops::TCP_Info)
++  if Raindrops.const_defined?(:TCP_Info)
+     TCPI = Raindrops::TCP_Info.allocate
+ 
+     def check_client_connection(socket) # :nodoc:
+@@ -118,14 +118,34 @@ def check_client_connection(socket) # :nodoc:
+       end
+     end
+ 
+-    def closed_state?(state) # :nodoc:
+-      case state
+-      when 1 # ESTABLISHED
+-        false
+-      when 8, 6, 7, 9, 11 # CLOSE_WAIT, TIME_WAIT, CLOSE, LAST_ACK, CLOSING
+-        true
+-      else
+-        false
++    if Raindrops.const_defined?(:TCP)
++      # raindrops 0.18.0+ supports FreeBSD + Linux using the same names
++      # Evaluate these hash lookups at load time so we can
++      # generate an opt_case_dispatch instruction
++      eval <<-EOS
++      def closed_state?(state) # :nodoc:
++        case state
++        when #{Raindrops::TCP[:ESTABLISHED]}
++          false
++        when #{Raindrops::TCP.values_at(
++              :CLOSE_WAIT, :TIME_WAIT, :CLOSE, :LAST_ACK, :CLOSING).join(',')}
++          true
++        else
++          false
++        end
++      end
++      EOS
++    else
++      # raindrops before 0.18 only supported TCP_INFO under Linux
++      def closed_state?(state) # :nodoc:
++        case state
++        when 1 # ESTABLISHED
++          false
++        when 8, 6, 7, 9, 11 # CLOSE_WAIT, TIME_WAIT, CLOSE, LAST_ACK, CLOSING
++          true
++        else
++          false
++        end
+       end
+     end
+   else
+-- 
+EW
