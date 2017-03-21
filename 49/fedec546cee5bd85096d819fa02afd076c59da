@@ -1,0 +1,66 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.0
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id 8A8402095B;
+	Tue, 21 Mar 2017 23:10:01 +0000 (UTC)
+Date: Tue, 21 Mar 2017 23:10:01 +0000
+From: Eric Wong <e@80x24.org>
+To: unicorn-public@bogomips.org
+Subject: Re: mail queue breakage :x
+Message-ID: <20170321231001.GA26091@whir>
+References: <20170321201345.GA3847@starla>
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="Qxx1br4bt0+wmkIi"
+Content-Disposition: inline
+In-Reply-To: <20170321201345.GA3847@starla>
+List-Id: <unicorn-public@bogomips.org>
+
+
+--Qxx1br4bt0+wmkIi
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+
+Maybe the attached script will help detect mirror mismatches
+in the future (run via cron).  But of course the original
+mail failure was due to the crontab of the mlmmj user
+getting clobbered :x
+
+Anyways, feel free to exit/run it yourself, with or without tor
+and add mirrors and whatnot.  And you can hammer the hell out
+of https://bogomips.org/unicorn-public/new.atom or
+http://ou63pmih66umazou.onion/unicorn-public/new.atom or
+nntp://news.public-inbox.org/
+
+(it doesn't run unicorn or nginx :P)
+
+--Qxx1br4bt0+wmkIi
+Content-Type: application/x-ruby
+Content-Disposition: attachment; filename="bogomips-mail-check.rb"
+Content-Transfer-Encoding: quoted-printable
+
+#!/usr/bin/env ruby=0A# sticking with stdlib, cbf to wait for gems to downl=
+oad + install=0Arequire 'rss'=0Arequire 'open-uri'=0A=0A# https://bogomips.=
+org/ for non-Tor users=0Abogo =3D 'http://ou63pmih66umazou.onion/'=0Ama =3D=
+ 'https://www.mail-archive.com/'=0A=0A{=0A  "#{bogo}unicorn-public/new.atom=
+" =3D>=0A      %W(#{ma}unicorn-public@bogomips.org/maillist.xml),=0A}.each =
+do |src, mirrors|=0A  latest =3D nil=0A  begin=0A    open(src) do |xml|=0A =
+     feed =3D RSS::Parser.parse(xml)=0A      latest =3D feed.items.to_a.sor=
+t_by do |item|=0A        item.updated.content=0A      end.last=0A    end=0A=
+  rescue =3D> e=0A    warn "#{src} failed: #{e.message} (#{e.class})"=0A   =
+ next=0A  end=0A  unless latest=0A    warn "could not get latest item from =
+#{src}"=0A    next=0A  end=0A=0A  latest =3D latest.title=0A  latest =3D la=
+test.content if latest.respond_to?(:content) # Atom quirk=0A=0A  mirrors.ea=
+ch do |mirror|=0A    mlatest =3D nil=0A    begin=0A      open(mirror) do |x=
+ml|=0A        feed =3D RSS::Parser.parse(xml)=0A        mlatest =3D feed.it=
+ems.to_a.sort_by do |item|=0A          item.date=0A        end.last=0A     =
+ end=0A    rescue =3D> e=0A      warn "#{mirror} failed: #{e.message} (#{e.=
+class})"=0A      next=0A    end=0A    mlatest =3D mlatest.title=0A    mlate=
+st =3D mlatest.content if mlatest.respond_to?(:content)=0A=0A    if mlatest=
+ !=3D latest=0A      warn "latest on #{src}",=0A           "and #{mirror} d=
+o not match:",=0A           "  source: #{latest.inspect}",=0A           "  =
+mirror: #{mlatest.inspect}"=0A    end=0A  end=0Aend=0A
+--Qxx1br4bt0+wmkIi--
