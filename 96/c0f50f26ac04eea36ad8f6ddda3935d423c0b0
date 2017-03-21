@@ -1,0 +1,75 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.0
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id 806662095B;
+	Tue, 21 Mar 2017 19:06:39 +0000 (UTC)
+Date: Tue, 21 Mar 2017 19:06:39 +0000
+From: Eric Wong <e@80x24.org>
+To: John Smart <smartj@gmail.com>
+Cc: unicorn-public@bogomips.org
+Subject: Re: Rack::Request#params EOFError
+Message-ID: <20170321190639.GA13849@whir>
+References: <CALPE1+VypRNKgC3_RitSkZPrRGFHfjY+-33BD3AkFy53Y-rQ=g@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <CALPE1+VypRNKgC3_RitSkZPrRGFHfjY+-33BD3AkFy53Y-rQ=g@mail.gmail.com>
+List-Id: <unicorn-public@bogomips.org>
+
+John Smart <smartj@gmail.com> wrote:
+> I found an interesting bug today.  When sending a form multipart >
+> 112KB, I noticed that Rack::Request#params was empty. This only occurs
+> when using Unicorn, and does not occur when using Thin.
+> 
+> I dug into Rack source and noticed that any EOFError raised while
+> reading the body input stream will cause the post body input stream to
+> be ignored:
+> 
+> https://github.com/rack/rack/blob/cabaa58fe6ac355623746e287475af88c9395d66/lib/rack/request.rb#L357
+
+EOFError should not happen with normal operations supported by
+env['rack.input'] (read, gets, each, rewind).
+
+So I'm not sure why rack does not let EOFError propagate up the
+stack...
+
+The equivalent Ruby methods (IO#{read,gets,each,rewind})
+do not raise EOFError; read and gets should return nil on EOF...
+
+> When multipart > 112KB, I noticed that Unicorn tees the input stream
+> to a temporary file.  I was wondering: might Unicorn::TeeInput raise
+> an EOFError as part of normal operation when reaching the end of the
+> input stream?  If so, this would break the Rack spec.  I only tested
+> this on Darwin, still working on a self-contained repro.
+
+No, it should not raise EOFError unless a client sent less than
+the Content-Length it declared in the header, or if it sent a
+short chunk with "Transfer-Encoding: chunked".
+
+EOFError should be raised to break out of the application
+processing entirely if and only if the client decides to disconnect
+prematurely.  This is needed to allow unicorn to move onto other
+clients.
+
+What unicorn could (and maybe should) do is raise a different
+error which is not a subclass of EOFError; to prevent the error
+from being caught by Rack (or any other middlewares).
+
+What client are you using?
+
+Is it sending "Transfer-Encoding: chunked" or a Content-Length?
+
+Is nginx in front of unicorn?  If not, does it happen when nginx
+is in front of unicorn?
+
+> I ended up raising client_body_buffer_size to 1MB as a work-around.
+> I'm wondering if this is a bug?
+
+Not sure, yet.  unicorn isn't meant to handle unreliable
+clients; it's designed to talk to nginx.
+
+Thanks.
