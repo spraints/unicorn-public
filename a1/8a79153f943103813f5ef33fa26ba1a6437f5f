@@ -1,0 +1,109 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.0
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id E763320958;
+	Thu, 23 Mar 2017 23:34:47 +0000 (UTC)
+Date: Thu, 23 Mar 2017 23:34:47 +0000
+From: Eric Wong <e@80x24.org>
+To: Pirate Praveen <praveen@onenetbeyond.org>
+Cc: Hleb Valoshka <375gnu@gmail.com>,
+	debian-ruby <debian-ruby@lists.debian.org>,
+	unicorn-public@bogomips.org
+Subject: [PATCH] gemspec: remove olddoc from build dependency
+Message-ID: <20170323233447.GA14680@whir>
+References: <f1d5eacb-b6a2-be96-34aa-fe061a194a62@onenetbeyond.org>
+ <CAAB-Kcnwzc8Tcszv3FCPkyJRKRCsHRH6k_qBhKfBpSODxqKy5g@mail.gmail.com>
+ <20161028002315.GA15205@starla>
+ <2068da61-0ff0-4653-4aa5-598c46354c6a@onenetbeyond.org>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <2068da61-0ff0-4653-4aa5-598c46354c6a@onenetbeyond.org>
+List-Id: <unicorn-public@bogomips.org>
+
+Pirate Praveen <praveen@onenetbeyond.org> wrote:
+> If you can make it optional that would be great. For now I've just
+> patched out the gemspec to not use olddoc. The patch and fix in rules is
+> ugly.
+
+Pushed the following to "master" of git://bogomips.org/unicorn
+
+-----8<----
+Subject: [PATCH] gemspec: remove olddoc from build dependency
+
+It's a little less DRY, and there'll be no NEWS file generated,
+but it's one less thing to install, so perhaps that's worth it.
+The website at https://bogomips.org/unicorn/ will continue
+to use olddoc, of course,
+---
+ HACKING         |  1 -
+ unicorn.gemspec | 22 ++++++++++------------
+ 2 files changed, 10 insertions(+), 13 deletions(-)
+
+diff --git a/HACKING b/HACKING
+index d55f1c7..be1bb85 100644
+--- a/HACKING
++++ b/HACKING
+@@ -104,7 +104,6 @@ don't email the git mailing list or maintainer with Unicorn patches :)
+ 
+ In order to build the gem, you must install the following components:
+ 
+- * olddoc (RubyGem)
+  * pandoc
+ 
+ You can build the Unicorn gem with the following command:
+diff --git a/unicorn.gemspec b/unicorn.gemspec
+index cf65aef..6dc0086 100644
+--- a/unicorn.gemspec
++++ b/unicorn.gemspec
+@@ -1,9 +1,6 @@
+ # -*- encoding: binary -*-
+-ENV["VERSION"] or abort "VERSION= must be specified"
+-manifest = File.readlines('.manifest').map! { |x| x.chomp! }
+-require 'olddoc'
+-extend Olddoc::Gemspec
+-name, summary, title = readme_metadata
++manifest = File.exist?('.manifest') ?
++  IO.readlines('.manifest').map!(&:chomp!) : `git ls-files`.split("\n")
+ 
+ # don't bother with tests that fork, not worth our time to get working
+ # with `gem check -t` ... (of course we care for them when testing with
+@@ -14,16 +11,18 @@
+ 
+ Gem::Specification.new do |s|
+   s.name = %q{unicorn}
+-  s.version = ENV["VERSION"].dup
+-  s.authors = ["#{name} hackers"]
+-  s.summary = summary
+-  s.description = readme_description
++  s.version = (ENV['VERSION'] || '5.2.0').dup
++  s.authors = ['unicorn hackers']
++  s.summary = 'Rack HTTP server for fast clients and Unix'
++  s.description = File.read('README').split("\n\n")[1]
+   s.email = %q{unicorn-public@bogomips.org}
+   s.executables = %w(unicorn unicorn_rails)
+   s.extensions = %w(ext/unicorn_http/extconf.rb)
+-  s.extra_rdoc_files = extra_rdoc_files(manifest)
++  s.extra_rdoc_files = IO.readlines('.document').map!(&:chomp!).keep_if do |f|
++    File.exist?(f)
++  end
+   s.files = manifest
+-  s.homepage = Olddoc.config['rdoc_url']
++  s.homepage = 'https://bogomips.org/unicorn/'
+   s.test_files = test_files
+ 
+   # technically we need ">= 1.9.3", too, but avoid the array here since
+@@ -40,7 +39,6 @@
+   s.add_dependency(%q<raindrops>, '~> 0.7')
+ 
+   s.add_development_dependency('test-unit', '~> 3.0')
+-  s.add_development_dependency('olddoc', '~> 1.2')
+ 
+   # Note: To avoid ambiguity, we intentionally avoid the SPDX-compatible
+   # 'Ruby' here since Ruby 1.9.3 switched to BSD-2-Clause, but we
+-- 
+EW
