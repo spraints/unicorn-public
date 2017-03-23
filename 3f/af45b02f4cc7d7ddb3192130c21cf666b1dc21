@@ -1,0 +1,74 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.0
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id 284F620323;
+	Thu, 23 Mar 2017 00:05:50 +0000 (UTC)
+Date: Thu, 23 Mar 2017 00:05:50 +0000
+From: Eric Wong <e@80x24.org>
+To: unicorn-public@bogomips.org
+Cc: Simon Eskildsen <simon.eskildsen@shopify.com>
+Subject: [PATCH] test_ccc: use a pipe to synchronize test
+Message-ID: <20170323000550.GA7541@starla>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+List-Id: <unicorn-public@bogomips.org>
+
+Sleeping 1 second to test 100 requests is too long for some
+systems; and not long enough for others.
+
+We need to also finish reading the sleeper response to ensure
+the server actually got the second request in, before sending
+SIGQUIT to terminate it; as it's possible for the test client
+to connect and abort 100 clients before the server even
+increments the request counter for the 2nd request.
+---
+ Btw, ccc-tcp-v3 is merged to master, and I guess
+ 5.3.0rc1 is coming soon.
+
+ test/unit/test_ccc.rb | 11 ++++++++++-
+ 1 file changed, 10 insertions(+), 1 deletion(-)
+
+diff --git a/test/unit/test_ccc.rb b/test/unit/test_ccc.rb
+index 22b1a9c..0db0c38 100644
+--- a/test/unit/test_ccc.rb
++++ b/test/unit/test_ccc.rb
+@@ -12,7 +12,9 @@ def test_ccc_tcpi
+     port = srv.addr[1]
+     err = Tempfile.new('unicorn_ccc')
+     rd, wr = IO.pipe
++    sleep_pipe = IO.pipe
+     pid = fork do
++      sleep_pipe[1].close
+       reqs = 0
+       rd.close
+       worker_pid = nil
+@@ -22,7 +24,10 @@ def test_ccc_tcpi
+           $$
+         end
+         reqs += 1
+-        sleep(1) if env['PATH_INFO'] == '/sleep'
++
++        # will wake up when writer closes
++        sleep_pipe[0].read if env['PATH_INFO'] == '/sleep'
++
+         [ 200, [ %w(Content-Length 0),  %w(Content-Type text/plain) ], [] ]
+       end
+       ENV['UNICORN_FD'] = srv.fileno.to_s
+@@ -57,6 +62,10 @@ def test_ccc_tcpi
+                    "Host: example.com\r\n\r\n")
+       client.close
+     end
++    sleep_pipe[1].close # wake up the reader in the worker
++    res = sleeper.read
++    assert_match %r{\AHTTP/1\.1 200}, res, 'got part of first sleeper response'
++    assert_match %r{\r\n\r\n\z}, res, 'got end of sleeper response'
+     sleeper.close
+     kpid = pid
+     pid = nil
+-- 
+EW
