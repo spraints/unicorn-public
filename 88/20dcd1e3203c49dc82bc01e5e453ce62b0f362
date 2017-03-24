@@ -1,0 +1,84 @@
+Return-Path: <code@jeremyevans.net>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS40173 216.86.168.0/24
+X-Spam-Status: No, score=-3.7 required=3.0 tests=AWL,BAYES_00,
+	RCVD_IN_DNSWL_LOW,SPF_HELO_PASS shortcircuit=no autolearn=ham
+	autolearn_force=no version=3.4.0
+Received: from mxout-08.mxes.net (mxout-08.mxes.net [216.86.168.183])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by dcvr.yhbt.net (Postfix) with ESMTPS id 0C99C1FC19
+	for <unicorn-public@bogomips.org>; Fri, 24 Mar 2017 20:03:49 +0000 (UTC)
+Received: from battleground.jeremyevans.local (unknown [73.90.99.19])
+	(using TLSv1.2 with cipher DHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by smtp.mxes.net (Postfix) with ESMTPSA id D6D5E509BD
+	for <unicorn-public@bogomips.org>; Fri, 24 Mar 2017 16:03:47 -0400 (EDT)
+Received: from jeremyevans.local (speedstar.jeremyevans.local [10.187.8.2])
+	by battleground.jeremyevans.local (OpenSMTPD) with ESMTP id b455fc55
+	for <unicorn-public@bogomips.org>;
+	Fri, 24 Mar 2017 13:03:46 -0700 (PDT)
+Date: Fri, 24 Mar 2017 13:03:46 -0700
+From: Jeremy Evans <code@jeremyevans.net>
+To: unicorn-public@bogomips.org
+Subject: [PATCH] Check for SocketError on first ccc attempt
+Message-ID: <20170324200346.GC50561@jeremyevans.local>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+User-Agent: Mutt/1.8.0 (2017-02-23)
+List-Id: <unicorn-public@bogomips.org>
+
+On OpenBSD, getsockopt(2) does not support TCP_INFO.  With the current code,
+this results in a 500 for all clients if check_client_connection is enabled
+on OpenBSD.
+
+This patch rescues SocketError on the first getsockopt call, and
+if SocketError is raised, it doesn't check in the future.  This
+should be the same behavior as if TCP_INFO was supported but
+inspect did not return a string in the expected format.
+---
+ lib/unicorn/http_request.rb | 18 ++++++++++++++----
+ 1 file changed, 14 insertions(+), 4 deletions(-)
+
+diff --git a/lib/unicorn/http_request.rb b/lib/unicorn/http_request.rb
+index 7253497..6dc0aa7 100644
+--- a/lib/unicorn/http_request.rb
++++ b/lib/unicorn/http_request.rb
+@@ -29,7 +29,7 @@ class Unicorn::HttpParser
+   EMPTY_ARRAY = [].freeze
+   @@input_class = Unicorn::TeeInput
+   @@check_client_connection = false
+-  @@tcpi_inspect_ok = true
++  @@tcpi_inspect_ok = nil
+ 
+   def self.input_class
+     @@input_class
+@@ -154,10 +154,20 @@ def closed_state?(state) # :nodoc:
+     # Not that efficient, but probably still better than doing unnecessary
+     # work after a client gives up.
+     def check_client_connection(socket) # :nodoc:
+-      if Unicorn::TCPClient === socket && @@tcpi_inspect_ok
+-        opt = socket.getsockopt(:IPPROTO_TCP, :TCP_INFO).inspect
+-        if opt =~ /\bstate=(\S+)/
++      if Unicorn::TCPClient === socket && @@tcpi_inspect_ok != false
++        if @@tcpi_inspect_ok
++          opt = socket.getsockopt(:IPPROTO_TCP, :TCP_INFO).inspect
++        else
+           @@tcpi_inspect_ok = true
++          opt = begin
++            socket.getsockopt(:IPPROTO_TCP, :TCP_INFO)
++          rescue SocketError
++            @@tcpi_inspect_ok = false
++            return write_http_header(socket)
++          end.inspect
++        end
++
++        if opt =~ /\bstate=(\S+)/
+           raise Errno::EPIPE, "client closed connection".freeze,
+                 EMPTY_ARRAY if closed_state_str?($1)
+         else
+-- 
+2.11.0
+
