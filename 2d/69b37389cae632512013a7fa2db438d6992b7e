@@ -1,0 +1,72 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.0
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id 9BF1620966;
+	Sun, 26 Mar 2017 02:41:12 +0000 (UTC)
+Date: Sun, 26 Mar 2017 02:41:12 +0000
+From: Eric Wong <e@80x24.org>
+To: Dylan Thacker-Smith <dylan.smith@shopify.com>
+Cc: unicorn-public@bogomips.org
+Subject: Re: [PATCH] Check for Socket::TCP_INFO constant before trying to get
+ TCP_INFO
+Message-ID: <20170326024112.GA28554@starla>
+References: <20170326014903.54312-1-Dylan.Smith@shopify.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <20170326014903.54312-1-Dylan.Smith@shopify.com>
+List-Id: <unicorn-public@bogomips.org>
+
+Dylan Thacker-Smith <dylan.smith@shopify.com> wrote:
+> The ruby constant Socket::TCP_INFO is only defined if TCP_INFO is defined
+> in C, so we can just check for the presence of that ruby constant instead
+> of rescuing SocketError from the call to getsockopt.
+
+Good catch!  I forget there's systems without TCP_INFO at all :x
+
+> +++ b/lib/unicorn/http_request.rb
+> @@ -29,7 +29,7 @@ class Unicorn::HttpParser
+>    EMPTY_ARRAY = [].freeze
+>    @@input_class = Unicorn::TeeInput
+>    @@check_client_connection = false
+> -  @@tcpi_inspect_ok = nil
+> +  @@tcpi_inspect_ok = Socket.const_defined?(:TCP_INFO)
+>  
+>    def self.input_class
+>      @@input_class
+> @@ -154,20 +154,10 @@ def closed_state?(state) # :nodoc:
+>      # Not that efficient, but probably still better than doing unnecessary
+>      # work after a client gives up.
+>      def check_client_connection(socket) # :nodoc:
+> -      if Unicorn::TCPClient === socket && @@tcpi_inspect_ok != false
+> -        if @@tcpi_inspect_ok
+> -          opt = socket.getsockopt(:IPPROTO_TCP, :TCP_INFO).inspect
+> -        else
+> -          @@tcpi_inspect_ok = true
+> -          opt = begin
+> -            socket.getsockopt(:IPPROTO_TCP, :TCP_INFO)
+> -          rescue SocketError
+> -            @@tcpi_inspect_ok = false
+> -            return write_http_header(socket)
+> -          end.inspect
+> -        end
+> -
+> +      if Unicorn::TCPClient === socket && @@tcpi_inspect_ok
+> +        opt = socket.getsockopt(Socket::IPPROTO_TCP, Socket::TCP_INFO).inspect
+>          if opt =~ /\bstate=(\S+)/
+> +          @@tcpi_inspect_ok = true
+
+Is the last line to set "@@tcpi_inspect_ok = true" still
+necessary?  It was necessary in Jeremy's version, but I think
+you can safely omit it, now.
+
+>            raise Errno::EPIPE, "client closed connection".freeze,
+>                  EMPTY_ARRAY if closed_state_str?($1)
+>          else
+
+Anyways, I'm inclined to apply your patch with the redundant
+assignment removed (no need to resend).  Thanks.
