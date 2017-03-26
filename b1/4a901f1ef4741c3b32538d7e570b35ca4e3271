@@ -1,0 +1,56 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.0
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id E1B2920958;
+	Sun, 26 Mar 2017 20:52:04 +0000 (UTC)
+Date: Sun, 26 Mar 2017 20:52:04 +0000
+From: Eric Wong <e@80x24.org>
+To: John Smart <smartj@gmail.com>
+Cc: unicorn-public@bogomips.org
+Subject: Re: Rack::Request#params EOFError
+Message-ID: <20170326205204.GA25168@starla>
+References: <CALPE1+VypRNKgC3_RitSkZPrRGFHfjY+-33BD3AkFy53Y-rQ=g@mail.gmail.com>
+ <20170321190639.GA13849@whir>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <20170321190639.GA13849@whir>
+List-Id: <unicorn-public@bogomips.org>
+
+> John Smart <smartj@gmail.com> wrote:
+> > When multipart > 112KB, I noticed that Unicorn tees the input stream
+> > to a temporary file.  I was wondering: might Unicorn::TeeInput raise
+> > an EOFError as part of normal operation when reaching the end of the
+> > input stream?  If so, this would break the Rack spec.  I only tested
+> > this on Darwin, still working on a self-contained repro.
+
+Ping on this.
+
+Eric Wong <e@80x24.org> wrote:
+> No, it should not raise EOFError unless a client sent less than
+> the Content-Length it declared in the header, or if it sent a
+> short chunk with "Transfer-Encoding: chunked".
+> 
+> EOFError should be raised to break out of the application
+> processing entirely if and only if the client decides to disconnect
+> prematurely.  This is needed to allow unicorn to move onto other
+> clients.
+> 
+> What unicorn could (and maybe should) do is raise a different
+> error which is not a subclass of EOFError; to prevent the error
+> from being caught by Rack (or any other middlewares).
+
+I'm still considering this, but I'm also wondering if it'll
+break any existing code which relies on Unicorn::ClientShutdown
+being a subclass of EOFError
+
+> What client are you using?
+> 
+> Is it sending "Transfer-Encoding: chunked" or a Content-Length?
+> 
+> Is nginx in front of unicorn?  If not, does it happen when nginx
+> is in front of unicorn?
