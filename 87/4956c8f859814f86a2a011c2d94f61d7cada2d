@@ -1,0 +1,58 @@
+Return-Path: <dylan.smith@shopify.com>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS3215 2.6.0.0/16
+X-Spam-Status: No, score=-3.8 required=3.0 tests=BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,DKIM_VALID_AU,RCVD_IN_DNSWL_LOW,SPF_PASS shortcircuit=no
+	autolearn=ham autolearn_force=no version=3.4.0
+Received: from mail-vk0-x22f.google.com (mail-vk0-x22f.google.com [IPv6:2607:f8b0:400c:c05::22f])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+	(No client certificate requested)
+	by dcvr.yhbt.net (Postfix) with ESMTPS id 8372E20969
+	for <unicorn-public@bogomips.org>; Sun, 26 Mar 2017 02:52:42 +0000 (UTC)
+Received: by mail-vk0-x22f.google.com with SMTP id s68so22392866vke.3
+        for <unicorn-public@bogomips.org>; Sat, 25 Mar 2017 19:52:42 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=shopify.com; s=google;
+        h=mime-version:in-reply-to:references:from:date:message-id:subject:to
+         :cc;
+        bh=No4fb7kZNoPtfrR5PCjcs/LWnyTeavkMaGhATtc7CPs=;
+        b=P6hDkuPC+3pTPX6elubnDI0YF8nsO8OIawY3stLETAuf1TCZoW6SR8VjUieLlQ4LAG
+         C5Y9HzMDIxSLqtzSpPLNpfWpMDZH47mq3OMGRP2ZuYpVm16tDRmFIHUm6N4EEPOhUANp
+         ma84/gPuXNY7bXIjTQMH5eU1KIjmhMPYYzKek=
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20161025;
+        h=x-gm-message-state:mime-version:in-reply-to:references:from:date
+         :message-id:subject:to:cc;
+        bh=No4fb7kZNoPtfrR5PCjcs/LWnyTeavkMaGhATtc7CPs=;
+        b=GbdhVBuWBR9zF886uv7UCxCBz43zuhwS1jTVGJ3lSXD9Fspt056LVYe5hWJvo69yDU
+         +mB2/x1PVXABVuFIkRtDeQDB5SycRY51irMdondx/rhhIl/b9WNPPU6IiBZKZuDlxLbr
+         FWWE0Qk0UjHNI0HhRtuuNkhLBPHa41/nOW4MVzJZ2vF5oqOUSjI211TX7U2e/MGo+Ruk
+         OkgWKjPVObiVg+AvIm1/jGMtV8VfNBWy8OlEw+HirYVIdlt664sKB85oj/0n8yke8/A9
+         9cys8DpeGvWJWAMrmz8NQjqzUVlo3aUGJFpDXdIwDvPopJac0B9FzB9o4+es97iuxNlw
+         +vZw==
+X-Gm-Message-State: AFeK/H1f65HAyqLFZ+0/Zl3bIm33lyFgM1x10iwEsH6aUePNorrvxiZtnYWek3BKclJS4JtSn5TNCDKplyaRHYcX
+X-Received: by 10.176.3.134 with SMTP id 6mr1410975uau.20.1490496761439; Sat,
+ 25 Mar 2017 19:52:41 -0700 (PDT)
+MIME-Version: 1.0
+Received: by 10.31.206.199 with HTTP; Sat, 25 Mar 2017 19:52:21 -0700 (PDT)
+In-Reply-To: <20170326024112.GA28554@starla>
+References: <20170326014903.54312-1-Dylan.Smith@shopify.com> <20170326024112.GA28554@starla>
+From: Dylan Thacker-Smith <dylan.smith@shopify.com>
+Date: Sat, 25 Mar 2017 22:52:21 -0400
+Message-ID: <CAK9CFuh3Pf55ng+VmvFeveeG8BSCzKncPcJjkZTCyEaYRx4qng@mail.gmail.com>
+Subject: Re: [PATCH] Check for Socket::TCP_INFO constant before trying to get TCP_INFO
+To: Eric Wong <e@80x24.org>
+Cc: unicorn-public@bogomips.org
+Content-Type: text/plain; charset=UTF-8
+List-Id: <unicorn-public@bogomips.org>
+
+On Sat, Mar 25, 2017 at 10:41 PM, Eric Wong <e@80x24.org> wrote:
+> Is the last line to set "@@tcpi_inspect_ok = true" still
+> necessary?  It was necessary in Jeremy's version, but I think
+> you can safely omit it, now.
+
+No it isn't needed, so you can remove it.
+
+I had just started my patch before seeing his, so reverted his as part
+of rebasing and this line was present before his patch.
