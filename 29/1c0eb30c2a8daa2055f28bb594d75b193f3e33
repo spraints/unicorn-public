@@ -1,0 +1,95 @@
+Return-Path: <dylan.smith@shopify.com>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS3215 2.6.0.0/16
+X-Spam-Status: No, score=-3.8 required=3.0 tests=BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,DKIM_VALID_AU,RCVD_IN_DNSWL_LOW,SPF_PASS shortcircuit=no
+	autolearn=ham autolearn_force=no version=3.4.0
+Received: from mail-it0-x229.google.com (mail-it0-x229.google.com [IPv6:2607:f8b0:4001:c0b::229])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+	(No client certificate requested)
+	by dcvr.yhbt.net (Postfix) with ESMTPS id E846620969
+	for <unicorn-public@bogomips.org>; Sun, 26 Mar 2017 01:49:06 +0000 (UTC)
+Received: by mail-it0-x229.google.com with SMTP id y18so42419212itc.0
+        for <unicorn-public@bogomips.org>; Sat, 25 Mar 2017 18:49:06 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=shopify.com; s=google;
+        h=from:to:subject:date:message-id;
+        bh=eQ993vKjbGatnFjVMt4ONulUxJ3TKFODBpx+WHwJljM=;
+        b=JM47ijgOp7oeihohAv3TwKRc/zINnoUo/HKmIaSc6OwWy+96ApK9AfDAGZALs8UipN
+         I45mcyQ5IBayfimwbwydmLFr7fzsyHa6RmoAPYFBSVzv1s5Yrh0ULM0k930XsKynvpPh
+         Inq7s7xpF5CX5v0VQF6p/2Byaw+tPNQqjFrRw=
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20161025;
+        h=x-gm-message-state:from:to:subject:date:message-id;
+        bh=eQ993vKjbGatnFjVMt4ONulUxJ3TKFODBpx+WHwJljM=;
+        b=Pu8tKYKSi7gNWRGcYGlwU4ZJ3H1fSJienXcOb3cG9IPl59oeYvTxo1YuUvmXPvydyN
+         lkfvfMZzVQ4xlQun3dMgWxP4tL1M1USi1uyKwytgbuMDJDPJkdKyihLeGYY77xw05a1R
+         lEg5WpyP4ofTFzKQPxK1BhrI3sUBn7yzaQ4eJ9VKINeeoocu9tVs4t1wPNcrrWP27naA
+         3zDQrihXDP3DzN9dObewEjiA/s13Z9IqDfG1pqNPLOcGuTuiopdY0NLG/X+W2Lg+5BtM
+         9bTafyTHjRUiWSLUB50F8MHbl/7VTasDVcwci1lcnNkYIdoZxgIb9GFhFaDj9zWmDCm6
+         0+2w==
+X-Gm-Message-State: AFeK/H0mYLmUVWKHF9DtdJqI60MKMulSUwn2vK4cAQAtfR0Ory3inkkP/CVbOIFHCyPCu1eC3lTP8+/2MWehCrX5hytZWdLsMoLrYBjhivg3hHptawuEEdctEeGpdk8k49JHhHx1Wb6gXr7w9kF5ra9gR10ecPGsGv6sS9RyMzSFrihp2kmtKr5mh90SwW3jcdDv
+X-Received: by 10.107.19.97 with SMTP id b94mr14684760ioj.93.1490492945865;
+        Sat, 25 Mar 2017 18:49:05 -0700 (PDT)
+Received: from localhost.localdomain (24-246-1-73.cable.teksavvy.com. [24.246.1.73])
+        by smtp.gmail.com with ESMTPSA id l188sm3497072ioa.35.2017.03.25.18.49.05
+        for <unicorn-public@bogomips.org>
+        (version=TLS1 cipher=AES128-SHA bits=128/128);
+        Sat, 25 Mar 2017 18:49:05 -0700 (PDT)
+From: Dylan Thacker-Smith <dylan.smith@shopify.com>
+X-Google-Original-From: Dylan Thacker-Smith <Dylan.Smith@shopify.com>
+To: unicorn-public@bogomips.org
+Subject: [PATCH] Check for Socket::TCP_INFO constant before trying to get TCP_INFO
+Date: Sat, 25 Mar 2017 21:49:03 -0400
+Message-Id: <20170326014903.54312-1-Dylan.Smith@shopify.com>
+X-Mailer: git-send-email 2.10.0
+List-Id: <unicorn-public@bogomips.org>
+
+The ruby constant Socket::TCP_INFO is only defined if TCP_INFO is defined
+in C, so we can just check for the presence of that ruby constant instead
+of rescuing SocketError from the call to getsockopt.
+---
+ lib/unicorn/http_request.rb | 18 ++++--------------
+ 1 file changed, 4 insertions(+), 14 deletions(-)
+
+diff --git a/lib/unicorn/http_request.rb b/lib/unicorn/http_request.rb
+index 6dc0aa7..8f1638a 100644
+--- a/lib/unicorn/http_request.rb
++++ b/lib/unicorn/http_request.rb
+@@ -29,7 +29,7 @@ class Unicorn::HttpParser
+   EMPTY_ARRAY = [].freeze
+   @@input_class = Unicorn::TeeInput
+   @@check_client_connection = false
+-  @@tcpi_inspect_ok = nil
++  @@tcpi_inspect_ok = Socket.const_defined?(:TCP_INFO)
+ 
+   def self.input_class
+     @@input_class
+@@ -154,20 +154,10 @@ def closed_state?(state) # :nodoc:
+     # Not that efficient, but probably still better than doing unnecessary
+     # work after a client gives up.
+     def check_client_connection(socket) # :nodoc:
+-      if Unicorn::TCPClient === socket && @@tcpi_inspect_ok != false
+-        if @@tcpi_inspect_ok
+-          opt = socket.getsockopt(:IPPROTO_TCP, :TCP_INFO).inspect
+-        else
+-          @@tcpi_inspect_ok = true
+-          opt = begin
+-            socket.getsockopt(:IPPROTO_TCP, :TCP_INFO)
+-          rescue SocketError
+-            @@tcpi_inspect_ok = false
+-            return write_http_header(socket)
+-          end.inspect
+-        end
+-
++      if Unicorn::TCPClient === socket && @@tcpi_inspect_ok
++        opt = socket.getsockopt(Socket::IPPROTO_TCP, Socket::TCP_INFO).inspect
+         if opt =~ /\bstate=(\S+)/
++          @@tcpi_inspect_ok = true
+           raise Errno::EPIPE, "client closed connection".freeze,
+                 EMPTY_ARRAY if closed_state_str?($1)
+         else
+-- 
+2.10.0
+
