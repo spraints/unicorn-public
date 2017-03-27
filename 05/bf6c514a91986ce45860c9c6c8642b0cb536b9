@@ -1,0 +1,42 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS60729 192.36.27.0/24
+X-Spam-Status: No, score=-1.8 required=3.0 tests=BAYES_00,RCVD_IN_MSPIKE_BL,
+	RCVD_IN_MSPIKE_ZBI,RCVD_IN_XBL,RDNS_NONE,SPF_FAIL,SPF_HELO_FAIL
+	shortcircuit=no autolearn=no autolearn_force=no version=3.4.0
+Received: from 80x24.org (unknown [192.36.27.7])
+	by dcvr.yhbt.net (Postfix) with ESMTP id A5A5F1FCA0
+	for <unicorn-public@bogomips.org>; Mon, 27 Mar 2017 22:36:38 +0000 (UTC)
+From: Eric Wong <e@80x24.org>
+To: unicorn-public@bogomips.org
+Subject: [PATCH] test_exec: SO_KEEPALIVE value only needs to be true (take #2)
+Date: Mon, 27 Mar 2017 22:36:36 +0000
+Message-Id: <20170327223636.30381-1-e@80x24.org>
+List-Id: <unicorn-public@bogomips.org>
+
+We need to ensure the portability of the sd_listen_fds emulation
+test, too, which didn't get tested on my FreeBSD 10.3 install
+due to it being on Ruby 2.2
+
+Followup-to: 4ce6b00f75f1 ("test_exec: SO_KEEPALIVE value only needs to be true")
+---
+ test/exec/test_exec.rb | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/test/exec/test_exec.rb b/test/exec/test_exec.rb
+index 08f92ae..9723c5c 100644
+--- a/test/exec/test_exec.rb
++++ b/test/exec/test_exec.rb
+@@ -122,7 +122,7 @@ def test_sd_listen_fds_emulation
+       res = hit(["http://#@addr:#@port/"])
+       assert_equal [ "HI\n" ], res
+       assert_shutdown(pid)
+-      assert_equal 1, sock.getsockopt(:SOL_SOCKET, :SO_KEEPALIVE).int,
++      assert sock.getsockopt(:SOL_SOCKET, :SO_KEEPALIVE).bool,
+                   'unicorn should always set SO_KEEPALIVE on inherited sockets'
+     end
+   ensure
+-- 
+EW
+
