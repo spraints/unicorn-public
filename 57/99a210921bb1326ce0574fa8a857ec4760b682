@@ -1,0 +1,57 @@
+Return-Path: <simon.eskildsen@shopify.com>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-3.7 required=3.0 tests=AWL,BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,DKIM_VALID_AU,RCVD_IN_DNSWL_LOW,SPF_PASS shortcircuit=no
+	autolearn=ham autolearn_force=no version=3.4.0
+Received: from mail-wm0-x22f.google.com (mail-wm0-x22f.google.com [IPv6:2a00:1450:400c:c09::22f])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+	(No client certificate requested)
+	by dcvr.yhbt.net (Postfix) with ESMTPS id EEF2720964
+	for <unicorn-public@bogomips.org>; Tue,  4 Apr 2017 14:36:49 +0000 (UTC)
+Received: by mail-wm0-x22f.google.com with SMTP id t189so29815051wmt.1
+        for <unicorn-public@bogomips.org>; Tue, 04 Apr 2017 07:36:49 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=shopify.com; s=google;
+        h=mime-version:in-reply-to:references:from:date:message-id:subject:to
+         :cc:content-transfer-encoding;
+        bh=MjiZs6EpoMHIKWy/u/F8+i5PWYNvMd9gVE2vwsfY+Xs=;
+        b=RBNHZ4lVyoVer241Rg9p9nUtB7BT1LilHIRjhwHpIXuht5UwamWmB+zyrDoKWU/XBn
+         o2VLEsgYNBXdDw6HhyLsw6wxnTDI9jg/ch1fogvOhVFaXNC1kHceazLG8cseoH7P7vMI
+         H64Yhmqt5B3lBLjLHvbU0Yghb6mD4aWF045/0=
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20161025;
+        h=x-gm-message-state:mime-version:in-reply-to:references:from:date
+         :message-id:subject:to:cc:content-transfer-encoding;
+        bh=MjiZs6EpoMHIKWy/u/F8+i5PWYNvMd9gVE2vwsfY+Xs=;
+        b=CH9W7dhwIaLJCQroXiKbh5ooMEtgekmIkFq5wwBUVv9nRQivMXupHhyQHYht7vHsj3
+         cyiDZ2pq6xMx5epZrURi/pe94gtOwhSQ1MfBMV1Lq/dDxCkTDyrGf9u1qrWEVhMqUQw7
+         W8w9/Mfv5FeChDKKgyAIr5y1S0katAv7ZDlndJloiqDiaBwiz7iguwnA3v4kk1b8CqPF
+         J8GORb2wOIoWLiS9s15pwp0dZ3AaQsLyb/f6m78CayOK53vcZlKIegKmaBQ6H0Z74MEL
+         jtfjtkGULbJekEiJIADVFCnhJfBUeuZ7BY/YmUwAMiT86gDBHiI2uo6ePc4teFyETNVH
+         J4Yw==
+X-Gm-Message-State: AFeK/H1RgkTdZOBUMRvum4oXQMFaDENaeh6HwJdolzUPXak+3R8g+CC4
+	K0wCVOVbrGsLPtY0Mgm8/XwTimXx17hf0uA=
+X-Received: by 10.28.20.202 with SMTP id 193mr8330926wmu.43.1491316608540;
+ Tue, 04 Apr 2017 07:36:48 -0700 (PDT)
+MIME-Version: 1.0
+Received: by 10.28.191.138 with HTTP; Tue, 4 Apr 2017 07:36:47 -0700 (PDT)
+In-Reply-To: <20170404143257.GC1318@jeremyevans.local>
+References: <CAO3HKM6SuoR8oFDQ=rafegWVXWj+84_ekQCSm9-6NOoD9OcwiQ@mail.gmail.com>
+ <20170404143257.GC1318@jeremyevans.local>
+From: Simon Eskildsen <simon.eskildsen@shopify.com>
+Date: Tue, 4 Apr 2017 10:36:47 -0400
+Message-ID: <CAO3HKM5w0gbQyDzHokYenPG3o_xVYf_XqMATchkNStML44Xh_g@mail.gmail.com>
+Subject: Re: after_worker_exit on murder
+To: Jeremy Evans <code@jeremyevans.net>
+Cc: unicorn-public@bogomips.org
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
+List-Id: <unicorn-public@bogomips.org>
+
+You're right, I misread the code=E2=80=94I thought the wait(2) would happen=
+ in
+the kill worker call, but the reap worker call takes care of that.
+
+Thanks for clearing that up Jeremy!
