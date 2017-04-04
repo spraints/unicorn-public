@@ -1,0 +1,57 @@
+Return-Path: <simon.eskildsen@shopify.com>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-3.7 required=3.0 tests=AWL,BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,DKIM_VALID_AU,RCVD_IN_DNSWL_LOW,SPF_PASS shortcircuit=no
+	autolearn=ham autolearn_force=no version=3.4.0
+Received: from mail-wm0-x22a.google.com (mail-wm0-x22a.google.com [IPv6:2a00:1450:400c:c09::22a])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+	(No client certificate requested)
+	by dcvr.yhbt.net (Postfix) with ESMTPS id D974920964
+	for <unicorn-public@bogomips.org>; Tue,  4 Apr 2017 14:08:55 +0000 (UTC)
+Received: by mail-wm0-x22a.google.com with SMTP id w204so4988998wmd.1
+        for <unicorn-public@bogomips.org>; Tue, 04 Apr 2017 07:08:55 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=shopify.com; s=google;
+        h=mime-version:from:date:message-id:subject:to
+         :content-transfer-encoding;
+        bh=aHYeu3+mQF4ABE1rYukDarQIh+AIOYmrQf4IwBCt8L0=;
+        b=Gai4aZZXxbmugjUa5zX6rqWLz1hVwD7ZCZnKs/GH62dlmwAXB7ubn/gJ3wajvyDy0i
+         l7tRpJQ4cgGYzNP8hD1RwSrtM/d/LTckSPGS3MfVygYxmsjBJxt78mdC+/xCX1fTcT8N
+         yohKyg/7G2WIiH52dUpMcS5rRDu9rSTFo6nY4=
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20161025;
+        h=x-gm-message-state:mime-version:from:date:message-id:subject:to
+         :content-transfer-encoding;
+        bh=aHYeu3+mQF4ABE1rYukDarQIh+AIOYmrQf4IwBCt8L0=;
+        b=okNGyAbB7hH/RBf71e7U6LyQdewVJ/3tKzjfSeWuyqCeRx57nPv4MLdSLHf7MfPa3N
+         dAK7NnBi2XAjU38yasDywKzKYmexfQWuBFV/whxz8tpx9/RDiAnzhXwWNNO+RdCKx44j
+         26gs+djGJ4kC7omc93dNo+Y4f4LEtNsj4xSgWlZhaJvwJlojn/nBVXefkZDH8OcAv037
+         x3n0dVGidnL99HxYCprqWvsqAQ+vz+lbhxcmPkjPih6xAARFYsCaplyXcWWM7gcpHivk
+         gSueU31hFXkrn32U9Hlk3/F+SxzA7ye8piz00E/pNnBFevtXrj09PVtB0mPiG/PDKCKT
+         NDsw==
+X-Gm-Message-State: AFeK/H2XfBiMW9kESANBDH23vZobWse9exnvfiif7rdB8D+KK0/pboVi
+	qiD47hE/CMGALjwP2cTi2M8/wwyZNShe
+X-Received: by 10.28.199.129 with SMTP id x123mr14880637wmf.7.1491314934143;
+ Tue, 04 Apr 2017 07:08:54 -0700 (PDT)
+MIME-Version: 1.0
+Received: by 10.28.191.138 with HTTP; Tue, 4 Apr 2017 07:08:53 -0700 (PDT)
+From: Simon Eskildsen <simon.eskildsen@shopify.com>
+Date: Tue, 4 Apr 2017 10:08:53 -0400
+Message-ID: <CAO3HKM6SuoR8oFDQ=rafegWVXWj+84_ekQCSm9-6NOoD9OcwiQ@mail.gmail.com>
+Subject: after_worker_exit on murder
+To: unicorn-public@bogomips.org, Jeremy Evans <code@jeremyevans.net>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
+List-Id: <unicorn-public@bogomips.org>
+
+Hi!
+
+With Jeremy Evans' work on `after_worker_exit`, I was hoping I could
+replace our internal fork which has a `before_murder` hook to report
+to monitoring systems when workers are forcibly killed. However, the
+`after_worker_exit` is only called on reaping=E2=80=94not when murdering.
+
+How would you feel about executing this on the murder path?
+Alternatively, we could add an `after_murder` hook for this path.
