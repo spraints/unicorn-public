@@ -1,0 +1,52 @@
+Return-Path: <code@jeremyevans.net>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS40173 216.86.168.0/24
+X-Spam-Status: No, score=-5.1 required=3.0 tests=AWL,BAYES_00,
+	RCVD_IN_DNSWL_LOW,RCVD_IN_MSPIKE_H2,SPF_HELO_PASS shortcircuit=no
+	autolearn=ham autolearn_force=no version=3.4.0
+Received: from mxout-08.mxes.net (mxout-08.mxes.net [216.86.168.183])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by dcvr.yhbt.net (Postfix) with ESMTPS id 1A0EF2096C
+	for <unicorn-public@bogomips.org>; Tue,  4 Apr 2017 14:33:01 +0000 (UTC)
+Received: from battleground.jeremyevans.local (unknown [73.90.99.19])
+	(using TLSv1.2 with cipher DHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by smtp.mxes.net (Postfix) with ESMTPSA id 2CE6C50A6B;
+	Tue,  4 Apr 2017 10:32:58 -0400 (EDT)
+Received: from jeremyevans.local (speedstar.jeremyevans.local [10.187.8.2])
+	by battleground.jeremyevans.local (OpenSMTPD) with ESMTP id 21a93a0f;
+	Tue, 4 Apr 2017 07:32:57 -0700 (PDT)
+Date: Tue, 4 Apr 2017 07:32:57 -0700
+From: Jeremy Evans <code@jeremyevans.net>
+To: Simon Eskildsen <simon.eskildsen@shopify.com>
+Cc: unicorn-public@bogomips.org
+Subject: Re: after_worker_exit on murder
+Message-ID: <20170404143257.GC1318@jeremyevans.local>
+References: <CAO3HKM6SuoR8oFDQ=rafegWVXWj+84_ekQCSm9-6NOoD9OcwiQ@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <CAO3HKM6SuoR8oFDQ=rafegWVXWj+84_ekQCSm9-6NOoD9OcwiQ@mail.gmail.com>
+User-Agent: Mutt/1.8.0 (2017-02-23)
+List-Id: <unicorn-public@bogomips.org>
+
+On 04/04 10:08, Simon Eskildsen wrote:
+> Hi!
+> 
+> With Jeremy Evans' work on `after_worker_exit`, I was hoping I could
+> replace our internal fork which has a `before_murder` hook to report
+> to monitoring systems when workers are forcibly killed. However, the
+> `after_worker_exit` is only called on reaping???not when murdering.
+> 
+> How would you feel about executing this on the murder path?
+> Alternatively, we could add an `after_murder` hook for this path.
+
+I checked and after_worker_exit is called when reaping the worker
+after murdering, so I don't think any changes are necessary. I would
+guess if you added it when murdering, it would be called twice on the
+same worker.
+
+Thanks,
+Jeremy
