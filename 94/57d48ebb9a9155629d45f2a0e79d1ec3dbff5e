@@ -1,0 +1,62 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.0
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id 8CE1C20964;
+	Wed,  5 Apr 2017 01:19:32 +0000 (UTC)
+Date: Wed, 5 Apr 2017 01:19:32 +0000
+From: Eric Wong <e@80x24.org>
+To: Simon Eskildsen <simon.eskildsen@shopify.com>
+Cc: unicorn-public@bogomips.org, Jeremy Evans <code@jeremyevans.net>
+Subject: Re: after_worker_exit on murder
+Message-ID: <20170405011932.GA24739@starla>
+References: <CAO3HKM6SuoR8oFDQ=rafegWVXWj+84_ekQCSm9-6NOoD9OcwiQ@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+Content-Transfer-Encoding: 8bit
+In-Reply-To: <CAO3HKM6SuoR8oFDQ=rafegWVXWj+84_ekQCSm9-6NOoD9OcwiQ@mail.gmail.com>
+List-Id: <unicorn-public@bogomips.org>
+
+Simon Eskildsen <simon.eskildsen@shopify.com> wrote:
+> With Jeremy Evans' work on `after_worker_exit`, I was hoping I could
+> replace our internal fork which has a `before_murder` hook to report
+> to monitoring systems when workers are forcibly killed. However, the
+> `after_worker_exit` is only called on reaping—not when murdering.
+
+Hi Simon, it looks like Jeremy clarified after_worker_exit for you.
+
+Anyways...  I remember rejecting patches to add more to timeout
+support in unicorn over the years since I did not want it to be
+a crutch for application developers, or worse; a reason for
+people to feel locked into unicorn.  Instead I wrote things like
+https://bogomips.org/unicorn/Application_Timeouts.html to
+discourage relying on unicorn's built-in `timeout' feature.
+
+But, it seems like there's still a reliance on the built-in
+timeout...
+
+Why is that?  (If you're allowed to disclose)
+
+I don't mean to put you guys (Shopify) on the spot,
+as I'm sure other folks do it, too; but you're here :)
+
+Anyways, is this something that could or should be improved
+in Rack or ruby itself?  Or are there buggy external libraries
+or even external dependencies like NFS to blame?
+
+(Or, perhaps "I don't know" is fine :)
+
+The Ruby timeout handling in stdlib could be way better if
+done natively, I think.  Perhaps `ensure` could be better
+declared, too; but there's still the problem of getting
+external code to work well with it...
+
+
+Anyways I am of two minds; on one hand, buggy code is fine!
+unicorn handles it by nuking a process.  But on the other
+hand... it's irritatingly inefficient and shoving things under
+the rug still rots and stinks eventually.
