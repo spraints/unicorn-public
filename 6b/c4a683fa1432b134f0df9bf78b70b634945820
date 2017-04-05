@@ -1,0 +1,99 @@
+Return-Path: <simon.eskildsen@shopify.com>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-3.4 required=3.0 tests=AWL,BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,DKIM_VALID_AU,RCVD_IN_DNSWL_NONE,SPF_PASS shortcircuit=no
+	autolearn=ham autolearn_force=no version=3.4.0
+Received: from mail-wr0-x22b.google.com (mail-wr0-x22b.google.com [IPv6:2a00:1450:400c:c0c::22b])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+	(No client certificate requested)
+	by dcvr.yhbt.net (Postfix) with ESMTPS id 110E11FAFB
+	for <unicorn-public@bogomips.org>; Wed,  5 Apr 2017 10:55:30 +0000 (UTC)
+Received: by mail-wr0-x22b.google.com with SMTP id t20so8542029wra.1
+        for <unicorn-public@bogomips.org>; Wed, 05 Apr 2017 03:55:29 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=shopify.com; s=google;
+        h=mime-version:in-reply-to:references:from:date:message-id:subject:to
+         :cc:content-transfer-encoding;
+        bh=cddcntrww+t/oM9ysEq3yKXP07+Th7p46rqHTjbQ8P0=;
+        b=eroo5PjFY7QTUo8ESbSGT31HQ5RrwbnORagDgrtN6uPSty+6BuunrB4hgkKVEaipQ6
+         ZARga1dX1Bm4lDpWRKQ2qXKNS9Ma8xVXGAA6af1mxujLBN7UrOg1ReXZwLoIpLbz8pKB
+         WGFqK5+O8skGhS4B4Rbt0Kt9to9OgfoahA/Tk=
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20161025;
+        h=x-gm-message-state:mime-version:in-reply-to:references:from:date
+         :message-id:subject:to:cc:content-transfer-encoding;
+        bh=cddcntrww+t/oM9ysEq3yKXP07+Th7p46rqHTjbQ8P0=;
+        b=S4X5SrFX96BjsF8K0M/rcl9Mz0ipOUNCFvMNHBzymHRHKtB1tq7L87z44dUhLqu5g1
+         CET/obcjCTRu3IGVztfz/1q4P5624NMXbk2wWYcz4QUYcmbF/9ezedAvyDMhiwL6hWoR
+         I/cCWyhIoMt9gCV5wZtcQkXoAhWoo2z/Cmb8ggtbnPzh5WVQgKXcwM/LgVaFjy7evPO9
+         k3I+X/lwEOhz8iaI+TS6Q7GrcNi3qgFxdhQjqqOj93GJ1w8muPtVwd+AfjQlnPrqWY5O
+         +EILppNobUvffkUTUdvPrnSw2ruXJ8h2DM2EdEdqMOM8vgs4lD/EJHlcUmeEzdeIe3Yn
+         lNkA==
+X-Gm-Message-State: AFeK/H0JgAaQtGCZbqtywEbI30I9Mnk7teiUHiMYoSnwh7MRS6eEWXKL
+	qVcvgkNpa3KEZAumXDswMwsp8Zv73NsW//TmKA==
+X-Received: by 10.28.210.13 with SMTP id j13mr13332196wmg.94.1491389728150;
+ Wed, 05 Apr 2017 03:55:28 -0700 (PDT)
+MIME-Version: 1.0
+Received: by 10.28.191.138 with HTTP; Wed, 5 Apr 2017 03:55:27 -0700 (PDT)
+In-Reply-To: <20170405011932.GA24739@starla>
+References: <CAO3HKM6SuoR8oFDQ=rafegWVXWj+84_ekQCSm9-6NOoD9OcwiQ@mail.gmail.com>
+ <20170405011932.GA24739@starla>
+From: Simon Eskildsen <simon.eskildsen@shopify.com>
+Date: Wed, 5 Apr 2017 06:55:27 -0400
+Message-ID: <CAO3HKM5sLtUGFpJ9RC7i6KYCRzGr8gLtUrhJZueToh2rH8PBfw@mail.gmail.com>
+Subject: Re: after_worker_exit on murder
+To: Eric Wong <e@80x24.org>
+Cc: unicorn-public@bogomips.org, Jeremy Evans <code@jeremyevans.net>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
+List-Id: <unicorn-public@bogomips.org>
+
+I agree with you in principle, absolutely. However, when you have a
+code-base the size of ours (100Ks of lines of Ruby) with 100s of
+developers, and new ones coming on every month with no prior Ruby or
+Rails experience, we can't rely on everyone doing the right thing all
+the time. With a surface area of that size, there will be things that
+are missed, especially when you run gems like Liquid that have
+billions of different ways of composing templates=E2=80=94some of these pat=
+hs,
+unfortunately, are going to be slow. We definitely chase down all the
+worst offenders, but when new ones creep up, we do our best to chase
+them down when time allows. Using this hook, allows us to monitor when
+that happens, and how often it happens, and for which endpoints. With
+100Ks of lines of code, 100s of developers, and 10s of thousands of
+requests per second=E2=80=94once in a million happens every couple of secon=
+ds.
+Multiply that with the size of the code-base, and Unicorn timeouts due
+to the conditions below will happen somewhat often.
+
+It becomes difficult, because sometimes you have legitimate requests
+that take 10-20s, because the merchant's data set is so large that it
+exposes anomalies. Again, with the size of our code-base, we need this
+wiggle room in the global timeout to not just error on users. You can
+have endpoints that do 4 HTTP requests, 5 RPC requests, 4 MySQL
+queries, and 30 calls to Memcached. In that case, your worst case is
+the timeout of all of those actions, which easily exceeds the Unicorn
+timeout. We've debated having "budgets" and "shitlisting"
+(http://sirupsen.com/shitlists/) paths that obviously take longer than
+the budget for a single resource. The probability of more than one
+resource being very slow at once, is quite low (and if it is, again,
+we rely on the Unicorn timeout).
+
+In other words, the Unicorn timeout is not a crutch for timeouts in
+the application, but a global timeout to as a last line of defense
+against many timeouts, or some bug we didn't foresee. This seems
+unavoidable in my eyes, unless you have very aggressive timeouts and
+meticulously keep track of the budgets in a testing environment and
+raise if the budget is exceeded. When we hit many timeouts, we use
+Semian (http://github.com/shopify/semian) to trigger circuit
+breakers=E2=80=94so the reliance on Unicorn should be brief.
+
+Some of these bugs are even deep in Ruby, Jean B, one of my co-workers
+submitted a bug about there being no write_timeout in Net::HTTP (you
+even replied!): https://bugs.ruby-lang.org/issues/13396
+
+BTW we deployed 5.3.0 and replaced our `before_murder` hook with
+`after_worker_exit`. Everything works perfectly and we finally are not
+using a forked version of Unicorn anymore. Thanks for the release!
