@@ -1,0 +1,65 @@
+Return-Path: <code@jeremyevans.net>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS40173 216.86.168.0/24
+X-Spam-Status: No, score=-5.2 required=3.0 tests=AWL,BAYES_00,
+	RCVD_IN_DNSWL_LOW,RCVD_IN_MSPIKE_H2,SPF_HELO_PASS shortcircuit=no
+	autolearn=ham autolearn_force=no version=3.4.0
+Received: from mxout-08.mxes.net (mxout-08.mxes.net [216.86.168.183])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by dcvr.yhbt.net (Postfix) with ESMTPS id 928142096C
+	for <unicorn-public@bogomips.org>; Wed,  5 Apr 2017 04:57:36 +0000 (UTC)
+Received: from battleground.jeremyevans.local (unknown [73.90.99.19])
+	(using TLSv1.2 with cipher DHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by smtp.mxes.net (Postfix) with ESMTPSA id DF75F509B6;
+	Wed,  5 Apr 2017 00:57:34 -0400 (EDT)
+Received: from jeremyevans.local (speedstar.jeremyevans.local [10.187.8.2])
+	by battleground.jeremyevans.local (OpenSMTPD) with ESMTP id 0f0e7e8b;
+	Tue, 4 Apr 2017 21:57:33 -0700 (PDT)
+Date: Tue, 4 Apr 2017 21:57:33 -0700
+From: Jeremy Evans <code@jeremyevans.net>
+To: Eric Wong <e@80x24.org>
+Cc: unicorn-public@bogomips.org
+Subject: Re: Patch: Add support for chroot to Worker#user V2
+Message-ID: <20170405045733.GF1318@jeremyevans.local>
+References: <20170223184605.GA67612@jeremyevans.local>
+ <20170405034444.GA7010@starla>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20170405034444.GA7010@starla>
+User-Agent: Mutt/1.8.0 (2017-02-23)
+List-Id: <unicorn-public@bogomips.org>
+
+On 04/05 03:44, Eric Wong wrote:
+> Jeremy Evans <code@jeremyevans.net> wrote:
+> > @@ -134,6 +136,11 @@ def user(user, group = nil)
+> >        Process.initgroups(user, gid)
+> >        Process::GID.change_privilege(gid)
+> >      end
+> > +    if chroot
+> > +      chroot = Dir.pwd if chroot == true
+> > +      Dir.chroot(chroot)
+> > +      Dir.chdir('/')
+> > +    end
+> 
+> By the way, I noticed in configurator.rb (for
+> working_directory), we also update ENV['PWD'] after chdir.
+> 
+> Perhaps we should do so, here?
+
+That makes sense to me, though I don't use ENV['PWD'] personally.
+
+> For working_directory, I preserved ENV['PWD'] in case Dir.pwd
+> wasn't aware of symlinks; or there's code which relies on
+> env['PWD'] without caring for making the syscalls required for
+> Dir.pwd...
+> 
+> I'm not sure how much it matters in practice...
+
+I'm not either, but I don't see how it could hurt.
+
+Thanks,
+Jeremy
