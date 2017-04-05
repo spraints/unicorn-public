@@ -1,0 +1,75 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.0
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id DC1E220966;
+	Wed,  5 Apr 2017 18:33:39 +0000 (UTC)
+Date: Wed, 5 Apr 2017 18:33:39 +0000
+From: Eric Wong <e@80x24.org>
+To: Simon Eskildsen <simon.eskildsen@shopify.com>
+Cc: unicorn-public@bogomips.org, Jeremy Evans <code@jeremyevans.net>
+Subject: Re: after_worker_exit on murder
+Message-ID: <20170405183339.GA22772@dcvr>
+References: <CAO3HKM6SuoR8oFDQ=rafegWVXWj+84_ekQCSm9-6NOoD9OcwiQ@mail.gmail.com>
+ <20170405011932.GA24739@starla>
+ <CAO3HKM5sLtUGFpJ9RC7i6KYCRzGr8gLtUrhJZueToh2rH8PBfw@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <CAO3HKM5sLtUGFpJ9RC7i6KYCRzGr8gLtUrhJZueToh2rH8PBfw@mail.gmail.com>
+List-Id: <unicorn-public@bogomips.org>
+
+Simon Eskildsen <simon.eskildsen@shopify.com> wrote:
+
+Thank you for your reply.  It is a good reminder of how far away
+I am from the rest of the web development world :>
+
+<snip>
+
+> It becomes difficult, because sometimes you have legitimate requests
+> that take 10-20s, because the merchant's data set is so large that it
+> exposes anomalies. Again, with the size of our code-base, we need this
+> wiggle room in the global timeout to not just error on users. You can
+> have endpoints that do 4 HTTP requests, 5 RPC requests, 4 MySQL
+> queries, and 30 calls to Memcached. In that case, your worst case is
+> the timeout of all of those actions, which easily exceeds the Unicorn
+> timeout.
+
+Wow, that is frightening... People will actually wait for a web
+page to load in that case?  I guess that's why ccc exists :>
+
+> We've debated having "budgets" and "shitlisting"
+> (http://sirupsen.com/shitlists/) paths that obviously take longer than
+> the budget for a single resource. The probability of more than one
+> resource being very slow at once, is quite low (and if it is, again,
+> we rely on the Unicorn timeout).
+
+Interesting.  I guess for now, you can use nginx or similar to
+route to differently-configured unicorns with different timeouts
+(or even other servers)?
+
+Anyways, I'm coming around to reconciling the two mindsets of
+"typical" code running on unicorn ("it's alright to crash")
+and the "no room for error: nuclear war starts if you screw up"
+mindset I adopt for other projects.
+
+> Some of these bugs are even deep in Ruby, Jean B, one of my co-workers
+> submitted a bug about there being no write_timeout in Net::HTTP (you
+> even replied!): https://bugs.ruby-lang.org/issues/13396
+
+Yeah, that got me thinking of improving core timeouts again...
+
+One big problem is the lack of a portable standard asynchronous
+name resolution mechanism in the C standard library.  I'm not
+sure how well resolv.rb/resolv-replace.rb holds up in real-world
+usage, nor if pulling in something like ares2 would be an
+acceptable dependency for ruby-core...
+
+> BTW we deployed 5.3.0 and replaced our `before_murder` hook with
+> `after_worker_exit`. Everything works perfectly and we finally are not
+> using a forked version of Unicorn anymore. Thanks for the release!
+
+Cool, good to know.
