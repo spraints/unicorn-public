@@ -1,0 +1,83 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.0
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id 9398320281;
+	Tue, 23 May 2017 16:22:14 +0000 (UTC)
+Date: Tue, 23 May 2017 16:22:14 +0000
+From: Eric Wong <e@80x24.org>
+To: Aakash Gupta <aakash.gupta96@outlook.com>
+Cc: unicorn-public@bogomips.org
+Subject: Re: Master Process Reaping Worker with No message
+Message-ID: <20170523162214.GA26129@starla>
+References: <BN6PR20MB12816B4DEA41A7389ACF5D3B9BF90@BN6PR20MB1281.namprd20.prod.outlook.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <BN6PR20MB12816B4DEA41A7389ACF5D3B9BF90@BN6PR20MB1281.namprd20.prod.outlook.com>
+List-Id: <unicorn-public@bogomips.org>
+
+Aakash Gupta <aakash.gupta96@outlook.com> wrote:
+> I am using unicorn server with Nginx for running my Rails app.
+> I don't know why but my master server is reaping workers
+> continously while file uploads. I have raised the timeout
+> limit of unicorn to 20 minutes for giving sufficient time for
+> uploading file. This happends mostly during file uploads on
+> server. For file uploads, I am using Carrierwave gem with Fog
+> to upload the files to S3. Server is running on AWS EC2
+> instance of 1GB RAM with 2GB Swap space.  Master process kills
+> worker with message "ERROR : reaped ... SIGKILL (signal 9)>
+> worker=1 " without any reason or message such as timeout or
+> memory overflow.
+
+I don't know anything about Carrierwave or Fog; but is there any
+chance they (or anything in your app) could be sending a SIGKILL
+signal to the process?
+
+So you see the "reaped ... SIGKILL" message, but no corresponding
+message like "worker=... PID:... timeout (... > ...), killing"?
+
+It sounds like somebody else is sending SIGKILL to a worker...
+
+Is this AWS EC2 instance running Linux?  Check the kernel log
+(dmesg) to see if you're hitting the OOM killer, since the
+kernel OOM killer will also send SIGKILL to processes using too
+much memory.
+
+How big are the files you're uploading?  Can you reproduce this
+making small file uploads?
+
+Honestly, there's no reason any process should become
+memory-dependent based on the size of the file being uploaded;
+but maybe some code doesn't know how to stream correctly :<
+Fwiw, unicorn itself has always designed for handling
+multi-gigabyte uploads with stable memory usage in mind.
+Other code I've seen, not so much, unfortunately.
+
+> Whenever a worker is reaped, Nginx also logs an error for each
+> reaping instance with message: " upstream prematurely closed
+> connection while reading response header from upstream ..."
+
+Right, that is expected once workers start dying...
+
+> I need help to figure out the problem and the reason why this
+> is happening. I don't think this is happening because of
+> timeout issue because whenever I try to test my server by
+> uploading a file, this error appears even before 20 minutes
+> which is the timeout limit. Any help regarding this would be
+> appreciated.
+
+Which unicorn version is this?  There used to be some timeout
+calculation bugs in the old days, but those were over five
+years ago, maybe even before unicorn 1.0.
+
+Just covering all your bases, Also, is there any chance your
+system clock is being changed?  If you're using unicorn 5.0.0+
+with Ruby 2.1+, it'll be able to use the monotonic clock, making
+it immune to time changes.
+
+
+Thanks for any info you can provide!
