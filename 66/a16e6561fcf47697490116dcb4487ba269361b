@@ -1,0 +1,36 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.0
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id 7630F2082F;
+	Mon, 26 Jun 2017 02:21:36 +0000 (UTC)
+Date: Mon, 26 Jun 2017 02:21:36 +0000
+From: Eric Wong <e@80x24.org>
+To: unicorn-public@bogomips.org
+Subject: nakayoshi_fork for CoW memory use reductions
+Message-ID: <20170626022136.GA27608@whir>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+List-Id: <unicorn-public@bogomips.org>
+
+I thought I posted about when I first heard about it, but
+apparently not.
+
+It's a RubyGem which should help with CoW memory savings
+for Ruby 2.2+ due to the introduction of generational GC.
+
+	https://rubygems.org/gems/nakayoshi_fork
+	git clone https://github.com/ko1/nakayoshi_fork.git
+
+You can also get a similar effect calling GC.start(full_mark: false)
+four times in the unicorn before_fork hook, but nakayoshi_fork
+is a bit more sophisticated in that it stops looping when it knows
+it can't proceed.
+
+Anyways, I was reminded of this while responding to
+	https://bugs.ruby-lang.org/issues/11101
+which may affect some unicorn users, too.
