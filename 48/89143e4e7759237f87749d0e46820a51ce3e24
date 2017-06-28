@@ -1,0 +1,68 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.0
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id D5FC320281
+	for <unicorn-public@bogomips.org>; Wed, 28 Jun 2017 00:19:02 +0000 (UTC)
+From: Eric Wong <e@80x24.org>
+To: unicorn-public@bogomips.org
+Subject: [PATCH] reduce method calls with String#start_with?
+Date: Wed, 28 Jun 2017 00:19:02 +0000
+Message-Id: <20170628001902.4356-1-e@80x24.org>
+List-Id: <unicorn-public.bogomips.org>
+
+These three cold call sites instruction sequence size by a few
+hundred bytes combined since we no longer support Ruby 1.8.6.
+The "?/" shorthand is esoteric and no longer avoids allocation
+in Ruby 1.9+ (not that this is hot code).
+---
+ lib/unicorn/configurator.rb  | 2 +-
+ lib/unicorn/http_server.rb   | 2 +-
+ lib/unicorn/socket_helper.rb | 2 +-
+ 3 files changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/lib/unicorn/configurator.rb b/lib/unicorn/configurator.rb
+index 7fb9030f..f34d38b8 100644
+--- a/lib/unicorn/configurator.rb
++++ b/lib/unicorn/configurator.rb
+@@ -587,7 +587,7 @@ def working_directory(path)
+     # just let chdir raise errors
+     path = File.expand_path(path)
+     if config_file &&
+-       config_file[0] != ?/ &&
++       ! config_file.start_with?('/') &&
+        ! File.readable?("#{path}/#{config_file}")
+       raise ArgumentError,
+             "config_file=#{config_file} would not be accessible in" \
+diff --git a/lib/unicorn/http_server.rb b/lib/unicorn/http_server.rb
+index 3827f2e9..f33aa252 100644
+--- a/lib/unicorn/http_server.rb
++++ b/lib/unicorn/http_server.rb
+@@ -148,7 +148,7 @@ def start
+   def listeners=(listeners)
+     cur_names, dead_names = [], []
+     listener_names.each do |name|
+-      if ?/ == name[0]
++      if name.start_with?('/')
+         # mark unlinked sockets as dead so we can rebind them
+         (File.socket?(name) ? cur_names : dead_names) << name
+       else
+diff --git a/lib/unicorn/socket_helper.rb b/lib/unicorn/socket_helper.rb
+index f52dde2d..9e672d97 100644
+--- a/lib/unicorn/socket_helper.rb
++++ b/lib/unicorn/socket_helper.rb
+@@ -116,7 +116,7 @@ def log_buffer_sizes(sock, pfx = '')
+     def bind_listen(address = '0.0.0.0:8080', opt = {})
+       return address unless String === address
+ 
+-      sock = if address[0] == ?/
++      sock = if address.start_with?('/')
+         if File.exist?(address)
+           if File.socket?(address)
+             begin
+-- 
+EW
+
