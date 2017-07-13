@@ -1,0 +1,67 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.0
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id 5904E202AC;
+	Thu, 13 Jul 2017 19:34:10 +0000 (UTC)
+Date: Thu, 13 Jul 2017 19:34:09 +0000
+From: Eric Wong <e@80x24.org>
+To: Pere Joan Martorell <pere.joan@camaloon.com>
+Cc: unicorn-public@bogomips.org,
+	Philip Cunningham <philip@irisconnect.co.uk>,
+	Jonathan del Strother <maillist@steelskies.com>
+Subject: Re: Random crash when sending USR2 + QUIT signals to Unicorn process
+Message-ID: <20170713193409.GA24162@starla>
+References: <CABre=GPLvUfz461BrZ2wFQtDFGFstaZ0ne1gA9i+75L8gTQ4xg@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <CABre=GPLvUfz461BrZ2wFQtDFGFstaZ0ne1gA9i+75L8gTQ4xg@mail.gmail.com>
+List-Id: <unicorn-public.bogomips.org>
+
++Cc: Philip and Jonathan  since they encountered this three years
+ago, but we never heard back from them:
+
+	https://bogomips.org/unicorn-public/?q=T_NODE+d:..20170713
+
+
+Pere Joan Martorell <pere.joan@camaloon.com> wrote:
+> > /home/deployer/.rbenv/versions/2.4.1/lib/ruby/gems/2.4.0/gems/unicorn-5.3.0/lib/unicorn/http_request.rb:80:in `parse': method `hash' called on unexpected T_NODE object (0x0055b15b973508 flags=0xaa31b) (NotImplementedError)
+
+> Any idea what is happening?
+
+This is most likely a bug in a C extension not using write
+barriers correctly (perhaps via undocumented C-API functions in
+Ruby).
+
+I don't think I've seen this on ruby-core bug reports in a few years:
+
+	https://public-inbox.org/ruby-core/?q=T_NODE
+
+Fwiw, Appendix D on Generational GC in the Ruby source is
+worth reading to any C extension authors:
+
+	https://80x24.org/mirrors/ruby.git/plain/doc/extension.rdoc
+
+There are probably build warnings when using some dangerous methods/macros,
+maybe you can check build logs for const warnings.
+
+
+Can you share the list of RubyGems you have loaded and maybe try
+upgrading/replacing/eliminating the ones with C extensions
+one-by-one until the error stops?
+
+Also, perhaps the output of "pmap $PID_OF_WORKER" if you're on
+Linux (or equivalent command if you're on another OS).
+
+Anyways, I didn't notice anything suspicious in your config.
+
+I'll do another self-audit of the unicorn + kgio + raindrops
+extensions, too, but judging from the lack of reports and how
+much they get used; I suspect the bug is elsewhere (more eyes
+welcome, of course).
+
+Thanks for the report and any more info you can provide!
