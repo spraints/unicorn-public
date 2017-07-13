@@ -1,0 +1,169 @@
+Return-Path: <pere.joan@camaloon.com>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS3215 2.6.0.0/16
+X-Spam-Status: No, score=-3.0 required=3.0 tests=BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,RCVD_IN_DNSWL_NONE shortcircuit=no autolearn=ham
+	autolearn_force=no version=3.4.0
+Received: from mail-yb0-x22d.google.com (mail-yb0-x22d.google.com [IPv6:2607:f8b0:4002:c09::22d])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+	(No client certificate requested)
+	by dcvr.yhbt.net (Postfix) with ESMTPS id DC8A0202AC
+	for <unicorn-public@bogomips.org>; Thu, 13 Jul 2017 18:48:24 +0000 (UTC)
+Received: by mail-yb0-x22d.google.com with SMTP id 84so23292240ybe.0
+        for <unicorn-public@bogomips.org>; Thu, 13 Jul 2017 11:48:24 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=camaloon-com.20150623.gappssmtp.com; s=20150623;
+        h=mime-version:from:date:message-id:subject:to
+         :content-transfer-encoding;
+        bh=0/cuwZAZI829fi90/yOSh7gGMmGNYbabH4srzM9txdI=;
+        b=NnRhC+cNpqojaglNG9GXCBFZ3sm6lCVCFweqpRJoFgtqPIK4QEF4iI/wTAvemAhhRF
+         Mb0s38wm+QuV8Jp4KmgwXg1jLJI+MfYJsvRlyXKKx3ExjeSPZcJWycTax8+yM8MeICSi
+         2NFOdB9oRhXF8IAMsD92XuZyz0GuLbtUPRycWMiVvx2LAdH7tNWkQnzV5HKK22u8tfPC
+         6wqFKt7rWgwRxPNW93dvWBISf6z4Be+FVaQrZDyvz5dNgNbF17+JmdtTAd4EOjSKge4l
+         L4kSFN6c4wZj0sgfNJBWvVUvtZaVS/mPLPiJ9fqeOX3ulkq7kIBC+1xNm7aNEWoWQK3T
+         h1UA==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20161025;
+        h=x-gm-message-state:mime-version:from:date:message-id:subject:to
+         :content-transfer-encoding;
+        bh=0/cuwZAZI829fi90/yOSh7gGMmGNYbabH4srzM9txdI=;
+        b=jrLh46LOew5NeIu+4BRYimBGplfM4yksXC7zM3RT44AKWmZ5T7LhYziduafXZgo9Hl
+         4y1gmD3s5QFxEt2O9WMwovg4u4L2JBFj739+Vo8qnnHZLpOtvuxzN/xOcY2H4VO1IkDK
+         kJwEElNiHpjOtPtymQdyuduVDpjqYnGRjpvijO5OVgOyPFGNslzmBYf8idMe3ZOrO3go
+         klHBxufLw2HiONCWlcfqcyTLaN+HgLFW8kifkDP6Po7aQ7Do/YS909PedTQ0tpBjzoMv
+         DuATp+INtcWDOPwh1gj5rf/lidp70btxoG/g7YZKbioKaDzeZGuaDbkrPgSXB1sKmWVQ
+         62wQ==
+X-Gm-Message-State: AIVw111VFdPrdUY5+GiBF04+dc+xC2AoJINO8EGaZUn9CuUbOX6jSU//
+	OpZW+znBcNuvhvlirfFe4gq6P+4s3aAByheRRg==
+X-Received: by 10.129.175.90 with SMTP id x26mr3130483ywj.34.1499971703673;
+ Thu, 13 Jul 2017 11:48:23 -0700 (PDT)
+MIME-Version: 1.0
+Received: by 10.37.15.139 with HTTP; Thu, 13 Jul 2017 11:48:23 -0700 (PDT)
+From: Pere Joan Martorell <pere.joan@camaloon.com>
+Date: Thu, 13 Jul 2017 20:48:23 +0200
+Message-ID: <CABre=GPLvUfz461BrZ2wFQtDFGFstaZ0ne1gA9i+75L8gTQ4xg@mail.gmail.com>
+Subject: Random crash when sending USR2 + QUIT signals to Unicorn process
+To: unicorn-public@bogomips.org
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
+List-Id: <unicorn-public.bogomips.org>
+
+Hi, I'm experimenting with a Rack application and Unicorn and I have a
+random error occurring when upgrading my app. When upgrading (sending
+a USR2 + QUIT signals), 10% of the times unicorn master process and
+its 2 worker processes start and after serving the first request they
+crash.
+
+This the stderror.log:
+
+> 91.126.37.106 - - [13/Jul/2017:18:21:09 +0000] "GET /login HTTP/1.0" 200 =
+1571 0.0473
+> I, [2017-07-13T18:21:14.351677 #21426]  INFO -- : executing ["/home/deplo=
+yer/.rbenv/versions/2.4.1/bin/unicorn", "-c", "/home/deployer/apps/supplier=
+s/current/config/unicorn.rb", "-E", "deployment", "-D", {12=3D>#<Kgio::UNIX=
+Server:fd 12>}] (in /home/deployer/apps/suppliers/releases/20170713180855)
+> I, [2017-07-13T18:21:14.351881 #21426]  INFO -- : forked child re-executi=
+ng...
+> I, [2017-07-13T18:21:14.441075 #21426]  INFO -- : inherited addr=3D/home/=
+deployer/apps/suppliers/current/tmp/sockets/unicorn.socket fd=3D12
+> I, [2017-07-13T18:21:14.441414 #21426]  INFO -- : Refreshing Gem list
+> I, [2017-07-13T18:21:14.576843 #21426]  INFO -- : worker=3D0 spawning...
+> I, [2017-07-13T18:21:14.577589 #21426]  INFO -- : worker=3D1 spawning...
+> I, [2017-07-13T18:21:14.578117 #21426]  INFO -- : master process ready
+> I, [2017-07-13T18:21:14.578866 #21430]  INFO -- : worker=3D0 spawned pid=
+=3D21430
+> I, [2017-07-13T18:21:14.579053 #21430]  INFO -- : worker=3D0 ready
+> I, [2017-07-13T18:21:14.579649 #21432]  INFO -- : worker=3D1 spawned pid=
+=3D21432
+> I, [2017-07-13T18:21:14.579790 #21432]  INFO -- : worker=3D1 ready
+> I, [2017-07-13T18:21:16.449066 #21369]  INFO -- : reaped #<Process::Statu=
+s: pid 21373 exit 0> worker=3D0
+> I, [2017-07-13T18:21:16.449174 #21369]  INFO -- : reaped #<Process::Statu=
+s: pid 21375 exit 0> worker=3D1
+> I, [2017-07-13T18:21:16.449207 #21369]  INFO -- : master complete
+> /home/deployer/.rbenv/versions/2.4.1/lib/ruby/gems/2.4.0/gems/unicorn-5.3=
+.0/lib/unicorn/http_request.rb:80:in `parse': method `hash' called on unexp=
+ected T_NODE object (0x0055b15b973508 flags=3D0xaa31b) (NotImplementedError=
+)
+> from /home/deployer/.rbenv/versions/2.4.1/lib/ruby/gems/2.4.0/gems/unicor=
+n-5.3.0/lib/unicorn/http_request.rb:80:in `read'
+> from /home/deployer/.rbenv/versions/2.4.1/lib/ruby/gems/2.4.0/gems/unicor=
+n-5.3.0/lib/unicorn/http_server.rb:606:in `process_client'
+> from /home/deployer/.rbenv/versions/2.4.1/lib/ruby/gems/2.4.0/gems/unicor=
+n-5.3.0/lib/unicorn/http_server.rb:702:in `worker_loop'
+> from /home/deployer/.rbenv/versions/2.4.1/lib/ruby/gems/2.4.0/gems/unicor=
+n-5.3.0/lib/unicorn/http_server.rb:549:in `spawn_missing_workers'
+> from /home/deployer/.rbenv/versions/2.4.1/lib/ruby/gems/2.4.0/gems/unicor=
+n-5.3.0/lib/unicorn/http_server.rb:142:in `start'
+> from /home/deployer/.rbenv/versions/2.4.1/lib/ruby/gems/2.4.0/gems/unicor=
+n-5.3.0/bin/unicorn:126:in `<top (required)>'
+> from /home/deployer/.rbenv/versions/2.4.1/bin/unicorn:22:in `load'
+> from /home/deployer/.rbenv/versions/2.4.1/bin/unicorn:22:in `<main>'
+> /home/deployer/.rbenv/versions/2.4.1/lib/ruby/gems/2.4.0/gems/unicorn-5.3=
+.0/lib/unicorn/http_request.rb:80:in `parse': method `hash' called on unexp=
+ected T_NODE object (0x0055b15b973508 flags=3D0xaa31b) (NotImplementedError=
+)
+> from /home/deployer/.rbenv/versions/2.4.1/lib/ruby/gems/2.4.0/gems/unicor=
+n-5.3.0/lib/unicorn/http_request.rb:80:in `read'
+> from /home/deployer/.rbenv/versions/2.4.1/lib/ruby/gems/2.4.0/gems/unicor=
+n-5.3.0/lib/unicorn/http_server.rb:606:in `process_client'
+> from /home/deployer/.rbenv/versions/2.4.1/lib/ruby/gems/2.4.0/gems/unicor=
+n-5.3.0/lib/unicorn/http_server.rb:702:in `worker_loop'
+> from /home/deployer/.rbenv/versions/2.4.1/lib/ruby/gems/2.4.0/gems/unicor=
+n-5.3.0/lib/unicorn/http_server.rb:549:in `spawn_missing_workers'
+> from /home/deployer/.rbenv/versions/2.4.1/lib/ruby/gems/2.4.0/gems/unicor=
+n-5.3.0/lib/unicorn/http_server.rb:142:in `start'
+> from /home/deployer/.rbenv/versions/2.4.1/lib/ruby/gems/2.4.0/gems/unicor=
+n-5.3.0/bin/unicorn:126:in `<top (required)>'
+> from /home/deployer/.rbenv/versions/2.4.1/bin/unicorn:22:in `load'
+> from /home/deployer/.rbenv/versions/2.4.1/bin/unicorn:22:in `<main>'
+> E, [2017-07-13T18:21:29.147001 #21426] ERROR -- : reaped #<Process::Statu=
+s: pid 21432 exit 1> worker=3D1
+> I, [2017-07-13T18:21:29.147127 #21426]  INFO -- : worker=3D1 spawning...
+> I, [2017-07-13T18:21:29.150907 #21439]  INFO -- : worker=3D1 spawned pid=
+=3D21439
+> I, [2017-07-13T18:21:29.151109 #21439]  INFO -- : worker=3D1 ready
+> E, [2017-07-13T18:21:29.153360 #21426] ERROR -- : reaped #<Process::Statu=
+s: pid 21430 exit 1> worker=3D0
+> I, [2017-07-13T18:21:29.153424 #21426]  INFO -- : worker=3D0 spawning...
+> I, [2017-07-13T18:21:29.154226 #21442]  INFO -- : worker=3D0 spawned pid=
+=3D21442
+> I, [2017-07-13T18:21:29.154383 #21442]  INFO -- : worker=3D0 ready
+
+
+
+This is the configuration of unicorn:
+
+> DEPLOY_TO =3D "/home/deployer/apps/suppliers" # The path in which capistr=
+ano caches deployed versions of the source
+> CURRENT =3D "#{DEPLOY_TO}/current" # The current, deployed release
+> UNICORN_PID =3D "#{CURRENT}/tmp/pids/unicorn.pid" # Unicorn server proces=
+s id file
+> UNICORN_STDOUT =3D "#{CURRENT}/log/unicorn.stdout.log" # Log file for mes=
+sages on standard output
+> UNICORN_STDERR =3D "#{CURRENT}/log/unicorn.stderr.log" # Log file for mes=
+sages on standard error
+> UNICORN_SOCKET =3D "#{CURRENT}/tmp/sockets/unicorn.socket" # Server socke=
+t
+>
+> # Set unicorn options
+> working_directory CURRENT
+> worker_processes 2
+> preload_app true
+> timeout 30
+>
+> # Set up socket location
+> listen UNICORN_SOCKET, :backlog =3D> 64
+>
+> # Logging
+> stderr_path UNICORN_STDERR
+> stdout_path UNICORN_STDOUT
+>
+> # Set master PID location
+> pid UNICORN_PID
+
+
+Any idea what is happening?
+
+Thanks!
