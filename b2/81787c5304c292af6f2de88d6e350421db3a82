@@ -1,0 +1,54 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.0
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id 838C320357;
+	Fri, 14 Jul 2017 21:16:08 +0000 (UTC)
+Date: Fri, 14 Jul 2017 21:16:08 +0000
+From: Eric Wong <e@80x24.org>
+To: Pere Joan Martorell <pere.joan@camaloon.com>
+Cc: unicorn-public@bogomips.org,
+	Philip Cunningham <philip@irisconnect.co.uk>,
+	Jonathan del Strother <maillist@steelskies.com>,
+	Jeremy Evans <code@jeremyevans.net>
+Subject: Re: Random crash when sending USR2 + QUIT signals to Unicorn process
+Message-ID: <20170714211608.GA3272@starla>
+References: <CABre=GPLvUfz461BrZ2wFQtDFGFstaZ0ne1gA9i+75L8gTQ4xg@mail.gmail.com>
+ <20170713193409.GA24162@starla>
+ <CABre=GOGaByZSEUnCT6CPWDQb8aDXu8oj1W3oaAe6sD3NM4ghQ@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <CABre=GOGaByZSEUnCT6CPWDQb8aDXu8oj1W3oaAe6sD3NM4ghQ@mail.gmail.com>
+List-Id: <unicorn-public.bogomips.org>
+
+Pere Joan Martorell <pere.joan@camaloon.com> wrote:
+> I suspect that the conflicting gem was 'sequel_pg' (sequel_pg
+> overwrites the inner loop of the Sequel postgres adapter row fetching
+> code with a C version. The C version is significantly faster than the
+> pure ruby version that Sequel uses by default), but given I didn't
+> remove these gems one by one I can't completely ensure that.
+> 
+> If the problem reemerges I'll keep you informed.
+> 
+> Thanks!! :)
+
+Thanks for the info.  I've added Jeremy Evans, the author of
+sequel_pg to the Cc: even though I think he reads this list...
+
+Anyways, I think I've spotted one potential bug in sequel_pg
+w.r.t. RB_GC_GUARD usage, and the fix is below:
+
+  git clone https://github.com/jeremyevans/sequel_pg && cd sequel_pg
+  curl https://80x24.org/spew/20170714210918.3332-1-e@80x24.org/raw | git am
+
+(more in-depth explanation is in the commit message)
+
+Pere: perhaps you can give it a shot
+
+Keep in mind I've only compile-tested this.  I didn't find
+automated tests in the code and I don't have a usable Postgres
+instance, at the moment.
