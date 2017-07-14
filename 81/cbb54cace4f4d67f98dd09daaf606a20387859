@@ -1,0 +1,84 @@
+Return-Path: <code@jeremyevans.net>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS40173 216.86.168.0/24
+X-Spam-Status: No, score=-5.2 required=3.0 tests=AWL,BAYES_00,
+	RCVD_IN_DNSWL_LOW,RCVD_IN_MSPIKE_H2,SPF_HELO_PASS shortcircuit=no
+	autolearn=ham autolearn_force=no version=3.4.0
+Received: from mxout-08.mxes.net (mxout-08.mxes.net [216.86.168.183])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by dcvr.yhbt.net (Postfix) with ESMTPS id 41AC520357
+	for <unicorn-public@bogomips.org>; Fri, 14 Jul 2017 22:50:19 +0000 (UTC)
+Received: from battleground.jeremyevans.local (unknown [73.90.99.19])
+	(using TLSv1.2 with cipher DHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by smtp.mxes.net (Postfix) with ESMTPSA id 4F60C509BE;
+	Fri, 14 Jul 2017 18:50:16 -0400 (EDT)
+Received: from jeremyevans.local (speedstar.jeremyevans.local [10.187.8.2])
+	by battleground.jeremyevans.local (OpenSMTPD) with ESMTP id 5a0a3dbd;
+	Fri, 14 Jul 2017 15:50:15 -0700 (PDT)
+Date: Fri, 14 Jul 2017 15:50:15 -0700
+From: Jeremy Evans <code@jeremyevans.net>
+To: Eric Wong <e@80x24.org>
+Cc: Pere Joan Martorell <pere.joan@camaloon.com>,
+	unicorn-public@bogomips.org,
+	Philip Cunningham <philip@irisconnect.co.uk>,
+	Jonathan del Strother <maillist@steelskies.com>
+Subject: Re: Random crash when sending USR2 + QUIT signals to Unicorn process
+Message-ID: <20170714225015.GD68067@jeremyevans.local>
+References: <CABre=GPLvUfz461BrZ2wFQtDFGFstaZ0ne1gA9i+75L8gTQ4xg@mail.gmail.com>
+ <20170713193409.GA24162@starla>
+ <CABre=GOGaByZSEUnCT6CPWDQb8aDXu8oj1W3oaAe6sD3NM4ghQ@mail.gmail.com>
+ <20170714211608.GA3272@starla>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20170714211608.GA3272@starla>
+User-Agent: Mutt/1.8.3 (2017-05-23)
+List-Id: <unicorn-public.bogomips.org>
+
+On 07/14 09:16, Eric Wong wrote:
+> Pere Joan Martorell <pere.joan@camaloon.com> wrote:
+> > I suspect that the conflicting gem was 'sequel_pg' (sequel_pg
+> > overwrites the inner loop of the Sequel postgres adapter row fetching
+> > code with a C version. The C version is significantly faster than the
+> > pure ruby version that Sequel uses by default), but given I didn't
+> > remove these gems one by one I can't completely ensure that.
+> > 
+> > If the problem reemerges I'll keep you informed.
+> > 
+> > Thanks!! :)
+> 
+> Thanks for the info.  I've added Jeremy Evans, the author of
+> sequel_pg to the Cc: even though I think he reads this list...
+> 
+> Anyways, I think I've spotted one potential bug in sequel_pg
+> w.r.t. RB_GC_GUARD usage, and the fix is below:
+> 
+>   git clone https://github.com/jeremyevans/sequel_pg && cd sequel_pg
+>   curl https://80x24.org/spew/20170714210918.3332-1-e@80x24.org/raw | git am
+> 
+> (more in-depth explanation is in the commit message)
+> 
+> Pere: perhaps you can give it a shot
+> 
+> Keep in mind I've only compile-tested this.  I didn't find
+> automated tests in the code and I don't have a usable Postgres
+> instance, at the moment.
+
+Eric,
+
+Thanks for this patch.  I'm not an RB_GC_GUARD expert, but the changes
+look fine to me. The existing RB_GC_GUARD calls were added by me in
+2012 to fix an earlier segfault.[1] This is the first reported
+RB_GC_GUARD-related segfault in sequel_pg since then.
+
+Pere, I would appreciate if you could test this patch and see if it
+fixes your issue.  I will also test it and will release a new sequel_pg
+version with this patch if it fixes the issue.
+
+Thanks,
+Jeremy
+
+[1] https://github.com/jeremyevans/sequel_pg/commit/15edb132887d9b5292cad419fc7692ed5cd4b01b.diff
