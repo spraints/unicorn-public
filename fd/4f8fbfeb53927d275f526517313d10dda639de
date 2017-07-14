@@ -1,0 +1,135 @@
+Return-Path: <pere.joan@camaloon.com>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS3215 2.6.0.0/16
+X-Spam-Status: No, score=-3.4 required=3.0 tests=AWL,BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,RCVD_IN_DNSWL_LOW shortcircuit=no autolearn=ham autolearn_force=no
+	version=3.4.0
+Received: from mail-yw0-x22e.google.com (mail-yw0-x22e.google.com [IPv6:2607:f8b0:4002:c05::22e])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+	(No client certificate requested)
+	by dcvr.yhbt.net (Postfix) with ESMTPS id 81E49202DD
+	for <unicorn-public@bogomips.org>; Fri, 14 Jul 2017 10:21:51 +0000 (UTC)
+Received: by mail-yw0-x22e.google.com with SMTP id v193so23749184ywg.2
+        for <unicorn-public@bogomips.org>; Fri, 14 Jul 2017 03:21:51 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=camaloon-com.20150623.gappssmtp.com; s=20150623;
+        h=mime-version:in-reply-to:references:from:date:message-id:subject:to
+         :cc;
+        bh=6io1ynzXThPtxkN+tvrXlpY5OZQDL8UZKU2DvFx1XWw=;
+        b=qeJX7pKF0gfrXpyjjz5ILBMEsno5zCVPb57nxZYE8BgYo/iKBBNcMyAPau+03SR7jo
+         S5PfTMuJlnb73fUMw6+L4Pd3Z3L4KsaamqRbKGqoB32unudPxjPlzdggohY/eyiHczsN
+         xxyRjZjhyWKEwcD2iA1tjPerWcAPdSBmANo0SmJ1bXZ76SMwMQr4OHAQOYJcuXRbI9BL
+         8lRMz32g8Vphi3I7Cr+/p5hn84J8pKXBSZaOUSe1TKu0x3LI+zRpekLMwEJKiyKUa9vp
+         ehp3EAqzyi6zMZyVkVKNReXXr4fPcdDxc8uvCPYcpHieYldmHiz6Pslwd5HfIIiHS6N9
+         Bwkg==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20161025;
+        h=x-gm-message-state:mime-version:in-reply-to:references:from:date
+         :message-id:subject:to:cc;
+        bh=6io1ynzXThPtxkN+tvrXlpY5OZQDL8UZKU2DvFx1XWw=;
+        b=Vgesja3D1MEPkAtoY7/uwORC1ryhDFmrMOpHkc0SiUBvDB2sb6IStIIHjQps9xNMXK
+         oEubZd13nMrG7GFGfheBiJB3inHvm1R8u6/xxU+H8FU4dN/yIIiA5cDwmxmVKUBOzNuw
+         hk9qFUaX0eBO300n/r/d7dK1UZs1kIrTta3trAYB2b9RfUzLYDcWx5kyH+tHUbdeLw5D
+         AI8TX82UIrxP+aTfO2CeVx9vOZ6SaPoE8SZAobO9X5kG2jX/r6ppNDysMP3mPRp2sY7N
+         U+uhYKK6qJhOgXpjx8YhVS/WPM2w2cLICJeN/++rES8AoHS3x7AHKvEH5aEYvibDHKNN
+         xqdw==
+X-Gm-Message-State: AIVw111uFgVYahd3YUosMUxlNidKcp2l+yju79KEs83GQJaH3ZgI8b2B
+	aK81H+MCSuqMNf82bDjWDBo+UbUTFyyA
+X-Received: by 10.129.152.136 with SMTP id p130mr5538180ywg.264.1500027710506;
+ Fri, 14 Jul 2017 03:21:50 -0700 (PDT)
+MIME-Version: 1.0
+Received: by 10.37.15.139 with HTTP; Fri, 14 Jul 2017 03:21:50 -0700 (PDT)
+In-Reply-To: <20170713193409.GA24162@starla>
+References: <CABre=GPLvUfz461BrZ2wFQtDFGFstaZ0ne1gA9i+75L8gTQ4xg@mail.gmail.com>
+ <20170713193409.GA24162@starla>
+From: Pere Joan Martorell <pere.joan@camaloon.com>
+Date: Fri, 14 Jul 2017 12:21:50 +0200
+Message-ID: <CABre=GOGaByZSEUnCT6CPWDQb8aDXu8oj1W3oaAe6sD3NM4ghQ@mail.gmail.com>
+Subject: Re: Random crash when sending USR2 + QUIT signals to Unicorn process
+To: Eric Wong <e@80x24.org>
+Cc: unicorn-public@bogomips.org, Philip Cunningham <philip@irisconnect.co.uk>, 
+	Jonathan del Strother <maillist@steelskies.com>
+Content-Type: text/plain; charset="UTF-8"
+List-Id: <unicorn-public.bogomips.org>
+
+2017-07-13 21:34 GMT+02:00 Eric Wong <e@80x24.org>:
+> +Cc: Philip and Jonathan  since they encountered this three years
+> ago, but we never heard back from them:
+>
+>         https://bogomips.org/unicorn-public/?q=T_NODE+d:..20170713
+>
+>
+> Pere Joan Martorell <pere.joan@camaloon.com> wrote:
+>> > /home/deployer/.rbenv/versions/2.4.1/lib/ruby/gems/2.4.0/gems/unicorn-5.3.0/lib/unicorn/http_request.rb:80:in `parse': method `hash' called on unexpected T_NODE object (0x0055b15b973508 flags=0xaa31b) (NotImplementedError)
+>
+>> Any idea what is happening?
+>
+> This is most likely a bug in a C extension not using write
+> barriers correctly (perhaps via undocumented C-API functions in
+> Ruby).
+>
+> I don't think I've seen this on ruby-core bug reports in a few years:
+>
+>         https://public-inbox.org/ruby-core/?q=T_NODE
+>
+> Fwiw, Appendix D on Generational GC in the Ruby source is
+> worth reading to any C extension authors:
+>
+>         https://80x24.org/mirrors/ruby.git/plain/doc/extension.rdoc
+>
+> There are probably build warnings when using some dangerous methods/macros,
+> maybe you can check build logs for const warnings.
+>
+>
+> Can you share the list of RubyGems you have loaded and maybe try
+> upgrading/replacing/eliminating the ones with C extensions
+> one-by-one until the error stops?
+
+Thank you very much for your fast reply. I'm not using Bundler to
+manage my dependencies, but I checked it and there's not any conflict
+between gem versions.
+Seems that I solved the issue removing some of the gems. This was my gem list:
+
+    cuba -v 3.8.0
+    slim -v 3.0.8
+    cutest -v 1.2.3
+    rack-test -v 0.6.3
+    sequel -v 4.46.0
+    pg -v 0.20.0
+    shotgun -v 0.9.2
+    shield -v 2.1.1
+    sequel_pg -v 1.6.19
+    unicorn -v 5.3.0
+    capistrano-rbenv -v 2.1.1
+
+And I finally removed these gems:
+
+    cutest -v 1.2.3
+    rack-test -v 0.6.3
+    shotgun -v 0.9.2
+    sequel_pg -v 1.6.19
+
+I suspect that the conflicting gem was 'sequel_pg' (sequel_pg
+overwrites the inner loop of the Sequel postgres adapter row fetching
+code with a C version. The C version is significantly faster than the
+pure ruby version that Sequel uses by default), but given I didn't
+remove these gems one by one I can't completely ensure that.
+
+If the problem reemerges I'll keep you informed.
+
+Thanks!! :)
+
+
+>
+> Also, perhaps the output of "pmap $PID_OF_WORKER" if you're on
+> Linux (or equivalent command if you're on another OS).
+>
+> Anyways, I didn't notice anything suspicious in your config.
+>
+> I'll do another self-audit of the unicorn + kgio + raindrops
+> extensions, too, but judging from the lack of reports and how
+> much they get used; I suspect the bug is elsewhere (more eyes
+> welcome, of course).
+>
+> Thanks for the report and any more info you can provide!
