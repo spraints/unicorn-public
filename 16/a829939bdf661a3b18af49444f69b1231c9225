@@ -1,0 +1,66 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.0
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id 924C720357;
+	Sat, 15 Jul 2017 00:15:35 +0000 (UTC)
+Date: Sat, 15 Jul 2017 00:15:35 +0000
+From: Eric Wong <e@80x24.org>
+To: Jeremy Evans <code@jeremyevans.net>
+Cc: Pere Joan Martorell <pere.joan@camaloon.com>,
+	unicorn-public@bogomips.org,
+	Philip Cunningham <philip@irisconnect.co.uk>,
+	Jonathan del Strother <maillist@steelskies.com>
+Subject: Re: Random crash when sending USR2 + QUIT signals to Unicorn process
+Message-ID: <20170715001535.GA8205@starla>
+References: <CABre=GPLvUfz461BrZ2wFQtDFGFstaZ0ne1gA9i+75L8gTQ4xg@mail.gmail.com>
+ <20170713193409.GA24162@starla>
+ <CABre=GOGaByZSEUnCT6CPWDQb8aDXu8oj1W3oaAe6sD3NM4ghQ@mail.gmail.com>
+ <20170714211608.GA3272@starla>
+ <20170714225015.GD68067@jeremyevans.local>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <20170714225015.GD68067@jeremyevans.local>
+List-Id: <unicorn-public.bogomips.org>
+
+Jeremy Evans <code@jeremyevans.net> wrote:
+> Thanks for this patch.  I'm not an RB_GC_GUARD expert, but the changes
+> look fine to me. The existing RB_GC_GUARD calls were added by me in
+> 2012 to fix an earlier segfault.[1] This is the first reported
+> RB_GC_GUARD-related segfault in sequel_pg since then.
+
+No worries; I don't consider myself a RB_GC_GUARD expert, either(*).
+
+> [1] https://github.com/jeremyevans/sequel_pg/commit/15edb132887d9b5292cad419fc7692ed5cd4b01b.diff
+
+I suspect your original guards were lucky enough for C compilers
+in 2012, but compilers have gotten more clever since then.  So
+there's a a higher likelyhood of exposing bugs given the
+conservative GC in Ruby(**).
+
+Historical note:
+
+  Back in the day, "volatile" alone was enough to defeat
+  compiler optimizations in C Ruby.  Eventually, compilers got
+  better, so RB_GC_GUARD was introduced.  And in the future,
+  RB_GC_GUARD may evolve to accomodate even more clever
+  compilers.
+
+> Pere, I would appreciate if you could test this patch and see if it
+> fixes your issue.  I will also test it and will release a new sequel_pg
+> version with this patch if it fixes the issue.
+
+Yes, actually testing the code is important, everything else
+I've written here is theory ;)
+
+
+(*) Fwiw, I am not fluent in reading asm for systems I run Ruby on,
+    but I know how clever compilers can be, and have written
+    about it some on ruby-core:
+    https://public-inbox.org/ruby-core/?q=RB_GC_GUARD&d:..20170714
+
+(**) similar story with lock-free multi-threading in other projects
