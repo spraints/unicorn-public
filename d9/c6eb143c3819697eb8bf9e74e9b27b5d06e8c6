@@ -1,0 +1,78 @@
+Return-Path: <jeffreyatw@gmail.com>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS3215 2.6.0.0/16
+X-Spam-Status: No, score=-3.1 required=3.0 tests=BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,DKIM_VALID_AU,FREEMAIL_FROM,RCVD_IN_DNSWL_NONE,SPF_PASS
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.0
+Received: from mail-pf0-x22b.google.com (mail-pf0-x22b.google.com [IPv6:2607:f8b0:400e:c00::22b])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+	(No client certificate requested)
+	by dcvr.yhbt.net (Postfix) with ESMTPS id 721222047F
+	for <unicorn-public@bogomips.org>; Fri,  4 Aug 2017 16:40:19 +0000 (UTC)
+Received: by mail-pf0-x22b.google.com with SMTP id t86so9890816pfe.2
+        for <unicorn-public@bogomips.org>; Fri, 04 Aug 2017 09:40:19 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20161025;
+        h=from:content-transfer-encoding:mime-version:subject:message-id:date
+         :to;
+        bh=sc6+JXHZHkzd28LZa284tipkvPqKXKmAWj+M6Tacl0Y=;
+        b=HYVsKycp0IMEK23PEOT7u6WH9HM7mqk9ir49QvXktScGitwowMRecvFyDhXfBYcRH2
+         /IfQeaxqOZO34ZRvwr4vkthMCf6AiMYmqjnAAUGNrG6d0L0/WdbtFfrjVdQGH5k5WwA9
+         9aZXErDv3iW/1zwO4OVZCTe8kn9tg+2dx4J0wAEt0V7eVhmo2p5hq8jfNLLwoV6uQp3b
+         ZFH7kTGb/ihfOERlWAs0/6I7sZxj+HVSbMPYpEm5H3OnKxJ8C7zGkCIlkpIJt8LBDWhe
+         b83nWK9XxPPN+DakDFaa/xerhU6krytzhKTVrBmI3mdqmK95MEl8gq5JFLtsAfne3+I+
+         A1Zw==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20161025;
+        h=x-gm-message-state:from:content-transfer-encoding:mime-version
+         :subject:message-id:date:to;
+        bh=sc6+JXHZHkzd28LZa284tipkvPqKXKmAWj+M6Tacl0Y=;
+        b=CiKt0oPiSdKdvYENYsFQvhZdVI/uqjHI2OTNGY5Dey1lP3Ngj3jRPUIdDiTWzzdsp0
+         MPp82BED7OE/P2AwLuqv7RroODzs01dzS6P2lOcNnHqUM9DhTMHbPBKxL2TxOzy8WTGo
+         E/2z7soHiP5zzOWXk/JhP4siEK/Dj1R4RKSNoQ70LWOTQRm2636arYbLumHIdJQtNebJ
+         17WvUFXZLSQI+X8WzF2gg8kN4HizPXyGdCODgydBRmbNmkpuR/BdR1H/IUT371wKIzB7
+         MiP6q0USDdWpU0hrFaeqTKS433dbiJIKwPVzRcf0VujXQH5LFtYacJ361rtzPjRzbCnG
+         5gRw==
+X-Gm-Message-State: AIVw110meb6eE1frVpcWdR7FR0fXcl0ad+1SgIUVYQ2YiZzbCMKl9paw
+	ywVPpIzgOjZu/QXPeso=
+X-Received: by 10.98.152.155 with SMTP id d27mr3009698pfk.245.1501864818460;
+        Fri, 04 Aug 2017 09:40:18 -0700 (PDT)
+Received: from [192.168.56.116] ([38.140.109.237])
+        by smtp.gmail.com with ESMTPSA id q88sm3956364pfk.8.2017.08.04.09.40.17
+        for <unicorn-public@bogomips.org>
+        (version=TLS1_2 cipher=ECDHE-RSA-AES128-GCM-SHA256 bits=128/128);
+        Fri, 04 Aug 2017 09:40:17 -0700 (PDT)
+From: Jeffrey Carl Faden <jeffreyatw@gmail.com>
+Content-Type: text/plain;
+	charset=us-ascii
+Content-Transfer-Encoding: quoted-printable
+Mime-Version: 1.0 (Mac OS X Mail 11.0 \(3441.0.1\))
+Subject: initialize/fork crash in macOS 10.13
+Message-Id: <F28C7A88-7048-47A4-9B31-1D4AA128604D@gmail.com>
+Date: Fri, 4 Aug 2017 09:40:16 -0700
+To: unicorn-public@bogomips.org
+X-Mailer: Apple Mail (2.3441.0.1)
+List-Id: <unicorn-public.bogomips.org>
+
+According to this post...
+=
+http://www.sealiesoftware.com/blog/archive/2017/6/5/Objective-C_and_fork_i=
+n_macOS_1013.html
+
+The rules around initialize and fork() have changed in macOS 10.13, =
+which is coming out in a month or so. I tried using Unicorn today to run =
+a unicorn_rails instance, and got this as part of my traceback:
+
+objc[95737]: +[__NSPlaceholderDictionary initialize] may have been in =
+progress in another thread when fork() was called. We cannot safely call =
+it or ignore it in the fork() child process. Crashing instead. Set a =
+breakpoint on objc_initializeAfterForkError to debug.
+E, [2017-08-04T08:35:28.148339 #95531] ERROR -- : reaped =
+#<Process::Status: pid 95736 SIGABRT (signal 6)> worker=3D1
+
+I'm not sure if this is something downstream, but I thought I'd bring it =
+to your attention. My temporary solution is to preface my commands with =
+OBJC_DISABLE_INITIALIZE_FORK_SAFETY=3DYES.
+
+Jeffrey=
