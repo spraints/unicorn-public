@@ -1,0 +1,62 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.0
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id 63EB52047F;
+	Mon,  7 Aug 2017 20:18:34 +0000 (UTC)
+Date: Mon, 7 Aug 2017 20:18:34 +0000
+From: Eric Wong <e@80x24.org>
+To: Jeremy Evans <code@jeremyevans.net>
+Cc: Pere Joan Martorell <pere.joan@camaloon.com>,
+	unicorn-public@bogomips.org,
+	Philip Cunningham <philip@irisconnect.co.uk>,
+	Jonathan del Strother <maillist@steelskies.com>
+Subject: Re: Random crash when sending USR2 + QUIT signals to Unicorn process
+Message-ID: <20170807201834.GA49506@ailurophile>
+References: <CABre=GOGaByZSEUnCT6CPWDQb8aDXu8oj1W3oaAe6sD3NM4ghQ@mail.gmail.com>
+ <20170714211608.GA3272@starla>
+ <20170714225015.GD68067@jeremyevans.local>
+ <20170715001535.GA8205@starla>
+ <20170715013411.GE68067@jeremyevans.local>
+ <20170715044523.GA19602@starla>
+ <20170715075631.GF68067@jeremyevans.local>
+ <20170717143253.GA55601@jeremyevans.local>
+ <20170724012554.GA26949@dcvr>
+ <20170807061658.GA83366@jeremyevans.local>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <20170807061658.GA83366@jeremyevans.local>
+List-Id: <unicorn-public.bogomips.org>
+
+Jeremy Evans <code@jeremyevans.net> wrote:
+> On 07/24 01:25, Eric Wong wrote:
+> > Jeremy Evans <code@jeremyevans.net> wrote:
+> > > Running with GC.stress didn't catch the error for me.  But I'm using a
+> > > fairly old compiler (GCC 4.2.1, the OpenBSD default), so this may be
+> > > something that only shows up on a newer compiler that does more
+> > > optimizations.
+> > 
+> > Pere: just curious if you've had a chance to test my patch for
+> > sequel_pg from Jeremy's latest sequel_pg.git
+> > 
+> > In any case, I'm certain my patch fixes a bug which manifests
+> > in a compiler-dependent manner; but here could always be other
+> > bugs in a similar vein.  Thanks.
+> 
+> I can't get it to crash with sequel_pg 1.7.0 when compiled using clang
+> 4.0.0 either.  I even tried to build a special program designed to
+> trigger the crash.
+
+From anecdotes on ruby-core, clang still seems less aggressive
+at optimizations than modern gcc.
+
+Fwiw, a few GC bugs in Ruby trunk got fixed recently and the
+fixes should be in 2.4.2 (soon):
+https://public-inbox.org/ruby-core/?q=T_NONE+d%3A20161225..20170808
+
+Not identical to T_NODE which Pere got, but if it's a GC bug,
+but both T_NONE and T_NODE triggers are symptoms of GC bugs.
