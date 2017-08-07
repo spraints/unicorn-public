@@ -1,0 +1,105 @@
+Return-Path: <code@jeremyevans.net>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS40173 216.86.168.0/24
+X-Spam-Status: No, score=-4.0 required=3.0 tests=AWL,BAYES_00,
+	RCVD_IN_DNSWL_LOW,SPF_HELO_PASS shortcircuit=no autolearn=ham
+	autolearn_force=no version=3.4.0
+Received: from mxout-07.mxes.net (mxout-07.mxes.net [216.86.168.182])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by dcvr.yhbt.net (Postfix) with ESMTPS id D9BAC208B4
+	for <unicorn-public@bogomips.org>; Mon,  7 Aug 2017 06:17:02 +0000 (UTC)
+Received: from battleground.jeremyevans.local (unknown [73.90.99.19])
+	(using TLSv1.2 with cipher DHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by smtp.mxes.net (Postfix) with ESMTPSA id 2601222E256;
+	Mon,  7 Aug 2017 02:16:59 -0400 (EDT)
+Received: from jeremyevans.local (speedstar.jeremyevans.local [10.187.8.2])
+	by battleground.jeremyevans.local (OpenSMTPD) with ESMTP id 4d8fe29c;
+	Sun, 6 Aug 2017 23:16:58 -0700 (PDT)
+Date: Sun, 6 Aug 2017 23:16:58 -0700
+From: Jeremy Evans <code@jeremyevans.net>
+To: Eric Wong <e@80x24.org>
+Cc: Pere Joan Martorell <pere.joan@camaloon.com>,
+	unicorn-public@bogomips.org,
+	Philip Cunningham <philip@irisconnect.co.uk>,
+	Jonathan del Strother <maillist@steelskies.com>
+Subject: Re: Random crash when sending USR2 + QUIT signals to Unicorn process
+Message-ID: <20170807061658.GA83366@jeremyevans.local>
+References: <20170713193409.GA24162@starla>
+ <CABre=GOGaByZSEUnCT6CPWDQb8aDXu8oj1W3oaAe6sD3NM4ghQ@mail.gmail.com>
+ <20170714211608.GA3272@starla>
+ <20170714225015.GD68067@jeremyevans.local>
+ <20170715001535.GA8205@starla>
+ <20170715013411.GE68067@jeremyevans.local>
+ <20170715044523.GA19602@starla>
+ <20170715075631.GF68067@jeremyevans.local>
+ <20170717143253.GA55601@jeremyevans.local>
+ <20170724012554.GA26949@dcvr>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20170724012554.GA26949@dcvr>
+User-Agent: Mutt/1.8.3 (2017-05-23)
+List-Id: <unicorn-public.bogomips.org>
+
+On 07/24 01:25, Eric Wong wrote:
+> Jeremy Evans <code@jeremyevans.net> wrote:
+> > Running with GC.stress didn't catch the error for me.  But I'm using a
+> > fairly old compiler (GCC 4.2.1, the OpenBSD default), so this may be
+> > something that only shows up on a newer compiler that does more
+> > optimizations.
+> 
+> Pere: just curious if you've had a chance to test my patch for
+> sequel_pg from Jeremy's latest sequel_pg.git
+> 
+> In any case, I'm certain my patch fixes a bug which manifests
+> in a compiler-dependent manner; but here could always be other
+> bugs in a similar vein.  Thanks.
+
+I can't get it to crash with sequel_pg 1.7.0 when compiled using clang
+4.0.0 either.  I even tried to build a special program designed to
+trigger the crash.
+
+Compiler used:
+
+$ cc -v
+OpenBSD clang version 4.0.0 (tags/RELEASE_400/final) (based on LLVM 4.0.0)
+Target: amd64-unknown-openbsd6.1
+Thread model: posix
+InstalledDir: /usr/bin
+
+Program used:
+
+require 'sequel'
+DB = Sequel.postgres(:test=>false)
+DB.extension :pg_array
+# pg_array.txt contains ([[1] * 100] * 100) in PostgreSQL array format
+t = File.read('pg_array.txt')
+dot = '.'
+trap(:HUP){}
+Thread.new do
+  while true
+    sleep 1
+    Process.kill(:HUP, $$)
+  end
+end
+GC.stress = true
+(0..2).map do
+  Thread.new do
+    i = 0
+    pr = lambda{|v| print dot if ((i+=1) % 100) == 0; "#{v}#{v}"}
+    while true
+      print 'L'
+      Sequel::Postgres.parse_pg_array(t.dup, pr)
+    end
+  end
+end.map(&:join)
+
+Pere, can you test this program and see if it crashes in your
+environment?  If not, can you put together a reproducible example that
+does crash in your environment?
+
+Thanks,
+Jeremy
