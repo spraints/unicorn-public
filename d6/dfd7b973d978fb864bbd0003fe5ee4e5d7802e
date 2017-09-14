@@ -1,0 +1,133 @@
+Return-Path: <felix.yasnopolski@gmail.com>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS3215 2.6.0.0/16
+X-Spam-Status: No, score=-3.5 required=3.0 tests=AWL,BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,DKIM_VALID_AU,FREEMAIL_FROM,RCVD_IN_DNSWL_LOW,SPF_PASS
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.0
+Received: from mail-io0-x22a.google.com (mail-io0-x22a.google.com [IPv6:2607:f8b0:4001:c06::22a])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+	(No client certificate requested)
+	by dcvr.yhbt.net (Postfix) with ESMTPS id 31E2220281
+	for <unicorn-public@bogomips.org>; Thu, 14 Sep 2017 08:25:44 +0000 (UTC)
+Received: by mail-io0-x22a.google.com with SMTP id k101so15634498iod.0
+        for <unicorn-public@bogomips.org>; Thu, 14 Sep 2017 01:25:44 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20161025;
+        h=mime-version:from:date:message-id:subject:to;
+        bh=Swe3lqdEk1eKXu8/xwZfb1+wU44BtA7UoTO5gsoDDWI=;
+        b=vL+I5zrSqLYwD8QIBpLW87RzLpkxTnUBM2mgsej8A3/ChQvgWSTxovqZ+KxG3rvoQv
+         XwIJumLHs7Jt2Re0jV+CDD6z6D0c0K7uqyaE90Okq+vjIMT7c0UM0HgvpzGwAQgEcEhb
+         yRqzGz6EJOeNN//zQzQUKCH9uSltZZVTd8p9iPU5hgqRSK+EFoqQ3uIu2pUlzCajSwdH
+         YUDP0eeUqi0GRJywN0+Q1OIkziSX1rVn2TXCQf6/u8y+RVctn8FJVuFFGx2ok1K2Eqn+
+         TMZ4kxp2Pcv2ZPoS6JpxFHiCXnyIyCV0+eCqUkbhHVwlDOic8EBpEaEWL0fZnvW7sToL
+         kzVA==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20161025;
+        h=x-gm-message-state:mime-version:from:date:message-id:subject:to;
+        bh=Swe3lqdEk1eKXu8/xwZfb1+wU44BtA7UoTO5gsoDDWI=;
+        b=fpaEgxoVEVDir6susDF2nfjlYJVCQMUVfO2T0heLIZCq1LfbVwYJmx5VFP52xDqgx4
+         VdxM10z4RmcB+eYu6SGQV3jA2/rRn9oz4+xoomB9Om+ZFjWtvHXmtSveDjn3UpOQkVD6
+         fm9tYJFA4pGaGV8wTSklsfN0B9UcLR1BI8mwiXRrGb5ghFYgljYHKLpNZF58V+iXyiyf
+         Ug3DA838zFE64PlAnHjRtMCq/ZQaw1Ux08Ff0GaCFW1vfkniI2D4cChQgP1T7LO7MWHg
+         GxX7vqeEnIrnXOGZpKapVVpvkAR1IySBo/GzFyB5UC0+zK2gQCwZ6YnRUcU061pD6WTc
+         R7hQ==
+X-Gm-Message-State: AHPjjUhma8ZPBKnxdivq5+ms/IMntuPWZkz01/kHzmSJOcj7m70K84lW
+	q3SvHyR/620gGEzYi4kMrvwvXKlMCYZQYekWhlC/hg==
+X-Google-Smtp-Source: AOwi7QCufbF/1X/mW7zaIvJzumeYohJKsJIR+Y0CtMMimH412kPmOL0zLvMi2o6HONbNkjRIn+emPAxxrhkkhZh6J4U=
+X-Received: by 10.202.218.133 with SMTP id r127mr9260082oig.302.1505377543063;
+ Thu, 14 Sep 2017 01:25:43 -0700 (PDT)
+MIME-Version: 1.0
+Received: by 10.157.81.210 with HTTP; Thu, 14 Sep 2017 01:25:42 -0700 (PDT)
+From: Felix Yasnopolski <felix.yasnopolski@gmail.com>
+Date: Thu, 14 Sep 2017 13:25:42 +0500
+Message-ID: <CAHLwiGEidbCux8=5PtB0mVMJVigEhMum7-+cefmSNF+K4ykiTg@mail.gmail.com>
+Subject: Bug, probably related to Unicoen
+To: unicorn-public@bogomips.org
+Content-Type: text/plain; charset="UTF-8"
+List-Id: <unicorn-public.bogomips.org>
+
+We use Ruby v2.2.3, Rails v4.2.4, Unicorn v5.1.0 in production.
+
+ActiveRecord validation rules and callbacks for all models of app has
+been disabled after unicorn restart (from log rotation script). Here
+it is
+
+/var/www/fitness_crm/shared/log/production.log
+/var/www/fitness_crm/shared/log/unicorn.stderr.log
+/var/www/fitness_crm/shared/log/unicorn.stdout.log {
+        daily
+        missingok
+        rotate 30
+        compress
+        notifempty
+        create 640 deploy deploy
+        sharedscripts
+        postrotate
+                kill -s USR2 `cat
+/var/www/fitness_crm/shared/tmp/pids/unicorn.pid`
+        endscript
+}
+
+We've changed the script to send USR1 instead of USR2, but nothing has
+changed. When USR1 is sent validations/callbacks simply keep being
+disabled. Here is our unicorn configuration file
+
+working_directory "/var/www/fitness_crm/current"
+pid "/var/www/fitness_crm/shared/tmp/pids/unicorn.pid"
+stdout_path "/var/www/fitness_crm/shared/log/unicorn.stdout.log"
+stderr_path "/var/www/fitness_crm/shared/log/unicorn.stderr.log"
+
+listen "/tmp/unicorn.fitness_crm_production.sock"
+
+worker_processes 8
+timeout 30
+
+preload_app true
+
+before_exec do |server|
+  ENV["BUNDLE_GEMFILE"] = "/var/www/fitness_crm/current/Gemfile"
+end
+
+before_fork do |server, worker|
+  # Disconnect since the database connection will not carry over
+  if defined? ActiveRecord::Base
+    ActiveRecord::Base.connection.disconnect!
+  end
+
+  # Quit the old unicorn process
+  old_pid = "#{server.config[:pid]}.oldbin"
+  if File.exists?(old_pid) && server.pid != old_pid
+    begin
+      Process.kill("QUIT", File.read(old_pid).to_i)
+    rescue Errno::ENOENT, Errno::ESRCH
+      # someone else did our job for us
+    end
+  end
+
+  if defined?(Resque)
+    Resque.redis.quit
+  end
+
+  sleep 1
+end
+
+after_fork do |server, worker|
+  # Start up the database connection again in the worker
+  if defined?(ActiveRecord::Base)
+    ActiveRecord::Base.establish_connection
+  end
+
+  if defined?(Resque)
+    Resque.redis = 'localhost:6379'
+  end
+end
+
+After this we kill unicorn and start it manually with command:
+
+bundle exec unicorn -D -c
+/var/www/fitness_crm/shared/config/unicorn.rb -E production
+
+After this everything is good and validations and callbacks are
+enabled again. Please, help to find out what is the reason of such a
+behavior and how to fix it.
