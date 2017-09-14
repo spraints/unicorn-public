@@ -1,0 +1,164 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.0
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id 6050F20281;
+	Thu, 14 Sep 2017 09:15:48 +0000 (UTC)
+Date: Thu, 14 Sep 2017 09:15:48 +0000
+From: Eric Wong <e@80x24.org>
+To: Felix Yasnopolski <felix.yasnopolski@gmail.com>
+Cc: unicorn-public@bogomips.org
+Subject: Re: Bug, probably related to Unicoen
+Message-ID: <20170914091548.GA13634@dcvr>
+References: <CAHLwiGEidbCux8=5PtB0mVMJVigEhMum7-+cefmSNF+K4ykiTg@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <CAHLwiGEidbCux8=5PtB0mVMJVigEhMum7-+cefmSNF+K4ykiTg@mail.gmail.com>
+List-Id: <unicorn-public.bogomips.org>
+
+Felix Yasnopolski <felix.yasnopolski@gmail.com> wrote:
+> We use Ruby v2.2.3, Rails v4.2.4, Unicorn v5.1.0 in production.
+> 
+> ActiveRecord validation rules and callbacks for all models of app has
+> been disabled after unicorn restart (from log rotation script). Here
+> it is
+
+Wow, that's a new one... I haven't used Rails in years, but it's
+certainly not intentional behavior on the part of unicorn.
+
+Hopefully somebody else with Rails knowledge can chime in.
+
+Some questions:
+
+Do you have anything which overrides USR1?
+
+Are the logs getting rotated correctly?
+
+(more below ...)
+
+> /var/www/fitness_crm/shared/log/production.log
+> /var/www/fitness_crm/shared/log/unicorn.stderr.log
+> /var/www/fitness_crm/shared/log/unicorn.stdout.log {
+>         daily
+>         missingok
+>         rotate 30
+>         compress
+>         notifempty
+>         create 640 deploy deploy
+>         sharedscripts
+>         postrotate
+>                 kill -s USR2 `cat
+> /var/www/fitness_crm/shared/tmp/pids/unicorn.pid`
+>         endscript
+> }
+> 
+> We've changed the script to send USR1 instead of USR2, but nothing has
+> changed. When USR1 is sent validations/callbacks simply keep being
+> disabled. Here is our unicorn configuration file
+> 
+> working_directory "/var/www/fitness_crm/current"
+> pid "/var/www/fitness_crm/shared/tmp/pids/unicorn.pid"
+> stdout_path "/var/www/fitness_crm/shared/log/unicorn.stdout.log"
+> stderr_path "/var/www/fitness_crm/shared/log/unicorn.stderr.log"
+
+OK, that looks right.
+
+Do your logs show the log rotations as they're happening, at least?
+
+Anything else pop up in the logs which might help us figure out
+what's wrong?  (for example, do you have dying workers)
+
+> listen "/tmp/unicorn.fitness_crm_production.sock"
+> 
+> worker_processes 8
+> timeout 30
+> 
+> preload_app true
+
+Can you try omitting preload_app and see if you can reproduce
+the problem?  The big reason preload_app is `false' by default
+is it could break some code...
+
+And probably use only 1 worker to avoid memory
+overhead/excessive log spew during debugging.
+
+> before_exec do |server|
+>   ENV["BUNDLE_GEMFILE"] = "/var/www/fitness_crm/current/Gemfile"
+> end
+> 
+> before_fork do |server, worker|
+>   # Disconnect since the database connection will not carry over
+>   if defined? ActiveRecord::Base
+>     ActiveRecord::Base.connection.disconnect!
+>   end
+> 
+>   # Quit the old unicorn process
+>   old_pid = "#{server.config[:pid]}.oldbin"
+>   if File.exists?(old_pid) && server.pid != old_pid
+>     begin
+>       Process.kill("QUIT", File.read(old_pid).to_i)
+>     rescue Errno::ENOENT, Errno::ESRCH
+>       # someone else did our job for us
+>     end
+>   end
+> 
+>   if defined?(Resque)
+>     Resque.redis.quit
+>   end
+> 
+>   sleep 1
+> end
+> 
+> after_fork do |server, worker|
+>   # Start up the database connection again in the worker
+>   if defined?(ActiveRecord::Base)
+>     ActiveRecord::Base.establish_connection
+>   end
+> 
+>   if defined?(Resque)
+>     Resque.redis = 'localhost:6379'
+>   end
+> end
+
+If log rotations (via USR1) fails (e.g. due to permission
+error), the workers die and get replaced, instead.  This allows
+the log files to be released and rotated in "brute force"
+fashion...
+
+Can you reproduce the problem by sending a QUIT, TERM, or KILL
+signal directly to a worker process?  (Also, note the time
+interval between initial master startup and your test)
+
+A later-spawned worker could behave differently/strangely
+from an originally-spawned one...
+
+Finally, can you reproduce your original problem by sending USR1
+to the master immediately after a fresh start?
+
+With logrotate (which only runs intermittently), the problem
+could be manifesting from an app timeout or time skew of some
+sort interacting poorly with preload_app and respawned workers.
+
+> After this we kill unicorn and start it manually with command:
+> 
+> bundle exec unicorn -D -c
+> /var/www/fitness_crm/shared/config/unicorn.rb -E production
+> 
+> After this everything is good and validations and callbacks are
+> enabled again. Please, help to find out what is the reason of such a
+> behavior and how to fix it.
+
+This is why I gave the time skew/timeout hypothesis above.
+
+Otherwise; I'm out of ideas, for now (and falling asleep).
+Hoping somebody more awake with modern Rails knowledge can chime
+in and help with things I'm missing.
+
+
+Again; one of the first unicorn-specific steps for
+troubleshooting is to disable preload_app and use a single
+worker process which you can trace more easily.
