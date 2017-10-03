@@ -1,0 +1,70 @@
+Return-Path: <azrlew@gmail.com>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS3215 2.6.0.0/16
+X-Spam-Status: No, score=-3.1 required=3.0 tests=BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,DKIM_VALID_AU,FREEMAIL_FROM,RCVD_IN_DNSWL_NONE,SPF_PASS
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.0
+Received: from mail-pf0-x244.google.com (mail-pf0-x244.google.com [IPv6:2607:f8b0:400e:c00::244])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+	(No client certificate requested)
+	by dcvr.yhbt.net (Postfix) with ESMTPS id 770AA202A5
+	for <unicorn-public@bogomips.org>; Tue,  3 Oct 2017 14:52:52 +0000 (UTC)
+Received: by mail-pf0-x244.google.com with SMTP id f84so9372345pfj.3
+        for <unicorn-public@bogomips.org>; Tue, 03 Oct 2017 07:52:52 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20161025;
+        h=from:to:cc:subject:date:message-id:in-reply-to:references;
+        bh=HfHg1xeVTZyxHgaKl3iyqEEpUuT7OFrSxqnawiuKR/g=;
+        b=W7PG0HJVR+l4s6LA6W+IQ6Dq6rQf1CZnxWWPgh4cxhwQOAOv2RFutDV7LSo+lfl0A1
+         mK7KaL6i8OczENSQN/a1NIHiXBtkuTGhirT1ZShH9X8ilK7w1wxjwhVbElw9ok3ezNBt
+         gyeDZJRH6FhvbeuDtkOjvxSJGWTZJ9sllYOpLkvRt5hOGKqO3aIU8U03kekWlNSNXvnz
+         XCcY5t9Pw7fb8Q1d771ZWuaBSsXV7atZsEfBEM4eEQLJJxQMHQjnmEYA3s8eH354z8yz
+         r0IJuwCmrTf2NWOjhkDIU+WPJkATo74ZkwUecdyHRJtLYuwmTjnuGT37yJ5mPyktoZBR
+         zgRQ==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20161025;
+        h=x-gm-message-state:from:to:cc:subject:date:message-id:in-reply-to
+         :references;
+        bh=HfHg1xeVTZyxHgaKl3iyqEEpUuT7OFrSxqnawiuKR/g=;
+        b=OdOWlCVEvEbILpwNyTOImpRvDJWoWmnK+CmJMyMC6Sk7xrsWa4Z1IIWIQQ4app6n5d
+         3YZup4uIWS8YAI7QRZPDkTyVia12ftRwEe4BZy83S8+yzJ5wcJ9+5ZywQdCMgsCaAWzM
+         DL45mH2Iab0arY//xofETpr2+B78F1jLSE22fmeU0YUQIuGtTKQVJK8UnoyI2NmSOm7v
+         xNyss0o9kZ5KfMPme+JoPcztFHzukDwn1TDyA/2Wbeq1lk/LskWFLYOqS0cYQr0k00Mh
+         9hGwBXrJUfggd3iVIphXfepIfKAXB3/QF70DPv3XGRpW+Az8e/QhFUw8ZDKqnW83rwBv
+         WwCw==
+X-Gm-Message-State: AHPjjUhl22R+gNU8EdzsKySqo+0eqbWD1j/icK3mUTzj1KOZ8Hz8xEnK
+	nLGr9wteNZGU/+KK1u6Xj8o=
+X-Google-Smtp-Source: AOwi7QC/1kCc/LWMbQ4s95CpJaosGQVcR6V8rpDsop/l0QS+1NK9RC5aAomnuXpEUeIqd0MPTABP1w==
+X-Received: by 10.99.170.69 with SMTP id x5mr16123473pgo.117.1507042371850;
+        Tue, 03 Oct 2017 07:52:51 -0700 (PDT)
+Received: from localhost.localdomain ([27.131.11.254])
+        by smtp.gmail.com with ESMTPSA id j12sm8221177pgc.6.2017.10.03.07.52.49
+        (version=TLS1 cipher=AES128-SHA bits=128/128);
+        Tue, 03 Oct 2017 07:52:51 -0700 (PDT)
+From: Xuanzhong Wei <azrlew@gmail.com>
+To: e@80x24.org
+Cc: code@jeremyevans.net,
+	maillist@steelskies.com,
+	pere.joan@camaloon.com,
+	philip@irisconnect.co.uk,
+	unicorn-public@bogomips.org,
+	Xuanzhong Wei <azrlew@gmail.com>
+Subject: Re: Random crash when sending USR2 + QUIT signals to Unicorn process
+Date: Tue,  3 Oct 2017 23:52:46 +0900
+Message-Id: <20171003145246.30197-1-azrlew@gmail.com>
+X-Mailer: git-send-email 2.14.1
+In-Reply-To: <20170807201834.GA49506@ailurophile>
+References: <20170807201834.GA49506@ailurophile>
+List-Id: <unicorn-public.bogomips.org>
+
+We have the same issue here.
+
+IMHO, it is a bug introduced by 979ebcf91705709be5041a3be4514e5f1f6ec02c.
+The `mark_ary` get GCed before we add it to the ruby's global_list
+since we are doing memory allocations before calling rb_global_variable.
+
+A simple test can be found here:
+https://github.com/azrle/ruby_c_ext_test
+
+I will try to submit a patch later.
