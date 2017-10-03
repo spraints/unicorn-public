@@ -1,0 +1,49 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.0
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id 674E5202A5;
+	Tue,  3 Oct 2017 17:47:52 +0000 (UTC)
+Date: Tue, 3 Oct 2017 17:47:52 +0000
+From: Eric Wong <e@80x24.org>
+To: Xuanzhong Wei <azrlew@gmail.com>
+Cc: unicorn-public@bogomips.org
+Subject: Re: [PATCH] fix GC issue on rb_global_variable array
+Message-ID: <20171003174752.GA30460@starla>
+References: <20171003145718.30404-1-azrlew@gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <20171003145718.30404-1-azrlew@gmail.com>
+List-Id: <unicorn-public.bogomips.org>
+
+Xuanzhong Wei <azrlew@gmail.com> wrote:
+> diff --git a/ext/unicorn_http/unicorn_http.rl b/ext/unicorn_http/unicorn_http.rl
+> index 6fc3498..357440b 100644
+> --- a/ext/unicorn_http/unicorn_http.rl
+> +++ b/ext/unicorn_http/unicorn_http.rl
+> @@ -921,6 +921,7 @@ void Init_unicorn_http(void)
+>    VALUE mUnicorn, cHttpParser;
+>  
+>    mark_ary = rb_ary_new();
+> +  rb_global_variable(&mark_ary);
+>    mUnicorn = rb_define_module("Unicorn");
+>    cHttpParser = rb_define_class_under(mUnicorn, "HttpParser", rb_cObject);
+>    eHttpParserError =
+> @@ -976,7 +977,6 @@ void Init_unicorn_http(void)
+>    init_unicorn_httpdate(mark_ary);
+>  
+>    OBJ_FREEZE(mark_ary);
+> -  rb_global_variable(&mark_ary);
+
+Yes, the compiler should be free to drop mark_ary by here, since
+it only needs its address (not the actual VALUE) and OBJ_FREEZE
+only accesses the RBasic->flags field if init_unicorn_httpdate
+gets inlined.
+
+Pushed to master as e85de00a3065461f6fac466276d915b809f40c7c.
+Also, created a 5.3-stable branch for 5.3.1 (to be released today)
+@ git://bogomips.org/unicorn
