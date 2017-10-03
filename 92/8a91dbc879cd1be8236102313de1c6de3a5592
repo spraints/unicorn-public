@@ -1,0 +1,45 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.0
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id 58243202A5;
+	Tue,  3 Oct 2017 17:15:44 +0000 (UTC)
+Date: Tue, 3 Oct 2017 17:15:44 +0000
+From: Eric Wong <e@80x24.org>
+To: Xuanzhong Wei <azrlew@gmail.com>
+Cc: code@jeremyevans.net, maillist@steelskies.com, pere.joan@camaloon.com,
+	philip@irisconnect.co.uk, unicorn-public@bogomips.org
+Subject: Re: Random crash when sending USR2 + QUIT signals to Unicorn process
+Message-ID: <20171003171544.GA23685@starla>
+References: <20170807201834.GA49506@ailurophile>
+ <20171003145246.30197-1-azrlew@gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <20171003145246.30197-1-azrlew@gmail.com>
+List-Id: <unicorn-public.bogomips.org>
+
+Xuanzhong Wei <azrlew@gmail.com> wrote:
+> We have the same issue here.
+> 
+> IMHO, it is a bug introduced by 979ebcf91705709be5041a3be4514e5f1f6ec02c.
+> The `mark_ary` get GCed before we add it to the ruby's global_list
+> since we are doing memory allocations before calling rb_global_variable.
+> 
+> A simple test can be found here:
+> https://github.com/azrle/ruby_c_ext_test
+
+Thanks, which compiler and version did you use?
+
+> I will try to submit a patch later.
+
+https://bogomips.org/unicorn-public/20171003145718.30404-1-azrlew@gmail.com/raw
+
+Yes, seems corect since the compiler doesn't need to keep
+mark_ary anymore once it only needs the address (&mark_ary).
+OBJ_FREEZE is an inline which does nothing to prevent
+the compiler from only keeping RBasic->flags around and
+not the actual VALUE.
