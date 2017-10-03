@@ -1,0 +1,81 @@
+Return-Path: <azrlew@gmail.com>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS3215 2.6.0.0/16
+X-Spam-Status: No, score=-3.1 required=3.0 tests=BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,DKIM_VALID_AU,FREEMAIL_FROM,RCVD_IN_DNSWL_NONE,SPF_PASS
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.0
+Received: from mail-pg0-x241.google.com (mail-pg0-x241.google.com [IPv6:2607:f8b0:400e:c05::241])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+	(No client certificate requested)
+	by dcvr.yhbt.net (Postfix) with ESMTPS id 0C53F2036B
+	for <unicorn-public@bogomips.org>; Tue,  3 Oct 2017 14:57:26 +0000 (UTC)
+Received: by mail-pg0-x241.google.com with SMTP id o1so8747780pga.4
+        for <unicorn-public@bogomips.org>; Tue, 03 Oct 2017 07:57:26 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20161025;
+        h=from:to:cc:subject:date:message-id;
+        bh=GN5Nctf+aKI8DurjnC6jfUY/VNOgH7e45tX8YgEftmE=;
+        b=n90NFMs//7GlAToRWLFzC01rM5Zwzl5+JuyswWa1m+98WGLiB3uFd3+NF7zuFGJHw7
+         JB4bYGEhsO4Gg+In5imCGtbo/WwVDxS0zdlNWPK/a58qJWnLtaL8RgY4euMh9W/nzVqi
+         HEuDYuY8fIFzf3riSfgRZU+8mnPlcm9sFGAuWDxTfJqclKADh+aqRkjU4DNTYQ/dKZpP
+         Ovtd5OozUeCg7leacexCRwuvWmEpewc7Aja2HcSOX4A2icn4jMxUIuO4gHBD5+vWA5D8
+         vSKgwjkCXhwULl6OrDb1bKan6+Zrr3AUnoIbLhPvNkUDFZ2XJh4CZ7FYT8yh5Py/u/gs
+         dPtA==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20161025;
+        h=x-gm-message-state:from:to:cc:subject:date:message-id;
+        bh=GN5Nctf+aKI8DurjnC6jfUY/VNOgH7e45tX8YgEftmE=;
+        b=DGr1PyWco0S98UfA2P8oBJT8zxdQAqbqUTZiT8MxIUnAv3u7/UtdVPSsMyO7uU4+pC
+         VnNQLpvjSZh0VhJ52fjHOXD1jrlJeGfxBCSdJvhnZY/85uO+jyaT3lMZsWkxKEq7N7/3
+         YgPEGyzUj9qUtEsUdXKHgUTwTLXRlDIhjJgxayZJqnDmZXtO8CiFSbZ2OcTv7IfVWk9o
+         czDvI9gjX1EdGG/4ZrdzD42chQneyziag2IWbeORGkF76rHJxh6sroCqXaATf6Pg8fB0
+         fzUwnmLZlRMdvFDpS1ogP+w8KZEvWTUvmMFkiUlyMD8m0qY8oLRNuogNu5tjEt3/Y/HA
+         bcTA==
+X-Gm-Message-State: AHPjjUg3kUvB726I5J6Sc1h/am3syz4oNcrPzUDwjqDJAMPl8oN7JucU
+	95TSgmAx/sG2dWXyLWgZvw3Wk+ik
+X-Google-Smtp-Source: AOwi7QBBO3Jol58FOK5jUb1LYAqgkMnDGD0Yt7Eaf/2jAHVUnN0iv5Di/4E3lC8xLxwdkLenHLKrXg==
+X-Received: by 10.84.235.65 with SMTP id g1mr17123873plt.353.1507042645365;
+        Tue, 03 Oct 2017 07:57:25 -0700 (PDT)
+Received: from localhost.localdomain ([27.131.11.254])
+        by smtp.gmail.com with ESMTPSA id q7sm22471997pgn.56.2017.10.03.07.57.24
+        (version=TLS1 cipher=AES128-SHA bits=128/128);
+        Tue, 03 Oct 2017 07:57:24 -0700 (PDT)
+From: Xuanzhong Wei <azrlew@gmail.com>
+To: unicorn-public@bogomips.org
+Cc: Xuanzhong Wei <azrlew@gmail.com>
+Subject: [PATCH] fix GC issue on rb_global_variable array
+Date: Tue,  3 Oct 2017 23:57:18 +0900
+Message-Id: <20171003145718.30404-1-azrlew@gmail.com>
+X-Mailer: git-send-email 2.14.1
+List-Id: <unicorn-public.bogomips.org>
+
+We need to add the array to ruby's global_list right after created it;
+otherwise it probably gets GCed.
+---
+ ext/unicorn_http/unicorn_http.rl | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/ext/unicorn_http/unicorn_http.rl b/ext/unicorn_http/unicorn_http.rl
+index 6fc3498..357440b 100644
+--- a/ext/unicorn_http/unicorn_http.rl
++++ b/ext/unicorn_http/unicorn_http.rl
+@@ -921,6 +921,7 @@ void Init_unicorn_http(void)
+   VALUE mUnicorn, cHttpParser;
+ 
+   mark_ary = rb_ary_new();
++  rb_global_variable(&mark_ary);
+   mUnicorn = rb_define_module("Unicorn");
+   cHttpParser = rb_define_class_under(mUnicorn, "HttpParser", rb_cObject);
+   eHttpParserError =
+@@ -976,7 +977,6 @@ void Init_unicorn_http(void)
+   init_unicorn_httpdate(mark_ary);
+ 
+   OBJ_FREEZE(mark_ary);
+-  rb_global_variable(&mark_ary);
+ 
+ #ifndef HAVE_RB_HASH_CLEAR
+   id_clear = rb_intern("clear");
+-- 
+2.14.1
+
