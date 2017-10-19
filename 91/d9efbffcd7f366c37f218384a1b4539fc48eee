@@ -1,0 +1,96 @@
+Return-Path: <a.degaspari@18months.it>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS200130 46.101.96.0/20
+X-Spam-Status: No, score=-3.1 required=3.0 tests=AWL,BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,DKIM_VALID_AU,RP_MATCHES_RCVD,SPF_PASS,T_FILL_THIS_FORM_SHORT
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.0
+Received: from mail.18months.it (mail.18months.it [46.101.96.188])
+	(using TLSv1.2 with cipher ADH-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by dcvr.yhbt.net (Postfix) with ESMTPS id B9B9E202DD
+	for <unicorn-public@bogomips.org>; Thu, 19 Oct 2017 19:23:25 +0000 (UTC)
+Received: from [10.10.10.81] (unknown [212.91.77.61])
+	(Authenticated sender: a.degaspari@18months.it)
+	by mail.18months.it (Postfix) with ESMTPSA id 4D8AD13BF2D;
+	Thu, 19 Oct 2017 19:23:23 +0000 (UTC)
+Subject: Re: Reaping process with unknown worker
+To: Eric Wong <e@80x24.org>
+Cc: unicorn-public@bogomips.org
+References: <da4adb1c-e609-fa12-eba8-4dc4e5f6b055@18months.it>
+ <20171019182050.GA11899@whir>
+ <42b8a217-e2f4-e06b-77ef-c86370a00083@18months.it>
+ <20171019190542.GA14431@whir>
+From: Alberto De Gaspari <a.degaspari@18months.it>
+Openpgp: id=9EF065835AAC9CEB4B6079FB3DED6A67961D1DFC
+Message-ID: <f6bc3edb-6ff4-4d59-f235-3eaeb277cf41@18months.it>
+Date: Thu, 19 Oct 2017 21:23:22 +0200
+User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:52.0) Gecko/20100101
+ Thunderbird/52.4.0
+MIME-Version: 1.0
+In-Reply-To: <20171019190542.GA14431@whir>
+Content-Type: text/plain; charset=utf-8
+Content-Language: it-IT
+Content-Transfer-Encoding: 7bit
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=18months.it;
+	s=dkim; t=1508441003;
+	h=from:subject:date:message-id:to:cc:mime-version:content-type:content-transfer-encoding:in-reply-to:references;
+	bh=EfZugU3f+DHmPtoRJd93q6/5/cLb27T59e4B4LLRZR0=;
+	b=f6ttIcnWpDdq/CSyLr3Q5Iw8v+tW+hpctDDXbgIits1dq9qOFv+ks8O6Zu7BIAeGBNNW78
+	ElkxXgQoaERjQG9BfreftvaXTzkCrO1Wq5c13OKGNTSfFthOjBm9GQJr9LxMg9YLHk5DAz
+	fg7Bjf39haABKWsj4AFen3sXvH75o6xjpftYSLqmTYjzk2s01uh7W7n+0YHnyDcIi1+YA8
+	gYFMPNAk8fwFFwBIoFppDotMPRrz3KBvsqTxMWO2YI1+77VI/Cwl+5o43IuIMcJJVkP0Jy
+	8MsuFVLq/VdIiZCjDIQhwVPMjQEIcDbiguPSCuJUxDemaM7wiAU6O39UK9FY5w==
+ARC-Seal: i=1; s=dkim; d=18months.it; t=1508441003; a=rsa-sha256; cv=none;
+	b=PM6txCFEqBQlnkc8QuB/rrYDTJRRRbW4jtUldMSzZQqbOUfPwQ3R7skWqMSwISbgl6vRHgURRbSss9Z0frtUL8QlC9Fr23SE2pk21DB97YHoDW7kQZNT60jMQ92IMrJZnoNdkojYmpND+H2zwXCZqHyUpZbyaLil8oUFnzRdhswo3R4m/AVsFBOX0zdmUGH8UaekxoPjbC1nkN+eMOC5yIWuLUcAOZBsxiuHz6IQ+5b50TMt0zMkU1N2qQEzft9r9Ab8D3xVfGwAuUytPKjsZTtA6e4BxZ6mHRKYLxSSNEMrKDTQ7I7GbtRkH/ivL05PhJcNA4IaleazsO/TKAaSWQ==
+ARC-Authentication-Results: i=1; auth=pass smtp.auth=a.degaspari@18months.it
+	smtp.mailfrom=a.degaspari@18months.it
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=18months.it; s=dkim;
+	t=1508441003;
+	h=from:subject:date:message-id:to:cc:mime-version:content-type:content-transfer-encoding:in-reply-to:references;
+	bh=EfZugU3f+DHmPtoRJd93q6/5/cLb27T59e4B4LLRZR0=;
+	b=LcbsU7K046b/8iLI4eEN1zWdw5WkmwrUB+UVHJd1ilNQ1wgcCHQ/0dByEkX0hMb5IYedxO
+	o3d18jL0PUNHdXqLAYbuEnEDx2yzc+mHLex5KWlf2VGQYyjJqiGKXBseO+f+PRQO0NSvPc
+	sM2Fxqn1kSqW3+3YJRqSV1E2gvviCd95qzkFJ684st2QNCPOa8ODLe/wBGuX5SPyG3Hzt2
+	8yyaAhUuGRTG+qblRXtObHE6+JXuiMKXxJJ8quQf9nD3Uo3MtAm13eSMTvi0V81ACt+8SS
+	RfFwpxX7XtEd/6943vxe3AVT3G9hVgDlRibDRYHbPn9PPsF2ug2YaTYw/LbQMg==
+List-Id: <unicorn-public.bogomips.org>
+
+>> with a line like this in the log:
+>> INFO -- : reaped #<Process::Status: pid 16101 exit 0> worker=unknown
+>> if i run
+>> # ps axf |grep 16101
+>> i only get the ps line:
+>> 10277 pts/4    S+     0:00          \_ grep 16101
+>>
+>> consider that i have loads of this line in the log, like at least 1
+>> every minute.
+>>
+>> what could cause those reaps?
+> 
+> Reaping happens after a process exits, so it won't show up
+> in "ps" once it's reaped.
+> 
+ok, got it:
+but if at t0 i run ps axf and save the result, when at t1 i find one of
+the lines in the stderr_log and try to grep the stated pid in the saved
+result of t0 i don't find anything.
+how can i detect what it's reaping? do you consider this a normal
+behavior for a rails app which actually only receives simple get
+requests and save the result in a pg db?(that's what the small instance
+of unicorn does, the other is more complex, but shows the same amount
+and type of info messages in errors)
+
+-- 
+Cordiali saluti
+Alberto De Gaspari
+CTO & Software Engineer
+
+18Months S.r.l
+Via Copernico 38, Milano 20125, Italia
+Tel:    +39 02.92852164
+Fax:    +39 02.45075016
+Mob:    +39 349.1624385
+MeetMe: doodle.com/albertodega
+Email:  a.degaspari@18months.it
+web:    www.18months.it
