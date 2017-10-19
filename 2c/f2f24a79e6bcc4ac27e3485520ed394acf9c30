@@ -1,0 +1,98 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.0
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id 50E30202DD;
+	Thu, 19 Oct 2017 19:37:53 +0000 (UTC)
+Date: Thu, 19 Oct 2017 19:37:53 +0000
+From: Eric Wong <e@80x24.org>
+To: Alberto De Gaspari <a.degaspari@18months.it>
+Cc: unicorn-public@bogomips.org
+Subject: Re: Reaping process with unknown worker
+Message-ID: <20171019193753.GA587@starla>
+References: <da4adb1c-e609-fa12-eba8-4dc4e5f6b055@18months.it>
+ <20171019182050.GA11899@whir>
+ <42b8a217-e2f4-e06b-77ef-c86370a00083@18months.it>
+ <20171019190542.GA14431@whir>
+ <f6bc3edb-6ff4-4d59-f235-3eaeb277cf41@18months.it>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <f6bc3edb-6ff4-4d59-f235-3eaeb277cf41@18months.it>
+List-Id: <unicorn-public.bogomips.org>
+
+Alberto De Gaspari <a.degaspari@18months.it> wrote:
+> >> with a line like this in the log:
+> >> INFO -- : reaped #<Process::Status: pid 16101 exit 0> worker=unknown
+> >> if i run
+> >> # ps axf |grep 16101
+> >> i only get the ps line:
+> >> 10277 pts/4    S+     0:00          \_ grep 16101
+> >>
+> >> consider that i have loads of this line in the log, like at least 1
+> >> every minute.
+> >>
+> >> what could cause those reaps?
+> > 
+> > Reaping happens after a process exits, so it won't show up
+> > in "ps" once it's reaped.
+> > 
+> ok, got it:
+> but if at t0 i run ps axf and save the result, when at t1 i find one of
+> the lines in the stderr_log and try to grep the stated pid in the saved
+> result of t0 i don't find anything.
+
+I guess this is because the process is too short-lived.  Can you
+audit your code for when you spawn applications and check that?
+
+Actually, what is curious is your master process is reaping
+these processes (not workers reaping); yet your workers are not
+dying and getting reaped.
+
+Are you using preload_app?
+
+If so, do you spawn any background processes at load time?
+Or are there any background threads in the master process?
+
+Does the problem go away if you disable preload_app?
+
+Because, in normal applications, workers may spawn background
+processes but its rare for the master to spawn anything but
+workers themselves.
+
+> how can i detect what it's reaping? do you consider this a normal
+> behavior for a rails app which actually only receives simple get
+> requests and save the result in a pg db?(that's what the small instance
+> of unicorn does, the other is more complex, but shows the same amount
+> and type of info messages in errors)
+
+AFAIK, you cannot detect what it's reaping portably...
+
+You can try the following hack to look for defunct (zombie)
+processes before unicorn calls waitpid2.  However, keep in mind
+it is subject to race conditions so not 100% reliable:
+
+diff --git a/lib/unicorn/http_server.rb b/lib/unicorn/http_server.rb
+index f33aa25..f57271e 100644
+--- a/lib/unicorn/http_server.rb
++++ b/lib/unicorn/http_server.rb
+@@ -396,6 +396,7 @@ def awaken_master
+   # reaps all unreaped workers
+   def reap_all_workers
+     begin
++      system('ps | grep defunct')
+       wpid, status = Process.waitpid2(-1, Process::WNOHANG)
+       wpid or return
+       if @reexec_pid == wpid
+
+
+
+One other thing you try do (on Linux) is strace the master:
+
+	strace -p $PID_OF_MASTER -f -e execve,clone
+
+And see what the master is spawning.  I suppose other OS has
+similar functions (truss/ktruss/...)
