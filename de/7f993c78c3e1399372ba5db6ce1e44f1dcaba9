@@ -1,0 +1,48 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.0
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id DE446202A2;
+	Thu, 19 Oct 2017 18:20:50 +0000 (UTC)
+Date: Thu, 19 Oct 2017 18:20:50 +0000
+From: Eric Wong <e@80x24.org>
+To: Alberto De Gaspari <a.degaspari@18months.it>
+Cc: unicorn-public@bogomips.org
+Subject: Re: Reaping process with unknown worker
+Message-ID: <20171019182050.GA11899@whir>
+References: <da4adb1c-e609-fa12-eba8-4dc4e5f6b055@18months.it>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <da4adb1c-e609-fa12-eba8-4dc4e5f6b055@18months.it>
+List-Id: <unicorn-public.bogomips.org>
+
+Alberto De Gaspari <a.degaspari@18months.it> wrote:
+> Hello everyone, maybe this is a noob question, but it seems strange from
+> my point of view, so here i am:
+> 
+> I have 2 master processes running on the same server, pointing to the
+> same rails application dir.
+> I need 2 of them because i need some workers to be dedicated responding
+> to requests coming from a specific socket(and i'm not sure this is the
+> right way to do this)
+
+That's fine.
+
+> Both the standard_error_logs are full of messages like the following:
+> 
+> INFO -- : reaped #<Process::Status: pid 23835 exit 0> worker=unknown
+> 
+> is this a misconfiguration or something similar?
+
+Does your application fork processes?  It may not be reaping
+them.   Are your normal unicorn workers dying, too?
+
+You can check the process tree or periodically run "ps" to see
+what was running as the reaped pid before it died.
+
+I use "ps axf" from the "procps" package on some Linux sytems;
+or "pstree" if installed to see the process tree.
