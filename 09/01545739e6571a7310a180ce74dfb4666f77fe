@@ -1,0 +1,115 @@
+Return-Path: <prvs=4493334188=james.robinson3@cigna.com>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS26211 67.231.149.0/24
+X-Spam-Status: No, score=-3.7 required=3.0 tests=BAYES_00,RCVD_IN_DNSWL_LOW,
+	RCVD_IN_MSPIKE_H3,RCVD_IN_MSPIKE_WL,SPF_PASS shortcircuit=no autolearn=ham
+	autolearn_force=no version=3.4.0
+Received: from mx0b-000e5c01.pphosted.com (mx0a-000e5c01.pphosted.com [67.231.149.193])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by dcvr.yhbt.net (Postfix) with ESMTPS id 7303B201C8
+	for <unicorn-public@bogomips.org>; Thu, 16 Nov 2017 00:57:46 +0000 (UTC)
+Received: from pps.filterd (m0072698.ppops.net [127.0.0.1])
+	by mx0a-000e5c01.pphosted.com (8.16.0.21/8.16.0.21) with SMTP id vAG0qJub012061
+	for <unicorn-public@bogomips.org>; Wed, 15 Nov 2017 19:57:45 -0500
+Received: from wdccip14.cigna.com (wdccip14.cigna.com [170.48.2.115])
+	by mx0a-000e5c01.pphosted.com with ESMTP id 2e8ymp88pm-1
+	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK)
+	for <unicorn-public@bogomips.org>; Wed, 15 Nov 2017 19:57:44 -0500
+X-IronPort-AV: E=Sophos;i="5.44,401,1505793600"; 
+   d="scan'208";a="63635665"
+Received: from wdcsymprev004.internal.cigna.com (HELO wdccip204.infra.cigna.com) ([10.48.175.61])
+  by wdccip204.infra.cigna.com with ESMTP; 15 Nov 2017 19:57:42 -0500
+Received: from ciwx3mwp0012.internal.cigna.com ([10.44.168.56])
+  by wdccip204.infra.cigna.com with ESMTP; 15 Nov 2017 19:57:42 -0500
+Received: from CIWX3MWP0011.internal.cigna.com (10.44.168.54) by
+ CIWX3MWP0012.internal.cigna.com (10.44.168.56) with Microsoft SMTP Server
+ (TLS) id 15.0.1347.2; Wed, 15 Nov 2017 19:57:41 -0500
+Received: from CIWX3MWP0011.internal.cigna.com ([fe80::acaf:e8d4:f8c9:de5d])
+ by CIWX3MWP0011.internal.cigna.com ([fe80::7cf1:f39e:6588:75be%18]) with mapi
+ id 15.00.1347.000; Wed, 15 Nov 2017 19:57:41 -0500
+From: "Robinson Jr, James P (Jim)      HHHH" <James.Robinson3@Cigna.com>
+To: "unicorn-public@bogomips.org" <unicorn-public@bogomips.org>
+Subject: using pp without require 'pp' when $DEBUG = True
+Thread-Topic: using pp without require 'pp' when $DEBUG = True
+Thread-Index: AQHTXnXmN0abNFeeSUGlK9ye/1CZ0g==
+Date: Thu, 16 Nov 2017 00:57:41 +0000
+Message-ID: <D6324CB4.7BC3E%james.robinson3@cigna.com>
+Accept-Language: en-US
+Content-Language: en-US
+X-MS-Has-Attach: 
+X-MS-TNEF-Correlator: 
+user-agent: Microsoft-MacOutlook/14.7.7.170905
+x-ms-exchange-messagesentrepresentingtype: 1
+x-ms-exchange-transport-fromentityheader: Hosted
+Content-ID: <E9A1F8A8D30B3B4F97B98C1409B7EBC5@CIGNA.com>
+MIME-Version: 1.0
+X-CFilter-Loop: Reflected
+Content-Type: text/plain; charset="windows-1252"
+Content-Transfer-Encoding: quoted-printable
+X-Proofpoint-Virus-Version: vendor=fsecure engine=2.50.10432:,, definitions=2017-11-15_12:,,
+ signatures=0
+X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 priorityscore=1501 malwarescore=0
+ suspectscore=0 phishscore=0 bulkscore=0 spamscore=0 clxscore=1011
+ lowpriorityscore=0 impostorscore=0 adultscore=0 classifier=spam adjust=0
+ reason=mlx scancount=1 engine=8.0.1-1709140000 definitions=main-1711160008
+List-Id: <unicorn-public.bogomips.org>
+
+Hello, =
+
+ 	I am not usually a ruby developer, and I just recently stumbled across
+an odd bug, that only someone who  didn=B9t know what they were doing would
+stumble across.  I am honestly not sure if this really counts as a bug,
+but I thought I should let you know.
+
+unicorn/lib/unicorn.rb line 62 is:
+
+      pp({ :inner_app =3D> inner_app }) if $DEBUG
+
+Nowhere in the file is there require =8Cpp=B9
+
+This is not an issue if you run "unicorn -d config.ru=B2, but If you
+manually set $DEBUG =3D true,  which I foolishly did because I didn=B9t
+realize that $DEBUG was a special variable in ruby,  you get an undefined
+method error.   =
+
+
+
+I will be changing my code to use a different variable name, however I am
+not sure if there are valid reasons to manually set $DEBUG in ruby.  If
+there are, this may be an issue for others.
+
+I think the simplest solution would be to replace the line above with an
+if block:
+
+      if $DEBUG
+        require 'pp'
+        pp({ :inner_app =3D> inner_app })
+      end
+
+
+Similar blocks appear in unicorn/bin/unicorn and
+unicorn/bin/unicorn_rails. I am assuming the one in unicorn/bin/unicorn
+is the one that allows it to work when using the -d flag. If there really
+is never any reason to manually set $DEBUG I=B9m sorry I wasted your time.
+
+In any case, thank you for Unicorn!
+
+Jim Robinson
+
+---------------------------------------------------------------------------=
+---
+CONFIDENTIALITY NOTICE: If you have received this email in error,
+please immediately notify the sender by e-mail at the address shown. =
+
+This email transmission may contain confidential information.  This
+information is intended only for the use of the individual(s) or entity to
+whom it is intended even if addressed incorrectly.  Please delete it from
+your files if you are not the intended recipient.  Thank you for your
+compliance.  Copyright (c) 2017 Cigna
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+
