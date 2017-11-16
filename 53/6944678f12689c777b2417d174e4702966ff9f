@@ -1,0 +1,57 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.0
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id 71B8A201C8;
+	Thu, 16 Nov 2017 01:30:16 +0000 (UTC)
+Date: Thu, 16 Nov 2017 01:30:16 +0000
+From: Eric Wong <e@80x24.org>
+To: "Robinson Jr, James P (Jim)      HHHH" <James.Robinson3@Cigna.com>
+Cc: unicorn-public@bogomips.org
+Subject: Re: using pp without require 'pp' when $DEBUG = True
+Message-ID: <20171116013016.GA8948@starla>
+References: <D6324CB4.7BC3E%james.robinson3@cigna.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+Content-Transfer-Encoding: 8bit
+In-Reply-To: <D6324CB4.7BC3E%james.robinson3@cigna.com>
+List-Id: <unicorn-public.bogomips.org>
+
+"Robinson Jr, James P (Jim)      HHHH" <James.Robinson3@Cigna.com> wrote:
+> This is not an issue if you run "unicorn -d config.ru², but If you
+> manually set $DEBUG = true,  which I foolishly did because I didn¹t
+> realize that $DEBUG was a special variable in ruby,  you get an undefined
+> method error.   
+
+Right, thanks for the bug report.
+
+> I will be changing my code to use a different variable name, however I am
+> not sure if there are valid reasons to manually set $DEBUG in ruby.  If
+> there are, this may be an issue for others.
+
+Yes, $DEBUG is a special variable in Ruby, and documented in the
+ruby manpage; anybody is allowed to set it.
+
+> I think the simplest solution would be to replace the line above with an
+> if block:
+> 
+>       if $DEBUG
+>         require 'pp'
+>         pp({ :inner_app => inner_app })
+>       end
+
+Right, I'll prepare a patch tonight (gotta run out, soon) and
+probably make a bugfix release in the next day or two, for this.
+
+> Similar blocks appear in unicorn/bin/unicorn and
+> unicorn/bin/unicorn_rails. I am assuming the one in unicorn/bin/unicorn
+> is the one that allows it to work when using the -d flag. If there really
+> is never any reason to manually set $DEBUG I¹m sorry I wasted your time.
+> 
+> In any case, thank you for Unicorn!
+
+No problem!
