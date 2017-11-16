@@ -1,0 +1,49 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.0
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id 24216202A0;
+	Thu, 16 Nov 2017 21:09:50 +0000 (UTC)
+Date: Thu, 16 Nov 2017 21:09:50 +0000
+From: Eric Wong <e@80x24.org>
+To: "Robinson Jr, James P (Jim)      HHHH" <James.Robinson3@Cigna.com>
+Cc: unicorn-public@bogomips.org
+Subject: [PATCH] require 'pp' if $DEBUG is set by Rack app
+Message-ID: <20171116210949.GA11690@starla>
+References: <D6324CB4.7BC3E%james.robinson3@cigna.com>
+ <20171116013016.GA8948@starla>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <20171116013016.GA8948@starla>
+List-Id: <unicorn-public.bogomips.org>
+
+While "unicorn -d" requires 'pp' when setting $DEBUG, we did not
+account for (rare) Rack applications setting $DEBUG at load time.
+
+Thanks-to: James P (Jim) Robinson Jr <James.Robinson3@Cigna.com>
+---
+ lib/unicorn.rb | 5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
+
+diff --git a/lib/unicorn.rb b/lib/unicorn.rb
+index 4bd7bda..e7bc9ce 100644
+--- a/lib/unicorn.rb
++++ b/lib/unicorn.rb
+@@ -59,7 +59,10 @@ def self.builder(ru, op)
+         Object.const_get(File.basename(ru, '.rb').capitalize)
+       end
+ 
+-      pp({ :inner_app => inner_app }) if $DEBUG
++      if $DEBUG
++        require 'pp'
++        pp({ :inner_app => inner_app })
++      end
+ 
+       return inner_app if no_default_middleware
+ 
+-- 
+EW
