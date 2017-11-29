@@ -1,0 +1,170 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.0
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id A4EB420954;
+	Wed, 29 Nov 2017 01:03:58 +0000 (UTC)
+Date: Wed, 29 Nov 2017 01:03:58 +0000
+From: Eric Wong <e@80x24.org>
+To: Sam Saffron <sam.saffron@gmail.com>
+Cc: unicorn-public@bogomips.org
+Subject: Re: env reuse and hijack
+Message-ID: <20171129010358.GA22973@starla>
+References: <CAAtdryPG3nLuyo0jxfYW1YHu1Q+ZpkLkd4KdWC8vA46B5haZxw@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <CAAtdryPG3nLuyo0jxfYW1YHu1Q+ZpkLkd4KdWC8vA46B5haZxw@mail.gmail.com>
+List-Id: <unicorn-public.bogomips.org>
+
+Sam Saffron <sam.saffron@gmail.com> wrote:
+> I was reading through unicorn today and noticed that it uses
+> `HttpParser_clear` to clear up env between requests as opposed to
+> allocating a new `env` object.
+> 
+> This is generally fine, but if you hijack a request you may want to
+> still look at env after this is done leading to situations where you
+> are looking at the wrong env by the time you are dealing with the
+> hijacked request
+
+Right, unicorn has always reduced and avoided allocations by
+recycling and reusing objects.  Of course, rack.hijack was an
+afterthought.  (Zero-one-infinity design, and unicorn definitely
+favors "one" for most things)
+
+But obviously people use hijack nowadays with things like EM and
+multiple envs/sockets exist...
+
+> I guess I have 2 questions
+> 
+> 1. Should Rack specify that env must be "re-initialized" if for any
+> reason a request is hijacked?
+
+*shrug* probably?
+
+> 2. Should unicorn allow you to opt for env "recycle" via a rack key?
+
+As in, adding a unicorn-specific API/option?
+
+Then, no; (as usual) I don't want people writing unicorn-specific apps.
+
+> I don't really have the answers here, my simplest course of action is
+> simple to clone all the key/value pairs in env on to a new hash when I
+> hijack, but it feels wasteful.
+
+Right; allocating new things is wasteful either way; and you
+seem to end up writing unicorn-specific code to clone this,
+anyways...
+
+So, the allocation/replacement should probably happen
+transparently to users...
+
+Totally untested; but maybe the patch below works for you
+by replacing the buf and env objects in the hijacked cases.
+
+Can you try it and report back?  Thanks.
+
+diff --git a/ext/unicorn_http/unicorn_http.rl b/ext/unicorn_http/unicorn_http.rl
+index 357440b..283bfa2 100644
+--- a/ext/unicorn_http/unicorn_http.rl
++++ b/ext/unicorn_http/unicorn_http.rl
+@@ -26,6 +26,7 @@ void init_unicorn_httpdate(VALUE mark_ary);
+ #define UH_FL_HASHEADER 0x100
+ #define UH_FL_TO_CLEAR 0x200
+ #define UH_FL_RESSTART 0x400 /* for check_client_connection */
++#define UH_FL_HIJACK 0x800
+ 
+ /* all of these flags need to be set for keepalive to be supported */
+ #define UH_FL_KEEPALIVE (UH_FL_KAVERSION | UH_FL_REQEOF | UH_FL_HASHEADER)
+@@ -607,6 +608,10 @@ static VALUE HttpParser_clear(VALUE self)
+ {
+   struct http_parser *hp = data_get(self);
+ 
++  /* we can't safely reuse .buf and .env if hijacked */
++  if (HP_FL_TEST(hp, HIJACK))
++    return HttpParser_init(self);
++
+   http_parser_init(hp);
+   my_hash_clear(hp->env);
+ 
+@@ -813,6 +818,15 @@ static VALUE HttpParser_env(VALUE self)
+   return data_get(self)->env;
+ }
+ 
++static VALUE HttpParser_hijacked_bang(VALUE self)
++{
++  struct http_parser *hp = data_get(self);
++
++  HP_FL_SET(hp, HIJACK);
++
++  return self;
++}
++
+ /**
+  * call-seq:
+  *    parser.filter_body(dst, src) => nil/src
+@@ -947,6 +961,7 @@ void Init_unicorn_http(void)
+   rb_define_method(cHttpParser, "next?", HttpParser_next, 0);
+   rb_define_method(cHttpParser, "buf", HttpParser_buf, 0);
+   rb_define_method(cHttpParser, "env", HttpParser_env, 0);
++  rb_define_method(cHttpParser, "hijacked!", HttpParser_hijacked_bang, 0);
+   rb_define_method(cHttpParser, "response_start_sent=", HttpParser_rssset, 1);
+   rb_define_method(cHttpParser, "response_start_sent", HttpParser_rssget, 0);
+ 
+diff --git a/lib/unicorn/http_request.rb b/lib/unicorn/http_request.rb
+index f83a566..d713b19 100644
+--- a/lib/unicorn/http_request.rb
++++ b/lib/unicorn/http_request.rb
+@@ -98,6 +98,7 @@ def read(socket)
+   # for rack.hijack, we respond to this method so no extra allocation
+   # of a proc object
+   def call
++    hijacked!
+     env['rack.hijack_io'] = env['unicorn.socket']
+   end
+ 
+diff --git a/lib/unicorn/http_response.rb b/lib/unicorn/http_response.rb
+index ec128e4..b23e521 100644
+--- a/lib/unicorn/http_response.rb
++++ b/lib/unicorn/http_response.rb
+@@ -21,13 +21,13 @@ def err_response(code, response_start_sent)
+ 
+   # writes the rack_response to socket as an HTTP response
+   def http_response_write(socket, status, headers, body,
+-                          response_start_sent=false)
++                          req = Unicorn::HttpRequest.new)
+     hijack = nil
+ 
+     if headers
+       code = status.to_i
+       msg = STATUS_CODES[code]
+-      start = response_start_sent ? ''.freeze : 'HTTP/1.1 '.freeze
++      start = req.response_start_sent ? ''.freeze : 'HTTP/1.1 '.freeze
+       buf = "#{start}#{msg ? %Q(#{code} #{msg}) : status}\r\n" \
+             "Date: #{httpdate}\r\n" \
+             "Connection: close\r\n"
+@@ -52,6 +52,7 @@ def http_response_write(socket, status, headers, body,
+     end
+ 
+     if hijack
++      req.hijacked!
+       hijack.call(socket)
+     else
+       body.each { |chunk| socket.write(chunk) }
+diff --git a/lib/unicorn/http_server.rb b/lib/unicorn/http_server.rb
+index f33aa25..8674729 100644
+--- a/lib/unicorn/http_server.rb
++++ b/lib/unicorn/http_server.rb
+@@ -614,8 +614,7 @@ def process_client(client)
+         return if @request.hijacked?
+       end
+       @request.headers? or headers = nil
+-      http_response_write(client, status, headers, body,
+-                          @request.response_start_sent)
++      http_response_write(client, status, headers, body, @request)
+     ensure
+       body.respond_to?(:close) and body.close
+     end
