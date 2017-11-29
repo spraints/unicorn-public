@@ -1,0 +1,68 @@
+Return-Path: <sam.saffron@gmail.com>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS3215 2.6.0.0/16
+X-Spam-Status: No, score=-3.1 required=3.0 tests=BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,DKIM_VALID_AU,FREEMAIL_FROM,RCVD_IN_DNSWL_NONE,SPF_PASS
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.0
+Received: from mail-ot0-x22a.google.com (mail-ot0-x22a.google.com [IPv6:2607:f8b0:4003:c0f::22a])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+	(No client certificate requested)
+	by dcvr.yhbt.net (Postfix) with ESMTPS id 1EE8620954
+	for <unicorn-public@bogomips.org>; Wed, 29 Nov 2017 00:13:59 +0000 (UTC)
+Received: by mail-ot0-x22a.google.com with SMTP id i1so1550552oth.9
+        for <unicorn-public@bogomips.org>; Tue, 28 Nov 2017 16:13:59 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20161025;
+        h=mime-version:from:date:message-id:subject:to;
+        bh=/Oenh2CDPGc2IAkPQkaoM9AOiLxmCswO9bQDHM7kDpU=;
+        b=mhzLnX6wkbD8U2F/U5Rx02D2t63NoAeccLMXm9DBD5MfgFQKRCUYClOkm6j+kBk8cG
+         nnG76hML52CNmv18+aNMt2QZPoZckpEc6Tm46QSrHdCYKtAHH5z5ZqnDjzdqJKc86JV0
+         d3UHlQ0Lz0oBZfgoFtkM16F9BHgBxDEfFMFPusMExnBfOS1S4zWTsWqLaiycH4Vjo58K
+         /ytp2yjEko2IUdCxc+F0JZwEH8V3F4DWnJljVVo1/IaPkcM4utVxTjQUy08GPsc3lvSw
+         TEyB9PBS0/1nOO02sdARiJ4CrTF+BYEV0cnoZDEqQXeXq3OO92eZJ9w6Yr0BOvo9QHJI
+         yNFw==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20161025;
+        h=x-gm-message-state:mime-version:from:date:message-id:subject:to;
+        bh=/Oenh2CDPGc2IAkPQkaoM9AOiLxmCswO9bQDHM7kDpU=;
+        b=kYoPcvzmvWEVxowtV2Yo9ftJcmmvgHpT4qxEYW8V0rVQV7mKdharUsK1u/McMbv0bN
+         yDxdYxAwg3LnQkDTQfSFI2f9sXUyEIWAsYNhrSHOKvUqqAq1NJL/FLXweS5OkQORExc5
+         WYbPgb7NNVP54/jpDdE9c5JvtpXbpVLwm/QTYvZf2N3Nln/eNinIdfKpKbOcKB7CYD4Z
+         eEoKp05ja2MkvxX0bDzUHmMrNxfzvZNaJL6Nv8Z7EIy9uz1n4Plt1iEMNXQRvepwGywn
+         6aMQZ9mNZyNQe55xxp0gzupaSSO23y6Osh1NjcFotmfuHmr5Jv9rOjYcbnpzRAZojgBN
+         tj1g==
+X-Gm-Message-State: AJaThX676N+7xBz7z1fZVoRyopOss9pGjdMlGDYpSWhzKCnBWCTbZ+JE
+	L7Kk9JZkMwvqg3UY7MxZRjwehX1kLNEHj7vat1lePg==
+X-Google-Smtp-Source: AGs4zMbSjzWH3BW8mbvMaqneM69xXXYxIW5NqNvNUKLvchZO7UcX3YWHh3xUYpdeAxCZ/CoKarDEykcaROu59fZuwB0=
+X-Received: by 10.157.43.244 with SMTP id u107mr844677ota.121.1511914437719;
+ Tue, 28 Nov 2017 16:13:57 -0800 (PST)
+MIME-Version: 1.0
+Received: by 10.74.60.1 with HTTP; Tue, 28 Nov 2017 16:13:57 -0800 (PST)
+From: Sam Saffron <sam.saffron@gmail.com>
+Date: Wed, 29 Nov 2017 11:13:57 +1100
+Message-ID: <CAAtdryPG3nLuyo0jxfYW1YHu1Q+ZpkLkd4KdWC8vA46B5haZxw@mail.gmail.com>
+Subject: env reuse and hijack
+To: unicorn-public <unicorn-public@bogomips.org>
+Content-Type: text/plain; charset="UTF-8"
+List-Id: <unicorn-public.bogomips.org>
+
+I was reading through unicorn today and noticed that it uses
+`HttpParser_clear` to clear up env between requests as opposed to
+allocating a new `env` object.
+
+This is generally fine, but if you hijack a request you may want to
+still look at env after this is done leading to situations where you
+are looking at the wrong env by the time you are dealing with the
+hijacked request
+
+I guess I have 2 questions
+
+1. Should Rack specify that env must be "re-initialized" if for any
+reason a request is hijacked?
+
+2. Should unicorn allow you to opt for env "recycle" via a rack key?
+
+I don't really have the answers here, my simplest course of action is
+simple to clone all the key/value pairs in env on to a new hash when I
+hijack, but it feels wasteful.
