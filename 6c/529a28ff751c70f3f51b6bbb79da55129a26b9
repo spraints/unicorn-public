@@ -1,0 +1,71 @@
+Return-Path: <sam.saffron@gmail.com>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS3215 2.6.0.0/16
+X-Spam-Status: No, score=-3.1 required=3.0 tests=BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,DKIM_VALID_AU,FREEMAIL_FROM,RCVD_IN_DNSWL_NONE,SPF_PASS
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.0
+Received: from mail-ot0-x236.google.com (mail-ot0-x236.google.com [IPv6:2607:f8b0:4003:c0f::236])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+	(No client certificate requested)
+	by dcvr.yhbt.net (Postfix) with ESMTPS id 89E4C20954
+	for <unicorn-public@bogomips.org>; Mon,  4 Dec 2017 23:42:38 +0000 (UTC)
+Received: by mail-ot0-x236.google.com with SMTP id e74so16341926ote.7
+        for <unicorn-public@bogomips.org>; Mon, 04 Dec 2017 15:42:38 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20161025;
+        h=mime-version:from:date:message-id:subject:to;
+        bh=/m3dS3oe/mDe1HlDooRcjZjLug0w33NF1QKplRkQ1Os=;
+        b=FTfku7M1tue+EjtRVAcfXuTy00Fyp26jukQQ0InncWpCo3/IeJuTBT3z6nEz5cgqPf
+         FB94xtja3wkNeBlmDQn046+TnLS7HvU0vIcDpEWX+HBrjtv8+cYZWJD97BF6MN2w7Gwn
+         /K1VcPOslyBEddhnubtMBj6TCYcy7deSEQmayslNfi2f1qITRALEz+bVpnlVXa69mdDI
+         l/q/2zAv1Yr31BmLwKEq1IJnThRhI9ntm5BkNEY5f2v8Dk96xdkynjN6LWkCxxRvqxFQ
+         NHwVzIl5RxkkASlyb8k0+lf8dM483gHC1dyDyTHtcSe0m2PonjIUo1bZxrojXiV5xEUc
+         LtKQ==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20161025;
+        h=x-gm-message-state:mime-version:from:date:message-id:subject:to;
+        bh=/m3dS3oe/mDe1HlDooRcjZjLug0w33NF1QKplRkQ1Os=;
+        b=UMGc8Wb4N2rb9O/gX1PRbtWLWQFCX9G+LrMEhOaXOweq+nPdNDvyYhh7wEpfwQtvwU
+         Z5TMeRQJ0RJQO99g+0RPKmdzBW/84I/DOUFgk9U+CxPI6d+K31rI7jjUL/Rq8OBZrUD9
+         ApUvzPUnp7122s930mrqnUyKp760/QjEWAXzAbByOSUkEaquJ/+n32NRdkIIlm+D1+g3
+         voEui8riO7h2Z+tHH+2qmUBogzjHJkpMlOtPtmsJ3RPTmKUoWePtv4IIGFrjg1rYKZtl
+         n7rkfbhhqS4t0fAds/lhYmNfPY5fPESkmFXnYaAnVJ9efZLATbnkoYjOw69nJOBWr1gg
+         G2Lg==
+X-Gm-Message-State: AJaThX6qE+CaaI4k3lF5uCQy09doEXjvQ8iY02GFkzEEm2CxDdii1A30
+	5RI6Dnb0G0GdMXX7S8ymTffgYNL02LubLQOJuqmicw==
+X-Google-Smtp-Source: AGs4zMZhn1786dZZ8NI/KQN34av6ak8kv44KZB159aI4lQ4kaoE/w8knRKEDFEdMVmD99hhuOvbq/y/9J8KhEq7Bw7U=
+X-Received: by 10.157.48.71 with SMTP id w7mr18857574otd.353.1512430957133;
+ Mon, 04 Dec 2017 15:42:37 -0800 (PST)
+MIME-Version: 1.0
+Received: by 10.74.60.1 with HTTP; Mon, 4 Dec 2017 15:42:36 -0800 (PST)
+From: Sam Saffron <sam.saffron@gmail.com>
+Date: Tue, 5 Dec 2017 10:42:36 +1100
+Message-ID: <CAAtdryPUp3hSvrCCqOfs9B-DVsXnJdR=eKED8RzX5Duy5YXBCA@mail.gmail.com>
+Subject: Auto scaling workers with unicorn
+To: unicorn-public <unicorn-public@bogomips.org>
+Content-Type: text/plain; charset="UTF-8"
+List-Id: <unicorn-public.bogomips.org>
+
+I would like to amend Discourse so we "automatically" absorb certain
+traffic spikes. As it stands we can only configure unicorn with
+num_workers and use TTIN and TTOUT to tune the number on the fly.
+
+I was wondering if you would be open to patching unicorn to allow it
+to perform auto-tuning based on raindrops info.
+
+How it could work
+
+1. configure unicorn with min_workers, max_workers, wince_delay, scale_up_delay
+
+2. If queued requests is over 0 for N samples over scale_up_delay, add
+a worker up until max_workers
+
+3. If queued requests is 0 for N samples over wince_delay scale down
+until you reach min workers
+
+Having this system in place can heavily optimize memory in large
+deployments and simplifies provisioning logic quite a lot.
+
+Wondering what you think about this and if you think unicorn should
+provide this option?
