@@ -1,0 +1,79 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.0
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id 7558820954;
+	Tue,  5 Dec 2017 01:51:58 +0000 (UTC)
+Date: Tue, 5 Dec 2017 01:51:58 +0000
+From: Eric Wong <e@80x24.org>
+To: Sam Saffron <sam.saffron@gmail.com>
+Cc: unicorn-public@bogomips.org
+Subject: Re: Auto scaling workers with unicorn
+Message-ID: <20171205015158.GA2540@starla>
+References: <CAAtdryPUp3hSvrCCqOfs9B-DVsXnJdR=eKED8RzX5Duy5YXBCA@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <CAAtdryPUp3hSvrCCqOfs9B-DVsXnJdR=eKED8RzX5Duy5YXBCA@mail.gmail.com>
+List-Id: <unicorn-public.bogomips.org>
+
+Sam Saffron <sam.saffron@gmail.com> wrote:
+> I would like to amend Discourse so we "automatically" absorb certain
+> traffic spikes. As it stands we can only configure unicorn with
+> num_workers and use TTIN and TTOUT to tune the number on the fly.
+> 
+> I was wondering if you would be open to patching unicorn to allow it
+> to perform auto-tuning based on raindrops info.
+
+I'm no fan of this or auto-tuning systems in general.
+More explanation below.
+
+> How it could work
+> 
+> 1. configure unicorn with min_workers, max_workers, wince_delay, scale_up_delay
+> 
+> 2. If queued requests is over 0 for N samples over scale_up_delay, add
+> a worker up until max_workers
+> 
+> 3. If queued requests is 0 for N samples over wince_delay scale down
+> until you reach min workers
+
+This adds more complexity to configuration: increasing the
+likelyhood of getting these numbers completely wrong.  GC and
+malloc tuning is tricky and error-prone enough, already.
+
+Mainly, this tends to hide problems for later; instead of
+forcing you to deal with your resource limitations up front.
+
+It becomes more difficult to forsee resource limitations down
+the line.  Before I worked on unicorn, I've seen auto-scaling
+Apache workers mistuned far too often and running out of DB
+connections or memory; and that happens at the worst time:
+when your site is under heavy load (when you have the most to
+lose (or gain)).
+
+> Having this system in place can heavily optimize memory in large
+> deployments and simplifies provisioning logic quite a lot.
+
+My philosophy remains to tune for the worst case possible.
+
+If you really need to do something like run an expensive
+off-peak cronjob, maybe have it TTIN at the beginning and TTOU
+again at the end.
+
+Fwiw, the most useful thing I've found TTIN/TTOU for is cutting
+down to one worker so I know which one to strace when tracking
+down a problem; not auto-scaling.
+
+> Wondering what you think about this and if you think unicorn should
+> provide this option?
+
+Fwiw, my position has been consistent on this throughout the years.
+
+Also, digging through the archives, Ben Somers came up with
+alicorn a while back and it might be up your alley:
+
+https://bogomips.org/unicorn-public/CAO1NZApo0TLJY2KgSg+Fjt1jEcuPfq=UCC0SCvvnuGDnr39w8w@mail.gmail.com/
