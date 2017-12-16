@@ -1,0 +1,245 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.0
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id 86E021F428;
+	Sat, 16 Dec 2017 01:49:09 +0000 (UTC)
+Date: Sat, 16 Dec 2017 01:49:09 +0000
+From: Eric Wong <e@80x24.org>
+To: Sam Saffron <sam.saffron@gmail.com>
+Cc: unicorn-public@bogomips.org
+Subject: [PATCH] avoid reusing env on hijack
+Message-ID: <20171216014909.GA13578@starla>
+References: <CAAtdryPG3nLuyo0jxfYW1YHu1Q+ZpkLkd4KdWC8vA46B5haZxw@mail.gmail.com>
+ <20171129010358.GA22973@starla>
+ <20171205015305.GA16557@whir>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <20171205015305.GA16557@whir>
+List-Id: <unicorn-public.bogomips.org>
+
+Eric Wong <e@80x24.org> wrote:
+> Btw, did you get a chance to look at my patch? (I haven't :x)
+
+Thanks for testing (privately confirmed).
+
+I've added a test case and pushed the following out to unicorn.git
+
+https://bogomips.org/unicorn.git/patch?id=30e3c6abe542c6a9f5955e1d65896a0c3bab534f
+
+I think we're due for a release soonish, especially with Ruby 2.5
+around the corner...
+
+--------8<--------
+Subject: [PATCH] avoid reusing env on hijack
+
+Hijackers may capture and reuse `env' indefinitely, so we must
+not use it in those cases for future requests.  For non-hijack
+requests, we continue to reuse the `env' object to reduce
+memory recycling.
+
+Reported-and-tested-by: Sam Saffron <sam.saffron@gmail.com>
+---
+ ext/unicorn_http/unicorn_http.rl | 15 +++++++++++++++
+ lib/unicorn/http_request.rb      |  1 +
+ lib/unicorn/http_response.rb     |  5 +++--
+ lib/unicorn/http_server.rb       |  3 +--
+ t/hijack.ru                      | 12 ++++++++++++
+ t/t0200-rack-hijack.sh           | 23 ++++++++++++++++++++++-
+ 6 files changed, 54 insertions(+), 5 deletions(-)
+
+diff --git a/ext/unicorn_http/unicorn_http.rl b/ext/unicorn_http/unicorn_http.rl
+index 357440b..283bfa2 100644
+--- a/ext/unicorn_http/unicorn_http.rl
++++ b/ext/unicorn_http/unicorn_http.rl
+@@ -26,6 +26,7 @@ void init_unicorn_httpdate(VALUE mark_ary);
+ #define UH_FL_HASHEADER 0x100
+ #define UH_FL_TO_CLEAR 0x200
+ #define UH_FL_RESSTART 0x400 /* for check_client_connection */
++#define UH_FL_HIJACK 0x800
+ 
+ /* all of these flags need to be set for keepalive to be supported */
+ #define UH_FL_KEEPALIVE (UH_FL_KAVERSION | UH_FL_REQEOF | UH_FL_HASHEADER)
+@@ -607,6 +608,10 @@ static VALUE HttpParser_clear(VALUE self)
+ {
+   struct http_parser *hp = data_get(self);
+ 
++  /* we can't safely reuse .buf and .env if hijacked */
++  if (HP_FL_TEST(hp, HIJACK))
++    return HttpParser_init(self);
++
+   http_parser_init(hp);
+   my_hash_clear(hp->env);
+ 
+@@ -813,6 +818,15 @@ static VALUE HttpParser_env(VALUE self)
+   return data_get(self)->env;
+ }
+ 
++static VALUE HttpParser_hijacked_bang(VALUE self)
++{
++  struct http_parser *hp = data_get(self);
++
++  HP_FL_SET(hp, HIJACK);
++
++  return self;
++}
++
+ /**
+  * call-seq:
+  *    parser.filter_body(dst, src) => nil/src
+@@ -947,6 +961,7 @@ void Init_unicorn_http(void)
+   rb_define_method(cHttpParser, "next?", HttpParser_next, 0);
+   rb_define_method(cHttpParser, "buf", HttpParser_buf, 0);
+   rb_define_method(cHttpParser, "env", HttpParser_env, 0);
++  rb_define_method(cHttpParser, "hijacked!", HttpParser_hijacked_bang, 0);
+   rb_define_method(cHttpParser, "response_start_sent=", HttpParser_rssset, 1);
+   rb_define_method(cHttpParser, "response_start_sent", HttpParser_rssget, 0);
+ 
+diff --git a/lib/unicorn/http_request.rb b/lib/unicorn/http_request.rb
+index f83a566..d713b19 100644
+--- a/lib/unicorn/http_request.rb
++++ b/lib/unicorn/http_request.rb
+@@ -98,6 +98,7 @@ def read(socket)
+   # for rack.hijack, we respond to this method so no extra allocation
+   # of a proc object
+   def call
++    hijacked!
+     env['rack.hijack_io'] = env['unicorn.socket']
+   end
+ 
+diff --git a/lib/unicorn/http_response.rb b/lib/unicorn/http_response.rb
+index ec128e4..b23e521 100644
+--- a/lib/unicorn/http_response.rb
++++ b/lib/unicorn/http_response.rb
+@@ -21,13 +21,13 @@ def err_response(code, response_start_sent)
+ 
+   # writes the rack_response to socket as an HTTP response
+   def http_response_write(socket, status, headers, body,
+-                          response_start_sent=false)
++                          req = Unicorn::HttpRequest.new)
+     hijack = nil
+ 
+     if headers
+       code = status.to_i
+       msg = STATUS_CODES[code]
+-      start = response_start_sent ? ''.freeze : 'HTTP/1.1 '.freeze
++      start = req.response_start_sent ? ''.freeze : 'HTTP/1.1 '.freeze
+       buf = "#{start}#{msg ? %Q(#{code} #{msg}) : status}\r\n" \
+             "Date: #{httpdate}\r\n" \
+             "Connection: close\r\n"
+@@ -52,6 +52,7 @@ def http_response_write(socket, status, headers, body,
+     end
+ 
+     if hijack
++      req.hijacked!
+       hijack.call(socket)
+     else
+       body.each { |chunk| socket.write(chunk) }
+diff --git a/lib/unicorn/http_server.rb b/lib/unicorn/http_server.rb
+index f33aa25..8674729 100644
+--- a/lib/unicorn/http_server.rb
++++ b/lib/unicorn/http_server.rb
+@@ -614,8 +614,7 @@ def process_client(client)
+         return if @request.hijacked?
+       end
+       @request.headers? or headers = nil
+-      http_response_write(client, status, headers, body,
+-                          @request.response_start_sent)
++      http_response_write(client, status, headers, body, @request)
+     ensure
+       body.respond_to?(:close) and body.close
+     end
+diff --git a/t/hijack.ru b/t/hijack.ru
+index 4adec61..02260e2 100644
+--- a/t/hijack.ru
++++ b/t/hijack.ru
+@@ -11,11 +11,15 @@ def close
+     warn "closed DieIfUsed #{@@n += 1}\n"
+   end
+ end
++
++envs = []
++
+ run lambda { |env|
+   case env["PATH_INFO"]
+   when "/hijack_req"
+     if env["rack.hijack?"]
+       io = env["rack.hijack"].call
++      envs << env
+       if io.respond_to?(:read_nonblock) &&
+          env["rack.hijack_io"].respond_to?(:read_nonblock)
+ 
+@@ -33,11 +37,19 @@ def close
+       {
+         "Content-Length" => r.bytesize.to_s,
+         "rack.hijack" => proc do |io|
++          envs << env
+           io.write(r)
+           io.close
+         end
+       },
+       DieIfUsed.new
+     ]
++  when "/normal_env_id"
++    b = "#{env.object_id}\n"
++    h = {
++      'Content-Type' => 'text/plain',
++      'Content-Length' => b.bytesize.to_s,
++    }
++    [ 200, h, [ b ] ]
+   end
+ }
+diff --git a/t/t0200-rack-hijack.sh b/t/t0200-rack-hijack.sh
+index de3eb82..fee0791 100755
+--- a/t/t0200-rack-hijack.sh
++++ b/t/t0200-rack-hijack.sh
+@@ -1,6 +1,6 @@
+ #!/bin/sh
+ . ./test-lib.sh
+-t_plan 5 "rack.hijack tests (Rack 1.5+ (Rack::VERSION >= [ 1,2]))"
++t_plan 9 "rack.hijack tests (Rack 1.5+ (Rack::VERSION >= [ 1,2]))"
+ 
+ t_begin "setup and start" && {
+ 	unicorn_setup
+@@ -8,14 +8,35 @@ t_begin "setup and start" && {
+ 	unicorn_wait_start
+ }
+ 
++t_begin "normal env reused between requests" && {
++	env_a="$(curl -sSf http://$listen/normal_env_id)"
++	b="$(curl -sSf http://$listen/normal_env_id)"
++	test x"$env_a" = x"$b"
++}
++
+ t_begin "check request hijack" && {
+ 	test "xrequest.hijacked" = x"$(curl -sSfv http://$listen/hijack_req)"
+ }
+ 
++t_begin "env changed after request hijack" && {
++	env_b="$(curl -sSf http://$listen/normal_env_id)"
++	test x"$env_a" != x"$env_b"
++}
++
+ t_begin "check response hijack" && {
+ 	test "xresponse.hijacked" = x"$(curl -sSfv http://$listen/hijack_res)"
+ }
+ 
++t_begin "env changed after response hijack" && {
++	env_c="$(curl -sSf http://$listen/normal_env_id)"
++	test x"$env_b" != x"$env_c"
++}
++
++t_begin "env continues to be reused between requests" && {
++	b="$(curl -sSf http://$listen/normal_env_id)"
++	test x"$env_c" = x"$b"
++}
++
+ t_begin "killing succeeds after hijack" && {
+ 	kill $unicorn_pid
+ }
+-- 
+EW
