@@ -1,0 +1,151 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.0
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id 68EC01F424;
+	Fri, 22 Dec 2017 03:17:06 +0000 (UTC)
+Date: Fri, 22 Dec 2017 03:17:06 +0000
+From: Eric Wong <e@80x24.org>
+To: unicorn-public@bogomips.org
+Subject: [PATCH] tests: cleanup some unused variable warnings
+Message-ID: <20171222031706.d2ffuvzn6wnthbj2@untitled>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+List-Id: <unicorn-public.bogomips.org>
+
+Add a new "check-warnings" target to the GNUmakefile to make
+checking for this easier.  Warnings aren't fatal, and newer
+versions of Ruby tend to increase warnings.
+---
+ GNUmakefile               |  5 +++++
+ test/unit/test_droplet.rb |  2 +-
+ test/unit/test_request.rb | 20 ++++++++++----------
+ 3 files changed, 16 insertions(+), 11 deletions(-)
+
+diff --git a/GNUmakefile b/GNUmakefile
+index 51045d4..2505e1f 100644
+--- a/GNUmakefile
++++ b/GNUmakefile
+@@ -249,5 +249,10 @@ endif
+ $(PLACEHOLDERS):
+ 	echo olddoc_placeholder > $@
+ 
++check-warnings:
++	@(for i in $$(git ls-files '*.rb' bin | grep -v '^setup\.rb$$'); \
++	  do $(RUBY) --disable-gems -d -W2 -c \
++	  $$i; done) | grep -v '^Syntax OK$$' || :
++
+ .PHONY: .FORCE-GIT-VERSION-FILE doc $(T) $(slow_tests) man
+ .PHONY: test-install
+diff --git a/test/unit/test_droplet.rb b/test/unit/test_droplet.rb
+index 73cf38c..81ad82b 100644
+--- a/test/unit/test_droplet.rb
++++ b/test/unit/test_droplet.rb
+@@ -4,7 +4,7 @@
+ class TestDroplet < Test::Unit::TestCase
+   def test_create_many_droplets
+     now = Time.now.to_i
+-    tmp = (0..1024).map do |i|
++    (0..1024).each do |i|
+       droplet = Unicorn::Worker.new(i)
+       assert droplet.respond_to?(:tick)
+       assert_equal 0, droplet.tick
+diff --git a/test/unit/test_request.rb b/test/unit/test_request.rb
+index f0ccaf7..6cb0268 100644
+--- a/test/unit/test_request.rb
++++ b/test/unit/test_request.rb
+@@ -34,7 +34,7 @@ def test_options
+     assert_equal '', env['REQUEST_PATH']
+     assert_equal '', env['PATH_INFO']
+     assert_equal '*', env['REQUEST_URI']
+-    res = @lint.call(env)
++    assert_kind_of Array, @lint.call(env)
+   end
+ 
+   def test_absolute_uri_with_query
+@@ -44,7 +44,7 @@ def test_absolute_uri_with_query
+     assert_equal '/x', env['REQUEST_PATH']
+     assert_equal '/x', env['PATH_INFO']
+     assert_equal 'y=z', env['QUERY_STRING']
+-    res = @lint.call(env)
++    assert_kind_of Array, @lint.call(env)
+   end
+ 
+   def test_absolute_uri_with_fragment
+@@ -55,7 +55,7 @@ def test_absolute_uri_with_fragment
+     assert_equal '/x', env['PATH_INFO']
+     assert_equal '', env['QUERY_STRING']
+     assert_equal 'frag', env['FRAGMENT']
+-    res = @lint.call(env)
++    assert_kind_of Array, @lint.call(env)
+   end
+ 
+   def test_absolute_uri_with_query_and_fragment
+@@ -66,7 +66,7 @@ def test_absolute_uri_with_query_and_fragment
+     assert_equal '/x', env['PATH_INFO']
+     assert_equal 'a=b', env['QUERY_STRING']
+     assert_equal 'frag', env['FRAGMENT']
+-    res = @lint.call(env)
++    assert_kind_of Array, @lint.call(env)
+   end
+ 
+   def test_absolute_uri_unsupported_schemes
+@@ -83,7 +83,7 @@ def test_x_forwarded_proto_https
+                              "Host: foo\r\n\r\n")
+     env = @request.read(client)
+     assert_equal "https", env['rack.url_scheme']
+-    res = @lint.call(env)
++    assert_kind_of Array, @lint.call(env)
+   end
+ 
+   def test_x_forwarded_proto_http
+@@ -92,7 +92,7 @@ def test_x_forwarded_proto_http
+                              "Host: foo\r\n\r\n")
+     env = @request.read(client)
+     assert_equal "http", env['rack.url_scheme']
+-    res = @lint.call(env)
++    assert_kind_of Array, @lint.call(env)
+   end
+ 
+   def test_x_forwarded_proto_invalid
+@@ -101,7 +101,7 @@ def test_x_forwarded_proto_invalid
+                              "Host: foo\r\n\r\n")
+     env = @request.read(client)
+     assert_equal "http", env['rack.url_scheme']
+-    res = @lint.call(env)
++    assert_kind_of Array, @lint.call(env)
+   end
+ 
+   def test_rack_lint_get
+@@ -109,7 +109,7 @@ def test_rack_lint_get
+     env = @request.read(client)
+     assert_equal "http", env['rack.url_scheme']
+     assert_equal '127.0.0.1', env['REMOTE_ADDR']
+-    res = @lint.call(env)
++    assert_kind_of Array, @lint.call(env)
+   end
+ 
+   def test_no_content_stringio
+@@ -143,7 +143,7 @@ def test_rack_lint_put
+       "abcde")
+     env = @request.read(client)
+     assert ! env.include?(:http_body)
+-    res = @lint.call(env)
++    assert_kind_of Array, @lint.call(env)
+   end
+ 
+   def test_rack_lint_big_put
+@@ -177,6 +177,6 @@ def client.kgio_read!(*args)
+     }
+     assert_nil env['rack.input'].read(bs)
+     env['rack.input'].rewind
+-    res = @lint.call(env)
++    assert_kind_of Array, @lint.call(env)
+   end
+ end
+-- 
+EW
