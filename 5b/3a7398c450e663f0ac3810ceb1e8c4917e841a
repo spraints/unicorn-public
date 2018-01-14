@@ -1,0 +1,60 @@
+Return-Path: <sam.saffron@gmail.com>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS3215 2.6.0.0/16
+X-Spam-Status: No, score=-3.5 required=3.0 tests=AWL,BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,DKIM_VALID_AU,FREEMAIL_FROM,RCVD_IN_DNSWL_LOW,SPF_PASS
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.0
+Received: from mail-oi0-x230.google.com (mail-oi0-x230.google.com [IPv6:2607:f8b0:4003:c06::230])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+	(No client certificate requested)
+	by dcvr.yhbt.net (Postfix) with ESMTPS id 7DFD31FADF
+	for <unicorn-public@bogomips.org>; Sun, 14 Jan 2018 23:27:19 +0000 (UTC)
+Received: by mail-oi0-x230.google.com with SMTP id g128so7195729oib.11
+        for <unicorn-public@bogomips.org>; Sun, 14 Jan 2018 15:27:19 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20161025;
+        h=mime-version:from:date:message-id:subject:to;
+        bh=tWbT+Wj+ItoFluAWBbxM2dGY2kgChLVL/dEcCLvRwsg=;
+        b=poe4A6ZN4EmAcgM+MO5OuXnPOMp3VsuXdPMD3LQh+10zDNU/mV9bPuMt9eXFFUlntL
+         46fvVYcx7bxistkqwbnD/8w/sNM/ynnqJgPGW3HikabwneLD1xsdLNgx1zVGdH3BsC66
+         BWx8T72OFfIIZEaL5xabJXmt1nfUarhr3OaBScWQtH3fQKS8VlShJXBU2rEABTO2lDGt
+         Bt+DrFS3dgT8wtI7a3RNaxca7fbYSJ/RFO+xFRixlbDZQPbQBHGeFC5mz4a3AM/m3bHe
+         Z7BHaUlxKP4aKU63swEJNLlxv3AGuIrc22BJhMXHI6OzUGQ/ZCpK+4EXh4AucGg2uLdr
+         5RDA==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20161025;
+        h=x-gm-message-state:mime-version:from:date:message-id:subject:to;
+        bh=tWbT+Wj+ItoFluAWBbxM2dGY2kgChLVL/dEcCLvRwsg=;
+        b=tIPRymcnTuKY9wW0TBYRQ7tAqUGBXkGKMEbMy2Bu45sZq73HvyKzbIO8OC4J2Z6b6B
+         Vx46fDvwL0zjaZM26TjV3fYWy9Z3QZ9OQvV42LHlobZdSH9qEpjEoDh6TJcbfM007FkX
+         OTL/VfVOFZh/gSbK/UnvM07RQZSInBjP8ZvOwo/TLdZzHp74lKIE5z1etxXaAzKmpNPA
+         3S4e25gx0meW8VZkjW9op4SKkp+rpwfARZ463ftzrgG8p/ynJp9tB5n888G7BXqK1k+t
+         AIdRi4CMLl0X9LL8ZkXDrCz3aKtifCR0J6TJ84p1Jc0+fPe3GdWF8A/pa5DT6z/aPXFx
+         kIiw==
+X-Gm-Message-State: AKwxytdpaaDezCXcz61KhyaE6Eu2Sl+HZgnJEzlh07WXmPjYW7mE3T1N
+	V3VKJa2wEciSbwTQcJ56XDpZkwXGHi9t88+N6iw84Q==
+X-Google-Smtp-Source: ACJfBos8/H0D0nCDQ0c69cTZH2oNk1hjSJjuBsKEOp6vRlua84rz7s86OOK+N8lbfJsRtwskbOY0SUghBM9NGZWqfIk=
+X-Received: by 10.202.81.133 with SMTP id f127mr9422038oib.134.1515972437818;
+ Sun, 14 Jan 2018 15:27:17 -0800 (PST)
+MIME-Version: 1.0
+Received: by 10.74.121.78 with HTTP; Sun, 14 Jan 2018 15:27:17 -0800 (PST)
+From: Sam Saffron <sam.saffron@gmail.com>
+Date: Mon, 15 Jan 2018 10:27:17 +1100
+Message-ID: <CAAtdryM9pRQwE+hkSgMckRxhCXTxKOAxn+3ejZkZwaGaNk7vWg@mail.gmail.com>
+Subject: Log URL with murder_lazy_workers
+To: unicorn-public <unicorn-public@bogomips.org>
+Content-Type: text/plain; charset="UTF-8"
+List-Id: <unicorn-public.bogomips.org>
+
+I would love to start logging the actual URL that timed out when
+murder_lazy_workers does its thing.
+
+Clearly the master process has no knowledge here, but perhaps if we
+had a named pipe from each child to master we could quickly post
+current url down the pipe so we would have something to log when we
+murder a url.
+
+Clearly an opt-in thing, but would be very handy for quick diagnostics
+cause we can then avoid deeper log analysis and raise events just as
+this happens.
