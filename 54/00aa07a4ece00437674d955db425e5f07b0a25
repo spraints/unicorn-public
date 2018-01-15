@@ -1,0 +1,79 @@
+Return-Path: <cbrasic@gmail.com>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS3215 2.6.0.0/16
+X-Spam-Status: No, score=-3.3 required=3.0 tests=AWL,BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,DKIM_VALID_AU,FREEMAIL_FROM,MISSING_HEADERS,RCVD_IN_DNSWL_LOW,
+	SPF_PASS shortcircuit=no autolearn=no autolearn_force=no version=3.4.0
+Received: from mail-io0-x22e.google.com (mail-io0-x22e.google.com [IPv6:2607:f8b0:4001:c06::22e])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+	(No client certificate requested)
+	by dcvr.yhbt.net (Postfix) with ESMTPS id D272B1F406
+	for <unicorn-public@bogomips.org>; Mon, 15 Jan 2018 15:07:02 +0000 (UTC)
+Received: by mail-io0-x22e.google.com with SMTP id f89so5305155ioj.4
+        for <unicorn-public@bogomips.org>; Mon, 15 Jan 2018 07:07:02 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20161025;
+        h=mime-version:in-reply-to:references:from:date:message-id:subject:cc;
+        bh=jEb+UzcR4Pu7QhxD/hCmhZ68mn+blt0SDXd1pXWOpYc=;
+        b=uIa47PPNttjpd+NaaGhlPz1BmpdVJ97nvKPZCNukNVdIK3SxWU1qY9XBKMfAgTvcE6
+         kpt4ay4DREmVw/EiSQukQg/nUy5OjwPVReRcxuXBNzfNH0zyonOtLhiSgUNQE10+/X2M
+         UD9GS4pMBUylgY36eOg54YcNkfrY+UFyGHWOyVQxGDhgnKJnIJN1ek353HVjs71AtJB3
+         Hjtlr+qXliSEH0ufi9OhAQOzIa6zs88lsnjHWrsMqo2q4g1Y2oY6BbTcz9NDOFLM4hRN
+         yrII8OtYzfB0mom3no+wGxhqKEW0VrVZVLqCDOesDZT4ByJTwVssxo0HLju+kag4eyR1
+         vY4Q==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20161025;
+        h=x-gm-message-state:mime-version:in-reply-to:references:from:date
+         :message-id:subject:cc;
+        bh=jEb+UzcR4Pu7QhxD/hCmhZ68mn+blt0SDXd1pXWOpYc=;
+        b=G2iVYUMTlsUAasaeqrQhf785ipY9Z68sZ+rqJUuPByCCUCHg9e3NzTXXzvx+bdSNac
+         KipnXdcA5vIigkaNMTWEyf7Zf056TG1ChVFFdHmhuTUoAztjdQ8jVtirKAqeHzOzLnym
+         cb2MyBmI8D91uNm1VRnJqYigLDGfH1WBBwoVD2mcF2zRBdlhx649hmylgBfqHBNvAumo
+         ZZGYk7IemOMv01xDbf+Y2TUUOztsGqtyHZKD8YLtKKdTvPILPhkFqkiBhnzc78eESgpf
+         Bl7Y9izX87ncm1cA5KyZs6r2WJUjxyfdT5xzxQoGAZ4y7OFhEMkiaoI+U8xNa9cmEl8a
+         Dxbg==
+X-Gm-Message-State: AKGB3mIWkaqu7x8wrZGVLuo448PqBXog0hGPJwRQLTKpyOu3AzEz17rf
+	PS/aq074rblRXy3to9ks/CQO9R5v8yWAJnqr8hxBCTmO
+X-Google-Smtp-Source: ACJfBouM+a2a/oIkMfKInlGMoj90lJkxSmcnPEkL985m4sSMDshM0DBq+3k0HBvz2Mzk5uQRW6Gx+QVdDYoKEoo3e6I=
+X-Received: by 10.107.88.10 with SMTP id m10mr35296720iob.71.1516028821712;
+ Mon, 15 Jan 2018 07:07:01 -0800 (PST)
+MIME-Version: 1.0
+Received: by 10.107.165.146 with HTTP; Mon, 15 Jan 2018 07:06:41 -0800 (PST)
+In-Reply-To: <CAAtdryM9pRQwE+hkSgMckRxhCXTxKOAxn+3ejZkZwaGaNk7vWg@mail.gmail.com>
+References: <CAAtdryM9pRQwE+hkSgMckRxhCXTxKOAxn+3ejZkZwaGaNk7vWg@mail.gmail.com>
+From: Carl Brasic <cbrasic@gmail.com>
+Date: Mon, 15 Jan 2018 09:06:41 -0600
+Message-ID: <CAD-jRAf==xMaiMj6FXTAUGjc6H8=jNXc6mYu9iFW6gJzK9TC_w@mail.gmail.com>
+Subject: Re: Log URL with murder_lazy_workers
+Cc: unicorn-public <unicorn-public@bogomips.org>
+Content-Type: text/plain; charset="UTF-8"
+List-Id: <unicorn-public.bogomips.org>
+
+We solved this issue by writing a small rack middleware that launches a
+background thread for every request that sleeps for one second short of the
+unicorn timeout and then logs some info (including the URL) to a file.
+
+The nice thing about this approach is that you have access to the main thread's
+information, including env['action_controller.instance'] to get controller
+params, current user information, app backtrace, etc.  That last one in
+particular has been very valuable in diagnosing complex performance problems.
+
+In very high volume applications the thread per request model might be a
+bottleneck, it could be modified to a persistent buddy thread approach.
+
+Carl
+
+On Sun, Jan 14, 2018 at 5:27 PM, Sam Saffron <sam.saffron@gmail.com> wrote:
+> I would love to start logging the actual URL that timed out when
+> murder_lazy_workers does its thing.
+>
+> Clearly the master process has no knowledge here, but perhaps if we
+> had a named pipe from each child to master we could quickly post
+> current url down the pipe so we would have something to log when we
+> murder a url.
+>
+> Clearly an opt-in thing, but would be very handy for quick diagnostics
+> cause we can then avoid deeper log analysis and raise events just as
+> this happens.
+>
