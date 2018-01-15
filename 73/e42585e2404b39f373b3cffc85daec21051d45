@@ -1,0 +1,64 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.0
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id C7D791FADF;
+	Mon, 15 Jan 2018 01:57:40 +0000 (UTC)
+Date: Mon, 15 Jan 2018 01:57:40 +0000
+From: Eric Wong <e@80x24.org>
+To: Sam Saffron <sam.saffron@gmail.com>
+Cc: unicorn-public@bogomips.org
+Subject: Re: Log URL with murder_lazy_workers
+Message-ID: <20180115015740.GA850@dcvr>
+References: <CAAtdryM9pRQwE+hkSgMckRxhCXTxKOAxn+3ejZkZwaGaNk7vWg@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <CAAtdryM9pRQwE+hkSgMckRxhCXTxKOAxn+3ejZkZwaGaNk7vWg@mail.gmail.com>
+List-Id: <unicorn-public.bogomips.org>
+
+Sam Saffron <sam.saffron@gmail.com> wrote:
+> I would love to start logging the actual URL that timed out when
+> murder_lazy_workers does its thing.
+> 
+> Clearly the master process has no knowledge here, but perhaps if we
+> had a named pipe from each child to master we could quickly post
+> current url down the pipe so we would have something to log when we
+> murder a url.
+
+That would make the master a bottleneck.
+
+Instead, I suggest logging a START action with the
+URL+PID+Thread(*)+serial number; and then matching it a
+corresponding END action in the response_body#close Anything
+without a corresponding END action can be deemed a loss and
+matched up with the KILL action based on PID.
+
+(*) Log Thread/Fiber so it can work with other servers, too.
+
+
+I seem to remember it was possible to get that information out of
+Rails logs pretty easily, already; and I seem recall doing that
+back many years ago when I used Rails. (This is probably why
+USR1 log reopening waits until a response is done before
+triggering...)
+
+
+And as I've stated many times before, I don't want any sort of
+lock-in or even guide-in to make people feel like they're stuck
+using unicorn (by having code which depends on it).  I also
+believe the unicorn `timeout' is a misfeature that probably set
+the entire Rack/Ruby ecosystem back 10 years or more, so I'd
+rather people stop depending on it and fix their timeouts.
+
+(To that end, I may see about making timeout.rb in stdlib better
+ for Ruby 2.6...)
+
+> Clearly an opt-in thing, but would be very handy for quick diagnostics
+> cause we can then avoid deeper log analysis and raise events just as
+> this happens.
+
+Sorry, I prefer generic solutions which work with other servers, too.
