@@ -1,0 +1,52 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.0
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id 2541C1FAE3;
+	Sat, 10 Feb 2018 13:52:05 +0000 (UTC)
+Date: Sat, 10 Feb 2018 13:52:05 +0000
+From: Eric Wong <e@80x24.org>
+To: cyan eccentricyan <eccentricyan@gmail.com>
+Cc: unicorn-public@bogomips.org
+Subject: Re: unicorn takes 1.4G memory per worker
+Message-ID: <20180210135204.GA1348@80x24.org>
+References: <CAN1mbKtog4=8rQnXenHy3U5_NtmWsD7gT6xxv=cM2ZMTT2-1Qw@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <CAN1mbKtog4=8rQnXenHy3U5_NtmWsD7gT6xxv=cM2ZMTT2-1Qw@mail.gmail.com>
+List-Id: <unicorn-public.bogomips.org>
+
+cyan eccentricyan <eccentricyan@gmail.com> wrote:
+> github . com/unicorn-engine/unicorn/issues/941
+> 
+> after deploy or restart unicorn, it doesnt resolve the big memory problem
+> i want to know what make unicorn memory size and how to make staging
+> unicorn size to 230M not 1.4G
+
+You're going to have to analyze your app and all is dependencies
+to figure this out; but it's generic Ruby knowledge to fix and
+the problem is all over the place...
+
+I get angry as hell when it comes to memory usage but there's
+not a lot I can do besides rant(*) and try to fix some things
+which come along:
+http://blade.nagaokaut.ac.jp/cgi-bin/scat.rb/ruby/ruby-talk/438693
+http://blade.nagaokaut.ac.jp/cgi-bin/scat.rb/ruby/ruby-talk/438700
+
+There's more Ruby itself can do (some I intend to work on later
+this year); but nothing is going to save you if the apps do wacky
+things like load hundreds of thousands of rows from a DB into
+memory or try to process giant files all at once.
+
+A lot of of it is mentality: It starts like things like turning
+off HTML in your mail client (which roughly triples the size of
+mail) and forcing yourself to test and develop against old
+hardware on slow connections.
+
+
+(*) Even 230M is too much IMHO:
+https://bogomips.org/unicorn-public/20161212021000.GA15226@untitled/
