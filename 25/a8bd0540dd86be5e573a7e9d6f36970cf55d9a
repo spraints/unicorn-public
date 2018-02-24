@@ -1,0 +1,78 @@
+Return-Path: <mtsm.fm@gmail.com>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS3215 2.6.0.0/16
+X-Spam-Status: No, score=-3.1 required=3.0 tests=BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,DKIM_VALID_AU,FREEMAIL_FROM,RCVD_IN_DNSWL_NONE,SPF_PASS
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.0
+Received: from mail-pf0-x236.google.com (mail-pf0-x236.google.com [IPv6:2607:f8b0:400e:c00::236])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+	(No client certificate requested)
+	by dcvr.yhbt.net (Postfix) with ESMTPS id 634251F576
+	for <unicorn-public@bogomips.org>; Sat, 24 Feb 2018 07:07:11 +0000 (UTC)
+Received: by mail-pf0-x236.google.com with SMTP id d26so4441845pfn.5
+        for <unicorn-public@bogomips.org>; Fri, 23 Feb 2018 23:07:11 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20161025;
+        h=from:to:cc:subject:date:message-id;
+        bh=Xau5a2VZIrplnbSg5Xl5c2Z+lpSb4ekMIx3vYzGKZT0=;
+        b=uXo1Ihz77ZpkP43y6qMdGu1JTt9iclItCQ6pyFSxUAuwK/OIwQT9rbYPNju3fNlyaX
+         i6dhOvzaY3tscjUdJYbwSlkoryrcI4GUrNLMvVL2+qmPcD229iTBiMIIFZ39V+xfu2Jr
+         +rtJqWkuohoCqvJEiEJowe3KLmbUw5DmRicVjsuwY7Ieivmoo7RMqP0UIh7ihxNp2xF7
+         gbpVg+p91qhTmj2Qq/typwnAX6qyOzPvjkmxtUnvxV1f+upyxQX0EC/QLMtnjx8isnB6
+         /HjLJIFYchWZTq57gRY6wU0ZVghYGzx7Gar3ThEWeMFVXb3B4I4rl7s53q4GIory+mtG
+         QVqg==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20161025;
+        h=x-gm-message-state:from:to:cc:subject:date:message-id;
+        bh=Xau5a2VZIrplnbSg5Xl5c2Z+lpSb4ekMIx3vYzGKZT0=;
+        b=Mij8oiI/g8aDDpnyyeKmZ8ME+iliLu+GXwgulqol67GVyEjTbhy1dGFtvSQnn8nmuD
+         nrVUgBCBbI9DA3S8zkjJo7VImkdNeVPUUdEOd+P0zamyjA0IkMXZIPC64+Tajj4N8fU/
+         MmKSBjm2kxkRQ8Rs76/PVU/ivUEKi7UgHFDJmLy4YS/wUgTkGpdqgl5L5NxfmH3aIdLa
+         sXjL5wmu1DnrHEe7VD+0qJjhVZBXI3sHlnJj1Y7tQ0B5sRD6nbK8AfzBqnSFSzrLglax
+         kE2/kRxBTfD+SdKVn0rKEOfsQAtagayVgFNy9z+jsr7rlwMmngZR/p0ev5BkIvpViS+V
+         Ebkg==
+X-Gm-Message-State: APf1xPC8/hRnJc0tfUADjhB+Ijs0W8zDqVh+nUJR3zHga/TvUSYxJFZQ
+	JXcIE75SmyBNG1ZqJE3bMCFLwGR1
+X-Google-Smtp-Source: AH8x225VxXmXjGhj2YE3psoSec24tYALFV+uglYEKD/AT3CVNWYze31FhLX8x2T2fm81b/5RmvTBcw==
+X-Received: by 10.98.153.157 with SMTP id t29mr4198167pfk.201.1519456030362;
+        Fri, 23 Feb 2018 23:07:10 -0800 (PST)
+Received: from localhost.localdomain (softbank126021143004.bbtec.net. [126.21.143.4])
+        by smtp.gmail.com with ESMTPSA id s78sm5673114pfe.162.2018.02.23.23.07.08
+        (version=TLS1 cipher=AES128-SHA bits=128/128);
+        Fri, 23 Feb 2018 23:07:09 -0800 (PST)
+From: Fumiaki MATSUSHIMA <mtsm.fm@gmail.com>
+X-Google-Original-From: Fumiaki MATSUSHIMA <mtsmfm@gmail.com>
+To: unicorn-public@bogomips.org
+Cc: mtsmfm@gmail.com
+Subject: [PATCH] Use IO#wait instead to fix test for Ruby 1.9
+Date: Sat, 24 Feb 2018 16:06:36 +0900
+Message-Id: <20180224070636.20651-1-mtsmfm@gmail.com>
+X-Mailer: git-send-email 2.14.1
+List-Id: <unicorn-public.bogomips.org>
+
+IO#wait_readable is introduced since 2.0
+
+I confirmed we can pass tests for all versions of Ruby with this patch.
+
+https://github.com/mtsmfm/unicorn/pull/2
+---
+ test/unit/test_ccc.rb | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/test/unit/test_ccc.rb b/test/unit/test_ccc.rb
+index 0db0c38..3be1439 100644
+--- a/test/unit/test_ccc.rb
++++ b/test/unit/test_ccc.rb
+@@ -44,7 +44,7 @@ def test_ccc_tcpi
+     # make sure the server is running, at least
+     client = TCPSocket.new(host, port)
+     client.write("GET / HTTP/1.1\r\nHost: example.com\r\n\r\n")
+-    assert client.wait_readable(10), 'never got response from server'
++    assert client.wait(10), 'never got response from server'
+     res = client.read
+     assert_match %r{\AHTTP/1\.1 200}, res, 'got part of first response'
+     assert_match %r{\r\n\r\n\z}, res, 'got end of response, server is ready'
+-- 
+2.14.1
+
