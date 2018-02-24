@@ -1,0 +1,243 @@
+Return-Path: <mtsm.fm@gmail.com>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS3215 2.6.0.0/16
+X-Spam-Status: No, score=-3.1 required=3.0 tests=BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,DKIM_VALID_AU,FREEMAIL_FROM,RCVD_IN_DNSWL_NONE,SPF_PASS
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.0
+Received: from mail-pl0-x244.google.com (mail-pl0-x244.google.com [IPv6:2607:f8b0:400e:c01::244])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+	(No client certificate requested)
+	by dcvr.yhbt.net (Postfix) with ESMTPS id B3C7A1F576
+	for <unicorn-public@bogomips.org>; Sat, 24 Feb 2018 08:48:31 +0000 (UTC)
+Received: by mail-pl0-x244.google.com with SMTP id k8so6315243pli.8
+        for <unicorn-public@bogomips.org>; Sat, 24 Feb 2018 00:48:31 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20161025;
+        h=from:to:cc:subject:date:message-id;
+        bh=ICFv/r2znJyKd916kMGlS493uglE+CRFQuG7sNS6iFg=;
+        b=Q+qoYuhhg0t7+I4YtM0ooW1RHpqSI8xy7a/ITUVRlb712xQEYBdi1GEJUCojLoqOlQ
+         8c5XTuLmoLIBCB+enMb/0BRGzhOfJLVWxZVl9tezpge71vUyyiiD4oo3bDXusa5wyUp9
+         qHYENZHArZeK4U9bbQP1/+8Qqo+6uHAQSGrHhScypxDO+2wEpTW+n5xN6v9m7QVeCRY+
+         tCNfroqICdCa+5gAYjO2qboz4myhB7tOyn9RVzVz3bBUL1WwistEvx35jxMRgHXO97Bf
+         fj+jxdGl9I45O3QxL8R5inc2IsHjXhWBiTj5vb0pXPj37b9Tw252beJ/s2o6KRm0oIxs
+         E8tA==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20161025;
+        h=x-gm-message-state:from:to:cc:subject:date:message-id;
+        bh=ICFv/r2znJyKd916kMGlS493uglE+CRFQuG7sNS6iFg=;
+        b=QmmPDg2Ff/g7DvOmqwBS204a0RvlgzlibE8rMhsH6IXhuL9jArE9fSm7tA/vBNf+1K
+         Jm16UjTeHb2ys6ckWT4w0m2iKfnzbBY3/wJiNDjdkiuQlw0mQodaq1xnt7BKFWvzWlKh
+         Ip3XqOxROGBYRI0JAwLhPw8nEz7L4d0gAEizvUGu2YLexK2PedGE6dNFJbB0al5Hf5Nz
+         C17wnb/TeMfc+gtEt8SkVJmC+P6RDQpj+E5aPhi6janEqpDuyo8VyHgRt9Y0YMXmGx74
+         0m/G+hfB9OAzMnPLgB5AJPvyt+SNs93N7wY/Xhbpx6osUwfd9gRxs0BMwch+H4k4siAb
+         ybWA==
+X-Gm-Message-State: APf1xPCB48qeSeZ8Y1gbw61Ol/oBqHEctLGQ/XJAQv6P4+7YRhqlUYe/
+	Sp8S3Bcc622CJ4QDYJmobJg7mVZD
+X-Google-Smtp-Source: AH8x226VdJ0cvaiSeABGBTwRUGTaOyCFaRtEpLW46eXgXp683GajL9YAbyBqFXcPQhXTtDadc4TOwg==
+X-Received: by 2002:a17:902:e81:: with SMTP id 1-v6mr4376036plx.169.1519462110598;
+        Sat, 24 Feb 2018 00:48:30 -0800 (PST)
+Received: from localhost.localdomain (softbank126021143006.bbtec.net. [126.21.143.6])
+        by smtp.gmail.com with ESMTPSA id j14sm7671754pfn.113.2018.02.24.00.48.28
+        (version=TLS1 cipher=AES128-SHA bits=128/128);
+        Sat, 24 Feb 2018 00:48:30 -0800 (PST)
+From: Fumiaki MATSUSHIMA <mtsm.fm@gmail.com>
+X-Google-Original-From: Fumiaki MATSUSHIMA <mtsmfm@gmail.com>
+To: unicorn-public@bogomips.org
+Cc: mtsmfm@gmail.com
+Subject: [PATCH] Send SIGTERM before SIGKILL on timeout
+Date: Sat, 24 Feb 2018 17:48:23 +0900
+Message-Id: <20180224084823.25418-1-mtsmfm@gmail.com>
+X-Mailer: git-send-email 2.14.1
+List-Id: <unicorn-public.bogomips.org>
+
+To output log / send error to error tracking service,
+we need to receive a signal other than SIGKILL first.
+---
+Hi Unicorn team,
+
+I'm not sure this change is accetable though,
+I can find some articles and patches to prevent SIGKILL
+on timeout.
+I think it's great if this feature is supported by unicorn itself.
+
+Could you give me your opinion?
+
+ lib/unicorn/configurator.rb | 16 +++++++++++++++-
+ lib/unicorn/http_server.rb  | 27 +++++++++++++++++----------
+ test/unit/test_signals.rb   | 43 +++++++++++++++++++++++++++++++++++++++++++
+ 3 files changed, 75 insertions(+), 11 deletions(-)
+
+diff --git a/lib/unicorn/configurator.rb b/lib/unicorn/configurator.rb
+index f34d38b..f854032 100644
+--- a/lib/unicorn/configurator.rb
++++ b/lib/unicorn/configurator.rb
+@@ -30,6 +30,7 @@ class Unicorn::Configurator
+   # Default settings for Unicorn
+   DEFAULTS = {
+     :timeout => 60,
++    :sigterm_timeout => 60,
+     :logger => Logger.new($stderr),
+     :worker_processes => 1,
+     :after_fork => lambda { |server, worker|
+@@ -237,11 +238,24 @@ def before_exec(*args, &block)
+   #
+   # See http://nginx.org/en/docs/http/ngx_http_upstream_module.html
+   # for more details on nginx upstream configuration.
+-  def timeout(seconds)
++  #
++  # The following options may be specified:
++  #
++  # [:sigterm => seconds]
++  #
++  #   Send SIGTERM when worker process is timed out.
++  #   Workers can't output backtrace if it's received SIGKILL
++  #   so it's useful to send SIGTERM before SIGKILL to find slow codes.
++  #   If you specify sigterm greater than or equal to timeout, workers will be always killed by SIGKILL.
++  #
++  #   Default: same seconds as the timeout
++  def timeout(seconds, options = {})
+     set_int(:timeout, seconds, 3)
+     # POSIX says 31 days is the smallest allowed maximum timeout for select()
+     max = 30 * 60 * 60 * 24
+     set[:timeout] = seconds > max ? max : seconds
++
++    set_int(:sigterm_timeout, options[:sigterm] || set[:timeout], 3)
+   end
+
+   # Whether to exec in each worker process after forking.  This changes the
+diff --git a/lib/unicorn/http_server.rb b/lib/unicorn/http_server.rb
+index 8674729..da7c420 100644
+--- a/lib/unicorn/http_server.rb
++++ b/lib/unicorn/http_server.rb
+@@ -11,7 +11,7 @@
+ # See Unicorn::Configurator for information on how to configure unicorn.
+ class Unicorn::HttpServer
+   # :stopdoc:
+-  attr_accessor :app, :timeout, :worker_processes,
++  attr_accessor :app, :timeout, :sigterm_timeout, :worker_processes,
+                 :before_fork, :after_fork, :before_exec,
+                 :listener_opts, :preload_app,
+                 :orig_app, :config, :ready_pipe, :user
+@@ -284,10 +284,10 @@ def join
+       when nil
+         # avoid murdering workers after our master process (or the
+         # machine) comes out of suspend/hibernation
+-        if (last_check + @timeout) >= (last_check = time_now)
++        if (last_check + @sigterm_timeout) >= (last_check = time_now)
+           sleep_time = murder_lazy_workers
+         else
+-          sleep_time = @timeout/2.0 + 1
++          sleep_time = @sigterm_timeout/2.0 + 1
+           @logger.debug("waiting #{sleep_time}s after suspend/hibernation")
+         end
+         maintain_worker_count if respawn
+@@ -495,21 +495,29 @@ def close_sockets_on_exec(sockets)
+
+   # forcibly terminate all workers that haven't checked in in timeout seconds.  The timeout is implemented using an unlinked File
+   def murder_lazy_workers
+-    next_sleep = @timeout - 1
++    next_sleep = @sigterm_timeout - 1
+     now = time_now.to_i
+     @workers.dup.each_pair do |wpid, worker|
+       tick = worker.tick
+       0 == tick and next # skip workers that haven't processed any clients
+       diff = now - tick
+-      tmp = @timeout - diff
++      tmp = @sigterm_timeout - diff
++
+       if tmp >= 0
+         next_sleep > tmp and next_sleep = tmp
+         next
+       end
+       next_sleep = 0
+-      logger.error "worker=#{worker.nr} PID:#{wpid} timeout " \
+-                   "(#{diff}s > #{@timeout}s), killing"
+-      kill_worker(:KILL, wpid) # take no prisoners for timeout violations
++
++      if diff > @timeout
++        logger.error "worker=#{worker.nr} PID:#{wpid} timeout " \
++        "(#{diff}s > #{@timeout}s), killing with SIGKILL"
++        kill_worker(:KILL, wpid) # take no prisoners for timeout violations
++      elsif diff > @sigterm_timeout
++        logger.error "worker=#{worker.nr} PID:#{wpid} timeout " \
++        "(#{diff}s > #{@sigterm_timeout}s), killing with SIGTERM"
++        kill_worker(:TERM, wpid) # take no prisoners for timeout violations
++      end
+     end
+     next_sleep <= 0 ? 1 : next_sleep
+   end
+@@ -655,7 +663,6 @@ def init_worker_process(worker)
+     LISTENERS.each { |sock| sock.close_on_exec = true }
+
+     worker.user(*user) if user.kind_of?(Array) && ! worker.switched
+-    self.timeout /= 2.0 # halve it for select()
+     @config = nil
+     build_app! unless preload_app
+     @after_fork = @listener_opts = @orig_app = nil
+@@ -718,7 +725,7 @@ def worker_loop(worker)
+
+       # timeout used so we can detect parent death:
+       worker.tick = time_now.to_i
+-      ret = IO.select(readers, nil, nil, @timeout) and ready = ret[0]
++      ret = IO.select(readers, nil, nil, @sigterm_timeout / 2.0) and ready = ret[0]
+     rescue => e
+       redo if nr < 0 && readers[0]
+       Unicorn.log_error(@logger, "listen loop error", e) if readers[0]
+diff --git a/test/unit/test_signals.rb b/test/unit/test_signals.rb
+index 4592819..dc74a9b 100644
+--- a/test/unit/test_signals.rb
++++ b/test/unit/test_signals.rb
+@@ -118,6 +118,49 @@ def test_timeout_slow_response
+       Process.kill(:TERM, pid) rescue nil
+   end
+
++  def test_timeout_slow_response_with_sigterm
++    pid = fork {
++      app = lambda { |env|
++        Signal.trap(:TERM) {
++          puts 'Killed by SIGTERM'
++
++          exit
++        }
++
++        sleep
++      }
++      redirect_test_io {
++        Tempfile.open(['config', '.rb']) { |file|
++          file.write(<<-EOS)
++            timeout 100, sigterm: 3
++          EOS
++
++          file.flush
++
++          HttpServer.new(app, @server_opts.merge(config_file: file.path)).start.join
++        }
++      }
++    }
++    t0 = Time.now
++    wait_workers_ready("test_stderr.#{pid}.log", 1)
++    sock = TCPSocket.new('127.0.0.1', @port)
++    sock.syswrite("GET / HTTP/1.0\r\n\r\n")
++
++    buf = nil
++    assert_raises(EOFError,Errno::ECONNRESET,Errno::EPIPE,Errno::EINVAL,
++                  Errno::EBADF) do
++      buf = sock.sysread(4096)
++    end
++    diff = Time.now - t0
++    assert_nil buf
++    assert diff > 1.0, "diff was #{diff.inspect}"
++    assert diff < 60.0
++    assert_equal "Killed by SIGTERM\n", File.read("test_stdout.#{pid}.log")
++    wait_workers_ready("test_stderr.#{pid}.log", 1)
++    ensure
++      Process.kill(:TERM, pid) rescue nil
++  end
++
+   def test_response_write
+     app = lambda { |env|
+       [ 200, { 'Content-Type' => 'text/plain', 'X-Pid' => Process.pid.to_s },
+--
+2.14.1
+
