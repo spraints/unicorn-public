@@ -1,0 +1,54 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.0
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id 8DA3B1F404;
+	Sat, 24 Feb 2018 15:15:59 +0000 (UTC)
+Date: Sat, 24 Feb 2018 15:15:59 +0000
+From: Eric Wong <e@80x24.org>
+To: Fumiaki MATSUSHIMA <mtsm.fm@gmail.com>
+Cc: unicorn-public@bogomips.org, mtsmfm@gmail.com
+Subject: Re: [PATCH] Send SIGTERM before SIGKILL on timeout
+Message-ID: <20180224151559.GA15504@whir>
+References: <20180224084823.25418-1-mtsmfm@gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <20180224084823.25418-1-mtsmfm@gmail.com>
+List-Id: <unicorn-public.bogomips.org>
+
+Fumiaki MATSUSHIMA <mtsm.fm@gmail.com> wrote:
+> To output log / send error to error tracking service,
+> we need to receive a signal other than SIGKILL first.
+> ---
+> Hi Unicorn team,
+> 
+> I'm not sure this change is accetable though,
+> I can find some articles and patches to prevent SIGKILL
+> on timeout.
+
+Right, it's been rejected several times before:
+
+ https://bogomips.org/unicorn-public/20140416084416.GA9709@dcvr.yhbt.net/t/#u
+ https://bogomips.org/unicorn-public/20180115015740.GA850@dcvr/t/#u
+
+> I think it's great if this feature is supported by unicorn itself.
+> 
+> Could you give me your opinion?
+
+Again, I don't want to encourage lazy app development or Rack apps
+written with only unicorn in mind.
+
+Existing `timeout' feature of unicorn is already something I hate
+and don't want to encourage further reliance on:
+
+	https://bogomips.org/unicorn/Application_Timeouts.html
+
+Fwiw, I (with ruby-core) will try to make Timeout in ruby stdlib
+have less overhead for 2.6 (or 2.7) so it can benefit more users
+than just unicorn.  Ditto with various OobGC hacks over the years.
+
+Thanks.
