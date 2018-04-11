@@ -1,0 +1,85 @@
+Return-Path: <sumit.nagariya@gmail.com>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS3215 2.6.0.0/16
+X-Spam-Status: No, score=-3.4 required=3.0 tests=AWL,BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,DKIM_VALID_AU,FREEMAIL_FROM,RCVD_IN_DNSWL_NONE,SPF_PASS
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.0
+Received: from mail-it0-x22d.google.com (mail-it0-x22d.google.com [IPv6:2607:f8b0:4001:c0b::22d])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+	(No client certificate requested)
+	by dcvr.yhbt.net (Postfix) with ESMTPS id 457001F404
+	for <unicorn-public@bogomips.org>; Wed, 11 Apr 2018 15:07:29 +0000 (UTC)
+Received: by mail-it0-x22d.google.com with SMTP id 15-v6so3046010itl.1
+        for <unicorn-public@bogomips.org>; Wed, 11 Apr 2018 08:07:29 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20161025;
+        h=mime-version:from:date:message-id:subject:to;
+        bh=XgYbjLsALtqP0rPTZh3WxhPZQyWkd0NWMiOcbyYEM0I=;
+        b=TeW3SxZ3L+k13Xg1twpGsDS5v102yz4n0/hxD1MhJXarGoQLkim6zGwLm2p1PHOCsS
+         cmmJNR+x+CZ92KY0Jo0Qn5qTXgaH2w7kUHyKLvoTV1c1ZgJOWtuAznvIvNvr8WYKEQIk
+         wdX5JQz920hizlC6SQD+2C39BHtWyHI3pk+0akyrjabErDxVF1N4d8sHIoxTSKEtvnk5
+         6K4JuRvHrSyPAjwBGSfXHsMCZHY6f1OC8dS8Bs9IvAE9crSu0p/jehBa3m+grrlBewYS
+         0fnJK57NvWxc3TJf0JNgqflMmBmar6nuR22+7rArb5oPMvo0Rxg4LX2vPEg0RSFJD1mp
+         qbgQ==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20161025;
+        h=x-gm-message-state:mime-version:from:date:message-id:subject:to;
+        bh=XgYbjLsALtqP0rPTZh3WxhPZQyWkd0NWMiOcbyYEM0I=;
+        b=ZcscqE8UgTqQAUrwiUbiYMh/YIfAolPPNWBrNSYLPK1RzTsr6T7ZATCzs7ImuxtB2M
+         MuTAHKKlnqu+ZqAzyD/Q3vkMJS+x06+SOfm+VXoLU6kAEBT2o2nWQZo4pV2vi4Y9FMWW
+         pom01VfdTckdwo3QxvpUQzOKnQL4Dn4tho1jfLmerHkUEF1xRqo3PheFhh+FsyifbSBo
+         aE+C4oiYByRyaWe7Tdo2KPeaAuHy6TemrjchAkuAuJ1YBDwOt7WcdBiq5NAEYF3el4qM
+         MfwVBgjtqsrbhYKcY6fhcWo8juTo9O6r+RaDTn/ZiApAeZU6d5aOoIUU8o7BrhvK8FUK
+         OBWQ==
+X-Gm-Message-State: ALQs6tCmgVldSm5q4e05x0+7gr1tDsGltMonjJaNbfTR/Tg7lc0wWWuB
+	RTj/E1wvyeN6oKp5jf/W09N15Me6g49UPKr+fAHYyQ==
+X-Google-Smtp-Source: AIpwx498Al3Ml2BlpYAkV8UyR+h8LjtShZUeVPiRai9mqd0n/A9g/Gqmnw7bHpC4J24VvHqyRhUc4d/+KXwMmUnaSxk=
+X-Received: by 2002:a24:120d:: with SMTP id 13-v6mr4481236itp.53.1523459247880;
+ Wed, 11 Apr 2018 08:07:27 -0700 (PDT)
+MIME-Version: 1.0
+Received: by 10.107.36.4 with HTTP; Wed, 11 Apr 2018 08:07:27 -0700 (PDT)
+From: sumit nagariya <sumit.nagariya@gmail.com>
+Date: Wed, 11 Apr 2018 20:37:27 +0530
+Message-ID: <CAC6mmuEhH334EmKof8x4h4wwkiar3Ab7aDaq2FMn_-36C1aU9Q@mail.gmail.com>
+Subject: Why Unicorn master process memory increasing
+To: unicorn-public@bogomips.org
+Content-Type: text/plain; charset="UTF-8"
+List-Id: <unicorn-public.bogomips.org>
+
+Hi,
+
+I have a ruby service running with unicorn which spawns 20 child
+worker. When I start my service, unicorn master starts with approx 520
+MB of memory and then master spawn 20 child worker. My service runs
+perfectly for 7-8 day, but gradually unicorn master memory is kept
+increasing and goes up to 1.3 GB, which apparently is causing OOM
+error when unicorn master trying to fork a new child (which now need
+1.3 GB of memory to fork new child)and due to increased memory
+footprint, memory was not available.
+
+So my concern here is,
+
+As per my understanding, Unicorn master doesn't serve any request, its
+sole purpose is to spawn missing child then why master process memory
+is increasing?
+If there is any memory leak in my app then it should impact only child
+workers processes, not master process. I am not able to understand why
+my master process memory is increasing?
+
+Here is my server config:
+
+Ruby: 2.1.2
+
+Unicorn: 4.6.3
+
+Unicorn worker count: 20
+
+OS: Debian GNU/Linux 8, Jessie
+
+RAM: 24 GB
+
+
+-- 
+Thanks & Regards
+Sumit Nagariya
