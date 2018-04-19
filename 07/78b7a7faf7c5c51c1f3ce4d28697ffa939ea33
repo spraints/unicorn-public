@@ -1,0 +1,53 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.0
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id A40091F404;
+	Thu, 19 Apr 2018 02:45:48 +0000 (UTC)
+Date: Thu, 19 Apr 2018 02:45:48 +0000
+From: Eric Wong <e@80x24.org>
+To: sumit nagariya <sumit.nagariya@gmail.com>
+Cc: unicorn-public@bogomips.org, Hleb Valoshka <375gnu@gmail.com>
+Subject: Re: Why Unicorn master process memory increasing
+Message-ID: <20180419024548.GA20200@dcvr>
+References: <CAC6mmuEhH334EmKof8x4h4wwkiar3Ab7aDaq2FMn_-36C1aU9Q@mail.gmail.com>
+ <CAAB-Kc=VyceZd1QHN5DTh5J523=RTFGz=KO3C1R6EL1vd5oTAw@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <CAAB-Kc=VyceZd1QHN5DTh5J523=RTFGz=KO3C1R6EL1vd5oTAw@mail.gmail.com>
+List-Id: <unicorn-public.bogomips.org>
+
+Hleb: remember to reply-all, we will never require subscription
+to post to this list, so it's likely sumit never saw it.
+
+Hleb Valoshka <375gnu@gmail.com> wrote:
+> I believe it's hard to say something without your unicorn configuration file.
+
+sumit: what Hleb asked...
+
+I suspect "preload_app true" in your config is loading something
+in your app which is using up your memory.  Sometimes there's
+monitoring threads which might fill a queue up or something.
+
+Anything in error logs?  Failing that, strace (on Linux) might
+tell you what's going on at the error level.
+
+But yeah, the master process shouldn't be doing anything besides
+listening to signals and respawning failed workers.
+
+If you want to check if there's monitoring threads on Linux
+systems with /proc mounted, you can see how many threads the
+master has:
+
+	ls /proc/$PID_OF_MASTER/task/
+
+There should be two entries for Ruby 1.9-2.5(*), one being the
+master PID and one for the timer-thread.  If you have more,
+then that's probably some thread doing stuff in the
+background...
+
+(*) _maybe_ we can get rid of timer-thread for 2.6...
