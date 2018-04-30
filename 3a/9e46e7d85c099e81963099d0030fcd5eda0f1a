@@ -1,0 +1,226 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.0
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id DD2E021841
+	for <unicorn-public@bogomips.org>; Mon, 30 Apr 2018 07:54:19 +0000 (UTC)
+From: Eric Wong <e@80x24.org>
+To: unicorn-public@bogomips.org
+Subject: [PATCH] quiet some mismatched indentation warnings
+Date: Mon, 30 Apr 2018 07:54:19 +0000
+Message-Id: <20180430075419.863-1-e@80x24.org>
+List-Id: <unicorn-public.bogomips.org>
+
+Ruby trunk started warning about more mismatched indentations
+starting around r62836.
+---
+ lib/unicorn/http_server.rb      | 24 ++++++++++++------------
+ lib/unicorn/socket_helper.rb    |  4 ++--
+ lib/unicorn/util.rb             |  4 ++--
+ test/exec/test_exec.rb          | 13 ++++++-------
+ test/unit/test_server.rb        | 10 +++++-----
+ test/unit/test_signals.rb       |  4 ++--
+ test/unit/test_socket_helper.rb |  8 ++++----
+ 7 files changed, 33 insertions(+), 34 deletions(-)
+
+diff --git a/lib/unicorn/http_server.rb b/lib/unicorn/http_server.rb
+index 8674729..bbbca6c 100644
+--- a/lib/unicorn/http_server.rb
++++ b/lib/unicorn/http_server.rb
+@@ -553,9 +553,9 @@ def spawn_missing_workers
+       @workers[pid] = worker
+       worker.atfork_parent
+     end
+-    rescue => e
+-      @logger.error(e) rescue nil
+-      exit!
++  rescue => e
++    @logger.error(e) rescue nil
++    exit!
+   end
+ 
+   def maintain_worker_count
+@@ -586,7 +586,7 @@ def handle_error(client, e)
+       client.kgio_trywrite(err_response(code, @request.response_start_sent))
+     end
+     client.close
+-    rescue
++  rescue
+   end
+ 
+   def e100_response_write(client, env)
+@@ -669,9 +669,9 @@ def reopen_worker_logs(worker_nr)
+     logger.info "worker=#{worker_nr} reopening logs..."
+     Unicorn::Util.reopen_logs
+     logger.info "worker=#{worker_nr} done reopening logs"
+-    rescue => e
+-      logger.error(e) rescue nil
+-      exit!(77) # EX_NOPERM in sysexits.h
++  rescue => e
++    logger.error(e) rescue nil
++    exit!(77) # EX_NOPERM in sysexits.h
+   end
+ 
+   # runs inside each forked worker, this sits around and waits
+@@ -757,11 +757,11 @@ def valid_pid?(path)
+     wpid <= 0 and return
+     Process.kill(0, wpid)
+     wpid
+-    rescue Errno::EPERM
+-      logger.info "pid=#{path} possibly stale, got EPERM signalling PID:#{wpid}"
+-      nil
+-    rescue Errno::ESRCH, Errno::ENOENT
+-      # don't unlink stale pid files, racy without non-portable locking...
++  rescue Errno::EPERM
++    logger.info "pid=#{path} possibly stale, got EPERM signalling PID:#{wpid}"
++    nil
++  rescue Errno::ESRCH, Errno::ENOENT
++    # don't unlink stale pid files, racy without non-portable locking...
+   end
+ 
+   def load_config!
+diff --git a/lib/unicorn/socket_helper.rb b/lib/unicorn/socket_helper.rb
+index 9e672d9..b540302 100644
+--- a/lib/unicorn/socket_helper.rb
++++ b/lib/unicorn/socket_helper.rb
+@@ -100,8 +100,8 @@ def set_server_sockopt(sock, opt)
+         log_buffer_sizes(sock, " after: ")
+       end
+       sock.listen(opt[:backlog])
+-      rescue => e
+-        Unicorn.log_error(logger, "#{sock_name(sock)} #{opt.inspect}", e)
++    rescue => e
++      Unicorn.log_error(logger, "#{sock_name(sock)} #{opt.inspect}", e)
+     end
+ 
+     def log_buffer_sizes(sock, pfx = '')
+diff --git a/lib/unicorn/util.rb b/lib/unicorn/util.rb
+index 2f8bfeb..501930c 100644
+--- a/lib/unicorn/util.rb
++++ b/lib/unicorn/util.rb
+@@ -11,8 +11,8 @@ def self.is_log?(fp)
+       fp.stat.file? &&
+       fp.sync &&
+       (fp.fcntl(Fcntl::F_GETFL) & append_flags) == append_flags
+-    rescue IOError, Errno::EBADF
+-      false
++  rescue IOError, Errno::EBADF
++    false
+   end
+ 
+   def self.chown_logs(uid, gid)
+diff --git a/test/exec/test_exec.rb b/test/exec/test_exec.rb
+index 9723c5c..8a6b43e 100644
+--- a/test/exec/test_exec.rb
++++ b/test/exec/test_exec.rb
+@@ -193,8 +193,8 @@ def test_working_directory_rel_path_config_file
+     assert_equal other.path, results.first
+ 
+     Process.kill(:QUIT, pid)
+-    ensure
+-      FileUtils.rmtree(other.path)
++  ensure
++    FileUtils.rmtree(other.path)
+   end
+ 
+   def test_working_directory
+@@ -229,8 +229,8 @@ def test_working_directory
+     assert_equal other.path, results.first
+ 
+     Process.kill(:QUIT, pid)
+-    ensure
+-      FileUtils.rmtree(other.path)
++  ensure
++    FileUtils.rmtree(other.path)
+   end
+ 
+   def test_working_directory_controls_relative_paths
+@@ -271,11 +271,10 @@ def test_working_directory_controls_relative_paths
+     wait_master_ready("#{other.path}/stderr_log_here")
+ 
+     Process.kill(:QUIT, pid)
+-    ensure
+-      FileUtils.rmtree(other.path)
++  ensure
++    FileUtils.rmtree(other.path)
+   end
+ 
+-
+   def test_exit_signals
+     %w(INT TERM QUIT).each do |sig|
+       File.open("config.ru", "wb") { |fp| fp.syswrite(HI) }
+diff --git a/test/unit/test_server.rb b/test/unit/test_server.rb
+index 8b3afad..8096955 100644
+--- a/test/unit/test_server.rb
++++ b/test/unit/test_server.rb
+@@ -17,9 +17,9 @@ def call(env)
+     while env['rack.input'].read(4096)
+     end
+     [200, { 'Content-Type' => 'text/plain' }, ['hello!\n']]
+-    rescue Unicorn::ClientShutdown, Unicorn::HttpParserError => e
+-      $stderr.syswrite("#{e.class}: #{e.message} #{e.backtrace.empty?}\n")
+-      raise e
++  rescue Unicorn::ClientShutdown, Unicorn::HttpParserError => e
++    $stderr.syswrite("#{e.class}: #{e.message} #{e.backtrace.empty?}\n")
++    raise e
+   end
+ end
+ 
+@@ -80,8 +80,8 @@ def test_preload_app_config
+     loader_pid = tmp.sysread(4096).to_i
+     assert_equal $$, loader_pid
+     assert worker_pid != loader_pid
+-    ensure
+-      tmp.close!
++  ensure
++    tmp.close!
+   end
+ 
+   def test_broken_app
+diff --git a/test/unit/test_signals.rb b/test/unit/test_signals.rb
+index 4592819..4d9fdc5 100644
+--- a/test/unit/test_signals.rb
++++ b/test/unit/test_signals.rb
+@@ -114,8 +114,8 @@ def test_timeout_slow_response
+     assert_nil buf
+     assert diff > 1.0, "diff was #{diff.inspect}"
+     assert diff < 60.0
+-    ensure
+-      Process.kill(:TERM, pid) rescue nil
++  ensure
++    Process.kill(:TERM, pid) rescue nil
+   end
+ 
+   def test_response_write
+diff --git a/test/unit/test_socket_helper.rb b/test/unit/test_socket_helper.rb
+index 8699409..fbc7bb9 100644
+--- a/test/unit/test_socket_helper.rb
++++ b/test/unit/test_socket_helper.rb
+@@ -57,8 +57,8 @@ def test_bind_listen_unix
+     assert File.readable?(@unix_listener_path), "not readable"
+     assert File.writable?(@unix_listener_path), "not writable"
+     assert_equal 0777, File.umask
+-    ensure
+-      File.umask(old_umask)
++  ensure
++    File.umask(old_umask)
+   end
+ 
+   def test_bind_listen_unix_umask
+@@ -71,8 +71,8 @@ def test_bind_listen_unix_umask
+     assert_equal @unix_listener_path, sock_name(@unix_listener)
+     assert_equal 0140700, File.stat(@unix_listener_path).mode
+     assert_equal 0777, File.umask
+-    ensure
+-      File.umask(old_umask)
++  ensure
++    File.umask(old_umask)
+   end
+ 
+   def test_bind_listen_unix_idempotent
+-- 
+EW
+
