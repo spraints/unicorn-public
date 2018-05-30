@@ -1,0 +1,40 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.0
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id 498BE1F51C
+	for <unicorn-public@bogomips.org>; Wed, 30 May 2018 11:21:40 +0000 (UTC)
+From: Eric Wong <e@80x24.org>
+To: unicorn-public@bogomips.org
+Subject: [PATCH] remove random seed reset atfork
+Date: Wed, 30 May 2018 11:21:40 +0000
+Message-Id: <20180530112140.15196-1-e@80x24.org>
+List-Id: <unicorn-public.bogomips.org>
+
+It's not unicorn 6, yet, but we dropped Ruby 1.8 support at
+unicorn 5.  Stable Ruby 1.9+ releases have always reseeded the
+PRNG at fork.
+---
+ lib/unicorn/http_server.rb | 3 ---
+ 1 file changed, 3 deletions(-)
+
+diff --git a/lib/unicorn/http_server.rb b/lib/unicorn/http_server.rb
+index 8398d56..b2bbddb 100644
+--- a/lib/unicorn/http_server.rb
++++ b/lib/unicorn/http_server.rb
+@@ -520,9 +520,6 @@ def after_fork_internal
+     Unicorn::Configurator::RACKUP.clear
+     @ready_pipe = @init_listeners = @before_exec = @before_fork = nil
+ 
+-    # http://blade.nagaokaut.ac.jp/cgi-bin/scat.rb/ruby/ruby-core/36450
+-    srand # remove in unicorn 6
+-
+     # The OpenSSL PRNG is seeded with only the pid, and apps with frequently
+     # dying workers can recycle pids
+     OpenSSL::Random.seed(rand.to_s) if defined?(OpenSSL::Random)
+-- 
+EW
+
