@@ -1,0 +1,52 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.0
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id 7A4601F51C
+	for <unicorn-public@bogomips.org>; Fri,  1 Jun 2018 08:28:22 +0000 (UTC)
+From: Eric Wong <e@80x24.org>
+To: unicorn-public@bogomips.org
+Subject: [PATCH] use IO#wait instead of kgio_wait_readable
+Date: Fri,  1 Jun 2018 08:28:22 +0000
+Message-Id: <20180601082822.2655-1-e@80x24.org>
+List-Id: <unicorn-public.bogomips.org>
+
+Slowly reducing dependencies on kgio.  'io/wait' is required by
+'socket' these days, so it's no extra relocations for .so
+loading, either.
+---
+ lib/unicorn.rb             | 1 +
+ lib/unicorn/http_server.rb | 2 +-
+ 2 files changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/lib/unicorn.rb b/lib/unicorn.rb
+index e7bc9ce..85e4df1 100644
+--- a/lib/unicorn.rb
++++ b/lib/unicorn.rb
+@@ -2,6 +2,7 @@
+ require 'etc'
+ require 'stringio'
+ require 'kgio'
++require 'io/wait'
+ 
+ begin
+   require 'rack'
+diff --git a/lib/unicorn/http_server.rb b/lib/unicorn/http_server.rb
+index bbbca6c..8398d56 100644
+--- a/lib/unicorn/http_server.rb
++++ b/lib/unicorn/http_server.rb
+@@ -380,7 +380,7 @@ def check_client_connection=(bool)
+ 
+   # wait for a signal hander to wake us up and then consume the pipe
+   def master_sleep(sec)
+-    @self_pipe[0].kgio_wait_readable(sec) or return
++    @self_pipe[0].wait(sec) or return
+     # 11 bytes is the maximum string length which can be embedded within
+     # the Ruby itself and not require a separate malloc (on 32-bit MRI 1.9+).
+     # Most reads are only one byte here and uncommon, so it's not worth a
+-- 
+EW
+
