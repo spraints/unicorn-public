@@ -1,0 +1,73 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.1 (2015-04-28) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.1
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id 3EFA81F404;
+	Tue, 14 Aug 2018 03:14:44 +0000 (UTC)
+Date: Tue, 14 Aug 2018 03:14:44 +0000
+From: Eric Wong <e@80x24.org>
+To: Sam Saffron <sam.saffron@gmail.com>
+Cc: unicorn-public@bogomips.org
+Subject: Re: KGIO issues under WSL
+Message-ID: <20180814031444.GA9808@dcvr>
+References: <CAAtdryOtTO8HGTeKLy_JbeRhWLC7JZpCABVpbpEK+z67JHx=ew@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <CAAtdryOtTO8HGTeKLy_JbeRhWLC7JZpCABVpbpEK+z67JHx=ew@mail.gmail.com>
+List-Id: <unicorn-public.bogomips.org>
+
+Sam Saffron <sam.saffron@gmail.com> wrote:
+> Howdy,
+> 
+> For some crazy reason we really want to run Unicorn on Windows
+> Subsytem for Linux. We only use Unicorn in production and some of our
+> devs like using WSL for "crazy reasons TM".
+> 
+> I guess the on-boarding is somewhat easier for Windows users vs
+> spinning up a proper VM.
+
+IMHO, you're holding your developers back and they'll constantly
+be running into new problems in Ruby development.
+
+> WSL overall works fine but is missing some socket options that mean
+> Kgio is toast and you can not accept sockets.
+
+WSL needs to add support for those Linux options if they intend
+to pass themselves off as Linux-compatible.  And it seems you
+guys pay for MS licenses, so they they should be fixing stuff
+for you.
+
+<snip>
+
+> I was thinking since we are going to be giving up kgio longer term
+> anyway, is there a way of having some flag for running unicorn without
+> kgio or maybe even with minimal socket options given setsockoptions
+> and getsockoptions are patchy. A monkey patch would be fine a well
+> cause this is just for development and Puma seems to be ok-ish.
+
+No flags or new options for this.  Ruby 2.3+ should be OK to run
+entirely w/o kgio using the `exception: false` keyword.  I don't
+know if you want to take a stab at it, there's not a whole lot
+of kgio use in unicorn, even.
+
+However, Ruby 2.0 and even 1.9.3 support should be maintained;
+but maybe that can lazy-load kgio and fall back to expensive
+exceptions if kgio isn't found.
+
+There should be no increase in the bytecode or stack footprint
+for 2.3+ users, but it's fine for users on older Rubies.
+
+I also wouldn't worry about exception costs for exception paths
+where kgio_trywrite tries to write something but gives up if it
+doesn't work; but the accept_nonblock codepath is pretty critical
+for being kept garbage-free.
+
+
+Anyways, we will never advertise support for any proprietary
+systems, if it works it's incidental.
+
+(Abg gung jr nqiregvfr ng nyy :C)
