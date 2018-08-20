@@ -1,0 +1,134 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.1 (2015-04-28) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.1
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id 29D201F954;
+	Mon, 20 Aug 2018 20:30:40 +0000 (UTC)
+From: Eric Wong <e@80x24.org>
+To: unicorn-public@bogomips.org
+Cc: Eric Wong <e@80x24.org>
+Subject: [PATCH] shrink pipes under Linux
+Date: Mon, 20 Aug 2018 20:30:38 +0000
+Message-Id: <20180820203038.25464-1-e@80x24.org>
+List-Id: <unicorn-public.bogomips.org>
+
+We have never had any need for pipes with the default 64K
+capacity on Linux.  Our pipes are only used for tiny writes
+in signal handlers and to perform parent shutdown detection.
+
+With the current /proc/sys/fs/pipe-user-pages-soft
+default, only 1024 pipes can be created by an unprivileged
+user before Linux clamps down the pipe size to 4K (a single page)
+for newly-created pipes[1].
+
+So avoid penalizing OTHER pipe users who could benefit from the
+increased capacity and use only a single page for ourselves.
+
+[1] https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/fs/pipe.c?h=v4.18#n642
+---
+ lib/unicorn.rb              | 18 ++++++++++++++++--
+ lib/unicorn/http_request.rb |  1 -
+ lib/unicorn/launcher.rb     |  2 +-
+ test/unit/test_util.rb      | 23 +++++++++++++++++++++++
+ 4 files changed, 40 insertions(+), 4 deletions(-)
+
+diff --git a/lib/unicorn.rb b/lib/unicorn.rb
+index 85e4df1..b6dae36 100644
+--- a/lib/unicorn.rb
++++ b/lib/unicorn.rb
+@@ -2,6 +2,7 @@
+ require 'etc'
+ require 'stringio'
+ require 'kgio'
++require 'raindrops'
+ require 'io/wait'
+ 
+ begin
+@@ -113,9 +114,22 @@ def self.log_error(logger, prefix, exc)
+     exc.backtrace.each { |line| logger.error(line) }
+   end
+ 
+-  # remove this when we only support Ruby >= 2.0
++  F_SETPIPE_SZ = 1031 if RUBY_PLATFORM =~ /linux/
++
+   def self.pipe # :nodoc:
+-    Kgio::Pipe.new.each { |io| io.close_on_exec = true }
++    Kgio::Pipe.new.each do |io|
++      io.close_on_exec = true  # remove this when we only support Ruby >= 2.0
++
++      # shrink pipes to minimize impact on /proc/sys/fs/pipe-user-pages-soft
++      # limits.
++      if defined?(F_SETPIPE_SZ)
++        begin
++          io.fcntl(F_SETPIPE_SZ, Raindrops::PAGE_SIZE)
++        rescue Errno::EINVAL
++          # old kernel
++        end
++      end
++    end
+   end
+   # :startdoc:
+ end
+diff --git a/lib/unicorn/http_request.rb b/lib/unicorn/http_request.rb
+index d713b19..8bb884b 100644
+--- a/lib/unicorn/http_request.rb
++++ b/lib/unicorn/http_request.rb
+@@ -2,7 +2,6 @@
+ # :enddoc:
+ # no stable API here
+ require 'unicorn_http'
+-require 'raindrops'
+ 
+ # TODO: remove redundant names
+ Unicorn.const_set(:HttpRequest, Unicorn::HttpParser)
+diff --git a/lib/unicorn/launcher.rb b/lib/unicorn/launcher.rb
+index 5eafe5b..78e8f39 100644
+--- a/lib/unicorn/launcher.rb
++++ b/lib/unicorn/launcher.rb
+@@ -31,7 +31,7 @@ def self.daemonize!(options)
+       #  \_ parent  - exits immediately ASAP
+       #      \_ unicorn master - writes to pipe when ready
+ 
+-      rd, wr = IO.pipe
++      rd, wr = Unicorn.pipe
+       grandparent = $$
+       if fork
+         wr.close # grandparent does not write
+diff --git a/test/unit/test_util.rb b/test/unit/test_util.rb
+index dc6302e..586fc6c 100644
+--- a/test/unit/test_util.rb
++++ b/test/unit/test_util.rb
+@@ -102,4 +102,27 @@ def test_reopen_logs_renamed_with_internal_encoding
+     }
+     tmp.close!
+   end
++
++  def test_pipe
++    r, w = Unicorn.pipe
++    assert r
++    assert w
++
++    return if RUBY_PLATFORM =~ /linux/
++
++    f_getpipe_sz = 1032
++    IO.pipe do |a, b|
++      a_sz = a.fcntl(f_getpipe_sz)
++      b_sz = b.fcntl(f_getpipe_sz)
++      assert_kind_of Integer, a_sz
++      r_sz = r.fcntl(f_getpipe_sz)
++      assert_equal Raindrops::PAGE_SIZE, r_sz
++      assert_operator a_sz, :>=, r_sz
++    end
++  rescue Errno::EINVAL
++    # Linux <= 2.6.34
++  ensure
++    w.close
++    r.close
++  end
+ end
+-- 
+EW
+
