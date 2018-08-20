@@ -1,0 +1,39 @@
+Return-Path: <normalperson@yhbt.net>
+X-Spam-Checker-Version: SpamAssassin 3.4.1 (2015-04-28) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,AWL,BAYES_00,
+	HEADER_FROM_DIFFERENT_DOMAINS shortcircuit=no autolearn=ham
+	autolearn_force=no version=3.4.1
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id 25B8F1F954;
+	Mon, 20 Aug 2018 20:42:54 +0000 (UTC)
+From: Eric Wong <e@80x24.org>
+To: unicorn-public@bogomips.org
+Cc: Eric Wong <e@80x24.org>
+Subject: [PATCH] socket_helper: add hint for FreeBSD users for accf_http(9)
+Date: Mon, 20 Aug 2018 20:42:52 +0000
+Message-Id: <20180820204252.8425-1-e@80x24.org>
+List-Id: <unicorn-public.bogomips.org>
+
+Because I forget to load accf_http on new FreeBSD installs,
+too :x
+---
+ lib/unicorn/socket_helper.rb | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/lib/unicorn/socket_helper.rb b/lib/unicorn/socket_helper.rb
+index b540302..8a6f6ee 100644
+--- a/lib/unicorn/socket_helper.rb
++++ b/lib/unicorn/socket_helper.rb
+@@ -83,6 +83,7 @@ def set_tcp_sockopt(sock, opt)
+         rescue => e
+           logger.error("#{sock_name(sock)} " \
+                        "failed to set accept_filter=#{name} (#{e.inspect})")
++          logger.error("perhaps accf_http(9) needs to be loaded".freeze)
+         end if arg != got
+       end
+     end
+-- 
+EW
+
