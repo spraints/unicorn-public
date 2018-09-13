@@ -1,0 +1,51 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.1 (2015-04-28) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.1
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id 94C331F404;
+	Thu, 13 Sep 2018 22:34:07 +0000 (UTC)
+Date: Thu, 13 Sep 2018 22:34:07 +0000
+From: Eric Wong <e@80x24.org>
+To: Jeremy Evans <code@jeremyevans.net>
+Cc: unicorn-public@bogomips.org
+Subject: Re: Support default_middleware configurator method
+Message-ID: <20180913223407.GA44494@ailurophile>
+References: <20180913192055.GD48926@jeremyevans.local>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <20180913192055.GD48926@jeremyevans.local>
+List-Id: <unicorn-public.bogomips.org>
+
+Jeremy Evans <code@jeremyevans.net> wrote:
+> I was originally looking for a way to turn off default middleware
+> without having to specify the -N command line option every time.
+> After reading the Unicorn.builder code, I thought it may be
+> possible to do this by specifying the option as an embedded option
+> in the rackup file, via the following line at the top of the file:
+> 
+> #\-N
+> 
+> Unfortunately, while this works for many other command line options,
+> because of Unicorn's internals, this doesn't work for -N, as
+> embedded options are not parsed until after the check for skipping
+> default middleware is made.
+
+That was intentional, I think.  We should never be encouraging
+users to pollute config.ru and make it difficult to migrate/test
+other servers.
+
+> This patch makes the embedded -N option work, as well as adds a
+> default_middleware configuration file option
+
+I really hate the -N vs RACK_ENV=none redundancy...  Is -N still
+needed for Rails or something else while keeping RACK_ENV unset?
+
+Worse case is we only support default_middleware as a config
+option (but I prefer not to add more options).  Embedded -N support
+is an anti-feature which leads to lock-in.
+
+Thanks.
