@@ -1,0 +1,56 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.1 (2015-04-28) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.1
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id B63C41F404;
+	Thu, 13 Sep 2018 22:53:39 +0000 (UTC)
+Date: Thu, 13 Sep 2018 22:53:39 +0000
+From: Eric Wong <e@80x24.org>
+To: Jeremy Evans <code@jeremyevans.net>
+Cc: unicorn-public@bogomips.org
+Subject: Re: Make Worker#user support different process primary group and log
+ file group
+Message-ID: <20180913225339.xylcyzwcitcsw65c@dcvr>
+References: <20180913192449.GE48926@jeremyevans.local>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <20180913192449.GE48926@jeremyevans.local>
+List-Id: <unicorn-public.bogomips.org>
+
+Jeremy Evans <code@jeremyevans.net> wrote:
+> This patch allows Worker#user to accept the group argument as an array
+> of two strings, the first string being the process primary group, and
+> the second string being the group that owns the log files.  This can
+> help when you have a large number of applications that use unique
+> primary groups, and want to have a user with the ability to read the log
+> files for any of the applications, especially if you are on an operating
+> system that only supports a small number of groups per user.
+
+Fwiw, I don't understand why there's a blurb here for an
+isolated patch when your commit message below is is sufficient :)
+
+Along the same lines, "--cover-letter" in git-format-patch(1)
+isn't necessary for single patches, either, but they help with a
+multi-patch series.
+
+> Subject: [PATCH] Make Worker#user support different process primary group and
+>  log file group
+> 
+> Previously, Unicorn always used the process's primary group as the
+> the group of the log file.  However, there are reasons to use a
+> separate group for the log files, such as when you have many
+> applications where each application uses it's own user and primary
+> group, but you want to be able to have a user read the log files
+> for all applications.  Some operating systems have a fairly small
+> limit on the number of groups per user, and it may not be feasible
+> to have a user be in the primary group for all applications.
+> a primary group
+
+Anyways, this featureseems acceptable.  Pushed to master as
+47fddb53aa0b7763f353ba515cf3fb5b2059f4f7
+
+Thanks
