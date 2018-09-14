@@ -1,0 +1,95 @@
+Return-Path: <code@jeremyevans.net>
+X-Spam-Checker-Version: SpamAssassin 3.4.1 (2015-04-28) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS40173 67.222.241.0/24
+X-Spam-Status: No, score=-3.7 required=3.0 tests=BAYES_00,RCVD_IN_DNSWL_LOW
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.1
+Received: from smtp-out-1.mxes.net (smtp-out-1.mxes.net [67.222.241.250])
+	(using TLSv1.2 with cipher AECDH-AES256-SHA (256/256 bits))
+	(No client certificate requested)
+	by dcvr.yhbt.net (Postfix) with ESMTPS id 726231F42B
+	for <unicorn-public@bogomips.org>; Fri, 14 Sep 2018 00:00:31 +0000 (UTC)
+Received: from Customer-MUA (mua.mxes.net [10.0.0.1])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by smtp.mxes.net (Postfix) with ESMTPSA id 6FA3B2750B;
+	Thu, 13 Sep 2018 20:00:29 -0400 (EDT)
+Received: from jeremyevans.local (battleground.jeremyevans.local [10.187.8.1])
+	by battleground.jeremyevans.local (OpenSMTPD) with ESMTPS id a2026b57 (TLSv1.2:ECDHE-RSA-CHACHA20-POLY1305:256:NO);
+	Thu, 13 Sep 2018 17:00:27 -0700 (PDT)
+Date: Thu, 13 Sep 2018 17:00:26 -0700
+From: Jeremy Evans <code@jeremyevans.net>
+To: Eric Wong <e@80x24.org>
+Cc: unicorn-public@bogomips.org
+Subject: Re: Support default_middleware configurator method
+Message-ID: <20180914000026.GG48926@jeremyevans.local>
+References: <20180913192055.GD48926@jeremyevans.local>
+ <20180913223407.GA44494@ailurophile>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20180913223407.GA44494@ailurophile>
+User-Agent: Mutt/1.10.1 (2018-07-13)
+X-Sent-To: <dW5pY29ybi1wdWJsaWNAYm9nb21pcHMub3Jn>
+X-Sender: jeremyevans.net
+List-Id: <unicorn-public.bogomips.org>
+
+On 09/13 10:34, Eric Wong wrote:
+> Jeremy Evans <code@jeremyevans.net> wrote:
+> > I was originally looking for a way to turn off default middleware
+> > without having to specify the -N command line option every time.
+> > After reading the Unicorn.builder code, I thought it may be
+> > possible to do this by specifying the option as an embedded option
+> > in the rackup file, via the following line at the top of the file:
+> > 
+> > #\-N
+> > 
+> > Unfortunately, while this works for many other command line options,
+> > because of Unicorn's internals, this doesn't work for -N, as
+> > embedded options are not parsed until after the check for skipping
+> > default middleware is made.
+> 
+> That was intentional, I think.  We should never be encouraging
+> users to pollute config.ru and make it difficult to migrate/test
+> other servers.
+> 
+> > This patch makes the embedded -N option work, as well as adds a
+> > default_middleware configuration file option
+> 
+> I really hate the -N vs RACK_ENV=none redundancy...  Is -N still
+> needed for Rails or something else while keeping RACK_ENV unset?
+
+I use RACK_ENV to configure the environment for my web applications, and
+for a few reasons have used development/test/production as the
+environment names.  I try as much as possible to have the development
+environment mirror the production environment unless there is a good
+reason to be different, and would like to avoid adding all of the
+middleware Unicorn adds in development mode.
+
+Additionally, let's say I want to add Rack::CommonLogger to both
+development and production environments.  So in my config.ru, I add:
+
+  use Rack::CommonLogger, Logger.new($stderr)
+
+Now I load up the development version.  Then I have two common loggers
+in development, with all requests being logged twice.  I currently
+work around this by doing something like:
+
+  unless ENV['RACK_ENV'] == 'development'
+    use Rack::CommonLogger, Logger.new($stderr)
+  end
+
+I would like to avoid having to do that.
+
+> Worse case is we only support default_middleware as a config
+> option (but I prefer not to add more options).  Embedded -N support
+> is an anti-feature which leads to lock-in.
+
+I don't really care about embedded -N support.  I actually didn't even
+know embedded command file options were possible until I saw the
+comment in Unicorn.builder.  I just want some way to specify not to
+load default middleware without requiring a command line option each
+time.
+
+Thanks,
+Jeremy
