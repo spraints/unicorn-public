@@ -1,0 +1,256 @@
+Return-Path: <code@jeremyevans.net>
+X-Spam-Checker-Version: SpamAssassin 3.4.1 (2015-04-28) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS10607 205.237.192.0/21
+X-Spam-Status: No, score=-3.0 required=3.0 tests=BAYES_00 shortcircuit=no
+	autolearn=ham autolearn_force=no version=3.4.1
+Received: from smtp-out-2.mxes.net (smtp-out-2.mxes.net [205.237.194.127])
+	(using TLSv1.2 with cipher AECDH-AES256-SHA (256/256 bits))
+	(No client certificate requested)
+	by dcvr.yhbt.net (Postfix) with ESMTPS id 2F3E51F454
+	for <unicorn-public@bogomips.org>; Sat, 22 Sep 2018 16:11:42 +0000 (UTC)
+Received: from Customer-MUA (mua.mxes.net [10.0.0.1])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by smtp.mxes.net (Postfix) with ESMTPSA id 0034127588;
+	Sat, 22 Sep 2018 12:11:39 -0400 (EDT)
+Received: from jeremyevans.local (battleground.jeremyevans.local [10.187.8.1])
+	by battleground.jeremyevans.local (OpenSMTPD) with ESMTPS id 50e28fe4 (TLSv1.2:ECDHE-RSA-CHACHA20-POLY1305:256:NO);
+	Thu, 20 Sep 2018 17:21:59 -0700 (PDT)
+Date: Thu, 20 Sep 2018 17:21:58 -0700
+From: Jeremy Evans <code@jeremyevans.net>
+To: Eric Wong <e@80x24.org>
+Cc: unicorn-public@bogomips.org
+Subject: Re: Support default_middleware configurator method
+Message-ID: <20180921002158.GC89979@jeremyevans.local>
+References: <20180913192055.GD48926@jeremyevans.local>
+ <20180913223407.GA44494@ailurophile>
+ <20180914000026.GG48926@jeremyevans.local>
+ <20180914105626.cb4gl5mwdicnytmq@dcvr>
+ <20180914150358.GH48926@jeremyevans.local>
+ <20180919073926.fnwvgrkmszxxg5mw@dcvr>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20180919073926.fnwvgrkmszxxg5mw@dcvr>
+User-Agent: Mutt/1.10.1 (2018-07-13)
+X-Sent-To: <dW5pY29ybi1wdWJsaWNAYm9nb21pcHMub3Jn>
+X-Sender: jeremyevans.net
+List-Id: <unicorn-public.bogomips.org>
+
+On 09/19 07:39, Eric Wong wrote:
+> Jeremy Evans <code@jeremyevans.net> wrote:
+> > OK. To implement that, I modified the bin/unicorn file so -N
+> > is only respected while parsing ARGV, and not while parsing
+> > embedded configuration file options.
+> 
+> Thanks.
+> 
+> Unfortunately, -N on the command-line was broken by your patch.
+> I fixed configurator.rb ordering (below) to pass t0300
+> integration test.
+> 
+> Also, using a non-config.ru .rb file (TestHandler in
+> test/unit/test_server.rb) was broken because of missing
+> parentheses.
+
+Sorry about both of those issues and for the delay in responding to
+this.  I've included your changes in the following squashed commit,
+which also includes an integration test for the default_middleware
+configuration option, based on the existing integration test for
+the -N option.
+
+Thanks,
+Jeremy
+
+From fdbbcc82b838a39abdc43448490eb83d80c4f763 Mon Sep 17 00:00:00 2001
+From: Jeremy Evans <code@jeremyevans.net>
+Date: Thu, 13 Sep 2018 10:48:25 -0700
+Subject: [PATCH] Support default_middleware configuration option
+
+This allows for the equivalent of the
+-N/--no-default_middleware command line option to be
+specified in the configuration file so it doesn't
+need to be specified on the command line every time
+unicorn is executed.
+
+It explicitly excludes the use of -N/--no-default_middleware
+as an embedded configuration option in the rackup file, by
+ignoring the options after ARGV is parsed.
+
+In order to allow the configuration method to work, have
+the lambda that Unicorn.builder returns accept two arguments.
+Technically, only one argument is needed for the HttpServer
+instance, but I'm guessing if the lambda accepts a single
+argument, we expect that to be a rack application instead
+of a lambda that returns a rack application.
+
+The command line option option to disable default middleware
+will take precedence over the unicorn configuration file option
+if both are present.
+
+For backwards compatibility, if the lambda passed to
+HttpServer accepts 0 arguments, then call it without
+arguments.
+---
+ bin/unicorn                         |  4 +++-
+ lib/unicorn.rb                      |  8 ++------
+ lib/unicorn/configurator.rb         | 11 +++++++++++
+ lib/unicorn/http_server.rb          |  8 +++++---
+ t/t0301-default-middleware-false.sh | 22 ++++++++++++++++++++++
+ 5 files changed, 43 insertions(+), 10 deletions(-)
+ create mode 100644 t/t0301-default-middleware-false.sh
+
+diff --git a/bin/unicorn b/bin/unicorn
+index 3c5e5cb..00c8464 100755
+--- a/bin/unicorn
++++ b/bin/unicorn
+@@ -6,6 +6,7 @@
+ ENV["RACK_ENV"] ||= "development"
+ rackup_opts = Unicorn::Configurator::RACKUP
+ options = rackup_opts[:options]
++set_no_default_middleware = true
+ 
+ op = OptionParser.new("", 24, '  ') do |opts|
+   cmd = File.basename($0)
+@@ -60,7 +61,7 @@
+ 
+   opts.on("-N", "--no-default-middleware",
+           "do not load middleware implied by RACK_ENV") do |e|
+-    rackup_opts[:no_default_middleware] = true
++    rackup_opts[:no_default_middleware] = true if set_no_default_middleware
+   end
+ 
+   opts.on("-D", "--daemonize", "run daemonized in the background") do |d|
+@@ -110,6 +111,7 @@
+   opts.parse! ARGV
+ end
+ 
++set_no_default_middleware = false
+ app = Unicorn.builder(ARGV[0] || 'config.ru', op)
+ op = nil
+ 
+diff --git a/lib/unicorn.rb b/lib/unicorn.rb
+index b6dae36..5f2134d 100644
+--- a/lib/unicorn.rb
++++ b/lib/unicorn.rb
+@@ -45,12 +45,8 @@ def self.builder(ru, op)
+       abort "rack and Rack::Builder must be available for processing #{ru}"
+     end
+ 
+-    # Op is going to get cleared before the returned lambda is called, so
+-    # save this value so that it's still there when we need it:
+-    no_default_middleware = op[:no_default_middleware]
+-
+     # always called after config file parsing, may be called after forking
+-    lambda do ||
++    lambda do |_, server|
+       inner_app = case ru
+       when /\.ru$/
+         raw = File.read(ru)
+@@ -66,7 +62,7 @@ def self.builder(ru, op)
+         pp({ :inner_app => inner_app })
+       end
+ 
+-      return inner_app if no_default_middleware
++      return inner_app unless server.default_middleware
+ 
+       middleware = { # order matters
+         ContentLength: nil,
+diff --git a/lib/unicorn/configurator.rb b/lib/unicorn/configurator.rb
+index f34d38b..d426edf 100644
+--- a/lib/unicorn/configurator.rb
++++ b/lib/unicorn/configurator.rb
+@@ -88,6 +88,9 @@ def reload(merge_defaults = true) #:nodoc:
+     RACKUP[:set_listener] and
+       set[:listeners] << "#{RACKUP[:host]}:#{RACKUP[:port]}"
+ 
++    RACKUP[:no_default_middleware] and
++      set[:default_middleware] = false
++
+     # unicorn_rails creates dirs here after working_directory is bound
+     after_reload.call if after_reload
+ 
+@@ -265,6 +268,14 @@ def worker_processes(nr)
+     set_int(:worker_processes, nr, 1)
+   end
+ 
++  # sets whether to add default middleware in the development and
++  # deployment RACK_ENVs.
++  #
++  # default_middleware is only available in unicorn 5.5.0+
++  def default_middleware(bool)
++    set_bool(:default_middleware, bool)
++  end
++
+   # sets listeners to the given +addresses+, replacing or augmenting the
+   # current set.  This is for the global listener pool shared by all
+   # worker processes.  For per-worker listeners, see the after_fork example
+diff --git a/lib/unicorn/http_server.rb b/lib/unicorn/http_server.rb
+index b2bbddb..62f6171 100644
+--- a/lib/unicorn/http_server.rb
++++ b/lib/unicorn/http_server.rb
+@@ -14,7 +14,8 @@ class Unicorn::HttpServer
+   attr_accessor :app, :timeout, :worker_processes,
+                 :before_fork, :after_fork, :before_exec,
+                 :listener_opts, :preload_app,
+-                :orig_app, :config, :ready_pipe, :user
++                :orig_app, :config, :ready_pipe, :user,
++                :default_middleware
+   attr_writer   :after_worker_exit, :after_worker_ready, :worker_exec
+ 
+   attr_reader :pid, :logger
+@@ -70,6 +71,7 @@ def initialize(app, options = {})
+     @app = app
+     @request = Unicorn::HttpRequest.new
+     @reexec_pid = 0
++    @default_middleware = true
+     options = options.dup
+     @ready_pipe = options.delete(:ready_pipe)
+     @init_listeners = options[:listeners] ? options[:listeners].dup : []
+@@ -784,12 +786,12 @@ def listener_names(listeners = LISTENERS)
+   end
+ 
+   def build_app!
+-    if app.respond_to?(:arity) && app.arity == 0
++    if app.respond_to?(:arity) && (app.arity == 0 || app.arity == 2)
+       if defined?(Gem) && Gem.respond_to?(:refresh)
+         logger.info "Refreshing Gem list"
+         Gem.refresh
+       end
+-      self.app = app.call
++      self.app = app.arity == 0 ? app.call : app.call(nil, self)
+     end
+   end
+ 
+diff --git a/t/t0301-default-middleware-false.sh b/t/t0301-default-middleware-false.sh
+new file mode 100644
+index 0000000..c505f1d
+--- /dev/null
++++ b/t/t0301-default-middleware-false.sh
+@@ -0,0 +1,22 @@
++#!/bin/sh
++. ./test-lib.sh
++t_plan 3 "test the default_middleware false configuration option"
++
++t_begin "setup and start" && {
++	unicorn_setup
++	echo default_middleware false >> $unicorn_config
++	unicorn -D -c $unicorn_config fails-rack-lint.ru
++	unicorn_wait_start
++}
++
++t_begin "check exit status with Rack::Lint not present" && {
++	test 42 -eq "$(curl -sf -o/dev/null -w'%{http_code}' http://$listen/)"
++}
++
++t_begin "killing succeeds" && {
++	kill $unicorn_pid
++	check_stderr
++}
++
++t_done
++
+-- 
+2.17.1
+
