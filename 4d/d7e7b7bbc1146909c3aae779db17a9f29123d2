@@ -1,0 +1,101 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.1 (2015-04-28) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.1
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id 586F31F453;
+	Fri, 21 Sep 2018 00:34:41 +0000 (UTC)
+Date: Fri, 21 Sep 2018 00:34:41 +0000
+From: Eric Wong <e@80x24.org>
+To: Jeremy Evans <code@jeremyevans.net>
+Cc: unicorn-public@bogomips.org
+Subject: [PATCH 2/1] tests: ensure -N/--no-default-middleware not supported
+ in config.ru
+Message-ID: <20180921003441.i4uxywyptlyscwv6@dcvr>
+References: <20180913192055.GD48926@jeremyevans.local>
+ <20180913223407.GA44494@ailurophile>
+ <20180914000026.GG48926@jeremyevans.local>
+ <20180914105626.cb4gl5mwdicnytmq@dcvr>
+ <20180914150358.GH48926@jeremyevans.local>
+ <20180919073926.fnwvgrkmszxxg5mw@dcvr>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <20180919073926.fnwvgrkmszxxg5mw@dcvr>
+List-Id: <unicorn-public.bogomips.org>
+
+Eric Wong <e@80x24.org> wrote:
+> Will squash the following changes in before pushing:
+
+Squashed and pushed to master as 5985dd50a9bd72388dd5ca4886d6dffc083f87d4
+
+Also added a new test to ensure we don't start supporting -N in
+config.ru:
+
+--------8<----------
+Subject: [PATCH] tests: ensure -N/--no-default-middleware not supported in
+ config.ru
+
+Continue to make it easy to migrate AWAY from unicorn because
+vendor lock-in is the worst thing, especially if it's on us.
+---
+ ...no-default-middleware-ignored-in-config.sh | 25 +++++++++++++++++++
+ t/t0301.ru                                    | 13 ++++++++++
+ 2 files changed, 38 insertions(+)
+ create mode 100755 t/t0301-no-default-middleware-ignored-in-config.sh
+ create mode 100644 t/t0301.ru
+
+diff --git a/t/t0301-no-default-middleware-ignored-in-config.sh b/t/t0301-no-default-middleware-ignored-in-config.sh
+new file mode 100755
+index 0000000..0b6cd94
+--- /dev/null
++++ b/t/t0301-no-default-middleware-ignored-in-config.sh
+@@ -0,0 +1,25 @@
++#!/bin/sh
++. ./test-lib.sh
++t_plan 3 "-N / --no-default-middleware option not supported in config.ru"
++
++t_begin "setup and start" && {
++	unicorn_setup
++	RACK_ENV=development unicorn -D -c $unicorn_config t0301.ru
++	unicorn_wait_start
++}
++
++t_begin "check switches parsed as expected and -N ignored for Rack::Lint" && {
++	debug=false
++	lint=
++	eval "$(curl -sf http://$listen/vars)"
++	test x"$debug" = xtrue
++	test x"$lint" != x
++	test -f "$lint"
++}
++
++t_begin "killing succeeds" && {
++	kill $unicorn_pid
++	check_stderr
++}
++
++t_done
+diff --git a/t/t0301.ru b/t/t0301.ru
+new file mode 100644
+index 0000000..1ae8ea7
+--- /dev/null
++++ b/t/t0301.ru
+@@ -0,0 +1,13 @@
++#\-N --debug
++run(lambda do |env|
++  case env['PATH_INFO']
++  when '/vars'
++    b = "debug=#{$DEBUG.inspect}\n" \
++        "lint=#{caller.grep(%r{rack/lint\.rb})[0].split(':')[0]}\n"
++  end
++  h = {
++    'Content-Length' => b.size.to_s,
++    'Content-Type' => 'text/plain',
++  }
++  [ 200, h, [ b ] ]
++end)
+-- 
+EW
