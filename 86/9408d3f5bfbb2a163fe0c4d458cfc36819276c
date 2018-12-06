@@ -1,0 +1,155 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.2 (2018-09-13) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.2
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id 96ADA211B3;
+	Thu,  6 Dec 2018 23:44:26 +0000 (UTC)
+Date: Thu, 6 Dec 2018 23:44:26 +0000
+From: Eric Wong <e@80x24.org>
+To: unicorn-public@bogomips.org
+Subject: [RFC] deduplicate strings VM-wide in Ruby 2.5+
+Message-ID: <20181206234426.ozgg7v3xxtw3oxm5@dcvr>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+List-Id: <unicorn-public.bogomips.org>
+
+String#-@ deduplicates strings starting with Ruby 2.5.0
+Hash#[]= deduplicates strings starting in Ruby 2.6.0-rc1
+
+This allows us to save a small amount of memory by sharing
+objects with other parts of the stack (e.g. Rack).
+---
+   RFC because I've only lightly-tested this and only with Ruby 2.6rc1.
+   Will get around to testing later (because more hardware problems,
+   trying new SATA cables...)
+
+ ext/unicorn_http/common_field_optimization.h | 26 ++++++++++++++++---
+ ext/unicorn_http/extconf.rb                  | 27 ++++++++++++++++++++
+ test/unit/test_http_parser.rb                | 16 ++++++++++++
+ 3 files changed, 65 insertions(+), 4 deletions(-)
+
+diff --git a/ext/unicorn_http/common_field_optimization.h b/ext/unicorn_http/common_field_optimization.h
+index 251e734..4b9f062 100644
+--- a/ext/unicorn_http/common_field_optimization.h
++++ b/ext/unicorn_http/common_field_optimization.h
+@@ -58,6 +58,23 @@ static struct common_field common_http_fields[] = {
+ 
+ #define HTTP_PREFIX "HTTP_"
+ #define HTTP_PREFIX_LEN (sizeof(HTTP_PREFIX) - 1)
++static ID id_uminus;
++
++/* this dedupes under Ruby 2.5+ (December 2017) */
++static VALUE str_dd_freeze(VALUE str)
++{
++  if (STR_UMINUS_DEDUPE)
++    return rb_funcall(str, id_uminus, 0);
++
++  /* freeze,since it speeds up older MRI slightly */
++  OBJ_FREEZE(str);
++  return str;
++}
++
++static VALUE str_new_dd_freeze(const char *ptr, long len)
++{
++  return str_dd_freeze(rb_str_new(ptr, len));
++}
+ 
+ /* this function is not performance-critical, called only at load time */
+ static void init_common_fields(VALUE mark_ary)
+@@ -65,18 +82,19 @@ static void init_common_fields(VALUE mark_ary)
+   int i;
+   struct common_field *cf = common_http_fields;
+   char tmp[64];
++
++  id_uminus = rb_intern("-@");
+   memcpy(tmp, HTTP_PREFIX, HTTP_PREFIX_LEN);
+ 
+   for(i = ARRAY_SIZE(common_http_fields); --i >= 0; cf++) {
+     /* Rack doesn't like certain headers prefixed with "HTTP_" */
+     if (!strcmp("CONTENT_LENGTH", cf->name) ||
+         !strcmp("CONTENT_TYPE", cf->name)) {
+-      cf->value = rb_str_new(cf->name, cf->len);
++      cf->value = str_new_dd_freeze(cf->name, cf->len);
+     } else {
+       memcpy(tmp + HTTP_PREFIX_LEN, cf->name, cf->len + 1);
+-      cf->value = rb_str_new(tmp, HTTP_PREFIX_LEN + cf->len);
++      cf->value = str_new_dd_freeze(tmp, HTTP_PREFIX_LEN + cf->len);
+     }
+-    cf->value = rb_obj_freeze(cf->value);
+     rb_ary_push(mark_ary, cf->value);
+   }
+ }
+@@ -105,7 +123,7 @@ static VALUE uncommon_field(const char *field, size_t flen)
+   memcpy(RSTRING_PTR(f) + HTTP_PREFIX_LEN, field, flen);
+   assert(*(RSTRING_PTR(f) + RSTRING_LEN(f)) == '\0' &&
+          "string didn't end with \\0"); /* paranoia */
+-  return rb_obj_freeze(f);
++  return HASH_ASET_DEDUPE ? f : str_dd_freeze(f);
+ }
+ 
+ #endif /* common_field_optimization_h */
+diff --git a/ext/unicorn_http/extconf.rb b/ext/unicorn_http/extconf.rb
+index 2fc60fe..5b7a8ca 100644
+--- a/ext/unicorn_http/extconf.rb
++++ b/ext/unicorn_http/extconf.rb
+@@ -8,4 +8,31 @@
+ have_func("rb_hash_clear", "ruby.h") # Ruby 2.0+
+ have_func("gmtime_r", "time.h")
+ 
++message('checking if String#-@ (str_uminus) dedupes... ')
++begin
++  a = -(%w(t e s t).join)
++  b = -(%w(t e s t).join)
++  if a.equal?(b)
++    $CPPFLAGS += ' -DSTR_UMINUS_DEDUPE=1 '
++    message("yes\n")
++  else
++    $CPPFLAGS += ' -DSTR_UMINUS_DEDUPE=0 '
++    message("no, needs Ruby 2.5+\n")
++  end
++rescue NoMethodError
++  $CPPFLAGS += ' -DSTR_UMINUS_DEDUPE=0 '
++  message("no, String#-@ not available\n")
++end
++
++message('checking if Hash#[]= (rb_hash_aset) dedupes... ')
++h = {}
++h[%w(m k m f).join('')] = :foo
++if 'mkmf'.freeze.equal?(h.keys[0])
++  $CPPFLAGS += ' -DHASH_ASET_DEDUPE=1 '
++  message("yes\n")
++else
++  $CPPFLAGS += ' -DHASH_ASET_DEDUPE=0 '
++  message("no, needs Ruby 2.6+\n")
++end
++
+ create_makefile("unicorn_http")
+diff --git a/test/unit/test_http_parser.rb b/test/unit/test_http_parser.rb
+index 31e6f71..697af44 100644
+--- a/test/unit/test_http_parser.rb
++++ b/test/unit/test_http_parser.rb
+@@ -865,4 +865,20 @@ def test_memsize
+   rescue LoadError
+     # not all Ruby implementations have objspace
+   end
++
++  def test_dedupe
++    parser = HttpParser.new
++    # n.b. String#freeze optimization doesn't work under modern test-unit
++    exp = -'HTTP_HOST'
++    get = "GET / HTTP/1.1\r\nHost: example.com\r\nHavpbea-fhpxf: true\r\n\r\n"
++    assert parser.add_parse(get)
++    key = parser.env.keys.detect { |k| k == exp }
++    assert_same exp, key
++
++    if RUBY_VERSION.to_r >= 2.6 # 2.6.0-rc1+
++      exp = -'HTTP_HAVPBEA_FHPXF'
++      key = parser.env.keys.detect { |k| k == exp }
++      assert_same exp, key
++    end
++  end if RUBY_VERSION.to_r >= 2.5 && RUBY_ENGINE == 'ruby'
+ end
