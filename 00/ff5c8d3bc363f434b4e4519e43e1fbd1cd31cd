@@ -1,0 +1,43 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.2 (2018-09-13) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.2
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id 97E3A20A1E;
+	Fri,  7 Dec 2018 04:56:18 +0000 (UTC)
+Date: Fri, 7 Dec 2018 04:56:18 +0000
+From: Eric Wong <e@80x24.org>
+To: unicorn-public@bogomips.org
+Subject: Re: [RFC] deduplicate strings VM-wide in Ruby 2.5+
+Message-ID: <20181207045618.hpspfwpz26wn7yzf@dcvr>
+References: <20181206234426.ozgg7v3xxtw3oxm5@dcvr>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <20181206234426.ozgg7v3xxtw3oxm5@dcvr>
+List-Id: <unicorn-public.bogomips.org>
+
+Since 'mkmf' is already in the fstring table as that exists in
+the source; so I'll at least have to squash this on top for
+Ruby <=2.5:
+
+diff --git a/ext/unicorn_http/extconf.rb b/ext/unicorn_http/extconf.rb
+index 5b7a8ca..d5f81fb 100644
+--- a/ext/unicorn_http/extconf.rb
++++ b/ext/unicorn_http/extconf.rb
+@@ -26,8 +26,11 @@
+ 
+ message('checking if Hash#[]= (rb_hash_aset) dedupes... ')
+ h = {}
+-h[%w(m k m f).join('')] = :foo
+-if 'mkmf'.freeze.equal?(h.keys[0])
++x = {}
++r = rand.to_s
++h[%W(#{r}).join('')] = :foo
++x[%W(#{r}).join('')] = :foo
++if x.keys[0].equal?(h.keys[0])
+   $CPPFLAGS += ' -DHASH_ASET_DEDUPE=1 '
+   message("yes\n")
+ else
