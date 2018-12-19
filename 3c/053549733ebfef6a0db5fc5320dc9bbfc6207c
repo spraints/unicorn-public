@@ -1,0 +1,70 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.2 (2018-09-13) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,AWL,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.2
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id A33911F405
+	for <unicorn-public@bogomips.org>; Wed, 19 Dec 2018 02:47:40 +0000 (UTC)
+From: Eric Wong <e@80x24.org>
+To: unicorn-public@bogomips.org
+Subject: [PATCH] README: minor updates and additional disclaimer
+Date: Wed, 19 Dec 2018 02:47:40 +0000
+Message-Id: <20181219024740.19911-1-e@80x24.org>
+List-Id: <unicorn-public.bogomips.org>
+
+Nowadays, I mainly rely on systemd (and not USR2) for
+zero-downtime upgrades.  Also, CoW-friendliness is standard
+in mainline Ruby since 2.0.
+
+There also needs to be a disclaimer to point out the unfortunate
+side-effect of robustness for hosting buggy apps.
+---
+ README | 11 +++++++++--
+ 1 file changed, 9 insertions(+), 2 deletions(-)
+
+diff --git a/README b/README
+index 5e5ccf7..89467fc 100644
+--- a/README
++++ b/README
+@@ -37,12 +37,15 @@ both the the request and response in between unicorn and slow clients.
+   You can upgrade unicorn, your entire application, libraries
+   and even your Ruby interpreter without dropping clients.
+ 
++* transparent upgrades using systemd socket activation is
++  supported since unicorn 5.0
++
+ * before_fork and after_fork hooks in case your application
+   has special needs when dealing with forked processes.  These
+   should not be needed when the "preload_app" directive is
+   false (the default).
+ 
+-* Can be used with copy-on-write-friendly memory management
++* Can be used with copy-on-write-friendly GC in Ruby 2.0+
+   to save memory (by setting "preload_app" to true).
+ 
+ * Able to listen on multiple interfaces including UNIX sockets,
+@@ -55,7 +58,7 @@ both the the request and response in between unicorn and slow clients.
+ 
+ == License
+ 
+-unicorn is copyright 2009-2016 by all contributors (see logs in git).
++unicorn is copyright 2009-2018 by all contributors (see logs in git).
+ It is based on Mongrel 1.1.5.
+ Mongrel is copyright 2007 Zed A. Shaw and contributors.
+ 
+@@ -122,6 +125,10 @@ unicorn is designed to only serve fast clients either on the local host
+ or a fast LAN.  See the PHILOSOPHY and DESIGN documents for more details
+ regarding this.
+ 
++Due to its ability to tolerate crashes and isolate clients, unicorn
++is unfortunately known to prolong the existence of bugs in applications
++and libraries which run on top of it.
++
+ == Contact
+ 
+ All feedback (bug reports, user/development dicussion, patches, pull
+-- 
+EW
+
