@@ -1,0 +1,153 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.2 (2018-09-13) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.2
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id 3223C211B9;
+	Wed, 26 Dec 2018 05:08:59 +0000 (UTC)
+From: Eric Wong <e@80x24.org>
+To: unicorn-public@bogomips.org
+Cc: Eric Wong <e@80x24.org>
+Subject: [PATCH] use rb_gc_register_mark_object
+Date: Wed, 26 Dec 2018 05:08:57 +0000
+Message-Id: <20181226050857.6413-1-e@80x24.org>
+MIME-Version: 1.0
+Content-Transfer-Encoding: 8bit
+List-Id: <unicorn-public.bogomips.org>
+
+Since Ruby 2.6, it's a documented part of the API and we may depend
+on it: https://bugs.ruby-lang.org/issues/9894
+
+It's been around since the early Ruby 1.9 days, and reduces
+overhead compared to relying on rb_global_variable:
+
+  https://bogomips.org/unicorn-public/20170301002854.29198-1-e@80x24.org/
+---
+ ext/unicorn_http/common_field_optimization.h |  4 ++--
+ ext/unicorn_http/global_variables.h          |  4 ++--
+ ext/unicorn_http/httpdate.c                  |  4 ++--
+ ext/unicorn_http/unicorn_http.rl             | 13 ++++---------
+ 4 files changed, 10 insertions(+), 15 deletions(-)
+
+diff --git a/ext/unicorn_http/common_field_optimization.h b/ext/unicorn_http/common_field_optimization.h
+index 4b9f062..0659fc7 100644
+--- a/ext/unicorn_http/common_field_optimization.h
++++ b/ext/unicorn_http/common_field_optimization.h
+@@ -77,7 +77,7 @@ static VALUE str_new_dd_freeze(const char *ptr, long len)
+ }
+ 
+ /* this function is not performance-critical, called only at load time */
+-static void init_common_fields(VALUE mark_ary)
++static void init_common_fields(void)
+ {
+   int i;
+   struct common_field *cf = common_http_fields;
+@@ -95,7 +95,7 @@ static void init_common_fields(VALUE mark_ary)
+       memcpy(tmp + HTTP_PREFIX_LEN, cf->name, cf->len + 1);
+       cf->value = str_new_dd_freeze(tmp, HTTP_PREFIX_LEN + cf->len);
+     }
+-    rb_ary_push(mark_ary, cf->value);
++    rb_gc_register_mark_object(cf->value);
+   }
+ }
+ 
+diff --git a/ext/unicorn_http/global_variables.h b/ext/unicorn_http/global_variables.h
+index c17ee6a..f8e694c 100644
+--- a/ext/unicorn_http/global_variables.h
++++ b/ext/unicorn_http/global_variables.h
+@@ -56,7 +56,7 @@ NORETURN(static void parser_raise(VALUE klass, const char *));
+ /** Defines global strings in the init method. */
+ #define DEF_GLOBAL(N, val) do { \
+   g_##N = rb_obj_freeze(rb_str_new(val, sizeof(val) - 1)); \
+-  rb_ary_push(mark_ary, g_##N); \
++  rb_gc_register_mark_object(g_##N); \
+ } while (0)
+ 
+ /* Defines the maximum allowed lengths for various input elements.*/
+@@ -67,7 +67,7 @@ DEF_MAX_LENGTH(FRAGMENT, 1024); /* Don't know if this length is specified somewh
+ DEF_MAX_LENGTH(REQUEST_PATH, 4096); /* common PATH_MAX on modern systems */
+ DEF_MAX_LENGTH(QUERY_STRING, (1024 * 10));
+ 
+-static void init_globals(VALUE mark_ary)
++static void init_globals(void)
+ {
+   DEF_GLOBAL(rack_url_scheme, "rack.url_scheme");
+   DEF_GLOBAL(request_method, "REQUEST_METHOD");
+diff --git a/ext/unicorn_http/httpdate.c b/ext/unicorn_http/httpdate.c
+index 2381cff..b59d038 100644
+--- a/ext/unicorn_http/httpdate.c
++++ b/ext/unicorn_http/httpdate.c
+@@ -64,13 +64,13 @@ static VALUE httpdate(VALUE self)
+ 	return buf;
+ }
+ 
+-void init_unicorn_httpdate(VALUE mark_ary)
++void init_unicorn_httpdate(void)
+ {
+ 	VALUE mod = rb_define_module("Unicorn");
+ 	mod = rb_define_module_under(mod, "HttpResponse");
+ 
+ 	buf = rb_str_new(0, buf_capa - 1);
+-	rb_ary_push(mark_ary, buf);
++	rb_gc_register_mark_object(buf);
+ 	buf_ptr = RSTRING_PTR(buf);
+ 	httpdate(Qnil);
+ 
+diff --git a/ext/unicorn_http/unicorn_http.rl b/ext/unicorn_http/unicorn_http.rl
+index 283bfa2..8ef23bc 100644
+--- a/ext/unicorn_http/unicorn_http.rl
++++ b/ext/unicorn_http/unicorn_http.rl
+@@ -13,7 +13,7 @@
+ #include "global_variables.h"
+ #include "c_util.h"
+ 
+-void init_unicorn_httpdate(VALUE mark_ary);
++void init_unicorn_httpdate(void);
+ 
+ #define UH_FL_CHUNKED  0x1
+ #define UH_FL_HASBODY  0x2
+@@ -931,11 +931,8 @@ static VALUE HttpParser_rssget(VALUE self)
+ 
+ void Init_unicorn_http(void)
+ {
+-  static VALUE mark_ary;
+   VALUE mUnicorn, cHttpParser;
+ 
+-  mark_ary = rb_ary_new();
+-  rb_global_variable(&mark_ary);
+   mUnicorn = rb_define_module("Unicorn");
+   cHttpParser = rb_define_class_under(mUnicorn, "HttpParser", rb_cObject);
+   eHttpParserError =
+@@ -945,7 +942,7 @@ void Init_unicorn_http(void)
+   e414 = rb_define_class_under(mUnicorn, "RequestURITooLongError",
+                                eHttpParserError);
+ 
+-  init_globals(mark_ary);
++  init_globals();
+   rb_define_alloc_func(cHttpParser, HttpParser_alloc);
+   rb_define_method(cHttpParser, "initialize", HttpParser_init, 0);
+   rb_define_method(cHttpParser, "clear", HttpParser_clear, 0);
+@@ -982,16 +979,14 @@ void Init_unicorn_http(void)
+ 
+   rb_define_singleton_method(cHttpParser, "max_header_len=", set_maxhdrlen, 1);
+ 
+-  init_common_fields(mark_ary);
++  init_common_fields();
+   SET_GLOBAL(g_http_host, "HOST");
+   SET_GLOBAL(g_http_trailer, "TRAILER");
+   SET_GLOBAL(g_http_transfer_encoding, "TRANSFER_ENCODING");
+   SET_GLOBAL(g_content_length, "CONTENT_LENGTH");
+   SET_GLOBAL(g_http_connection, "CONNECTION");
+   id_set_backtrace = rb_intern("set_backtrace");
+-  init_unicorn_httpdate(mark_ary);
+-
+-  OBJ_FREEZE(mark_ary);
++  init_unicorn_httpdate();
+ 
+ #ifndef HAVE_RB_HASH_CLEAR
+   id_clear = rb_intern("clear");
+-- 
+EW
+
