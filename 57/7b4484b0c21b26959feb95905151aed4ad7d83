@@ -1,0 +1,68 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.2 (2018-09-13) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.2
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id 84AD520248;
+	Wed,  6 Mar 2019 04:44:32 +0000 (UTC)
+Date: Wed, 6 Mar 2019 04:44:32 +0000
+From: Eric Wong <e@80x24.org>
+To: Stan Pitucha <stan.pitucha@envato.com>,
+	Jeremy Evans <code@jeremyevans.net>
+Cc: unicorn-public@bogomips.org
+Subject: Re: Issues after 5.5.0 upgrade
+Message-ID: <20190306044432.ypql4czq2bu2eipu@dcvr>
+References: <CAJ2_uEPifcv_ux4sX=t0C4zHTHGhqVfcLcSB2kTU3Rb_6pQ3nw@mail.gmail.com>
+ <20190306024852.wjnigwzjmsmx4noo@dcvr>
+ <CAJ2_uEMPNELbGHH3UWtxtJE_ajLwy9YPyZKyrEij2DO1roEOyw@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <CAJ2_uEMPNELbGHH3UWtxtJE_ajLwy9YPyZKyrEij2DO1roEOyw@mail.gmail.com>
+List-Id: <unicorn-public.bogomips.org>
+
+Stan Pitucha <stan.pitucha@envato.com> wrote:
+> > I only saw one issue (proposed fix below).
+> Sorry, I solved the other one while writing the email but forgot to
+> update the intro.
+>
+> So the fix worked for the issue I mentioned, thanks! Also, running
+> unicorn directly works just fine now.
+
+You're welcome and thanks for following up!
+
+> I ran into another regression with unicorn_rails though. We're doing
+> some work in `after_fork` which relies on a class found in
+> `lib/logger_switcher.rb`. Unfortunately it looks like the scope
+> changed and now I get workers respawning in a loop:
+> 
+> E, [2019-03-06T15:03:04.990789 #46680] ERROR -- : uninitialized
+> constant #<Class:#<Unicorn::Configurator:0x00007fc3d113d098>>::LoggerSwitcher
+> (NameError)
+
+Is this with `preload_app true`?  I'm not too up-to-date
+with scoping and namespace behavior stuff, actually.
+
+I'm too tired at the moment, maybe Jeremy can help figure this out.
+
+> config/unicorn.rb:97:in `block in reload'
+> /Users/viraptor/.rbenv/versions/2.5.3/lib/ruby/gems/2.5.0/gems/unicorn-5.5.0/lib/unicorn/http_server.rb:653:in
+> `init_worker_process'
+> /Users/viraptor/.rbenv/versions/2.5.3/lib/ruby/gems/2.5.0/gems/unicorn-5.5.0/lib/unicorn/http_server.rb:681:in
+> `worker_loop'
+> /Users/viraptor/.rbenv/versions/2.5.3/lib/ruby/gems/2.5.0/gems/unicorn-5.5.0/lib/unicorn/http_server.rb:548:in
+> `spawn_missing_workers'
+> /Users/viraptor/.rbenv/versions/2.5.3/lib/ruby/gems/2.5.0/gems/unicorn-5.5.0/lib/unicorn/http_server.rb:562:in
+> `maintain_worker_count'
+> /Users/viraptor/.rbenv/versions/2.5.3/lib/ruby/gems/2.5.0/gems/unicorn-5.5.0/lib/unicorn/http_server.rb:295:in
+> `join'
+> /Users/viraptor/.rbenv/versions/2.5.3/lib/ruby/gems/2.5.0/gems/unicorn-5.5.0/bin/unicorn_rails:209:in
+> `<top (required)>'
+> bin/unicorn_rails:17:in `load'
+> bin/unicorn_rails:17:in `<main>'
+> E, [2019-03-06T15:03:04.992143 #46194] ERROR -- : reaped
+> #<Process::Status: pid 46680 exit 1> worker=1
+> 
+> The LoggerSwitcher was previously resolved by rails automatically.
