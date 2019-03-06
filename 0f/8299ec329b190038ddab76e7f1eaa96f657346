@@ -1,0 +1,96 @@
+Return-Path: <code@jeremyevans.net>
+X-Spam-Checker-Version: SpamAssassin 3.4.2 (2018-09-13) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS10607 205.237.192.0/20
+X-Spam-Status: No, score=-3.1 required=3.0 tests=AWL,BAYES_00,
+	RCVD_IN_DNSWL_LOW shortcircuit=no autolearn=ham autolearn_force=no
+	version=3.4.2
+Received: from smtp-out-2.mxes.net (smtp-out-2.mxes.net [205.237.194.127])
+	(using TLSv1.2 with cipher AECDH-AES256-SHA (256/256 bits))
+	(No client certificate requested)
+	by dcvr.yhbt.net (Postfix) with ESMTPS id ABC39202BB
+	for <unicorn-public@bogomips.org>; Wed,  6 Mar 2019 05:57:39 +0000 (UTC)
+Received: from Customer-MUA (mua.mxes.net [10.0.0.1])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by smtp.mxes.net (Postfix) with ESMTPSA id 8A6C5274FD;
+	Wed,  6 Mar 2019 00:57:37 -0500 (EST)
+Received: from jeremyevans.local (battleground.jeremyevans.local [10.187.8.1])
+	by battleground.jeremyevans.local (OpenSMTPD) with ESMTPS id 45aa8016 (TLSv1.2:ECDHE-RSA-CHACHA20-POLY1305:256:NO);
+	Tue, 5 Mar 2019 21:57:35 -0800 (PST)
+Date: Tue, 5 Mar 2019 21:57:34 -0800
+From: Jeremy Evans <code@jeremyevans.net>
+To: Eric Wong <e@80x24.org>
+Cc: Stan Pitucha <stan.pitucha@envato.com>, unicorn-public@bogomips.org
+Subject: Re: Issues after 5.5.0 upgrade
+Message-ID: <20190306055734.GC61406@jeremyevans.local>
+References: <CAJ2_uEPifcv_ux4sX=t0C4zHTHGhqVfcLcSB2kTU3Rb_6pQ3nw@mail.gmail.com>
+ <20190306024852.wjnigwzjmsmx4noo@dcvr>
+ <CAJ2_uEMPNELbGHH3UWtxtJE_ajLwy9YPyZKyrEij2DO1roEOyw@mail.gmail.com>
+ <20190306044432.ypql4czq2bu2eipu@dcvr>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20190306044432.ypql4czq2bu2eipu@dcvr>
+User-Agent: Mutt/1.11.3 (2019-02-01)
+X-Sent-To: <dW5pY29ybi1wdWJsaWNAYm9nb21pcHMub3Jn>
+X-Sender: jeremyevans.net
+List-Id: <unicorn-public.bogomips.org>
+
+On 03/06 04:44, Eric Wong wrote:
+> Stan Pitucha <stan.pitucha@envato.com> wrote:
+> > > I only saw one issue (proposed fix below).
+> > Sorry, I solved the other one while writing the email but forgot to
+> > update the intro.
+> >
+> > So the fix worked for the issue I mentioned, thanks! Also, running
+> > unicorn directly works just fine now.
+> 
+> You're welcome and thanks for following up!
+> 
+> > I ran into another regression with unicorn_rails though. We're doing
+> > some work in `after_fork` which relies on a class found in
+> > `lib/logger_switcher.rb`. Unfortunately it looks like the scope
+> > changed and now I get workers respawning in a loop:
+> > 
+> > E, [2019-03-06T15:03:04.990789 #46680] ERROR -- : uninitialized
+> > constant #<Class:#<Unicorn::Configurator:0x00007fc3d113d098>>::LoggerSwitcher
+> > (NameError)
+> 
+> Is this with `preload_app true`?  I'm not too up-to-date
+> with scoping and namespace behavior stuff, actually.
+
+This is just a guess, but we probably want to call the Unicorn.builder
+lambda with the same arguments as the rails_builder lambda.
+
+diff --git a/bin/unicorn_rails b/bin/unicorn_rails
+index ea4f822..354c1df 100755
+--- a/bin/unicorn_rails
++++ b/bin/unicorn_rails
+@@ -132,11 +132,11 @@ def rails_builder(ru, op, daemonize)
+ 
+   # this lambda won't run until after forking if preload_app is false
+   # this runs after config file reloading
+-  lambda do ||
++  lambda do |x, server|
+     # Rails 3 includes a config.ru, use it if we find it after
+     # working_directory is bound.
+     ::File.exist?('config.ru') and
+-      return Unicorn.builder('config.ru', op).call
++      return Unicorn.builder('config.ru', op).call(x, server)
+ 
+     # Load Rails and (possibly) the private version of Rack it bundles.
+     begin
+
+If that doesn't fix it, keep reading.
+
+If after_fork is referencing LoggerSwitcher, and preload_app is not set,
+then I think the failure should be expected, as in that case after_fork
+is called before build_app!.  That would not explain a regression,
+though, as that behavior should have been true in 5.4.1.
+
+Does the problem go away if you switch after_fork to after_worker_ready?
+Is preload_app set to true?
+
+Thanks,
+Jeremy
