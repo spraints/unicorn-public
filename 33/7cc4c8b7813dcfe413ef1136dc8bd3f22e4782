@@ -1,0 +1,85 @@
+Return-Path: <stan.pitucha@envato.com>
+X-Spam-Checker-Version: SpamAssassin 3.4.2 (2018-09-13) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-3.2 required=3.0 tests=AWL,BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,DKIM_VALID_AU,DKIM_VALID_EF,RCVD_IN_DNSWL_NONE,SPF_PASS
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.2
+Received: from mail-lj1-x22e.google.com (mail-lj1-x22e.google.com [IPv6:2a00:1450:4864:20::22e])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+	(No client certificate requested)
+	by dcvr.yhbt.net (Postfix) with ESMTPS id 5426120248
+	for <unicorn-public@bogomips.org>; Wed,  6 Mar 2019 04:07:33 +0000 (UTC)
+Received: by mail-lj1-x22e.google.com with SMTP id a17so9568762ljd.4
+        for <unicorn-public@bogomips.org>; Tue, 05 Mar 2019 20:07:33 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=envato.com; s=google;
+        h=mime-version:references:in-reply-to:from:date:message-id:subject:to
+         :cc;
+        bh=E3/l0vQWIwotwqhO9HlnjnlbhqGSSQJyiWwqHeYspL0=;
+        b=ZqbOtlrQJCIsup+PeooPbO4CbysPa3lxXE2LOZ0UYbK/p7WJURbxxzIJa84reX76/M
+         Ne4eH+q3/Siz8wYvHm2DxdavLDKWwsBO68GtWBLsbIU68Sq0VZtamXWOUwmZZTb9VCjb
+         /aaiU7Kzy8sX6ueKKn9I6mOQMTSA41KG9e05s=
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20161025;
+        h=x-gm-message-state:mime-version:references:in-reply-to:from:date
+         :message-id:subject:to:cc;
+        bh=E3/l0vQWIwotwqhO9HlnjnlbhqGSSQJyiWwqHeYspL0=;
+        b=MjiT6L/cY5IzqmOUnvBOEtiOXd+JdMPCEaveVjikZ/OcYYhpQ45RuoQORwjfrbJDvE
+         agDTJdDlxQLvas4KXWv9AhWznUMRqpWJ0rmaA8qvmejskCkr1CFZBUiY+lb/1mfaXnWR
+         zTJPWxoAoOsXorT/gwK5IUFXNgx2ShLVH9RfwSdaVOkZ8YaUj3LVvoxmygF+t7lQzKjO
+         RpONSpVnUds3N2J7r+AhgNXysJnycVE3FnOqr6NY7pV5G22U99dUqfKxU7q+mY9H1eZO
+         Q/m2e432mvQgX6OoOWWGJ8v5ceV1DRFdBXCP3buGDbTF4B3yoi9yPlfQ7e5fx2lr+Wnj
+         /P+A==
+X-Gm-Message-State: APjAAAUWcHfJPZAOIH7OtqpP6eMQdQRTbIhutXdA/mmQXe2pBaVG52+H
+	eO2cmRNylsZYSkKcDueyg0o6evV/65I8MSZq6pyqlg==
+X-Google-Smtp-Source: APXvYqx970aYYfTjXDsLV32v5ngZAAJ2AnwiEJQ4f7ebHbQyrPTbZNJjAabBVusoG0jO3W8cwtEh5cly0SprW65uQlk=
+X-Received: by 2002:a2e:9c09:: with SMTP id s9mr1065791lji.83.1551845250041;
+ Tue, 05 Mar 2019 20:07:30 -0800 (PST)
+MIME-Version: 1.0
+References: <CAJ2_uEPifcv_ux4sX=t0C4zHTHGhqVfcLcSB2kTU3Rb_6pQ3nw@mail.gmail.com>
+ <20190306024852.wjnigwzjmsmx4noo@dcvr>
+In-Reply-To: <20190306024852.wjnigwzjmsmx4noo@dcvr>
+From: Stan Pitucha <stan.pitucha@envato.com>
+Date: Wed, 6 Mar 2019 15:07:18 +1100
+Message-ID: <CAJ2_uEMPNELbGHH3UWtxtJE_ajLwy9YPyZKyrEij2DO1roEOyw@mail.gmail.com>
+Subject: Re: Issues after 5.5.0 upgrade
+To: Eric Wong <e@80x24.org>
+Cc: unicorn-public@bogomips.org, Jeremy Evans <code@jeremyevans.net>
+Content-Type: text/plain; charset="UTF-8"
+List-Id: <unicorn-public.bogomips.org>
+
+> I only saw one issue (proposed fix below).
+Sorry, I solved the other one while writing the email but forgot to
+update the intro.
+
+So the fix worked for the issue I mentioned, thanks! Also, running
+unicorn directly works just fine now.
+
+I ran into another regression with unicorn_rails though. We're doing
+some work in `after_fork` which relies on a class found in
+`lib/logger_switcher.rb`. Unfortunately it looks like the scope
+changed and now I get workers respawning in a loop:
+
+E, [2019-03-06T15:03:04.990789 #46680] ERROR -- : uninitialized
+constant #<Class:#<Unicorn::Configurator:0x00007fc3d113d098>>::LoggerSwitcher
+(NameError)
+config/unicorn.rb:97:in `block in reload'
+/Users/viraptor/.rbenv/versions/2.5.3/lib/ruby/gems/2.5.0/gems/unicorn-5.5.0/lib/unicorn/http_server.rb:653:in
+`init_worker_process'
+/Users/viraptor/.rbenv/versions/2.5.3/lib/ruby/gems/2.5.0/gems/unicorn-5.5.0/lib/unicorn/http_server.rb:681:in
+`worker_loop'
+/Users/viraptor/.rbenv/versions/2.5.3/lib/ruby/gems/2.5.0/gems/unicorn-5.5.0/lib/unicorn/http_server.rb:548:in
+`spawn_missing_workers'
+/Users/viraptor/.rbenv/versions/2.5.3/lib/ruby/gems/2.5.0/gems/unicorn-5.5.0/lib/unicorn/http_server.rb:562:in
+`maintain_worker_count'
+/Users/viraptor/.rbenv/versions/2.5.3/lib/ruby/gems/2.5.0/gems/unicorn-5.5.0/lib/unicorn/http_server.rb:295:in
+`join'
+/Users/viraptor/.rbenv/versions/2.5.3/lib/ruby/gems/2.5.0/gems/unicorn-5.5.0/bin/unicorn_rails:209:in
+`<top (required)>'
+bin/unicorn_rails:17:in `load'
+bin/unicorn_rails:17:in `<main>'
+E, [2019-03-06T15:03:04.992143 #46194] ERROR -- : reaped
+#<Process::Status: pid 46680 exit 1> worker=1
+
+The LoggerSwitcher was previously resolved by rails automatically.
