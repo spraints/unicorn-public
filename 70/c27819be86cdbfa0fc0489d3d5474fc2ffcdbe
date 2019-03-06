@@ -1,0 +1,67 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.2 (2018-09-13) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.2
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id D3CB220248;
+	Wed,  6 Mar 2019 02:48:52 +0000 (UTC)
+Date: Wed, 6 Mar 2019 02:48:52 +0000
+From: Eric Wong <e@80x24.org>
+To: Stan Pitucha <stan.pitucha@envato.com>
+Cc: unicorn-public@bogomips.org, Jeremy Evans <code@jeremyevans.net>
+Subject: Re: Issues after 5.5.0 upgrade
+Message-ID: <20190306024852.wjnigwzjmsmx4noo@dcvr>
+References: <CAJ2_uEPifcv_ux4sX=t0C4zHTHGhqVfcLcSB2kTU3Rb_6pQ3nw@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <CAJ2_uEPifcv_ux4sX=t0C4zHTHGhqVfcLcSB2kTU3Rb_6pQ3nw@mail.gmail.com>
+List-Id: <unicorn-public.bogomips.org>
+
+Stan Pitucha <stan.pitucha@envato.com> wrote:
+> Hi, I'm running into two issues after an upgrade from 5.4.1 (a few
+
+I only saw one issue (proposed fix below).
+Did you forget to write about the other?
+
+> previous versions worked just fine as well). I've got a rails 5.2 app
+> started via:
+> 
+> bin/unicorn_rails -E development -c config/unicorn.rb
+ 
+> With the minimal config.ru in place (require environment, run app), I get:
+> 
+> I, [2019-03-06T12:28:44.393406 #43714]  INFO -- : Refreshing Gem list
+> ArgumentError: wrong number of arguments (given 0, expected 2)
+
+It looks like the breakage was introduced in
+commit 5985dd50a9bd72388dd5ca4886d6dffc083f87d4
+("Support default_middleware configuration option")
+
+Does this trivial change to unicorn_rails fix it for you?
+
+diff --git a/bin/unicorn_rails b/bin/unicorn_rails
+index ea4f822..558dd0b 100755
+--- a/bin/unicorn_rails
++++ b/bin/unicorn_rails
+@@ -136,7 +136,7 @@ def rails_builder(ru, op, daemonize)
+     # Rails 3 includes a config.ru, use it if we find it after
+     # working_directory is bound.
+     ::File.exist?('config.ru') and
+-      return Unicorn.builder('config.ru', op).call
++      return Unicorn.builder('config.ru', op)
+ 
+     # Load Rails and (possibly) the private version of Rack it bundles.
+     begin
+
+If it's local, you can just edit
+/Users/viraptor/.rbenv/versions/2.5.3/lib/ruby/gems/2.5.0/gems/unicorn-5.5.0/bin/unicorn_rails
+No need to bother with building a gem.
+
+
+Fwiw, "unicorn_rails" was only intended for Rails 1.x and 2.x.
+Rails >= 3.x can use "unicorn" directly.  But "unicorn_rails"
+still needs to be fixed on our end because I can't tolerate
+breaking changes to existing deployment scripts.
