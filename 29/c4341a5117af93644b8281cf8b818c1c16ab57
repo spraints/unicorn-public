@@ -1,0 +1,79 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.2 (2018-09-13) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.2
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id 0C5FD20248;
+	Thu,  7 Mar 2019 02:29:00 +0000 (UTC)
+Date: Thu, 7 Mar 2019 02:28:59 +0000
+From: Eric Wong <e@80x24.org>
+To: Stan Pitucha <stan.pitucha@envato.com>,
+	Jeremy Evans <code@jeremyevans.net>
+Cc: unicorn-public@bogomips.org
+Subject: [PATCH] unicorn_rails: fix regression with Rails >= 3.x in app build
+Message-ID: <20190307022859.mxz7m3mbspujo4c2@dcvr>
+References: <CAJ2_uEPifcv_ux4sX=t0C4zHTHGhqVfcLcSB2kTU3Rb_6pQ3nw@mail.gmail.com>
+ <20190306024852.wjnigwzjmsmx4noo@dcvr>
+ <CAJ2_uEMPNELbGHH3UWtxtJE_ajLwy9YPyZKyrEij2DO1roEOyw@mail.gmail.com>
+ <20190306044432.ypql4czq2bu2eipu@dcvr>
+ <20190306055734.GC61406@jeremyevans.local>
+ <CAJ2_uENSV6k7wgNLtRVtBEpOybzrO5+WQtWHzs4A5AMcYupNOw@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <CAJ2_uENSV6k7wgNLtRVtBEpOybzrO5+WQtWHzs4A5AMcYupNOw@mail.gmail.com>
+List-Id: <unicorn-public.bogomips.org>
+
+Stan Pitucha <stan.pitucha@envato.com> wrote:
+> That was indeed with `preload_app true`.
+> 
+> The patch you posted fixed the second issue and now both `unicorn` and
+> `unicorn_rails` start successfully.
+
+Thanks both.  Pushed out a pre-release with Jeremy's patch:
+
+	gem install --pre unicorn 5.5.0.1.g6836
+
+commit 6836d0674efdb1a6b79953285f10d8edd7e20432
+
+Will tag and release 5.5.1 final in a day or two assuming all
+goes well.
+------8<-------
+From: Jeremy Evans <code@jeremyevans.net>
+Subject: [PATCH] unicorn_rails: fix regression with Rails >= 3.x in app build
+
+Note: `unicorn_rails' was only intended for Rails <= 2.x projects
+in the old days.
+
+Fixes: 5985dd50a9bd7238 ("Support default_middleware configuration option")
+
+From: Jeremy Evans <code@jeremyevans.net>
+  cf. https://bogomips.org/unicorn-public/20190306055734.GC61406@jeremyevans.local/
+Signed-off-by: Eric Wong <e@80x24.org>
+  [ew: commit message]
+---
+ bin/unicorn_rails | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/bin/unicorn_rails b/bin/unicorn_rails
+index ea4f822..354c1df 100755
+--- a/bin/unicorn_rails
++++ b/bin/unicorn_rails
+@@ -132,11 +132,11 @@ def rails_builder(ru, op, daemonize)
+ 
+   # this lambda won't run until after forking if preload_app is false
+   # this runs after config file reloading
+-  lambda do ||
++  lambda do |x, server|
+     # Rails 3 includes a config.ru, use it if we find it after
+     # working_directory is bound.
+     ::File.exist?('config.ru') and
+-      return Unicorn.builder('config.ru', op).call
++      return Unicorn.builder('config.ru', op).call(x, server)
+ 
+     # Load Rails and (possibly) the private version of Rack it bundles.
+     begin
+-- 
+EW
