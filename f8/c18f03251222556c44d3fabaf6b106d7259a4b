@@ -1,0 +1,110 @@
+Return-Path: <sdemjanenko@gmail.com>
+X-Spam-Checker-Version: SpamAssassin 3.4.2 (2018-09-13) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS3215 2.6.0.0/16
+X-Spam-Status: No, score=-3.2 required=3.0 tests=BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,DKIM_VALID_AU,DKIM_VALID_EF,FREEMAIL_FROM,
+	RCVD_IN_DNSWL_NONE,SPF_PASS shortcircuit=no autolearn=ham
+	autolearn_force=no version=3.4.2
+Received: from mail-pf1-x441.google.com (mail-pf1-x441.google.com [IPv6:2607:f8b0:4864:20::441])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+	(No client certificate requested)
+	by dcvr.yhbt.net (Postfix) with ESMTPS id 196BE1F453
+	for <unicorn-public@bogomips.org>; Fri,  3 May 2019 22:20:29 +0000 (UTC)
+Received: by mail-pf1-x441.google.com with SMTP id z26so3552956pfg.6
+        for <unicorn-public@bogomips.org>; Fri, 03 May 2019 15:20:29 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20161025;
+        h=from:to:cc:subject:date:message-id;
+        bh=znZ8YgRV00kS9gUDUU9Dqk1zzBGrQcQmYRf3deW+qrw=;
+        b=nIiLQXVHQYlj2V6LYTwZneVsg36AcofbeSDvjmO9mECWkrIzoTQK00beiPLC0mZ2s3
+         eSpp5/G61Ch+rBhKFZKObL8wIGWrHw6wkF2e0MxJ878DRb7teNwT/2/d/K1FSZnGLzM8
+         6APNnU/KwBm0bAFfpkV31I/oNPBXLuYDhG0FnQr4tplTqneJINxuhm+jaxdzU31URskA
+         8fA0Rr1XKwGu0qYcLX4kjgOhtkKqEE0w1zyx8+JMNBpqB9PtJ75C8kNNAqcYJj8Fw+Rb
+         XezbzZxfdZrzBLAnLDSX3WE9a4sDpk2ajlgGrV5ukRYiNZZ1mm2q/Mbpo0RcG3pr1mGs
+         T1Xw==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20161025;
+        h=x-gm-message-state:from:to:cc:subject:date:message-id;
+        bh=znZ8YgRV00kS9gUDUU9Dqk1zzBGrQcQmYRf3deW+qrw=;
+        b=Iv2EogTmneg3jGC1eg7AdyvhMb6K03qJ57uVMGKaMoL50yDJYg0jVyxprpmmzoy9TA
+         v+Zha0uD0H/dcyB+mYsUKTIIRumqUnQSrUQF6j6igxbKIGrJoqApFhGZeWIrJ3hbr6cb
+         f2bzO//d83sEnLc+JHs0TvuE7+lOwWc94uhyHEAoe5vxYEdBMVeKL7bnvtrvLv54Dvjf
+         umu0JmfJv9sSZ4bvitQAnWoTGvx1zrpmEBTR89zXxQvVZBr88MSGYmRfIK5KSlv7QSSx
+         0jU0CJs/2zGqEWJl72/bf9z+u4HWK7J8yynGFZAapbys7qAOYGte6TiDKyG3HPnnK64d
+         9IEQ==
+X-Gm-Message-State: APjAAAW7AYolIu82lm07+2Xs3Mf7Q8Qt8vrdWWalqZOI5UTs1YpYjMbT
+	75gSDY+o6BQrMa77DORQ72pYtvpkfpI=
+X-Google-Smtp-Source: APXvYqxbKBsP3ARGOf4qwcThBTYcvsKcza/Ab5N9gsZEnWEFOGJe92F8Xs+lQIXn3KzecoguGOlOeQ==
+X-Received: by 2002:a65:4589:: with SMTP id o9mr13997272pgq.381.1556922027094;
+        Fri, 03 May 2019 15:20:27 -0700 (PDT)
+Received: from SDEMJANENKO-X1.corp.meraki.com ([216.9.110.1])
+        by smtp.gmail.com with ESMTPSA id o2sm4516556pgq.1.2019.05.03.15.20.26
+        (version=TLS1_2 cipher=ECDHE-RSA-AES128-SHA bits=128/128);
+        Fri, 03 May 2019 15:20:26 -0700 (PDT)
+From: sdemjanenko@gmail.com
+To: unicorn-public@bogomips.org
+Cc: Stephen Demjanenko <sdemjanenko@gmail.com>
+Subject: [PATCH] Rescue failed pipe resizes due to permissions
+Date: Fri,  3 May 2019 15:20:18 -0700
+Message-Id: <1556922018-24096-1-git-send-email-sdemjanenko@gmail.com>
+X-Mailer: git-send-email 2.7.4
+List-Id: <unicorn-public.bogomips.org>
+
+From: Stephen Demjanenko <sdemjanenko@gmail.com>
+
+When running: ```
+require 'kgio'
+require 'raindrops'
+
+F_SETPIPE_SZ = 1031 if RUBY_PLATFORM =~ /linux/
+
+Kgio::Pipe.new.each do |io|
+  io.close_on_exec = true
+  if defined?(F_SETPIPE_SZ)
+    begin
+      puts "setting"
+      io.fcntl(F_SETPIPE_SZ, Raindrops::PAGE_SIZE)
+    rescue Errno::EINVAL
+      puts "rescued"
+    rescue => e
+      puts ["FAILED HARD", e].inspect
+    end
+  end
+end
+```
+on a few servers to test some Unicorn boot failures I saw:
+```
+["FAILED HARD", #<Errno::EPERM: Operation not permitted>]
+```
+
+The `EPERM` error gets raised by the Linux kernel if:
+```
+(too_many_pipe_buffers_hard(pipe->user) ||
+too_many_pipe_buffers_soft(pipe->user)) &&
+!capable(CAP_SYS_RESOURCE) && !capable(CAP_SYS_ADMIN)
+```
+
+Given that the resize is not strictly necessary Unicorn should
+rescue the error and continue booting.
+---
+ lib/unicorn.rb | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/lib/unicorn.rb b/lib/unicorn.rb
+index 5f2134d..dd5dff4 100644
+--- a/lib/unicorn.rb
++++ b/lib/unicorn.rb
+@@ -123,6 +123,9 @@ def self.pipe # :nodoc:
+           io.fcntl(F_SETPIPE_SZ, Raindrops::PAGE_SIZE)
+         rescue Errno::EINVAL
+           # old kernel
++        rescue Errno::EPERM
++          # resizes fail if Linux is close to the pipe limit for the user
++          # or if the user does not have permissions to resize
+         end
+       end
+     end
+-- 
+2.7.4
+
