@@ -1,0 +1,55 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.2 (2018-09-13) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.2
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id A83611F453;
+	Fri,  3 May 2019 22:53:56 +0000 (UTC)
+Date: Fri, 3 May 2019 22:53:56 +0000
+From: Eric Wong <e@80x24.org>
+To: Stephen Demjanenko <sdemjanenko@gmail.com>
+Cc: unicorn-public@bogomips.org
+Subject: Re: [PATCH] Rescue failed pipe resizes due to permissions
+Message-ID: <20190503225356.76cpbof5qvc5djyi@dcvr>
+References: <1556922018-24096-1-git-send-email-sdemjanenko@gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <1556922018-24096-1-git-send-email-sdemjanenko@gmail.com>
+List-Id: <unicorn-public.bogomips.org>
+
+sdemjanenko@gmail.com wrote:
+
+Thanks, patch looks good; though I'd like to confirm
+some things below for the sake of documentation.
+
+> The `EPERM` error gets raised by the Linux kernel if:
+> ```
+> (too_many_pipe_buffers_hard(pipe->user) ||
+> too_many_pipe_buffers_soft(pipe->user)) &&
+> !capable(CAP_SYS_RESOURCE) && !capable(CAP_SYS_ADMIN)
+> ```
+
+Which kernel are you running?
+Modern kernels prefix that condition with:
+
+	if (nr_pages > pipe->buffers &&
+
+Scanning kernel changes with `git log -p -L:pipe_set_size:fs/pipe.c',
+I see that check was added in b0b91d18e2e97b741b294af9333824ecc3fadfd8
+("pipe: fix limit checking in pipe_set_size()")
+which was fixed in Linux v4.9+ and v3.16.57+
+
+https://80x24.org/mirrors/linux.git/commit?id=b0b91d18e2e97b741b294af9333824ecc3fadfd8
+https://lore.kernel.org/lkml/?q=s%3A%22fix+limit+checking+in+pipe_set_size%22
+
+> Given that the resize is not strictly necessary Unicorn should
+> rescue the error and continue booting.
+
+Agreed.  Applied, tested and pushed to master as
+commit 5c613c6ea98541df587193e861364c858a8a0abd
+Thanks!
+
+Will tag and release v5.5.1 in a day or two.
