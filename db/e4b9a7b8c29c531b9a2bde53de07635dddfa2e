@@ -1,0 +1,114 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.2 (2018-09-13) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.2
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id D15021F4B6
+	for <unicorn-public@bogomips.org>; Sun, 12 May 2019 22:25:47 +0000 (UTC)
+From: Eric Wong <e@80x24.org>
+To: unicorn-public@bogomips.org
+Subject: [PATCH 1/3] test/benchmark/ddstream: demo for slowly reading clients
+Date: Sun, 12 May 2019 22:25:45 +0000
+Message-Id: <20190512222547.17542-2-e@80x24.org>
+In-Reply-To: <20190512222547.17542-1-e@80x24.org>
+References: <20190512222547.17542-1-e@80x24.org>
+MIME-Version: 1.0
+Content-Transfer-Encoding: 8bit
+List-Id: <unicorn-public.bogomips.org>
+
+This is intended to demonstrate how badly we suck at dealing
+with slow clients.  It can help users evaluate alternative
+fully-buffering reverse proxies, because nginx should not
+be the only option.
+
+Update the benchmark README while we're at it
+---
+ test/benchmark/README      | 13 +++++++---
+ test/benchmark/ddstream.ru | 50 ++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 59 insertions(+), 4 deletions(-)
+ create mode 100644 test/benchmark/ddstream.ru
+
+diff --git a/test/benchmark/README b/test/benchmark/README
+index 1d3cdd0..e9b7a41 100644
+--- a/test/benchmark/README
++++ b/test/benchmark/README
+@@ -42,9 +42,14 @@ The benchmark client is usually httperf.
+ Another gentle reminder: performance with slow networks/clients
+ is NOT our problem.  That is the job of nginx (or similar).
+ 
++== ddstream.ru
++
++Standalone Rack app intended to show how BAD we are at slow clients.
++See usage in comments.
++
+ == Contributors
+ 
+-This directory is maintained independently in the "benchmark" branch
+-based against v0.1.0.  Only changes to this directory (test/benchmarks)
+-are committed to this branch although the master branch may merge this
+-branch occassionaly.
++This directory is intended to remain stable.  Do not make changes
++to benchmarking code which can change performance and invalidate
++results across revisions.  Instead, write new benchmarks and update
++coments/documentation as necessary.
+diff --git a/test/benchmark/ddstream.ru b/test/benchmark/ddstream.ru
+new file mode 100644
+index 0000000..b14c973
+--- /dev/null
++++ b/test/benchmark/ddstream.ru
+@@ -0,0 +1,50 @@
++# This app is intended to test large HTTP responses with or without
++# a fully-buffering reverse proxy such as nginx. Without a fully-buffering
++# reverse proxy, unicorn will be unresponsive when client count exceeds
++# worker_processes.
++#
++# To demonstrate how bad unicorn is at slowly reading clients:
++#
++#   # in one terminal, start unicorn with one worker:
++#   unicorn -E none -l 127.0.0.1:8080 test/benchmark/ddstream.ru
++#
++#   # in a different terminal, start more slow curl processes than
++#   # unicorn workers and watch time outputs
++#   curl --limit-rate 8K --trace-time -vsN http://127.0.0.1:8080/ >/dev/null &
++#   curl --limit-rate 8K --trace-time -vsN http://127.0.0.1:8080/ >/dev/null &
++#   wait
++#
++# The last client won't see a response until the first one is done reading
++#
++# nginx note: do not change the default "proxy_buffering" behavior.
++# Setting "proxy_buffering off" prevents nginx from protecting unicorn.
++
++# totally standalone rack app to stream a giant response
++class BigResponse
++  def initialize(bs, count)
++    @buf = "#{bs.to_s(16)}\r\n#{' ' * bs}\r\n"
++    @count = count
++    @res = [ 200,
++      { 'Transfer-Encoding' => -'chunked', 'Content-Type' => 'text/plain' },
++      self
++    ]
++  end
++
++  # rack response body iterator
++  def each
++    (1..@count).each { yield @buf }
++    yield -"0\r\n\r\n"
++  end
++
++  # rack app entry endpoint
++  def call(_env)
++    @res
++  end
++end
++
++# default to a giant (128M) response because kernel socket buffers
++# can be ridiculously large on some systems
++bs = ENV['bs'] ? ENV['bs'].to_i : 65536
++count = ENV['count'] ? ENV['count'].to_i : 2048
++warn "serving response with bs=#{bs} count=#{count} (#{bs*count} bytes)"
++run BigResponse.new(bs, count)
+-- 
+EW
+
