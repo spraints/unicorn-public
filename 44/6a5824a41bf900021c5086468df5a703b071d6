@@ -1,0 +1,95 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.2 (2018-09-13) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.2
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id 10BEB1F4B7
+	for <unicorn-public@bogomips.org>; Sun, 12 May 2019 22:25:48 +0000 (UTC)
+From: Eric Wong <e@80x24.org>
+To: unicorn-public@bogomips.org
+Subject: [PATCH 2/3] test/benchmark/readinput: demo for slowly uploading clients
+Date: Sun, 12 May 2019 22:25:46 +0000
+Message-Id: <20190512222547.17542-3-e@80x24.org>
+In-Reply-To: <20190512222547.17542-1-e@80x24.org>
+References: <20190512222547.17542-1-e@80x24.org>
+MIME-Version: 1.0
+Content-Transfer-Encoding: 8bit
+List-Id: <unicorn-public.bogomips.org>
+
+This is intended to demonstrate how badly we suck at dealing
+with slow clients making uploads.  It can help users evaluate
+alternative fully-buffering reverse proxies, because nginx
+should not be the only option.
+---
+ test/benchmark/README       |  5 +++++
+ test/benchmark/readinput.ru | 40 +++++++++++++++++++++++++++++++++++++
+ 2 files changed, 45 insertions(+)
+ create mode 100644 test/benchmark/readinput.ru
+
+diff --git a/test/benchmark/README b/test/benchmark/README
+index e9b7a41..cd929f3 100644
+--- a/test/benchmark/README
++++ b/test/benchmark/README
+@@ -47,6 +47,11 @@ is NOT our problem.  That is the job of nginx (or similar).
+ Standalone Rack app intended to show how BAD we are at slow clients.
+ See usage in comments.
+ 
++== readinput.ru
++
++Standalone Rack app intended to show how bad we are with slow uploaders.
++See usage in comments.
++
+ == Contributors
+ 
+ This directory is intended to remain stable.  Do not make changes
+diff --git a/test/benchmark/readinput.ru b/test/benchmark/readinput.ru
+new file mode 100644
+index 0000000..c91bec3
+--- /dev/null
++++ b/test/benchmark/readinput.ru
+@@ -0,0 +1,40 @@
++# This app is intended to test large HTTP requests with or without
++# a fully-buffering reverse proxy such as nginx. Without a fully-buffering
++# reverse proxy, unicorn will be unresponsive when client count exceeds
++# worker_processes.
++
++DOC = <<DOC
++To demonstrate how bad unicorn is at slowly uploading clients:
++
++  # in one terminal, start unicorn with one worker:
++  unicorn -E none -l 127.0.0.1:8080 test/benchmark/readinput.ru
++
++  # in a different terminal, upload 45M from multiple curl processes:
++  dd if=/dev/zero bs=45M count=1 | curl -T- -HExpect: --limit-rate 1M \
++     --trace-time -v http://127.0.0.1:8080/ &
++  dd if=/dev/zero bs=45M count=1 | curl -T- -HExpect: --limit-rate 1M \
++     --trace-time -v http://127.0.0.1:8080/ &
++  wait
++
++# The last client won't see a response until the first one is done uploading
++# You also won't be able to make GET requests to view this documentation
++# while clients are uploading.  You can also view the stderr debug output
++# of unicorn (see logging code in #{__FILE__}).
++DOC
++
++run(lambda do |env|
++  input = env['rack.input']
++  buf = ''.b
++
++  # default logger contains timestamps, rely on that so users can
++  # see what the server is doing
++  l = env['rack.logger']
++
++  l.debug('BEGIN reading input ...') if l
++  :nop while input.read(16384, buf)
++  l.debug('DONE reading input ...') if l
++
++  buf.clear
++  [ 200, [ %W(Content-Length #{DOC.size}), %w(Content-Type text/plain) ],
++    [ DOC ] ]
++end)
+-- 
+EW
+
