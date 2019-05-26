@@ -1,0 +1,77 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.2 (2018-09-13) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.2
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id E553F1F462;
+	Sun, 26 May 2019 05:24:21 +0000 (UTC)
+Date: Sun, 26 May 2019 05:24:21 +0000
+From: Eric Wong <e@80x24.org>
+To: unicorn-public@bogomips.org
+Subject: yet-another-horribly-named-server as an nginx alternative
+Message-ID: <20190526052421.gbmqwny3lechub5s@dcvr>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+List-Id: <unicorn-public.bogomips.org>
+
+First off, it should come as no surprise to anybody nowadays
+that I hate marketing :P  I also hate that anybody using unicorn
+is also stuck with nginx as the only (well-known) proxy which
+fully buffers both requests AND responses.
+
+One of the major reasons I like *nix-like is interchangeable
+parts, and the lack of proxies which can do what nginx does
+always bothered me.  nginx has also continuously gotten more
+enterprisey over the years, maybe a decidedly non-enterprisey
+alternative is in order :>
+
+Keep in mind: I am nothing more than an Internet loon with
+no way to substantiate any claims I make!
+
+Hypothetically, I've been using this server in production since
+2013, and doing HTTPS termination since 2016.  It's handled
+numerous hug-of-death events over the years sitting in front of
+Varnish, unicorn, mod_perl stuff, PSGI stuff and also serving
+static files on a cheap VPS.
+
+Even if by some coincidence/luck unicorn somehow works well for
+you, this alternative is the complete opposite in terms of
+design.  I have no real production experience with epoll,
+kqueue, threads or non-blocking I/O; all of which are (ab)used
+by this alternative.
+
+The yin to unicorn's yang, if you will.
+
+Again, keep in mind that I'm an Internet loon.  I feel bad for
+you if some "cool Internet companies" misled you into believing
+unicorn is competently engineered.  This alternative is likely
+worse given the effects of pollution and head trauma I've
+suffered over the years.
+
+I'm not going to mention this "nginx alternative" by name, here;
+but it's been announced on the ruby-talk mailing list at least
+(and it's mostly Ruby with some C, not that I know C).
+
+So if anybody wants to update the unicorn docs to give this
+alternative proxy equal mention with nginx, they're welcome to
+send such as patch.  Please no superlatives, hype, or "marketing
+speak", though.
+
+I can't make such an update to unicorn docs myself, since I
+would be abusing my position as the maintainer of this project
+to market yet-another-horribly-named-server.
+
+Thanks for understanding.
+
+
+One notable difference from nginx ("nqinagntr bire atvak" vs V
+jrer tbbq ng znexrgvat :P):
+
+  Output buffering is lazy, similar to how Unicorn::TeeInput works
+  (but for output, not input).  It matters for large responses,
+  whereas nginx "proxy_buffering" is an on/off switch, this alternative
+  only buffers response bodies when the slow client can't keep up
+  with a backend (unicorn).
