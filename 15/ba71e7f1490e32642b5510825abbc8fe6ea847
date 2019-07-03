@@ -1,0 +1,59 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.2 (2018-09-13) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.2
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id 4F5B81F461
+	for <unicorn-public@bogomips.org>; Wed,  3 Jul 2019 23:34:40 +0000 (UTC)
+From: Eric Wong <e@80x24.org>
+To: unicorn-public@bogomips.org
+Subject: [PATCH] examples/unicorn@.service: note the NonBlocking flag
+Date: Wed,  3 Jul 2019 23:34:40 +0000
+Message-Id: <20190703233440.4187-1-e@80x24.org>
+MIME-Version: 1.0
+Content-Transfer-Encoding: 8bit
+List-Id: <unicorn-public.bogomips.org>
+
+It's racy otherwise when starting simultaneous instanced units.
+Without specifying NonBlocking=true, systemd will clear the
+O_NONBLOCK flag every time it starts a new service instance.
+There's a small window where systemd can clear O_NONBLOCK
+immediately after it's set by Ruby (or kgio):
+
+unicorn@1                  |systemd         |unicorn@2
+---------------------------+----------------+--------------------
+F_SETFL, O_NONBLOCK|O_RDWR |                | (not running, yet)
+                           |F_SETFL, O_RDWR |
+                           |fork            |
+			   | exec unicorn@2 |
+accept4(...)    # blocks!  |                | (now started by systemd)
+                           |                |F_SETFL,O_NONBLOCK|O_RDWR
+                           |                |accept4(...) non-blocking
+---
+ examples/unicorn@.service | 7 +++++++
+ 1 file changed, 7 insertions(+)
+
+diff --git a/examples/unicorn@.service b/examples/unicorn@.service
+index d95eb83..946de44 100644
+--- a/examples/unicorn@.service
++++ b/examples/unicorn@.service
+@@ -14,7 +14,14 @@ After = unicorn.socket
+ # bundler users must use the "--keep-file-descriptors" switch, here:
+ # ExecStart = bundle exec --keep-file-descriptors unicorn -c ...
+ ExecStart = /usr/bin/unicorn -c /path/to/unicorn.conf.rb /path/to/config.ru
++
++# NonBlocking MUST be true if using socket activation with unicorn.
++# Otherwise, there's a small window in-between when the non-blocking
++# flag is set by us and our accept4 call where systemd can momentarily
++# make the socket blocking, causing us to block on accept4:
++NonBlocking = true
+ Sockets = unicorn.socket
++
+ KillSignal = SIGQUIT
+ User = nobody
+ Group = nogroup
+-- 
+EW
+
