@@ -1,0 +1,74 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.2 (2018-09-13) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.2
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id 4FEEC1F4B9
+	for <unicorn-public@bogomips.org>; Thu,  4 Jul 2019 22:01:09 +0000 (UTC)
+From: Eric Wong <e@80x24.org>
+To: unicorn-public@bogomips.org
+Subject: [PATCH 3/3] http: memoize more common fields
+Date: Thu,  4 Jul 2019 22:01:08 +0000
+Message-Id: <20190704220108.7849-4-e@80x24.org>
+In-Reply-To: <20190704220108.7849-1-e@80x24.org>
+References: <20190704220108.7849-1-e@80x24.org>
+MIME-Version: 1.0
+Content-Transfer-Encoding: 8bit
+List-Id: <unicorn-public.bogomips.org>
+
+"DNT" is common, nowadays.
+"Forwarded" is... *shrug* It's an RFC, at least.
+"Origin" is a CORS, and something I've seen.
+
+I've seen "Upgrade-Insecure-Requests", "X-Forwarded-Host",
+"X-Request-ID", and "X-Requested-With" in the wild, too;
+so add those.
+---
+ ext/unicorn_http/common_fields.gperf | 10 ++++++++++
+ 1 file changed, 10 insertions(+)
+
+diff --git a/ext/unicorn_http/common_fields.gperf b/ext/unicorn_http/common_fields.gperf
+index 179afe5..a10f4cd 100644
+--- a/ext/unicorn_http/common_fields.gperf
++++ b/ext/unicorn_http/common_fields.gperf
+@@ -28,7 +28,11 @@ CONTENT_LENGTH
+ CONTENT_TYPE
+ COOKIE
+ DATE
++# Do Not Track
++DNT
+ EXPECT
++# RFC 7239 (does anybody use Forwarded:?)
++FORWARDED
+ FROM
+ HOST
+ IF_MATCH
+@@ -39,6 +43,7 @@ IF_UNMODIFIED_SINCE
+ # Firefox sends Keep-Alive (or maybe only old versions?)
+ KEEP_ALIVE
+ MAX_FORWARDS
++ORIGIN
+ PRAGMA
+ PROXY_AUTHORIZATION
+ RANGE
+@@ -47,10 +52,15 @@ TE
+ TRAILER
+ TRANSFER_ENCODING
+ UPGRADE
++UPGRADE_INSECURE_REQUESTS
+ USER_AGENT
+ VIA
+ # common proxies set some of these X- headers
+ X_FORWARDED_FOR
++X_FORWARDED_HOST
+ X_FORWARDED_PROTO
+ X_REAL_IP
++X_REQUEST_ID
++# XMLHttpRequest
++X_REQUESTED_WITH
+ WARNING
+-- 
+EW
+
