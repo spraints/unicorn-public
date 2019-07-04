@@ -1,0 +1,41 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.2 (2018-09-13) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.2
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id A75221F461
+	for <unicorn-public@bogomips.org>; Thu,  4 Jul 2019 22:01:08 +0000 (UTC)
+From: Eric Wong <e@80x24.org>
+To: unicorn-public@bogomips.org
+Subject: [PATCH 0/3] http: use gperf for common field memoization
+Date: Thu,  4 Jul 2019 22:01:05 +0000
+Message-Id: <20190704220108.7849-1-e@80x24.org>
+MIME-Version: 1.0
+Content-Transfer-Encoding: 8bit
+List-Id: <unicorn-public.bogomips.org>
+
+I've been using gperf in other places, so I figured I might
+as well make HTTP parsing a teeny bit faster and allow us
+to avoid generating more garbage up front.
+
+Eric Wong (3):
+  unit benchmark for our HTTP parser
+  http: use gperf for common fields optimization
+  http: memoize more common fields
+
+ .gitignore                                   |  1 +
+ GNUmakefile                                  | 18 ++++-
+ ext/unicorn_http/common_field_optimization.h | 79 +++++---------------
+ ext/unicorn_http/common_fields.gperf         | 66 ++++++++++++++++
+ ext/unicorn_http/gperf.rb                    | 27 +++++++
+ test/benchmark/http_parser.rb                | 43 +++++++++++
+ 6 files changed, 170 insertions(+), 64 deletions(-)
+ create mode 100644 ext/unicorn_http/common_fields.gperf
+ create mode 100644 ext/unicorn_http/gperf.rb
+ create mode 100644 test/benchmark/http_parser.rb
+
+-- 
+EW
+
