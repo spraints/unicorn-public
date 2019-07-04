@@ -1,0 +1,338 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.2 (2018-09-13) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.2
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id 1E27F1F4B7
+	for <unicorn-public@bogomips.org>; Thu,  4 Jul 2019 22:01:09 +0000 (UTC)
+From: Eric Wong <e@80x24.org>
+To: unicorn-public@bogomips.org
+Subject: [PATCH 2/3] http: use gperf for common fields optimization
+Date: Thu,  4 Jul 2019 22:01:07 +0000
+Message-Id: <20190704220108.7849-3-e@80x24.org>
+In-Reply-To: <20190704220108.7849-1-e@80x24.org>
+References: <20190704220108.7849-1-e@80x24.org>
+MIME-Version: 1.0
+Content-Transfer-Encoding: 8bit
+List-Id: <unicorn-public.bogomips.org>
+
+GNU gperf is a commonly-used tool for generating perfect hashes
+and available on every platform unicorn runs on.  C Ruby, gcc,
+glibc all already use it.
+
+Using a hash lookup instead of a linear scan already shows
+measurable improvements when memoized header keys are all
+used:
+
+* test/benchmark/http_parser.rb (no options):
+
+   100000 iterations
+         user     system      total        real
+  -  0.411857   0.000200   0.412057 (  0.412070)
+  +  0.397960   0.000181   0.398141 (  0.398149)
+
+Results which require generating a new string from an unmemoized
+header is less significant, but still consistent measurable:
+
+* test/benchmark/http_parser.rb -H 'DNT: 1'
+
+   100000 iterations
+         user     system      total        real
+  -  0.461416   0.000000   0.461416 (  0.461417)
+  +  0.461329   0.000000   0.461329 (  0.461363)
+
+Most importantly, this change allows us to memoize more keys
+without worrying too much about the overhead of a O(n) scan.
+---
+ .gitignore                                   |  1 +
+ GNUmakefile                                  | 18 ++++-
+ ext/unicorn_http/common_field_optimization.h | 79 +++++---------------
+ ext/unicorn_http/common_fields.gperf         | 56 ++++++++++++++
+ ext/unicorn_http/gperf.rb                    | 27 +++++++
+ 5 files changed, 117 insertions(+), 64 deletions(-)
+ create mode 100644 ext/unicorn_http/common_fields.gperf
+ create mode 100644 ext/unicorn_http/gperf.rb
+
+diff --git a/.gitignore b/.gitignore
+index ad92808..05e5e45 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -12,6 +12,7 @@
+ /test/ruby-*
+ ext/unicorn_http/Makefile
+ ext/unicorn_http/unicorn_http.c
++ext/unicorn_http/common_fields.h
+ log/
+ pkg/
+ /vendor
+diff --git a/GNUmakefile b/GNUmakefile
+index a7e4102..3dbad2c 100644
+--- a/GNUmakefile
++++ b/GNUmakefile
+@@ -10,6 +10,7 @@ RAGEL = ragel
+ RSYNC = rsync
+ OLDDOC = olddoc
+ RDOC = rdoc
++GPERF = gperf
+ 
+ GIT-VERSION-FILE: .FORCE-GIT-VERSION-FILE
+ 	@./GIT-VERSION-GEN
+@@ -40,7 +41,9 @@ T_n_log := $(subst .n,$(log_suffix),$(T_n))
+ test_prefix = $(CURDIR)/test/$(RUBY_ENGINE)-$(RUBY_VERSION)
+ 
+ ext := ext/unicorn_http
+-c_files := $(ext)/unicorn_http.c $(ext)/httpdate.c $(wildcard $(ext)/*.h)
++c_files := $(addprefix $(ext)/, unicorn_http.c common_fields.h \
++	httpdate.c common_field_optimization.h ext_help.h \
++	global_variables.h)
+ rl_files := $(wildcard $(ext)/*.rl)
+ base_bins := unicorn unicorn_rails
+ bins := $(addprefix bin/, $(base_bins))
+@@ -48,7 +51,14 @@ man1_rdoc := $(addsuffix _1, $(base_bins))
+ man1_bins := $(addsuffix .1, $(base_bins))
+ man1_paths := $(addprefix man/man1/, $(man1_bins))
+ rb_files := $(bins) $(shell find lib ext -type f -name '*.rb')
+-inst_deps := $(c_files) $(rb_files) GNUmakefile test/test_helper.rb
++inst_deps := $(c_files) $(rb_files) GNUmakefile test/test_helper.rb \
++		$(ext)/common_fields.gperf
++
++gperf :: $(ext)/common_fields.h
++$(ext)/common_fields.h : $(ext)/common_fields.gperf $(ext)/gperf.rb
++	$(GPERF) $< >$@-
++	$(MRI) --disable-gems $(ext)/gperf.rb <$@- >$@+
++	test -s $@+ && mv $@+ $@ && $(RM) $@-
+ 
+ ragel: $(ext)/unicorn_http.c
+ $(ext)/unicorn_http.c: $(rl_files)
+@@ -159,12 +169,12 @@ man html:
+ 	$(MAKE) -C Documentation install-$@
+ 
+ pkg_extra := GIT-VERSION-FILE lib/unicorn/version.rb LATEST NEWS \
+-             $(ext)/unicorn_http.c $(man1_paths)
++             $(ext)/unicorn_http.c $(ext)/common_fields.h $(man1_paths)
+ 
+ NEWS:
+ 	$(OLDDOC) prepare
+ 
+-.manifest: $(ext)/unicorn_http.c man NEWS
++.manifest: $(ext)/unicorn_http.c $(ext)/common_fields.h man NEWS
+ 	(git ls-files && for i in $@ $(pkg_extra); do echo $$i; done) | \
+ 	  LC_ALL=C sort > $@+
+ 	cmp $@+ $@ || mv $@+ $@
+diff --git a/ext/unicorn_http/common_field_optimization.h b/ext/unicorn_http/common_field_optimization.h
+index 0659fc7..f69b618 100644
+--- a/ext/unicorn_http/common_field_optimization.h
++++ b/ext/unicorn_http/common_field_optimization.h
+@@ -3,58 +3,12 @@
+ #include "ruby.h"
+ #include "c_util.h"
+ 
+-struct common_field {
+-  const signed long len;
+-  const char *name;
+-  VALUE value;
+-};
+-
+ /*
+  * A list of common HTTP headers we expect to receive.
+  * This allows us to avoid repeatedly creating identical string
+  * objects to be used with rb_hash_aset().
+  */
+-static struct common_field common_http_fields[] = {
+-# define f(N) { (sizeof(N) - 1), N, Qnil }
+-  f("ACCEPT"),
+-  f("ACCEPT_CHARSET"),
+-  f("ACCEPT_ENCODING"),
+-  f("ACCEPT_LANGUAGE"),
+-  f("ALLOW"),
+-  f("AUTHORIZATION"),
+-  f("CACHE_CONTROL"),
+-  f("CONNECTION"),
+-  f("CONTENT_ENCODING"),
+-  f("CONTENT_LENGTH"),
+-  f("CONTENT_TYPE"),
+-  f("COOKIE"),
+-  f("DATE"),
+-  f("EXPECT"),
+-  f("FROM"),
+-  f("HOST"),
+-  f("IF_MATCH"),
+-  f("IF_MODIFIED_SINCE"),
+-  f("IF_NONE_MATCH"),
+-  f("IF_RANGE"),
+-  f("IF_UNMODIFIED_SINCE"),
+-  f("KEEP_ALIVE"), /* Firefox sends this */
+-  f("MAX_FORWARDS"),
+-  f("PRAGMA"),
+-  f("PROXY_AUTHORIZATION"),
+-  f("RANGE"),
+-  f("REFERER"),
+-  f("TE"),
+-  f("TRAILER"),
+-  f("TRANSFER_ENCODING"),
+-  f("UPGRADE"),
+-  f("USER_AGENT"),
+-  f("VIA"),
+-  f("X_FORWARDED_FOR"), /* common for proxies */
+-  f("X_FORWARDED_PROTO"), /* common for proxies */
+-  f("X_REAL_IP"), /* common for proxies */
+-  f("WARNING")
+-# undef f
+-};
++#include "common_fields.h"
+ 
+ #define HTTP_PREFIX "HTTP_"
+ #define HTTP_PREFIX_LEN (sizeof(HTTP_PREFIX) - 1)
+@@ -79,21 +33,27 @@ static VALUE str_new_dd_freeze(const char *ptr, long len)
+ /* this function is not performance-critical, called only at load time */
+ static void init_common_fields(void)
+ {
+-  int i;
+-  struct common_field *cf = common_http_fields;
++  size_t i;
+   char tmp[64];
+ 
+   id_uminus = rb_intern("-@");
+   memcpy(tmp, HTTP_PREFIX, HTTP_PREFIX_LEN);
+ 
+-  for(i = ARRAY_SIZE(common_http_fields); --i >= 0; cf++) {
++  for (i = 0; i < ARRAY_SIZE(cf_wordlist); i++) {
++    long len = (long)cf_lengthtable[i];
++    struct common_field *cf = &cf_wordlist[i];
++    const char *s;
++
++    if (!len)
++      continue;
++
++    s = cf->name + cf_stringpool;
+     /* Rack doesn't like certain headers prefixed with "HTTP_" */
+-    if (!strcmp("CONTENT_LENGTH", cf->name) ||
+-        !strcmp("CONTENT_TYPE", cf->name)) {
+-      cf->value = str_new_dd_freeze(cf->name, cf->len);
++    if (!strcmp("CONTENT_LENGTH", s) || !strcmp("CONTENT_TYPE", s)) {
++      cf->value = str_new_dd_freeze(s, len);
+     } else {
+-      memcpy(tmp + HTTP_PREFIX_LEN, cf->name, cf->len + 1);
+-      cf->value = str_new_dd_freeze(tmp, HTTP_PREFIX_LEN + cf->len);
++      memcpy(tmp + HTTP_PREFIX_LEN, s, len + 1);
++      cf->value = str_new_dd_freeze(tmp, HTTP_PREFIX_LEN + len);
+     }
+     rb_gc_register_mark_object(cf->value);
+   }
+@@ -102,12 +62,11 @@ static void init_common_fields(void)
+ /* this function is called for every header set */
+ static VALUE find_common_field(const char *field, size_t flen)
+ {
+-  int i;
+-  struct common_field *cf = common_http_fields;
++  struct common_field *cf = cf_lookup(field, flen);
+ 
+-  for(i = ARRAY_SIZE(common_http_fields); --i >= 0; cf++) {
+-    if (cf->len == (long)flen && !memcmp(cf->name, field, flen))
+-      return cf->value;
++  if (cf) {
++    assert(cf->value);
++    return cf->value;
+   }
+   return Qnil;
+ }
+diff --git a/ext/unicorn_http/common_fields.gperf b/ext/unicorn_http/common_fields.gperf
+new file mode 100644
+index 0000000..179afe5
+--- /dev/null
++++ b/ext/unicorn_http/common_fields.gperf
+@@ -0,0 +1,56 @@
++%{
++#include <ruby.h>
++%}
++%compare-lengths
++%enum
++%global-table
++%language=ANSI-C
++%pic
++%struct-type
++%define hash-function-name cf_hash
++%define length-table-name cf_lengthtable
++%define lookup-function-name cf_lookup
++%define string-pool-name cf_stringpool
++%define word-array-name cf_wordlist
++
++struct common_field { size_t name; VALUE value; };
++%%
++ACCEPT
++ACCEPT_CHARSET
++ACCEPT_ENCODING
++ACCEPT_LANGUAGE
++ALLOW
++AUTHORIZATION
++CACHE_CONTROL
++CONNECTION
++CONTENT_ENCODING
++CONTENT_LENGTH
++CONTENT_TYPE
++COOKIE
++DATE
++EXPECT
++FROM
++HOST
++IF_MATCH
++IF_MODIFIED_SINCE
++IF_NONE_MATCH
++IF_RANGE
++IF_UNMODIFIED_SINCE
++# Firefox sends Keep-Alive (or maybe only old versions?)
++KEEP_ALIVE
++MAX_FORWARDS
++PRAGMA
++PROXY_AUTHORIZATION
++RANGE
++REFERER
++TE
++TRAILER
++TRANSFER_ENCODING
++UPGRADE
++USER_AGENT
++VIA
++# common proxies set some of these X- headers
++X_FORWARDED_FOR
++X_FORWARDED_PROTO
++X_REAL_IP
++WARNING
+diff --git a/ext/unicorn_http/gperf.rb b/ext/unicorn_http/gperf.rb
+new file mode 100644
+index 0000000..9765f86
+--- /dev/null
++++ b/ext/unicorn_http/gperf.rb
+@@ -0,0 +1,27 @@
++#!/usr/bin/ruby -w
++buf = STDIN.read # output of: gperf ext/unicorn_http/common_fields.gperf
++
++# this is supposed to fail if it doesn't subsitute anything:
++print buf.sub!(
++
++# make sure all functions are static
++/\nstruct \w+ \*\n(\w+_)?lookup/) {
++  "\nstatic#$&"
++}.
++
++gsub!(
++# gperf 3.0.x used "(int)(long)", 3.1 uses "(int)(size_t)",
++#  input: {(int)(size_t)&((struct cf_pool_t *)0)->cf_pool_str3},
++# output: {offsetof(struct cf_pool_t, cf_pool_str3)},
++/{\(int\)\(\w+\)\&\(\((struct \w+) *\*\)0\)->(\w+)}/) {
++  "{offsetof(#$1, #$2)}"
++}.
++
++# make sure everything is 64-bit safe and compilers don't truncate
++gsub!(/\b(?:unsigned )?int\b/, 'size_t').
++
++# This isn't need for %switch%, but we'll experiment with to see
++# if it's necessary, or not.
++# don't give compilers a reason to complain, (struct foo *)->name
++# is size_t, so unused slots should be size_t:
++gsub(/\{-1\}/, '{(size_t)-1}')
+-- 
+EW
+
