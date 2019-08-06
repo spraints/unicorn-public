@@ -1,0 +1,52 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.2 (2018-09-13) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-3.9 required=3.0 tests=ALL_TRUSTED,AWL,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.2
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id 39A061F731;
+	Tue,  6 Aug 2019 14:00:59 +0000 (UTC)
+Date: Tue, 6 Aug 2019 14:00:59 +0000
+From: Eric Wong <e@80x24.org>
+To: Patryk Kotarski <patryk.kotarski@iubenda.com>
+Cc: unicorn-public@bogomips.org
+Subject: Re: Question about shared directory
+Message-ID: <20190806140059.GA12924@dcvr>
+References: <A9FCC000-428C-4F55-BB60-C6C8C955F8B9@iubenda.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+Content-Transfer-Encoding: 8bit
+In-Reply-To: <A9FCC000-428C-4F55-BB60-C6C8C955F8B9@iubenda.com>
+List-Id: <unicorn-public.bogomips.org>
+
+Patryk Kotarski <patryk.kotarski@iubenda.com> wrote:
+> Hello, dear unicorn devs,
+> 
+> Quick question which I failed to find in previous issues on
+> your archive and through search engines.
+
+Thanks for checking, first :>
+
+> Is there any specific reason for which many guides online
+> suggest saving the “unicorn.sock” file into the
+> shared_directory ? We’re running deploys through Capistrano
+> and on recent updates we noticed that we had configured
+> unicorn.sock to be stored in
+> "[environment]/shared/sockets/unicorn.sock" and we do not
+> understand the reason for it
+
+I don't know, either, and I'm not sure if anybody here wrote
+those guides.  It really doesn't matter a whole lot.
+
+I do prefer shorter pathnames with fewer path components, though;
+it lets the kernel do fewer dcache lookups to get to the socket.
+Not sure how much for nginx in your case, but relative vs absolute
+pathnames certainly mattered for git back in the day:
+https://public-inbox.org/git/alpine.LFD.1.10.0806161723081.2949@woody.linux-foundation.org/
+
+> Examples:
+> 
+> - https://www.digitalocean.com/community/tutorials/how-to-deploy-a-rails-app-with-unicorn-and-nginx-on-ubuntu-14-04
+> - https://www.linode.com/docs/development/ror/use-unicorn-and-nginx-on-ubuntu-14-04/
