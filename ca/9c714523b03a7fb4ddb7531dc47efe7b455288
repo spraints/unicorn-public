@@ -1,0 +1,103 @@
+Return-Path: <tscheingeld32@gmail.com>
+X-Spam-Checker-Version: SpamAssassin 3.4.2 (2018-09-13) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS3215 2.6.0.0/16
+X-Spam-Status: No, score=-2.9 required=3.0 tests=AWL,BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,DKIM_VALID_AU,DKIM_VALID_EF,FREEMAIL_ENVFROM_END_DIGIT,
+	FREEMAIL_FROM,RCVD_IN_DNSWL_NONE,SPF_HELO_NONE,SPF_PASS
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.2
+Received: from mail-ua1-x92f.google.com (mail-ua1-x92f.google.com [IPv6:2607:f8b0:4864:20::92f])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+	(No client certificate requested)
+	by dcvr.yhbt.net (Postfix) with ESMTPS id 120DE1F463
+	for <unicorn-public@bogomips.org>; Wed, 11 Dec 2019 16:25:12 +0000 (UTC)
+Received: by mail-ua1-x92f.google.com with SMTP id v19so8304252uap.0
+        for <unicorn-public@bogomips.org>; Wed, 11 Dec 2019 08:25:12 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20161025;
+        h=mime-version:from:date:message-id:subject:to;
+        bh=92TdvzArB4+ZxPT7G+f+NFtZlp1en44LMZIhRH/NcpI=;
+        b=E//bf0HO/QOHP427vSyzYgPTK7LMuuvCiJgZ1fH9lvKGUuRRnjkyijwsY6YTM1dRiX
+         MH4kKjWHTmRRNaOhYt3+HgBPsZ9ItZ2rxVISZOUsnXxFZHhyWoj1mAaafU4YtcvE04ob
+         ADpclWTgGVb8NMroH5z8c08VQQM25pFJDL+R358ui5W8e5sIHgoaTVNdi9JPDuoX5X0j
+         nNkYYhgT43vJzwAe4tE6+70+oB+dvBhGK+MqE8FS9oNx0A63DV3ecW9yTQwWDQjH9Fd9
+         N7RPaZrws/m1l6N7tGVfVdj/laJjpLNpdaI49wLfJyt475HYFRJ92X6S8LxBw4NPLN3+
+         k1uA==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20161025;
+        h=x-gm-message-state:mime-version:from:date:message-id:subject:to;
+        bh=92TdvzArB4+ZxPT7G+f+NFtZlp1en44LMZIhRH/NcpI=;
+        b=KlAj5o/VVwrIXWV+hPaZCFNwIkrMb3TMwVjgnZkNZGIAEpX2E4hyHC+xJNzgvWoFgg
+         mE9ZoICPmHaCZERKMJtHkIXdFMXVS9zUvDhLHOfRPtH3tEJFWe75A+A5kyAE+BBohYqS
+         3g+kIYWpwf+XMWP24ilmQMFolxMUrzauHro+vKS35xZn2wEBzbCzUBsmN3DYjOpUSP2Y
+         dzP56zJTVojp0C5p9gmoGP8SFqVSUA1xtQYs4aTiQz3n/W/XiecMuQ8TBL6t+7F5vCD0
+         415SfJGs43epx5qIGOJgYZe9ggf3rd3PN43hP9VpHSHNXAzOQN+OW/vJed68AZp1H+Tp
+         6mjg==
+X-Gm-Message-State: APjAAAV/DZB0HCS6U4w5MGB7xhQbmoXcBQV9hN9jsJLutzkP3jYex4MC
+	FmLeq07YmgD2V753A9+fiy6phm6MVkQKmLqI5ZQERdh3
+X-Google-Smtp-Source: APXvYqxeinCqkQtiLqJBRcUY5dKdZ3koq/+3WhX3UD45pNNvs1stOPiECEOYY/O39KpApmsqz7rLkcZdSKLjfPmkRck=
+X-Received: by 2002:ab0:6954:: with SMTP id c20mr3811461uas.82.1576081510602;
+ Wed, 11 Dec 2019 08:25:10 -0800 (PST)
+MIME-Version: 1.0
+From: Terry Scheingeld <tscheingeld32@gmail.com>
+Date: Wed, 11 Dec 2019 11:24:59 -0500
+Message-ID: <CABg1sXrvGv9G6CDQxePDUqTe6N-5UpLXm7eG3YQO=dda-Cgg7A@mail.gmail.com>
+Subject: tmpio.rb and taint mode
+To: unicorn-public@bogomips.org
+Content-Type: text/plain; charset="UTF-8"
+List-Id: <unicorn-public.bogomips.org>
+
+tmpio.rb causes an "insecure operation" error when being run in taint
+mode. This is due not to a problem in tmpio.rb but in Ruby's File
+class. Here are the details on the problem and a simple workaround for
+it.
+
+I filed this bug report in February 2018:
+https://bugs.ruby-lang.org/issues/14485. The problem is that when a
+File object is created using an untainted string for the path, File
+nevertheless changes that path to tainted. It is agreed thatit's a
+bug: File should not taint an untainted path. However, efforts to fix
+the bug seem to have stalled out.
+
+Now, in tmpio.rb, a random, untainted path is generated and stored in
+the Unicorn::TmpIO object. Then, a few lines later, the class attempts
+to unlink that file using the path stored in the object. Because of
+the bug in File, the path is now tainted, resulting in an insecure
+operation error.
+
+I propose a simple workaround. Store the path in its own variable.
+Pass the variable to the Unicorn::TmpIO object, but use the original
+variable to unlink the file. This technique worked in experimentation
+for me. Here's a modified version of tmpio.rb.
+
+# -*- encoding: binary -*-
+# :stopdoc:
+require 'tmpdir'
+
+# some versions of Ruby had a broken Tempfile which didn't work
+# well with unlinked files.  This one is much shorter, easier
+# to understand, and slightly faster.
+class Unicorn::TmpIO < File
+
+    # creates and returns a new File object.  The File is unlinked
+    # immediately, switched to binary mode, and userspace output
+    # buffering is disabled
+    def self.new
+        path = nil
+
+        fp = begin
+            path = "#{Dir::tmpdir}/#{rand}"
+            super(path, RDWR|CREAT|EXCL, 0600)
+        rescue Errno::EEXIST
+            retry
+        end
+
+        unlink(path)
+        fp.binmode
+        fp.sync = true
+        fp
+    end
+
+    # pretend we're Tempfile for Rack::TempfileReaper
+    alias close! close
+end
