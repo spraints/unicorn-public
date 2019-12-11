@@ -1,0 +1,102 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.2 (2018-09-13) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.2
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id A723F1F463;
+	Wed, 11 Dec 2019 23:16:08 +0000 (UTC)
+Date: Wed, 11 Dec 2019 23:16:08 +0000
+From: Eric Wong <e@80x24.org>
+To: Terry Scheingeld <tscheingeld32@gmail.com>
+Cc: unicorn-public@bogomips.org
+Subject: Re: tmpio.rb and taint mode
+Message-ID: <20191211231608.GA4588@dcvr>
+References: <CABg1sXrvGv9G6CDQxePDUqTe6N-5UpLXm7eG3YQO=dda-Cgg7A@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <CABg1sXrvGv9G6CDQxePDUqTe6N-5UpLXm7eG3YQO=dda-Cgg7A@mail.gmail.com>
+List-Id: <unicorn-public.bogomips.org>
+
+Terry Scheingeld <tscheingeld32@gmail.com> wrote:
+> tmpio.rb causes an "insecure operation" error when being run in taint
+> mode. This is due not to a problem in tmpio.rb but in Ruby's File
+> class. Here are the details on the problem and a simple workaround for
+> it.
+> 
+> I filed this bug report in February 2018:
+> https://bugs.ruby-lang.org/issues/14485. The problem is that when a
+> File object is created using an untainted string for the path, File
+> nevertheless changes that path to tainted. It is agreed thatit's a
+> bug: File should not taint an untainted path. However, efforts to fix
+> the bug seem to have stalled out.
+> 
+> Now, in tmpio.rb, a random, untainted path is generated and stored in
+> the Unicorn::TmpIO object. Then, a few lines later, the class attempts
+> to unlink that file using the path stored in the object. Because of
+> the bug in File, the path is now tainted, resulting in an insecure
+> operation error.
+> 
+> I propose a simple workaround. Store the path in its own variable.
+> Pass the variable to the Unicorn::TmpIO object, but use the original
+> variable to unlink the file. This technique worked in experimentation
+> for me. Here's a modified version of tmpio.rb.
+
+Thanks for the analysis, explanation and fix.  I've made your
+change into the patch + commit message below.
+
+I had no idea unicorn or rack could work at all with tainting
+enabled...  Was there anything else that was broken with
+taint checks?
+
+But AFAIK tainting is due to be removed in Ruby, soonish (I've
+never used it in either Ruby or Perl5).
+
+Anyways, I'll merge this into master soonish and hopefully get
+some doc updates + release in a week or so...  Thanks again.
+
+---------------8<-----------------
+From: Terry Scheingeld <tscheingeld32@gmail.com>
+Date: Wed, 11 Dec 2019 11:24:59 -0500
+Subject: [PATCH] tmpio: workaround File#path being tainted on unlink
+
+Ruby mistakenly taints the file path, causing File.unlink
+to fail: https://bugs.ruby-lang.org/issues/14485
+
+Workaround the Ruby bug by keeping the path as a local
+variable and passing that to File.unlink, instead of the
+return value of File#path.
+
+Link: https://bogomips.org/unicorn-public/CABg1sXrvGv9G6CDQxePDUqTe6N-5UpLXm7eG3YQO=dda-Cgg7A@mail.gmail.com/
+---
+ lib/unicorn/tmpio.rb | 10 ++++++++--
+ 1 file changed, 8 insertions(+), 2 deletions(-)
+
+diff --git a/lib/unicorn/tmpio.rb b/lib/unicorn/tmpio.rb
+index db88ed33..0bbf6ec5 100644
+--- a/lib/unicorn/tmpio.rb
++++ b/lib/unicorn/tmpio.rb
+@@ -11,12 +11,18 @@ class Unicorn::TmpIO < File
+   # immediately, switched to binary mode, and userspace output
+   # buffering is disabled
+   def self.new
++    path = nil
++
++    # workaround File#path being tainted:
++    # https://bugs.ruby-lang.org/issues/14485
+     fp = begin
+-      super("#{Dir::tmpdir}/#{rand}", RDWR|CREAT|EXCL, 0600)
++      path = "#{Dir::tmpdir}/#{rand}"
++      super(path, RDWR|CREAT|EXCL, 0600)
+     rescue Errno::EEXIST
+       retry
+     end
+-    unlink(fp.path)
++
++    unlink(path)
+     fp.binmode
+     fp.sync = true
+     fp
+
