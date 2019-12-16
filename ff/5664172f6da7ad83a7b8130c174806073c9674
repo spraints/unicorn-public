@@ -1,0 +1,83 @@
+Return-Path: <bertrand.paquet@doctolib.com>
+X-Spam-Checker-Version: SpamAssassin 3.4.2 (2018-09-13) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS3215 2.6.0.0/16
+X-Spam-Status: No, score=-3.2 required=3.0 tests=AWL,BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,DKIM_VALID_AU,DKIM_VALID_EF,RCVD_IN_DNSWL_NONE,
+	SPF_HELO_NONE,SPF_PASS shortcircuit=no autolearn=ham
+	autolearn_force=no version=3.4.2
+Received: from mail-qk1-x72e.google.com (mail-qk1-x72e.google.com [IPv6:2607:f8b0:4864:20::72e])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+	(No client certificate requested)
+	by dcvr.yhbt.net (Postfix) with ESMTPS id E9FB11F463
+	for <unicorn-public@bogomips.org>; Mon, 16 Dec 2019 22:34:46 +0000 (UTC)
+Received: by mail-qk1-x72e.google.com with SMTP id w127so6645527qkb.11
+        for <unicorn-public@bogomips.org>; Mon, 16 Dec 2019 14:34:46 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=doctolib.com; s=google;
+        h=mime-version:from:date:message-id:subject:to;
+        bh=isGAQgfqkFjflIne/HGmD5mAhFqscj2lJE/gLblHG80=;
+        b=RWwH8GaYCPZQWKgFER9uaLFgzvrag5uW4Ax7TZndv0viOmVAgKpKt+QPe8IYmmOGkf
+         SroGYEzOIVRRVZYdny5xlKLkhf34pRKnqUWaLfOHWatnHOLRY4dxTmxkpW7ICyzWf8ow
+         98cd4CZL4VeXaIYe01jTAEyBgolTOUx63LsLk=
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20161025;
+        h=x-gm-message-state:mime-version:from:date:message-id:subject:to;
+        bh=isGAQgfqkFjflIne/HGmD5mAhFqscj2lJE/gLblHG80=;
+        b=H28goAm/gUXCl+Tkt7mpPWxJPptOBXA4U7kZx5IMwPquOmgeHmVabBs9dqI5H7OInQ
+         H/1YYWUxUm2uAbIW3sQpmuodehHQYHPAmgcjaz7fQ3yQNtYiZz24CJqW4iznvVEOIWKS
+         8DwfONGfu8xM2S+DwiXbickyIUGLSglJgwjLJTqWnvioLU2OxtROjUDPqYExvOBpj7zf
+         NEQWlwAuKaik5XfxVQ9MZHB4uAwiBZa3Dw773sbIA+R3l8zBKVXsLe7HHXL71orJvQ2t
+         Bij+CwO9m33VXLprql7Bvo34KzRpudLdEdENaN7l8iQvgNRJ+qy1sony0d1JQv6Cs5lb
+         kNqA==
+X-Gm-Message-State: APjAAAXnTjFTqjn1CO/VKW38B/4GkKqdRwpSFtO2ch93zA2N8bUOWGmu
+	XSIyqynpfqyozqgCDRIjZzbQ85Njsl71bWR8vPpaZgeepYHlsw==
+X-Google-Smtp-Source: APXvYqxH23txQPctT9X2RBIr0YlSIEBkJSFm43GtHRA6J7U1yN9qlIfxJ2M4pdYTyfhvw9ROTy071hEQwknIJvRCEDg=
+X-Received: by 2002:a05:620a:1663:: with SMTP id d3mr1965548qko.204.1576535685842;
+ Mon, 16 Dec 2019 14:34:45 -0800 (PST)
+MIME-Version: 1.0
+From: Bertrand Paquet <bertrand.paquet@doctolib.com>
+Date: Mon, 16 Dec 2019 23:34:35 +0100
+Message-ID: <CANCGK7nU=AuO--z-Q9YLSiHttZSCJTJAW4XeNyOByXivfGmihg@mail.gmail.com>
+Subject: Traffic priority with Unicorn
+To: unicorn-public@bogomips.org
+Content-Type: text/plain; charset="UTF-8"
+List-Id: <unicorn-public.bogomips.org>
+
+Hello,
+
+I would like to introduce some traffic priority in Unicorn. The goal
+is to keep critical endpoints online even if the application is
+slowing down a lot.
+
+The idea is to classify the request at nginx level (by vhost, http
+path, header or whatever), and send the queries to two different
+unicorn sockets (opened by the same unicorn instance): one for high
+priority request, one for low priority request.
+I need to do some small modifications [1] in the unicorn worker loop
+to process high priority requests first. It seems to work:
+- I launch a first apache bench toward the low priority port
+- I launch a second apache bench toward the high priority port
+- Unicorn handles the queries only for that one, and stop answering to
+the low priority traffic
+
+The tradeoff are
+- No more "bet"[2] on low priority traffic. This is probably slowing
+down a little bit the low  priority traffic.
+- This approach is only low / high. Not sure if I can extend it for 3
+(or more) level of priority without a non negligible performance
+impact (because of the "bet" above).
+
+Do you think this approach is correct?
+Do you have any better idea to have some traffic prioritization?
+(Another idea is to have dedicated workers for each priority class.
+This approach has other downsides, I would like to avoid it).
+Is it something we can  introduce in Unicorn (not as default
+behaviour, but as a configuration option)?
+
+Thx for any opinion.
+
+Bertrand
+
+[1] https://github.com/bpaquet/unicorn/commit/58d6ba2805d4399f680f97eefff82c407e0ed30f#
+[2] https://bogomips.org/unicorn.git/tree/lib/unicorn/http_server.rb#n707
