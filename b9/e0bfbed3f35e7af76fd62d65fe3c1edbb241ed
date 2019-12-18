@@ -1,0 +1,211 @@
+Return-Path: <bertrand.paquet@doctolib.com>
+X-Spam-Checker-Version: SpamAssassin 3.4.2 (2018-09-13) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS3215 2.6.0.0/16
+X-Spam-Status: No, score=-3.2 required=3.0 tests=AWL,BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,DKIM_VALID_AU,DKIM_VALID_EF,RCVD_IN_DNSWL_NONE,
+	SPF_HELO_NONE,SPF_PASS shortcircuit=no autolearn=ham
+	autolearn_force=no version=3.4.2
+Received: from mail-qt1-x82a.google.com (mail-qt1-x82a.google.com [IPv6:2607:f8b0:4864:20::82a])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+	(No client certificate requested)
+	by dcvr.yhbt.net (Postfix) with ESMTPS id 8F0AF1F464
+	for <unicorn-public@bogomips.org>; Wed, 18 Dec 2019 22:07:05 +0000 (UTC)
+Received: by mail-qt1-x82a.google.com with SMTP id d18so564695qtj.10
+        for <unicorn-public@bogomips.org>; Wed, 18 Dec 2019 14:07:05 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=doctolib.com; s=google;
+        h=mime-version:references:in-reply-to:from:date:message-id:subject:to
+         :cc;
+        bh=gtq9qX/gaIU8dRsB2E4v8ApzKoX4yriBlZ6+tpRrNcw=;
+        b=uX5KY0QOuUWJfRgElEvzbUv0khAT8eSBVk1WIZF8FwI2afaAp+krzYrUK/c9kB4Ufo
+         dyEIlL8vOi8dRPXQ6EpyIW2eGXcSLjlEz/rW4sc6p28cqhashopXo7D8g4b03p3/6oWQ
+         m1Yh4zbUx+t/cUZA0rEyysuZev1P+Em2+8Etc=
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20161025;
+        h=x-gm-message-state:mime-version:references:in-reply-to:from:date
+         :message-id:subject:to:cc;
+        bh=gtq9qX/gaIU8dRsB2E4v8ApzKoX4yriBlZ6+tpRrNcw=;
+        b=apl+E4MDauV1SYZTIyZ9QSUeoETb6ztMprUbIEUGDnB/cfsaGDvz6yiNvxQPTkT0zF
+         uIARjcCNtxZx2DCus83VfyFjLbk6X4Wedg5gEHenygifKzo9spFTv7vWvnKfKrzPTTnr
+         4UpSWALeI8bBRZed5FaG/wSyPevTiLBsrnRI89W3UzRE2WkNRSFa4MGEp9oUPPCADzoQ
+         TMqwPrnrwVorQJ58UQ7R8HElg8DrobIqAQne/PQN06XKQaVNSsA7OMs+Nkkg5O374eQa
+         AybTZK2mADbGAimk7n6wu2oYR9CL17QfqGf6QkWYkc1fo+bYHM3h8ASKdJ/PnsQ6v5W5
+         7HHA==
+X-Gm-Message-State: APjAAAWmDrOIIu67acHUNRkpGt5S/D7MzV9Dn887IQGWxx0bcNqoe6sG
+	dzC++0vkzTnCgbACguJU3BSB5JZ76bDDUnMndIuDEw==
+X-Google-Smtp-Source: APXvYqzMMYHFqNo/J//xgMp5fmMcd8J7T+jJ9UzCux6Bzdne1lcQJA4raxiuFeLXeVkPrbWuVn229y3B81K3qAvXCu8=
+X-Received: by 2002:aed:3344:: with SMTP id u62mr4295142qtd.73.1576706823973;
+ Wed, 18 Dec 2019 14:07:03 -0800 (PST)
+MIME-Version: 1.0
+References: <CANCGK7nU=AuO--z-Q9YLSiHttZSCJTJAW4XeNyOByXivfGmihg@mail.gmail.com>
+ <20191217051211.GA85715@dcvr>
+In-Reply-To: <20191217051211.GA85715@dcvr>
+From: Bertrand Paquet <bertrand.paquet@doctolib.com>
+Date: Wed, 18 Dec 2019 23:06:53 +0100
+Message-ID: <CANCGK7mBFEiEHCsmLEP4tr8uaNjRMNOBjBQM2vJhs2YcQxQy5Q@mail.gmail.com>
+Subject: Re: Traffic priority with Unicorn
+To: Eric Wong <bofh@yhbt.net>
+Cc: unicorn-public@bogomips.org
+Content-Type: text/plain; charset="UTF-8"
+List-Id: <unicorn-public.bogomips.org>
+
+On Tue, 17 Dec 2019 at 06:12, Eric Wong <bofh@yhbt.net> wrote:
+>
+> Bertrand Paquet <bertrand.paquet@doctolib.com> wrote:
+> > Hello,
+> >
+> > I would like to introduce some traffic priority in Unicorn. The goal
+> > is to keep critical endpoints online even if the application is
+> > slowing down a lot.
+> >
+> > The idea is to classify the request at nginx level (by vhost, http
+> > path, header or whatever), and send the queries to two different
+> > unicorn sockets (opened by the same unicorn instance): one for high
+> > priority request, one for low priority request.
+> > I need to do some small modifications [1] in the unicorn worker loop
+> > to process high priority requests first. It seems to work:
+> > - I launch a first apache bench toward the low priority port
+> > - I launch a second apache bench toward the high priority port
+> > - Unicorn handles the queries only for that one, and stop answering to
+> > the low priority traffic
+>
+> > [1] https://github.com/bpaquet/unicorn/commit/58d6ba2805d4399f680f97eefff82c407e0ed30f#
+>
+> Easier to view locally w/o JS/CSS using "git show -W" for context:
+>
+> $ git remote add bpaquet https://github.com/bpaquet/unicorn
+> $ git fetch bpaquet
+> $ git show -W 58d6ba28
+>   <snip>
+> diff --git a/lib/unicorn/http_server.rb b/lib/unicorn/http_server.rb
+> index 5334fa0c..976b728e 100644
+> --- a/lib/unicorn/http_server.rb
+> +++ b/lib/unicorn/http_server.rb
+> @@ -676,53 +676,56 @@ def reopen_worker_logs(worker_nr)
+>    # runs inside each forked worker, this sits around and waits
+>    # for connections and doesn't die until the parent dies (or is
+>    # given a INT, QUIT, or TERM signal)
+>    def worker_loop(worker)
+>      ppid = @master_pid
+>      readers = init_worker_process(worker)
+>      nr = 0 # this becomes negative if we need to reopen logs
+>
+>      # this only works immediately if the master sent us the signal
+>      # (which is the normal case)
+>      trap(:USR1) { nr = -65536 }
+>
+>      ready = readers.dup
+> +    high_priority_reader = readers.first
+> +    last_processed_is_high_priority = false
+>      @after_worker_ready.call(self, worker)
+>
+>      begin
+>        nr < 0 and reopen_worker_logs(worker.nr)
+>        nr = 0
+>        worker.tick = time_now.to_i
+>        tmp = ready.dup
+>        while sock = tmp.shift
+>          # Unicorn::Worker#kgio_tryaccept is not like accept(2) at all,
+>          # but that will return false
+>          if client = sock.kgio_tryaccept
+> +          last_processed_is_high_priority = sock == high_priority_reader
+>            process_client(client)
+>            nr += 1
+>            worker.tick = time_now.to_i
+>          end
+> -        break if nr < 0
+> +        break if nr < 0 || last_processed_is_high_priority
+>        end
+>
+>        # make the following bet: if we accepted clients this round,
+>        # we're probably reasonably busy, so avoid calling select()
+>        # and do a speculative non-blocking accept() on ready listeners
+>        # before we sleep again in select().
+> -      unless nr == 0
+> +      unless nr == 0 || !last_processed_is_high_priority
+>          tmp = ready.dup
+>          redo
+>        end
+>
+>        ppid == Process.ppid or return
+>
+>        # timeout used so we can detect parent death:
+>        worker.tick = time_now.to_i
+>        ret = IO.select(readers, nil, nil, @timeout) and ready = ret[0]
+>      rescue => e
+>        redo if nr < 0 && readers[0]
+>        Unicorn.log_error(@logger, "listen loop error", e) if readers[0]
+>      end while readers[0]
+>    end
+>
+>    # delivers a signal to a worker and fails gracefully if the worker
+>    # is no longer running.
+>
+> > The tradeoff are
+> > - No more "bet"[2] on low priority traffic. This is probably slowing
+> > down a little bit the low  priority traffic.
+>
+> Yeah, but low priority is low priority, so it's fine to slow
+> them down, right? :>
+>
+> > - This approach is only low / high. Not sure if I can extend it for 3
+> > (or more) level of priority without a non negligible performance
+> > impact (because of the "bet" above).
+>
+> I don't think it makes sense to have more than two levels of
+> priority (zero, one, two, infinity rule?)
+> <https://en.wikipedia.org/wiki/Zero_One_Infinity>
+>
+> > Do you think this approach is correct?
+>
+> readers order isn't guaranteed, especially when inheriting
+> sockets from systemd or similar launchers.
+
+Interesting point.
+
+>
+> I think some sort order could be defined via listen option...
+>
+> I'm not sure if inheriting multiple sockets from systemd or
+> similar launchers using LISTEN_FDS env can guarantee ordering
+> (or IO.select in Ruby, for that matter).
+>
+> It seems OK otherwise, I think...  Have you tested in real world?
+
+Not yet. But I will probably test it soon.
+
+>
+> > Do you have any better idea to have some traffic prioritization?
+> > (Another idea is to have dedicated workers for each priority class.
+> > This approach has other downsides, I would like to avoid it).
+> > Is it something we can  introduce in Unicorn (not as default
+> > behaviour, but as a configuration option)?
+>
+> If you're willing to drop some low-priority requests, using a
+> small listen :backlog value for a low-priority listen may work.
+>
+> I'm hesitant to put extra code in worker_loop method since
+> it can slow down current users who don't need the feature.
+>
+> Instead, perhaps try replacing the worker_loop method entirely
+> (similar to how oob_gc.rb wraps process_client) so users who
+> don't enable the feature won't be penalized with extra code.
+> Users who opt into the feature can get an entirely different
+> method.
+
+Ok I will try this approach. I'm a little bit annoyed by the code duplication.
+
+>
+> > Thx for any opinion.
+>
+> The best option would be to never get yourself in a situation
+> where you're never overloaded by making everything fast :>
+> Anything else seems pretty ugly...
+
+On a system which handle 10k QPS, it's really difficult to never have
+an issue somewhere :)
+
+Thx
+
+Bertrand
