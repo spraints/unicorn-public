@@ -1,0 +1,68 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.2 (2018-09-13) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.2
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id 9E4371F463;
+	Fri, 20 Dec 2019 02:15:15 +0000 (UTC)
+Date: Fri, 20 Dec 2019 02:15:15 +0000
+From: Eric Wong <e@80x24.org>
+To: ruby-talk@ruby-lang.org, unicorn-public@bogomips.org
+Cc: Terry Scheingeld <tscheingeld32@gmail.com>
+Subject: [ANN] unicorn 5.5.2 - Rack HTTP server for fast clients and *nix
+Message-ID: <20191220021515.GA5546@dcvr>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+List-Id: <unicorn-public.bogomips.org>
+
+unicorn is an HTTP server for Rack applications designed to only serve
+fast clients on low-latency, high-bandwidth connections and take
+advantage of features in Unix/Unix-like kernels.  Slow clients should
+only be served by placing a reverse proxy capable of fully buffering
+both the the request and response in between unicorn and slow clients.
+
+Disclaimer:
+
+Due to its ability to tolerate crashes and isolate clients, unicorn
+is unfortunately known to prolong the existence of bugs in applications
+and libraries which run on top of it.
+
+Consider this just an announcement to inform existing users of a
+new version, not something to convince you to switch to something
+that set the entire Ruby back decades in terms of concurrency.
+
+* https://bogomips.org/unicorn/
+* public list: unicorn-public@bogomips.org
+* mail archives: https://bogomips.org/unicorn-public/
+* git clone https://bogomips.org/unicorn.git
+* https://bogomips.org/unicorn/NEWS.atom.xml
+* nntp://news.public-inbox.org/inbox.comp.lang.ruby.unicorn
+
+Changes:
+
+Thanks to Terry Scheingeld, we now workaround a Ruby bug
+and can now run with taint checks enabled:
+<https://bugs.ruby-lang.org/issues/14485>
+<https://bogomips.org/unicorn-public/CABg1sXrvGv9G6CDQxePDUqTe6N-5UpLXm7eG3YQO=dda-Cgg7A@mail.gmail.com/>
+
+There's also a few documentation updates and building packages
+from source is easier since pandoc is no longer a dependency
+(and I can no longer afford the bandwidth or space to install
+it).
+
+Eric Wong (7):
+      test/benchmark/ddstream: demo for slowly reading clients
+      test/benchmark/readinput: demo for slowly uploading clients
+      test/benchmark/uconnect: test for accept loop speed
+      examples/unicorn@.service: note the NonBlocking flag
+      Merge remote-tracking branch 'origin/ts/tmpio'
+      test_util: get rid of some unused variables in tests
+      doc: replace pandoc-"Markdown" with real manpages
+
+Terry Scheingeld (1):
+      tmpio: workaround File#path being tainted on unlink
+
+havpbea: orngvat n qrnq ubefr hagvy gur fgvpx trgf fghpx va vg'f fxhyy
