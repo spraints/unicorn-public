@@ -1,0 +1,64 @@
+Return-Path: <bofh@yhbt.net>
+X-Spam-Checker-Version: SpamAssassin 3.4.2 (2018-09-13) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-3.9 required=3.0 tests=ALL_TRUSTED,AWL,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.2
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id E558B1F884
+	for <unicorn-public@yhbt.net>; Sun, 26 Jan 2020 05:33:33 +0000 (UTC)
+From: Eric Wong <bofh@yhbt.net>
+To: unicorn-public@yhbt.net
+Subject: [PATCH 2/3] test_helper: remove unused `chunked_spawn'
+Date: Sun, 26 Jan 2020 05:33:32 +0000
+Message-Id: <20200126053333.28163-3-bofh@yhbt.net>
+In-Reply-To: <20200126053333.28163-1-bofh@yhbt.net>
+References: <20200126053333.28163-1-bofh@yhbt.net>
+MIME-Version: 1.0
+Content-Transfer-Encoding: 8bit
+List-Id: <unicorn-public.yhbt.net>
+
+It was added nearly 11 years ago in commit 6945342a1f0a4caa
+("Transfer-Encoding: chunked streaming input support") but
+never used.
+---
+ test/test_helper.rb | 26 --------------------------
+ 1 file changed, 26 deletions(-)
+
+diff --git a/test/test_helper.rb b/test/test_helper.rb
+index c21f75d..94a5b1b 100644
+--- a/test/test_helper.rb
++++ b/test/test_helper.rb
+@@ -265,32 +265,6 @@ def wait_for_death(pid)
+   raise "PID:#{pid} never died!"
+ end
+ 
+-# executes +cmd+ and chunks its STDOUT
+-def chunked_spawn(stdout, *cmd)
+-  fork {
+-    crd, cwr = IO.pipe
+-    crd.binmode
+-    cwr.binmode
+-    crd.sync = cwr.sync = true
+-
+-    pid = fork {
+-      STDOUT.reopen(cwr)
+-      crd.close
+-      cwr.close
+-      exec(*cmd)
+-    }
+-    cwr.close
+-    begin
+-      buf = crd.readpartial(16384)
+-      stdout.write("#{'%x' % buf.size}\r\n#{buf}")
+-    rescue EOFError
+-      stdout.write("0\r\n")
+-      pid, status = Process.waitpid(pid)
+-      exit status.exitstatus
+-    end while true
+-  }
+-end
+-
+ def reset_sig_handlers
+   %w(WINCH QUIT INT TERM USR1 USR2 HUP TTIN TTOU CHLD).each do |sig|
+     trap(sig, "DEFAULT")
