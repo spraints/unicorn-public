@@ -1,0 +1,96 @@
+Return-Path: <e@yhbt.net>
+X-Spam-Checker-Version: SpamAssassin 3.4.2 (2018-09-13) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,AWL,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.2
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id 028DA1F5AD;
+	Wed, 15 Apr 2020 05:26:24 +0000 (UTC)
+Date: Wed, 15 Apr 2020 05:26:23 +0000
+From: Eric Wong <e@yhbt.net>
+To: Stan Hu <stanhu@gmail.com>
+Cc: unicorn-public@yhbt.net
+Subject: Re: Sustained queuing on one listener can block requests from other
+ listeners
+Message-ID: <20200415052623.GA24409@dcvr>
+References: <CAMBWrQ=Yh42MPtzJCEO7XryVknDNetRMuA87irWfqVuLdJmiBQ@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <CAMBWrQ=Yh42MPtzJCEO7XryVknDNetRMuA87irWfqVuLdJmiBQ@mail.gmail.com>
+List-Id: <unicorn-public.yhbt.net>
+
+Stan Hu <stanhu@gmail.com> wrote:
+> My unicorn.rb has two listeners:
+> 
+> listen "127.0.0.1:8080", :tcp_nopush => false
+> listen "/var/run/unicorn.socket", :backlog => 1024
+
+Fwiw, lowering :backlog may make sense if you got other
+hosts/instances.  More below..
+
+> We found that because of the greedy attempt to accept new connections
+> before calling select() in
+> https://github.com/defunkt/unicorn/blob/981f561a726bb4307d01e4a09a308edba8d69fe3/lib/unicorn/http_server.rb#L707-L714,
+> listeners on another socket stall out until the first listener is
+> drained. We would expect Unicorn to round-robin between the two
+> listeners, but that doesn't happen as long as there is work to be done
+> for the first listener. We've verified that deleting that `redo` block
+> fixes the problem.
+> 
+> What do you think about the various options?
+> 
+> 1. Only running that redo block if there is one listener
+
+That seems reasonable, or if ready.size == nr_listeners
+(proposed patch below)
+
+> 2. Removing the redo block entirely
+
+From what I recall ages ago, select() entry cost is pretty high
+and I remember that redo helping a fair bit even in 2009 with
+simple apps.  Syscall cost is even higher now with CPU
+vulnerability mitigations, and Ruby 1.9+ GVL release+reacquire
+is also a penalty I didn't have when developing this on 1.8.
+
+Do you have time+hardware to benchmark either approach on a
+simple app?  I no longer have stable/reliable hardware for
+benchmarking.  Thanks.
+
+Totally untested patch to try approach #1
+
+diff --git a/lib/unicorn/http_server.rb b/lib/unicorn/http_server.rb
+index a52931a..69f1f60 100644
+--- a/lib/unicorn/http_server.rb
++++ b/lib/unicorn/http_server.rb
+@@ -686,6 +686,7 @@ def worker_loop(worker)
+     trap(:USR1) { nr = -65536 }
+ 
+     ready = readers.dup
++    nr_listeners = readers.size
+     @after_worker_ready.call(self, worker)
+ 
+     begin
+@@ -698,7 +699,6 @@ def worker_loop(worker)
+         # but that will return false
+         if client = sock.kgio_tryaccept
+           process_client(client)
+-          nr += 1
+           worker.tick = time_now.to_i
+         end
+         break if nr < 0
+@@ -708,7 +708,7 @@ def worker_loop(worker)
+       # we're probably reasonably busy, so avoid calling select()
+       # and do a speculative non-blocking accept() on ready listeners
+       # before we sleep again in select().
+-      unless nr == 0
++      if ready.size == nr_listeners
+         tmp = ready.dup
+         redo
+       end
+
+
+
+And `nr' can probably just be a boolean `reopen' flag if we're
+not overloading it as a counter.
