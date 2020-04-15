@@ -1,0 +1,68 @@
+Return-Path: <stanhu@gmail.com>
+X-Spam-Checker-Version: SpamAssassin 3.4.2 (2018-09-13) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS3215 2.6.0.0/16
+X-Spam-Status: No, score=-3.2 required=3.0 tests=BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,DKIM_VALID_AU,DKIM_VALID_EF,FREEMAIL_FROM,
+	RCVD_IN_DNSWL_NONE,SPF_HELO_NONE,SPF_PASS shortcircuit=no
+	autolearn=ham autolearn_force=no version=3.4.2
+Received: from mail-io1-xd33.google.com (mail-io1-xd33.google.com [IPv6:2607:f8b0:4864:20::d33])
+	(using TLSv1.3 with cipher TLS_AES_128_GCM_SHA256 (128/128 bits)
+	 key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
+	(No client certificate requested)
+	by dcvr.yhbt.net (Postfix) with ESMTPS id 5418F1F610
+	for <unicorn-public@yhbt.net>; Wed, 15 Apr 2020 05:06:28 +0000 (UTC)
+Received: by mail-io1-xd33.google.com with SMTP id i3so15764228ioo.13
+        for <unicorn-public@yhbt.net>; Tue, 14 Apr 2020 22:06:28 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20161025;
+        h=mime-version:from:date:message-id:subject:to;
+        bh=EXb05iruuImGxlvMOFzJB3E8jiBuUb0lrZi+e8ZIJRg=;
+        b=GT/G6rZixkosjLiZoi7amqmMLJG+Iq3eFO5iXL6N1yY84wXeu+EDNGvzmlYe5UBFJ0
+         +FjG5KxC7IomElaeTMVD4wwdjQ6R591ZgIQi3law2bViDC1Q4qXjScvVmQ6yMARAfjjM
+         /2J/+g+DcbJu7qYSOZK6wdXHrwjUcdHndQ64rG+S4S5axFeRi8KXnNb9MgdjhnBBZD0W
+         eksbh7euzQmLZRdPAjPGcTCkcAoL7UFVOBDxvNx3lgK8IEfz5f9GTSTdCObbGV9POMQd
+         BgWlMJBG5R4xemY8PW65jj5cDyUMvziIFSZHbbIp2nikxO0VOmBgV8v+9ff9DZ5/k50w
+         gxaA==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20161025;
+        h=x-gm-message-state:mime-version:from:date:message-id:subject:to;
+        bh=EXb05iruuImGxlvMOFzJB3E8jiBuUb0lrZi+e8ZIJRg=;
+        b=OLFfEs/FHTFqks8+NGNo8V5PrNinJa46OLccEr5W+YmnRvMhQmGHfYWm+AlBseUW3y
+         DORDf8E7gzic3M/piwVyhfbtSoo7QmIFsjP6DtA9VfyvSazgZHSkLt3nElNtBAgZVR8l
+         NYmm06aNCTkB+p7xNtnKvIDPFYgUxJBmeH4ogqsmsXXnpZQ93/gRmb03jeABjjOLY1nO
+         sG7EJYO0kJpF0RiIQ+SgHg/+IbiUUSmCHrHfGL0naK/UZQfYjOEyi5k4S2VS2h/kxJD1
+         AXYKj2hUIUua78r1WLQaL9jN+ZTM/kERMpPZMVGNpiRuDNE4psA1KBuFPEUt2sFAyOsn
+         h5sw==
+X-Gm-Message-State: AGi0PuayZ5uI2251I4E9kwxcZ/vyEuCSmDijJPveXXaH0oUcpv/6Vt27
+	6D8JVCS5nMbonmx1ru0bqRdyiCQ8NfThaC0P22uIoAFloNM=
+X-Google-Smtp-Source: APiQypL3HsCa9pqp7/rG3MQoXBgCGzQoBog42R9foRdbRMckVrDF1rysvmoukTnqVY0heGwSt5R7GeDJdkJPwPN83gw=
+X-Received: by 2002:a6b:9346:: with SMTP id v67mr14181535iod.154.1586927186669;
+ Tue, 14 Apr 2020 22:06:26 -0700 (PDT)
+MIME-Version: 1.0
+From: Stan Hu <stanhu@gmail.com>
+Date: Tue, 14 Apr 2020 22:06:15 -0700
+Message-ID: <CAMBWrQ=Yh42MPtzJCEO7XryVknDNetRMuA87irWfqVuLdJmiBQ@mail.gmail.com>
+Subject: Sustained queuing on one listener can block requests from other listeners
+To: unicorn-public@yhbt.net
+Content-Type: text/plain; charset="UTF-8"
+List-Id: <unicorn-public.yhbt.net>
+
+My unicorn.rb has two listeners:
+
+listen "127.0.0.1:8080", :tcp_nopush => false
+listen "/var/run/unicorn.socket", :backlog => 1024
+
+We found that because of the greedy attempt to accept new connections
+before calling select() in
+https://github.com/defunkt/unicorn/blob/981f561a726bb4307d01e4a09a308edba8d69fe3/lib/unicorn/http_server.rb#L707-L714,
+listeners on another socket stall out until the first listener is
+drained. We would expect Unicorn to round-robin between the two
+listeners, but that doesn't happen as long as there is work to be done
+for the first listener. We've verified that deleting that `redo` block
+fixes the problem.
+
+What do you think about the various options?
+
+1. Only running that redo block if there is one listener
+2. Removing the redo block entirely
