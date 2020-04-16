@@ -1,0 +1,82 @@
+Return-Path: <e@yhbt.net>
+X-Spam-Checker-Version: SpamAssassin 3.4.2 (2018-09-13) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,AWL,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.2
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id 135201F751;
+	Thu, 16 Apr 2020 09:24:58 +0000 (UTC)
+Date: Thu, 16 Apr 2020 09:24:57 +0000
+From: Eric Wong <e@yhbt.net>
+To: Stan Hu <stanhu@gmail.com>
+Cc: unicorn-public@yhbt.net
+Subject: [PATCH] prevent single listener from monopolizing a worker
+Message-ID: <20200416092457.GA5000@dcvr>
+References: <CAMBWrQ=Yh42MPtzJCEO7XryVknDNetRMuA87irWfqVuLdJmiBQ@mail.gmail.com>
+ <20200415052623.GA24409@dcvr>
+ <CAMBWrQmzXYjDobExF9GL1BkHAc=ibvMv1ciaSv_fLQ36MyZW0g@mail.gmail.com>
+ <20200416065917.GA7256@dcvr>
+ <CAMBWrQ=aLEZgkE8P+wM_rHBMoZxGPCKkSYArOMVPtYNTn_1LDg@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <CAMBWrQ=aLEZgkE8P+wM_rHBMoZxGPCKkSYArOMVPtYNTn_1LDg@mail.gmail.com>
+List-Id: <unicorn-public.yhbt.net>
+
+Stan Hu <stanhu@gmail.com> wrote:
+> That seems to work, thanks!
+
+Thanks for confirming.  I'll push the patch below out.
+(ugh, dealing with crazy packet loss all around)
+
+Expect a v5.6.0 release within a few days or week at most.
+(hopefully no regressions).
+
+And... I wonder, are most deployments nowadays single listener?
+
+I don't think I've used multiple listeners for this aside from
+experiments in the early days.
+
+---------8<----------
+Subject: [PATCH] prevent single listener from monopolizing a worker
+
+In setups with multiple listeners, it's possible for our greedy
+select(2)-avoidance optimization to get pinned on a single, busy
+listener and starve the other listener(s).
+
+Prevent starvation by retrying the select(2)-avoidance
+optimization if and only if all listeners were active.  This
+should have no effect on the majority of deployments with only a
+single listener.
+
+Thanks for Stan Hu for reporting and testing.
+
+Reported-by: Stan Hu <stanhu@gmail.com>
+Tested-by: Stan Hu <stanhu@gmail.com>
+Link: https://yhbt.net/unicorn-public/CAMBWrQ=Yh42MPtzJCEO7XryVknDNetRMuA87irWfqVuLdJmiBQ@mail.gmail.com/
+---
+ lib/unicorn/http_server.rb | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/lib/unicorn/http_server.rb b/lib/unicorn/http_server.rb
+index a52931a..45a2e97 100644
+--- a/lib/unicorn/http_server.rb
++++ b/lib/unicorn/http_server.rb
+@@ -686,6 +686,7 @@ def worker_loop(worker)
+     trap(:USR1) { nr = -65536 }
+ 
+     ready = readers.dup
++    nr_listeners = readers.size
+     @after_worker_ready.call(self, worker)
+ 
+     begin
+@@ -708,7 +709,7 @@ def worker_loop(worker)
+       # we're probably reasonably busy, so avoid calling select()
+       # and do a speculative non-blocking accept() on ready listeners
+       # before we sleep again in select().
+-      unless nr == 0
++      if nr == nr_listeners
+         tmp = ready.dup
+         redo
+       end
