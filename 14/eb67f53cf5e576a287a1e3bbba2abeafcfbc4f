@@ -1,0 +1,63 @@
+Return-Path: <stanhu@gmail.com>
+X-Spam-Checker-Version: SpamAssassin 3.4.2 (2018-09-13) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS3215 2.6.0.0/16
+X-Spam-Status: No, score=-3.2 required=3.0 tests=BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,DKIM_VALID_AU,DKIM_VALID_EF,FREEMAIL_FROM,
+	RCVD_IN_DNSWL_NONE,SPF_HELO_NONE,SPF_PASS shortcircuit=no
+	autolearn=ham autolearn_force=no version=3.4.2
+Received: from mail-il1-x136.google.com (mail-il1-x136.google.com [IPv6:2607:f8b0:4864:20::136])
+	(using TLSv1.3 with cipher TLS_AES_128_GCM_SHA256 (128/128 bits)
+	 key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
+	(No client certificate requested)
+	by dcvr.yhbt.net (Postfix) with ESMTPS id 0D2C51F751;
+	Thu, 16 Apr 2020 07:24:45 +0000 (UTC)
+Received: by mail-il1-x136.google.com with SMTP id b18so5987949ilf.2;
+        Thu, 16 Apr 2020 00:24:45 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20161025;
+        h=mime-version:references:in-reply-to:from:date:message-id:subject:to
+         :cc;
+        bh=1mImCjh9KMHPEbfhst6Isp8EKwYNhrVeN0IzE8pDSqE=;
+        b=rFERCbzzQKRjd5B42i6h2r3Eq9br6Jo507IST3H3EK4byLPoAdrJSxcCraPk6Alr9t
+         Yty1VEvCOh5m6inxMYewmX7sqbmkAFEFpaxPBAa1hxMhG0vWgKmaGZiq5wLD2ARDenJI
+         dA9qI9zN9xfYnh+iLcKcop68F9n+y22SqfLB5K/L6bqhKM9Bvu3jELv1PBejz5rQCJAB
+         8stD8FFGBn5Q2ciD9bEuz2EtEi0yzS+5w2+XGTHigS3+Eq4d2S7zS99YcuMsT6vjPObO
+         e5pUrRusUzKaBa0bivS0UtEqWyR28kZdMbAVCrOQWNMCPdoxwbh8hUHBuCMJsG0o+Pjo
+         e/KA==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20161025;
+        h=x-gm-message-state:mime-version:references:in-reply-to:from:date
+         :message-id:subject:to:cc;
+        bh=1mImCjh9KMHPEbfhst6Isp8EKwYNhrVeN0IzE8pDSqE=;
+        b=cN+gonJ4E5VBLmPB5JFqwW9gnAkSlqO3DB4zfGuHav6664poBxGFRHMSlhDc+q4oeo
+         kAEzECJAWP0X4k1ZBUkLoy/DQRGvojt2/AK06kHCGCKtrZDfG2Q2Bd5ok4N0AVQLPKU3
+         MZYMGJdWKOG6ef7FP1ADToAOu5UXHtfDHcZETHnLJ+3o/WNNtoRyAD8vFQhFBIfY5mgv
+         P8XdYmu6IklyKVai5DQavVeC6uqCzVgbUTW0PqihbDbzBb6jTQrVSxkbiREsgp332wL6
+         2qHOxdCTuqm1mD9kIKTSRw9+K+Q7kIV4Kywf51Lki9kFDIKs/DQa+1Ezaz5UG7BHmnTL
+         5Xmg==
+X-Gm-Message-State: AGi0PuZHLUUw4fUmMOwpAAyxKfTwDmtHE8QYoPZVndvR2DnIF5gwdGbg
+	51MFOYy8UtvoBrqV3urZ96LbOGCwRkhyHQA0Vcpvgkah
+X-Google-Smtp-Source: APiQypLbOcMgCXYoZDEHUvJmrORBnsW717WJ393JWVRHvTxErk2tI2RiZzVI4ypBZ9Y10elRe7hlBsWyCzGavgC5Ysk=
+X-Received: by 2002:a92:da01:: with SMTP id z1mr9417455ilm.152.1587021883457;
+ Thu, 16 Apr 2020 00:24:43 -0700 (PDT)
+MIME-Version: 1.0
+References: <CAMBWrQ=Yh42MPtzJCEO7XryVknDNetRMuA87irWfqVuLdJmiBQ@mail.gmail.com>
+ <20200415052623.GA24409@dcvr> <CAMBWrQmzXYjDobExF9GL1BkHAc=ibvMv1ciaSv_fLQ36MyZW0g@mail.gmail.com>
+ <20200416065917.GA7256@dcvr>
+In-Reply-To: <20200416065917.GA7256@dcvr>
+From: Stan Hu <stanhu@gmail.com>
+Date: Thu, 16 Apr 2020 00:24:32 -0700
+Message-ID: <CAMBWrQ=aLEZgkE8P+wM_rHBMoZxGPCKkSYArOMVPtYNTn_1LDg@mail.gmail.com>
+Subject: Re: Sustained queuing on one listener can block requests from other listeners
+To: Eric Wong <e@yhbt.net>
+Cc: unicorn-public@yhbt.net
+Content-Type: text/plain; charset="UTF-8"
+List-Id: <unicorn-public.yhbt.net>
+
+On Wed, Apr 15, 2020 at 11:59 PM Eric Wong <e@yhbt.net> wrote:
+> Your patch looks close.  However the `readers' array gets
+> dropped on SIGQUIT with `nuke_listeners!', so `readers.size'
+> is unstable.
+
+That seems to work, thanks!
