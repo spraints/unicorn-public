@@ -1,0 +1,99 @@
+Return-Path: <aaron.patterson@gmail.com>
+X-Spam-Checker-Version: SpamAssassin 3.4.2 (2018-09-13) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-Status: No, score=-3.2 required=3.0 tests=BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,DKIM_VALID_AU,DKIM_VALID_EF,FREEMAIL_FROM,
+	RCVD_IN_DNSWL_NONE,SPF_HELO_NONE,SPF_PASS shortcircuit=no
+	autolearn=ham autolearn_force=no version=3.4.2
+Received: from mail-pg1-x535.google.com (mail-pg1-x535.google.com [IPv6:2607:f8b0:4864:20::535])
+	(using TLSv1.3 with cipher TLS_AES_128_GCM_SHA256 (128/128 bits)
+	 key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
+	(No client certificate requested)
+	by dcvr.yhbt.net (Postfix) with ESMTPS id 066BB1F5AE
+	for <unicorn-public@yhbt.net>; Wed, 15 Jul 2020 23:49:41 +0000 (UTC)
+Received: by mail-pg1-x535.google.com with SMTP id l63so3876986pge.12
+        for <unicorn-public@yhbt.net>; Wed, 15 Jul 2020 16:49:41 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20161025;
+        h=mime-version:subject:from:in-reply-to:date:cc
+         :content-transfer-encoding:message-id:references:to;
+        bh=uYu5zerFCwmBYdJZ9F8zga8tU33VZT+e6dpYLgerxJw=;
+        b=eiHjmhqlGaE6UI6VbSnX0mpaztHNWytN0bz2mACiDXWQJiku/gMLq9sAaf+mmWZs8u
+         tPIhC46HslfPDdgKe2bEFP78y5jHujFN1u8K/NNzzXAm+aDAIqkmKZ9JvSfUbjK5HaRa
+         j4A2nygZWHQr4JBipzTRa/cNSPhaE2l2X0mmSTrnsPvzFh8m5t0GoGUrfTCVjr3HwqHt
+         z8jma0NfRkahftIKhTTPbhqwjKsF9gvYvJCGrYc7mv2CaM0/ajOFWjXoPEpySE1S1igh
+         94OK6z9TVk6WXJzfDh1RGDLpNxXtiYBtZa1s8GjgAnBUZ28Yf7BLbhVJTHGeYIMBUDoK
+         H1AA==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20161025;
+        h=x-gm-message-state:mime-version:subject:from:in-reply-to:date:cc
+         :content-transfer-encoding:message-id:references:to;
+        bh=uYu5zerFCwmBYdJZ9F8zga8tU33VZT+e6dpYLgerxJw=;
+        b=ng6Jw0DafucHXUnAeT1qXha/RqIJCoFBLl6Zrfmw4O9CzFboP35sr93nlrXtcVhZLj
+         T0V//RnKJHEbndE35tgHlfRQcl1ZlJt5HvZSN82iyI0goTwV9kJGpzngk+z9lTnMeh53
+         XYNsQPkcEOaoFVPCmcULPdbXs2+CtAFeQEE2763LsfgQexCz9cuBsq3sj4dQOyl8j054
+         vHhaDalXwzN0gSr5GAnW/GRB5rISwJtq8fgIF4NIIhyplngWtNbJBcMjjcUHaCKAPUvJ
+         9iPfqV8IrPAH3PPUOfdG1XVe//MDZb+zdU7u40lThJ3lDoH6Rq7+G4j9lCZsSDZ6HBKD
+         /btQ==
+X-Gm-Message-State: AOAM530kjlEl+Q04HiG8xqFgo3AMK2NEI6Obq9ZXu5dx0IVdOMaOgbcJ
+	Foy5vV5/7bMLPTxFHDSjLCzOQYmjK3U=
+X-Google-Smtp-Source: ABdhPJyoKgM3B6Wyz23hnZ1eClW1nc9r3CyvTYa379VJ+n8DKUO5mZeMvOiQ1u56Fkc2AccH0w1uWQ==
+X-Received: by 2002:a65:43c9:: with SMTP id n9mr1816475pgp.452.1594856980112;
+        Wed, 15 Jul 2020 16:49:40 -0700 (PDT)
+Received: from tc-lan-adapter.local ([71.212.148.115])
+        by smtp.gmail.com with ESMTPSA id d16sm3028906pfo.156.2020.07.15.16.49.39
+        (version=TLS1_2 cipher=ECDHE-ECDSA-AES128-GCM-SHA256 bits=128/128);
+        Wed, 15 Jul 2020 16:49:39 -0700 (PDT)
+Content-Type: text/plain;
+	charset=utf-8
+Mime-Version: 1.0 (Mac OS X Mail 13.4 \(3608.80.23.2.2\))
+Subject: Re: [ruby-core:99185] [Ruby master Bug#17023] How to prevent String
+ memory to be relocated in ruby-ffi
+From: Aaron Patterson <aaron.patterson@gmail.com>
+In-Reply-To: <20200715233540.GA14457@dcvr>
+Date: Wed, 15 Jul 2020 16:49:38 -0700
+Cc: unicorn-public@yhbt.net
+Content-Transfer-Encoding: quoted-printable
+Message-Id: <647A6735-04C8-4410-A71A-307A2390CFBD@gmail.com>
+References: <redmine.issue-17023.20200710175402.5550@ruby-lang.org>
+ <redmine.journal-86563.20200715200039.5550@ruby-lang.org>
+ <20200715233540.GA14457@dcvr>
+To: Ruby developers <ruby-core@ruby-lang.org>
+X-Mailer: Apple Mail (2.3608.80.23.2.2)
+List-Id: <unicorn-public.yhbt.net>
+
+
+
+> On Jul 15, 2020, at 4:35 PM, Eric Wong <normalperson@yhbt.net> wrote:
+>=20
+> tenderlove@ruby-lang.org wrote:
+>> Right, that makes sense.  I really need to document this (and
+>> I apologize for not doing so already), but
+>> `rb_gc_register_address` will pin your objects.  When you know
+>> you're done with the reference, you can release it with
+>> `rb_gc_unregister_address`.  Of course if you don't call the
+>> unregister function, the reference will stay alive forever.
+>=20
+> Btw, does rb_gc_register_mark_object pin?  A quick glance at
+> gc.c tells me it doesn't, and I'll need to revert commit
+> 2a6cb76d5010cb763ef5a2c305728465d15eb7c9 in unicorn:
+> https://yhbt.net/unicorn-public/20181226050857.6413-1-e@80x24.org/
+
+Yes, it does pin.  I=E2=80=99m not super proud of this code, but here is =
+where objects passed to rb_gc_register_mark_object get pinned:
+
+  =
+https://github.com/ruby/ruby/blob/c2a6295ec04a191c689d22254ac1ad5d665e27ad=
+/vm.c#L2307-L2320
+
+I don=E2=80=99t know why the mark object array is an array of arrays (I =
+assume so as not to waste space in the array buffer?).  Maybe this could =
+be a more friendly data structure.
+
+I created a pinned list in compile.c so that objects allocated and used =
+at compile time don=E2=80=99t move (they become free to move once iseq =
+assembly is finished). It seems that might be a more generally useful =
+thing, but so far I=E2=80=99ve only seen two places that need this =
+feature.
+
+
