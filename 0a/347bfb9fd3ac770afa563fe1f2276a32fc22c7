@@ -1,0 +1,41 @@
+Return-Path: <normalperson@yhbt.net>
+X-Spam-Checker-Version: SpamAssassin 3.4.2 (2018-09-13) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.2
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id 7DB621F5AE;
+	Wed, 15 Jul 2020 23:35:40 +0000 (UTC)
+Date: Wed, 15 Jul 2020 23:35:40 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: ruby-core@ruby-lang.org
+Cc: unicorn-public@yhbt.net
+Subject: Re: [ruby-core:99184] [Ruby master Bug#17023] How to prevent String
+ memory to be relocated in ruby-ffi
+Message-ID: <20200715233540.GA14457@dcvr>
+References: <redmine.issue-17023.20200710175402.5550@ruby-lang.org>
+ <redmine.journal-86563.20200715200039.5550@ruby-lang.org>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <redmine.journal-86563.20200715200039.5550@ruby-lang.org>
+List-Id: <unicorn-public.yhbt.net>
+
+tenderlove@ruby-lang.org wrote:
+> Right, that makes sense.  I really need to document this (and
+> I apologize for not doing so already), but
+> `rb_gc_register_address` will pin your objects.  When you know
+> you're done with the reference, you can release it with
+> `rb_gc_unregister_address`.  Of course if you don't call the
+> unregister function, the reference will stay alive forever.
+
+Btw, does rb_gc_register_mark_object pin?  A quick glance at
+gc.c tells me it doesn't, and I'll need to revert commit
+2a6cb76d5010cb763ef5a2c305728465d15eb7c9 in unicorn:
+https://yhbt.net/unicorn-public/20181226050857.6413-1-e@80x24.org/
+
+Anyways, it takes me too long to compile Ruby so I'm back to
+running whatever my distro ships.  I haven't been able to
+test GC.compact at all.
+
+> https://bugs.ruby-lang.org/issues/17023#change-86563
