@@ -1,0 +1,52 @@
+Return-Path: <normalperson@yhbt.net>
+X-Spam-Checker-Version: SpamAssassin 3.4.2 (2018-09-13) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.2
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id 8FA0D1F5AE;
+	Thu, 16 Jul 2020 00:04:01 +0000 (UTC)
+Date: Thu, 16 Jul 2020 00:04:01 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: Aaron Patterson <aaron.patterson@gmail.com>
+Cc: ruby-core@ruby-lang.org, unicorn-public@yhbt.net
+Subject: Re: [ruby-core:99185] [Ruby master Bug#17023] How to prevent String
+ memory to be relocated in ruby-ffi
+Message-ID: <20200716000401.GA15291@dcvr>
+References: <redmine.issue-17023.20200710175402.5550@ruby-lang.org>
+ <redmine.journal-86563.20200715200039.5550@ruby-lang.org>
+ <20200715233540.GA14457@dcvr>
+ <647A6735-04C8-4410-A71A-307A2390CFBD@gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+Content-Transfer-Encoding: 8bit
+In-Reply-To: <647A6735-04C8-4410-A71A-307A2390CFBD@gmail.com>
+List-Id: <unicorn-public.yhbt.net>
+
+Aaron Patterson <aaron.patterson@gmail.com> wrote:
+> > On Jul 15, 2020, at 4:35 PM, Eric Wong <normalperson@yhbt.net> wrote:
+> > Btw, does rb_gc_register_mark_object pin?  A quick glance at
+> > gc.c tells me it doesn't, and I'll need to revert commit
+> > 2a6cb76d5010cb763ef5a2c305728465d15eb7c9 in unicorn:
+> > https://yhbt.net/unicorn-public/20181226050857.6413-1-e@80x24.org/
+> 
+> Yes, it does pin.  I’m not super proud of this code, but here
+> is where objects passed to rb_gc_register_mark_object get
+> pinned:
+> 
+>   https://github.com/ruby/ruby/blob/c2a6295ec04a191c689d22254ac1ad5d665e27ad/vm.c#L2307-L2320
+
+Ah, missed that, thanks.  So all is well in unicorn (for now).
+
+> I don’t know why the mark object array is an array of arrays
+> (I assume so as not to waste space in the array buffer?).
+> Maybe this could be a more friendly data structure.
+
+It seems so, since rb_ary_push can double the internal buffer.
+Anyways, ko1 made commit
+a617afc643e17cea5c1960a60adcd5ffb25fdfe2 r46714
+Maybe it can be flattened nowadays and rely on GC.compact
+to reclaim unused space.
+
+/me goes back to hacking in Perl 5...
