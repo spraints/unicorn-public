@@ -1,0 +1,157 @@
+Return-Path: <e@yhbt.net>
+X-Spam-Checker-Version: SpamAssassin 3.4.2 (2018-09-13) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.2
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id 29A0D1F5AE;
+	Thu, 16 Jul 2020 10:50:37 +0000 (UTC)
+Date: Thu, 16 Jul 2020 10:50:37 +0000
+From: Eric Wong <e@yhbt.net>
+To: Jean Boussier <jean.boussier@shopify.com>
+Cc: unicorn-public@yhbt.net
+Subject: Re: [PATCH] Add early hints support
+Message-ID: <20200716105037.GA26605@dcvr>
+References: <058BA238-BEB3-4E54-9DE6-DC59BCB86246@shopify.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <058BA238-BEB3-4E54-9DE6-DC59BCB86246@shopify.com>
+List-Id: <unicorn-public.yhbt.net>
+
+Jean Boussier <jean.boussier@shopify.com> wrote:
+> While not part of the rack spec, this API is exposed
+> by both puma and falcon, and Rails use it when available.
+> 
+> The 103 Early Hints response code is specified in RFC 8297.
+
+Thanks, I can probably accept it with some minor tweaks.
+Some comment below...
+
+> ---
+>  lib/unicorn/configurator.rb |  5 +++++
+>  lib/unicorn/http_server.rb  | 33 +++++++++++++++++++++++++++++++--
+>  test/unit/test_server.rb    | 30 ++++++++++++++++++++++++++++++
+>  3 files changed, 66 insertions(+), 2 deletions(-)
+> 
+> diff --git a/lib/unicorn/configurator.rb b/lib/unicorn/configurator.rb
+> index c3a4f2d..43e91f4 100644
+> --- a/lib/unicorn/configurator.rb
+> +++ b/lib/unicorn/configurator.rb
+> @@ -276,6 +276,11 @@ def default_middleware(bool)
+>      set_bool(:default_middleware, bool)
+>    end
+>  
+> +  # sets wether to enable rack's early hints API.
+
+spelling: "whether".
+
+Since it's not officially part of Rack, yet, perhaps something
+like:
+
+	Enable the proposed early hints Rack API.
+
+I'm no grammar expert, so I also rephrased that sentence to
+avoid the apostrophe.
+
+Since this RDoc ends up on the website, links to any relevant
+Rails documentation and RFC 8297 would also be appropriate.
+Otherwise non-Rails users like me might have no clue what
+it's for.
+
+> +  def early_hints(bool)
+> +    set_bool(:early_hints, bool)
+> +  end
+> +
+>    # sets listeners to the given +addresses+, replacing or augmenting the
+>    # current set.  This is for the global listener pool shared by all
+>    # worker processes.  For per-worker listeners, see the after_fork example
+> diff --git a/lib/unicorn/http_server.rb b/lib/unicorn/http_server.rb
+> index 45a2e97..3e0c9a4 100644
+> --- a/lib/unicorn/http_server.rb
+> +++ b/lib/unicorn/http_server.rb
+> @@ -15,7 +15,7 @@ class Unicorn::HttpServer
+>                  :before_fork, :after_fork, :before_exec,
+>                  :listener_opts, :preload_app,
+>                  :orig_app, :config, :ready_pipe, :user,
+> -                :default_middleware
+> +                :default_middleware, :early_hints
+>    attr_writer   :after_worker_exit, :after_worker_ready, :worker_exec
+>  
+>    attr_reader :pid, :logger
+> @@ -588,6 +588,27 @@ def handle_error(client, e)
+>    rescue
+>    end
+>  
+> +  def e103_response_write(client, headers)
+> +    response = if @request.response_start_sent
+> +      "103 Early Hints\r\n"
+> +    else
+> +      "HTTP/1.1 103 Early Hints\r\n"
+> +    end
+> +
+> +    headers.each_pair do |k, vs|
+> +      if vs.respond_to?(:to_s) && !vs.to_s.empty?
+> +        vs.to_s.split("\n".freeze).each do |v|
+
+Are the method calls for .to_s necessary?  At least for regular
+Rack responses, this bit from unicorn/http_response.rb seems to
+handle odd apps which (improperly) give `nil' value:
+
+          if value =~ /\n/
+            # avoiding blank, key-only cookies with /\n+/
+            value.split(/\n+/).each { |v| buf << "#{key}: #{v}\r\n" }
+          else
+            buf << "#{key}: #{value}\r\n"
+          end
+
+The split would never be attempted on nil since it wouldn't
+match /\n/, and the /\n+/ was needed in the Rails 2.3.5 days:
+
+https://public-inbox.org/rack-devel/20100105235845.GB3377@dcvr.yhbt.net/
+https://yhbt.net/unicorn-public/52400de1c9e9437b5c9df899f273485f663bb5b5/s/
+
+> +          response << "#{k}: #{v}\r\n"
+> +        end
+> +      else
+> +        response << "#{k}: #{vs}\r\n"
+> +      end
+> +    end
+> +    response << "\r\n".freeze
+> +    response << "HTTP/1.1 ".freeze if @request.response_start_sent
+> +    client.write(response)
+> +  end
+> +
+>    def e100_response_write(client, env)
+>      # We use String#freeze to avoid allocations under Ruby 2.1+
+>      # Not many users hit this code path, so it's better to reduce the
+> @@ -602,7 +623,15 @@ def e100_response_write(client, env)
+>    # once a client is accepted, it is processed in its entirety here
+>    # in 3 easy steps: read request, call app, write app response
+>    def process_client(client)
+> -    status, headers, body = @app.call(env = @request.read(client))
+> +    env = @request.read(client)
+> +
+> +    if early_hints
+> +      env["rack.early_hints"] = lambda do |headers|
+> +        e103_response_write(client, headers)
+> +      end
+> +    end
+
+Eep, extra branch...  What's the performance impact for existing
+users when not activated? (on Unix sockets).
+
+Perhaps bypassing the method and accessing the @early_hints ivar
+directly can be slightly faster w/o method dispatch.  That
+should also allow using attr_writer instead of attr_accessor,
+I think.
+
+Not sure how much people here care about minor performance
+regressions, here...  I don't really upgrade or touch old
+Rack apps, anymore; and I'm certainly never going to buy
+a faster CPU.
+
+> +    status, headers, body = @app.call(env)
+>  
+>      begin
+>        return if @request.hijacked?
