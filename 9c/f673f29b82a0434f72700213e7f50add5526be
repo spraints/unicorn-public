@@ -1,0 +1,197 @@
+Return-Path: <jean.boussier@shopify.com>
+X-Spam-Checker-Version: SpamAssassin 3.4.2 (2018-09-13) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-Status: No, score=-2.0 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
+	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,DKIM_VALID_EF,NUMERIC_HTTP_ADDR,
+	RCVD_IN_DNSWL_NONE,SPF_HELO_NONE,SPF_PASS shortcircuit=no
+	autolearn=ham autolearn_force=no version=3.4.2
+Received: from mail-wr1-x42a.google.com (mail-wr1-x42a.google.com [IPv6:2a00:1450:4864:20::42a])
+	(using TLSv1.3 with cipher TLS_AES_128_GCM_SHA256 (128/128 bits)
+	 key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
+	(No client certificate requested)
+	by dcvr.yhbt.net (Postfix) with ESMTPS id 58C6C1F5AE
+	for <unicorn-public@yhbt.net>; Thu, 16 Jul 2020 10:05:44 +0000 (UTC)
+Received: by mail-wr1-x42a.google.com with SMTP id f7so6460113wrw.1
+        for <unicorn-public@yhbt.net>; Thu, 16 Jul 2020 03:05:44 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=shopify.com; s=google;
+        h=from:content-transfer-encoding:mime-version:subject:message-id:date
+         :to;
+        bh=LZagSeA/Onm0iJ5HgvCKvrlNUpJs2Ks4sWLsv4rgXMc=;
+        b=NGocv7M0e9qPh6jNfcERBKphzNoDLXM+ojoM9KXFL0hM8EHGdkYCRqKqZlP+IGWKkJ
+         vjkfSvSNMS1NZeF48aaubiZAHglS1JKgITv7VClSFEtLBHmmOiuGwwkMOqO04qP5PlMm
+         cTbnInGCr1XWLi5sb2Gb/fzn67mk6n/ILAKbg=
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20161025;
+        h=x-gm-message-state:from:content-transfer-encoding:mime-version
+         :subject:message-id:date:to;
+        bh=LZagSeA/Onm0iJ5HgvCKvrlNUpJs2Ks4sWLsv4rgXMc=;
+        b=Uwsm73Y9NiODOPreaRNLQljN0rMnnP4xPQFra/E56TgWpjVBsG51dupZC5VHkGwNBD
+         D/7nDikIPTWu5k50qaDpdIRgANeBwyXsN65S6KCKU5L7ImF+FEv+iXbQmZtetoqNoE1u
+         SHyvedRBRYwMHbDISVDWjGApRjwip2OiLYvBaveebnAToUqUZCQlR1B1pyF/TR24XVJx
+         68CJg+S8V98dkAmjLVViFn3QUSKG7ltwUH56ckIR7u5bUci5OkoQ+q2tUnXCZWMtGTD3
+         6g2iWtaqbwILx8PirIeyBdTjvoGQGsuLvisBBJZtiLymNJrJeDqUKrBenjYgSVRFJEki
+         BbhA==
+X-Gm-Message-State: AOAM530XZfTNS7gpipx7jJvR9pQUwE+5JB7nn6KBkKseTNFq15Tc8BPl
+	R23hXJ+7C/mk1HEofFeTMxW4dtXFElM4C6158Ebb1xjX2Psnby6TIGsr08jtTt3FnlJYYhnXOqZ
+	9XqE1XPmFGT3Xu/2/FtStCF0irrGLFcRAtA8mCuZVXLQhieKVFc69min+xGtViBQ/wqbASMhY1b
+	pL
+X-Google-Smtp-Source: ABdhPJzcIIKTzQoL6Ptr7hl6Ey8LoYekpp6K3f5o4eAN3nsqovt+RujfZl2unZWn5Gjt1izRGrwRpA==
+X-Received: by 2002:a5d:68cc:: with SMTP id p12mr4250615wrw.111.1594893940659;
+        Thu, 16 Jul 2020 03:05:40 -0700 (PDT)
+Received: from [192.168.0.12] (87-231-62-161.rev.numericable.fr. [87.231.62.161])
+        by smtp.gmail.com with ESMTPSA id p8sm7563316wrq.29.2020.07.16.03.05.39
+        for <unicorn-public@yhbt.net>
+        (version=TLS1_2 cipher=ECDHE-ECDSA-AES128-GCM-SHA256 bits=128/128);
+        Thu, 16 Jul 2020 03:05:40 -0700 (PDT)
+From: Jean Boussier <jean.boussier@shopify.com>
+Content-Type: text/plain;
+	charset=us-ascii
+Content-Transfer-Encoding: quoted-printable
+Mime-Version: 1.0 (Mac OS X Mail 13.4 \(3608.80.23.2.2\))
+Subject: [PATCH] Add early hints support
+Message-Id: <058BA238-BEB3-4E54-9DE6-DC59BCB86246@shopify.com>
+Date: Thu, 16 Jul 2020 12:05:38 +0200
+To: unicorn-public@yhbt.net
+X-Mailer: Apple Mail (2.3608.80.23.2.2)
+List-Id: <unicorn-public.yhbt.net>
+
+While not part of the rack spec, this API is exposed
+by both puma and falcon, and Rails use it when available.
+
+The 103 Early Hints response code is specified in RFC 8297.
+---
+ lib/unicorn/configurator.rb |  5 +++++
+ lib/unicorn/http_server.rb  | 33 +++++++++++++++++++++++++++++++--
+ test/unit/test_server.rb    | 30 ++++++++++++++++++++++++++++++
+ 3 files changed, 66 insertions(+), 2 deletions(-)
+
+diff --git a/lib/unicorn/configurator.rb b/lib/unicorn/configurator.rb
+index c3a4f2d..43e91f4 100644
+--- a/lib/unicorn/configurator.rb
++++ b/lib/unicorn/configurator.rb
+@@ -276,6 +276,11 @@ def default_middleware(bool)
+     set_bool(:default_middleware, bool)
+   end
+=20
++  # sets wether to enable rack's early hints API.
++  def early_hints(bool)
++    set_bool(:early_hints, bool)
++  end
++
+   # sets listeners to the given +addresses+, replacing or augmenting =
+the
+   # current set.  This is for the global listener pool shared by all
+   # worker processes.  For per-worker listeners, see the after_fork =
+example
+diff --git a/lib/unicorn/http_server.rb b/lib/unicorn/http_server.rb
+index 45a2e97..3e0c9a4 100644
+--- a/lib/unicorn/http_server.rb
++++ b/lib/unicorn/http_server.rb
+@@ -15,7 +15,7 @@ class Unicorn::HttpServer
+                 :before_fork, :after_fork, :before_exec,
+                 :listener_opts, :preload_app,
+                 :orig_app, :config, :ready_pipe, :user,
+-                :default_middleware
++                :default_middleware, :early_hints
+   attr_writer   :after_worker_exit, :after_worker_ready, :worker_exec
+=20
+   attr_reader :pid, :logger
+@@ -588,6 +588,27 @@ def handle_error(client, e)
+   rescue
+   end
+=20
++  def e103_response_write(client, headers)
++    response =3D if @request.response_start_sent
++      "103 Early Hints\r\n"
++    else
++      "HTTP/1.1 103 Early Hints\r\n"
++    end
++
++    headers.each_pair do |k, vs|
++      if vs.respond_to?(:to_s) && !vs.to_s.empty?
++        vs.to_s.split("\n".freeze).each do |v|
++          response << "#{k}: #{v}\r\n"
++        end
++      else
++        response << "#{k}: #{vs}\r\n"
++      end
++    end
++    response << "\r\n".freeze
++    response << "HTTP/1.1 ".freeze if @request.response_start_sent
++    client.write(response)
++  end
++
+   def e100_response_write(client, env)
+     # We use String#freeze to avoid allocations under Ruby 2.1+
+     # Not many users hit this code path, so it's better to reduce the
+@@ -602,7 +623,15 @@ def e100_response_write(client, env)
+   # once a client is accepted, it is processed in its entirety here
+   # in 3 easy steps: read request, call app, write app response
+   def process_client(client)
+-    status, headers, body =3D @app.call(env =3D @request.read(client))
++    env =3D @request.read(client)
++
++    if early_hints
++      env["rack.early_hints"] =3D lambda do |headers|
++        e103_response_write(client, headers)
++      end
++    end
++
++    status, headers, body =3D @app.call(env)
+=20
+     begin
+       return if @request.hijacked?
+diff --git a/test/unit/test_server.rb b/test/unit/test_server.rb
+index 8096955..d706243 100644
+--- a/test/unit/test_server.rb
++++ b/test/unit/test_server.rb
+@@ -23,6 +23,16 @@ def call(env)
+   end
+ end
+=20
++class TestEarlyHintsHandler
++  def call(env)
++    while env['rack.input'].read(4096)
++    end
++    env['rack.early_hints'].call(
++      "Link" =3D> "</style.css>; rel=3Dpreload; as=3Dstyle\n</script.js>;=
+ rel=3Dpreload"
++    )
++    [200, { 'Content-Type' =3D> 'text/plain' }, ['hello!\n']]
++  end
++end
+=20
+ class WebServerTest < Test::Unit::TestCase
+=20
+@@ -84,6 +94,26 @@ def test_preload_app_config
+     tmp.close!
+   end
+=20
++  def test_early_hints
++    teardown
++    redirect_test_io do
++      @server =3D HttpServer.new(TestEarlyHintsHandler.new,
++                               :listeners =3D> [ "127.0.0.1:#@port"],
++                               :early_hints =3D> true)
++      @server.start
++    end
++
++    sock =3D TCPSocket.new('127.0.0.1', @port)
++    sock.syswrite("GET / HTTP/1.0\r\n\r\n")
++
++    responses =3D sock.sysread(4096)
++    assert_match %r{\AHTTP/1.[01] 103\b}, responses
++    assert_match %r{^Link: </style\.css>}, responses
++    assert_match %r{^Link: </script\.js>}, responses
++
++    assert_match %r{^HTTP/1.[01] 200\b}, responses
++  end
++
+   def test_broken_app
+     teardown
+     app =3D lambda { |env| raise RuntimeError, "hello" }
+--=20
+2.26.2
+
+
