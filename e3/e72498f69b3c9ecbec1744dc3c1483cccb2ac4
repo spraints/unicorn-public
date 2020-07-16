@@ -1,0 +1,122 @@
+Return-Path: <jean.boussier@shopify.com>
+X-Spam-Checker-Version: SpamAssassin 3.4.2 (2018-09-13) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-Status: No, score=-2.6 required=3.0 tests=AWL,BAYES_00,DKIMWL_WL_HIGH,
+	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,DKIM_VALID_EF,RCVD_IN_DNSWL_NONE,
+	SPF_HELO_NONE,SPF_PASS shortcircuit=no autolearn=ham
+	autolearn_force=no version=3.4.2
+Received: from mail-wr1-x443.google.com (mail-wr1-x443.google.com [IPv6:2a00:1450:4864:20::443])
+	(using TLSv1.3 with cipher TLS_AES_128_GCM_SHA256 (128/128 bits)
+	 key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
+	(No client certificate requested)
+	by dcvr.yhbt.net (Postfix) with ESMTPS id 0F06F1F5AF
+	for <unicorn-public@yhbt.net>; Thu, 16 Jul 2020 12:24:21 +0000 (UTC)
+Received: by mail-wr1-x443.google.com with SMTP id b6so6812595wrs.11
+        for <unicorn-public@yhbt.net>; Thu, 16 Jul 2020 05:24:20 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=shopify.com; s=google;
+        h=mime-version:subject:from:in-reply-to:date:cc
+         :content-transfer-encoding:message-id:references:to;
+        bh=YwjYR5mfReqjjQu7KhSvC2B3/9FRsTU8r/DG9vnxYlw=;
+        b=TSZKG8ZjD3ZJT5g86f4CyK30d9Oap0GyUaYfqD6SZdm/il+vlIH+ZJcX2Xi64CL/nb
+         0zbyd0dnxdPr2oLAMPrEk2G01ckeONWBm+V1Si/WODmYYXkGAEoEN+ICEkj1VRRHDD8k
+         nexEjnv9mTf0J8AeynG8OJp+sPvza0CvqjV5U=
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20161025;
+        h=x-gm-message-state:mime-version:subject:from:in-reply-to:date:cc
+         :content-transfer-encoding:message-id:references:to;
+        bh=YwjYR5mfReqjjQu7KhSvC2B3/9FRsTU8r/DG9vnxYlw=;
+        b=kX95zUZ3cSfraXxeKPzF4NiM8MyeO4QnRJVqSIKXF8rjT3+Ox3WH/YqD8DiRP064pR
+         FyRaD/tkMH5+D9+PLK4ePB6CF82PpT3p4XTEVIJnB/N1dgDR5iQZfC0mLCQC6Pe/yx2v
+         /yryetMd3jcfI7Jg36BFaoHLCZRkIFfKkrzSjf6r6HidOfR/2anje3cOjNyyC5MFAzSh
+         A0JPMQqlqlzOT62X1ZCXbjdi0W2u21qPVdrdGz0RsGVExjtkZ+wkgO9x3boiavV5tk7R
+         nPHelS5/q2jeCPhKU1ThI0zEzvdkU6PkrYaWZotsnKw019E7qqSrcLuoR24AsinahTee
+         yW/Q==
+X-Gm-Message-State: AOAM532mg526LwQiq1SKiLlcuOI1nu3nAS922pe9tJdBiOqXs3ttFspI
+	reUIJ/KitZAPRVhviBuh1tOH6FKlc7A=
+X-Google-Smtp-Source: ABdhPJxqzebMY8eGE3KjZhef076kSK4cOEA/j8pCwYOMCWwcv9CeyqUwwc23sCQMzAwiWSphTkGCzA==
+X-Received: by 2002:adf:f209:: with SMTP id p9mr4667623wro.86.1594902257381;
+        Thu, 16 Jul 2020 05:24:17 -0700 (PDT)
+Received: from [192.168.0.12] (87-231-62-161.rev.numericable.fr. [87.231.62.161])
+        by smtp.gmail.com with ESMTPSA id f15sm8483318wrx.91.2020.07.16.05.24.16
+        (version=TLS1_2 cipher=ECDHE-ECDSA-AES128-GCM-SHA256 bits=128/128);
+        Thu, 16 Jul 2020 05:24:16 -0700 (PDT)
+Content-Type: text/plain;
+	charset=utf-8
+Mime-Version: 1.0 (Mac OS X Mail 13.4 \(3608.80.23.2.2\))
+Subject: Re: [PATCH] Add early hints support
+From: Jean Boussier <jean.boussier@shopify.com>
+In-Reply-To: <20200716121643.GA26942@dcvr>
+Date: Thu, 16 Jul 2020 14:24:15 +0200
+Cc: unicorn-public@yhbt.net
+Content-Transfer-Encoding: quoted-printable
+Message-Id: <C0BBAE49-63DA-4629-996B-29B3EB21B90E@shopify.com>
+References: <058BA238-BEB3-4E54-9DE6-DC59BCB86246@shopify.com>
+ <20200716105037.GA26605@dcvr>
+ <242F0859-0F83-4F14-A0FF-5BE392BB01E6@shopify.com>
+ <20200716121643.GA26942@dcvr>
+To: Eric Wong <e@yhbt.net>
+X-Mailer: Apple Mail (2.3608.80.23.2.2)
+List-Id: <unicorn-public.yhbt.net>
+
+> Alright, numbers would've been helpful but I'll take your word
+> for it.
+
+My bad, I didn't get the hint:
+
+```
+require 'benchmark/ips'
+
+class Foo
+  attr_accessor :foo
+
+  def initialize
+    @foo =3D 1
+  end
+
+  def missing_ivar
+    @bar
+  end
+
+  def ivar
+    @foo
+  end
+ =20
+  def accessor
+    foo
+  end
+end
+
+foo =3D Foo.new
+
+Benchmark.ips do |x|
+  x.report('ivar') { foo.ivar }
+  x.report('attr') { foo.accessor }
+  x.report('ivar:missing') { foo.missing_ivar }
+  x.compare!
+end
+```
+
+ruby 2.7.1p83 (2020-03-31 revision a0c7c23c9c) [x86_64-darwin19]
+
+Warming up --------------------------------------
+                ivar     2.105M i/100ms
+                attr     1.824M i/100ms
+        ivar:missing     1.795M i/100ms
+Calculating -------------------------------------
+                ivar     20.935M (=C2=B1 1.5%) i/s -    105.248M in   =
+5.028625s
+                attr     18.622M (=C2=B1 0.8%) i/s -     94.845M in   =
+5.093471s
+        ivar:missing     18.408M (=C2=B1 1.1%) i/s -     93.357M in   =
+5.072160s
+
+Comparison:
+                ivar: 20934740.7 i/s
+                attr: 18622122.9 i/s - 1.12x  (=C2=B1 0.00) slower
+        ivar:missing: 18408273.1 i/s - 1.14x  (=C2=B1 0.00) slower
+
+So yeah, the difference between raw @ivar and an attr_reader is barely =
+noticeable, and both are very fast.
+
+
