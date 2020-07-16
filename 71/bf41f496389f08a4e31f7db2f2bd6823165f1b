@@ -1,0 +1,69 @@
+Return-Path: <e@yhbt.net>
+X-Spam-Checker-Version: SpamAssassin 3.4.2 (2018-09-13) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.2
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id C0E211F5AE;
+	Thu, 16 Jul 2020 12:16:43 +0000 (UTC)
+Date: Thu, 16 Jul 2020 12:16:43 +0000
+From: Eric Wong <e@yhbt.net>
+To: Jean Boussier <jean.boussier@shopify.com>
+Cc: unicorn-public@yhbt.net
+Subject: Re: [PATCH] Add early hints support
+Message-ID: <20200716121643.GA26942@dcvr>
+References: <058BA238-BEB3-4E54-9DE6-DC59BCB86246@shopify.com>
+ <20200716105037.GA26605@dcvr>
+ <242F0859-0F83-4F14-A0FF-5BE392BB01E6@shopify.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <242F0859-0F83-4F14-A0FF-5BE392BB01E6@shopify.com>
+List-Id: <unicorn-public.yhbt.net>
+
+Jean Boussier <jean.boussier@shopify.com> wrote:
+> Thanks for the very timely response.
+> 
+> > Since this RDoc ends up on the website, links to any relevant
+> > Rails documentation and RFC 8297 would also be appropriate.
+> > Otherwise non-Rails users like me might have no clue what
+> > it's for.
+> 
+> I updated the documentation, let me know what you think of it.
+
+It's fine, pushed for now.  Will release in a few days or a week
+in case there's comments from others.
+
+> > Are the method calls for .to_s necessary?
+> 
+> I don't think they are, I mostly took inspiration from the puma implementation
+> that does all this defensive checks. Based on how that interface is
+> used by Rails, we could assume both keys and values are strings already.
+> 
+> I simplified the implementation.
+
+OK.
+
+> > Eep, extra branch...  What's the performance impact for existing
+> > users when not activated? (on Unix sockets).
+> 
+> Extremely small.
+
+Alright, numbers would've been helpful but I'll take your word
+for it.
+
+If we get more branches in the main loop for other new features;
+I wonder if generating the code for process_client dynamically
+at initialize-time is worth it to avoid branches in the main
+loop... (or if there's some way to hint MJIT to do that).
+
+> > Perhaps bypassing the method and accessing the @early_hints ivar
+> > directly can be slightly faster w/o method dispatch.  That
+> > should also allow using attr_writer instead of attr_accessor,
+> > I think.
+> 
+>  attr_reader is very optimized in MRI, it's barely slower than @early_hints.
+> Also it ensure that it doesn't emit a warning in verbose mode if the variable
+> isn't initialized.
+
+Thanks again.
