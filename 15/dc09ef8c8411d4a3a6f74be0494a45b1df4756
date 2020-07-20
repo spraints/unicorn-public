@@ -1,0 +1,60 @@
+Return-Path: <e@yhbt.net>
+X-Spam-Checker-Version: SpamAssassin 3.4.2 (2018-09-13) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.2
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id EE1261F5AE;
+	Mon, 20 Jul 2020 20:27:30 +0000 (UTC)
+Date: Mon, 20 Jul 2020 20:27:30 +0000
+From: Eric Wong <e@yhbt.net>
+To: Jean Boussier <jean.boussier@shopify.com>
+Cc: unicorn-public@yhbt.net
+Subject: Re: [PATCH] Add early hints support
+Message-ID: <20200720202730.GA16172@dcvr>
+References: <20200716105037.GA26605@dcvr>
+ <242F0859-0F83-4F14-A0FF-5BE392BB01E6@shopify.com>
+ <20200716121643.GA26942@dcvr>
+ <C0BBAE49-63DA-4629-996B-29B3EB21B90E@shopify.com>
+ <20200717011955.GA23522@dcvr>
+ <624157B8-884C-42EB-8515-AFC6807D6F8D@shopify.com>
+ <20200720100958.GA7043@dcvr>
+ <F908D215-8646-450C-BA7F-9704F1E9D738@shopify.com>
+ <20200720105538.GA13340@dcvr>
+ <4274A592-FC06-4886-8013-429ABF689695@shopify.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <4274A592-FC06-4886-8013-429ABF689695@shopify.com>
+List-Id: <unicorn-public.yhbt.net>
+
+Jean Boussier <jean.boussier@shopify.com> wrote:
+> > upcase seems VERY compelling in a micro benchmark since it can
+> > go straight into opt_case_dispatch.  But I worry the extra
+> > garbage might have a different effect in a real app, especially
+> > with more headers.
+> 
+> It is indeed debatable. The thing is that on match, that Regexp
+> will generate a MatchData and a garbage string. So I'd think
+> the extra GC pressure would be totally negligible.
+
+Ah good point.  I take it Ruby doesn't lazy-allocate or have
+optimizations to quickly recycle unused MatchData?  (Maybe it
+could, if somebody who hacks on the VM is reading this).
+
+> But I agree it's hard to tell without a larger more representative benchmark.
+
+Yes, I would accept patches to speed these up with comprehensive
+benchmark :)
+
+> > Maybe:
+> > 
+> > 	 (val || ''.freeze).include?("\n".freeze)
+> > 
+> > Can work for those buggy apps, though...
+> 
+> Yes. or:
+> 
+>    vall && val.include?...
+
+Yes.
