@@ -1,0 +1,60 @@
+Return-Path: <e@yhbt.net>
+X-Spam-Checker-Version: SpamAssassin 3.4.2 (2018-09-13) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.2
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id 60D791F5AE;
+	Mon, 20 Jul 2020 10:09:58 +0000 (UTC)
+Date: Mon, 20 Jul 2020 10:09:58 +0000
+From: Eric Wong <e@yhbt.net>
+To: Jean Boussier <jean.boussier@shopify.com>
+Cc: unicorn-public@yhbt.net
+Subject: Re: [PATCH] Add early hints support
+Message-ID: <20200720100958.GA7043@dcvr>
+References: <058BA238-BEB3-4E54-9DE6-DC59BCB86246@shopify.com>
+ <20200716105037.GA26605@dcvr>
+ <242F0859-0F83-4F14-A0FF-5BE392BB01E6@shopify.com>
+ <20200716121643.GA26942@dcvr>
+ <C0BBAE49-63DA-4629-996B-29B3EB21B90E@shopify.com>
+ <20200717011955.GA23522@dcvr>
+ <624157B8-884C-42EB-8515-AFC6807D6F8D@shopify.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <624157B8-884C-42EB-8515-AFC6807D6F8D@shopify.com>
+List-Id: <unicorn-public.yhbt.net>
+
+Jean Boussier <jean.boussier@shopify.com> wrote:
+> > I guess... I was wondering more in terms of the big picture with
+> > HTTP parsing, I/O, and response generation taken into account.
+> 
+> I wasn't too sure how to benchmark the entire loop. But regardless
+> 18/20M i/s shows that it should be meaningless. It's only executed
+> once per request, so would "waste" 1 second for 18 million requests
+> processed.
+
+Yeah, it can't support persistent connections, so Unix sockets
+are required to avoid TCP port exhaustion and ensure repeatable
+results.
+
+> > (and there may be improvements in those areas later this year,
+> > assuming the world doesn't end sooner...)
+> 
+> If you are interested in general optimizations, I did spot a bunch
+> of sub optimal patterns, such as `=~` in places where a string
+> comparison, or `match?` would do.
+> 
+> However many optimizations are only available on more recent
+> rubies.
+
+`match?' is Ruby 2.4+, which is probably too big a jump since
+we're still on Ruby 1.9.3 at the moment... (though maybe 2.3+
+is/was on the horizon).
+
+String comparison as in `==' and `!='?  Would be interested to know
+where and what improvements can be had.
+
+But yeah, Ruby just seems hopeless performance-wise (and
+compatibility-wise :P); so unicorn mainly exists to keep legacy
+projects alive.
