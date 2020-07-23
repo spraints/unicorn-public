@@ -1,0 +1,41 @@
+Return-Path: <bofh@yhbt.net>
+X-Spam-Checker-Version: SpamAssassin 3.4.2 (2018-09-13) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,AWL,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.2
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id 689E51F5B7;
+	Thu, 23 Jul 2020 04:17:36 +0000 (UTC)
+From: Eric Wong <bofh@yhbt.net>
+To: unicorn-public@yhbt.net
+Cc: Jean Boussier <jean.boussier@gmail.com>
+Subject: [PATCH 2/2] configurator: SIGHUP resets early_hints if unset
+Date: Thu, 23 Jul 2020 04:17:35 +0000
+Message-Id: <20200723041735.32361-3-bofh@yhbt.net>
+In-Reply-To: <20200723041735.32361-1-bofh@yhbt.net>
+References: <20200723041735.32361-1-bofh@yhbt.net>
+MIME-Version: 1.0
+Content-Transfer-Encoding: 8bit
+List-Id: <unicorn-public.yhbt.net>
+
+If a user removes "early_hints" entirely from the config file, a
+SIGHUP needs to restore the default value.  This is consistent
+with the behavior of all the other configuration variables.
+
+Cc: Jean Boussier <jean.boussier@gmail.com>
+---
+ lib/unicorn/configurator.rb | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/lib/unicorn/configurator.rb b/lib/unicorn/configurator.rb
+index b0606af..ecdf03e 100644
+--- a/lib/unicorn/configurator.rb
++++ b/lib/unicorn/configurator.rb
+@@ -53,6 +53,7 @@ class Unicorn::Configurator
+         server.logger.info("worker=#{worker.nr} ready")
+       },
+     :pid => nil,
++    :early_hints => false,
+     :worker_exec => false,
+     :preload_app => false,
+     :check_client_connection => false,
