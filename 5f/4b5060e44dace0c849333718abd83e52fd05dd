@@ -1,0 +1,67 @@
+Return-Path: <bofh@yhbt.net>
+X-Spam-Checker-Version: SpamAssassin 3.4.2 (2018-09-13) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.2
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id ACC361F5B1
+	for <unicorn-public@yhbt.net>; Sun, 26 Jul 2020 01:57:59 +0000 (UTC)
+From: Eric Wong <bofh@yhbt.net>
+To: unicorn-public@yhbt.net
+Subject: [PATCH 1/2] test_helper: support TAIL= env for watching tests
+Date: Sun, 26 Jul 2020 01:57:58 +0000
+Message-Id: <20200726015759.18011-2-bofh@yhbt.net>
+In-Reply-To: <20200726015759.18011-1-bofh@yhbt.net>
+References: <20200726015759.18011-1-bofh@yhbt.net>
+MIME-Version: 1.0
+Content-Transfer-Encoding: 8bit
+List-Id: <unicorn-public.yhbt.net>
+
+This can be useful for diagnosing failures, especially since
+GNU tail supports inotify these days.
+---
+ test/test_helper.rb | 21 +++++++++++++++++----
+ 1 file changed, 17 insertions(+), 4 deletions(-)
+
+diff --git a/test/test_helper.rb b/test/test_helper.rb
+index 94a5b1b6..e3c6ad4e 100644
+--- a/test/test_helper.rb
++++ b/test/test_helper.rb
+@@ -37,13 +37,25 @@
+ def redirect_test_io
+   orig_err = STDERR.dup
+   orig_out = STDOUT.dup
+-  STDERR.reopen("test_stderr.#{$$}.log", "a")
+-  STDOUT.reopen("test_stdout.#{$$}.log", "a")
++  new_out = File.open("test_stdout.#$$.log", "a")
++  new_err = File.open("test_stderr.#$$.log", "a")
++  new_out.sync = new_err.sync = true
++
++  if tail = ENV['TAIL'] # "tail -F" if GNU, "tail -f" otherwise
++    require 'shellwords'
++    cmd = tail.shellsplit
++    cmd << new_out.path
++    cmd << new_err.path
++    pid = Process.spawn(*cmd, { 1 => 2, :pgroup => true })
++    sleep 0.1 # wait for tail(1) to startup
++  end
++  STDERR.reopen(new_err)
++  STDOUT.reopen(new_out)
+   STDERR.sync = STDOUT.sync = true
+ 
+   at_exit do
+-    File.unlink("test_stderr.#{$$}.log") rescue nil
+-    File.unlink("test_stdout.#{$$}.log") rescue nil
++    File.unlink(new_out.path) rescue nil
++    File.unlink(new_err.path) rescue nil
+   end
+ 
+   begin
+@@ -51,6 +63,7 @@ def redirect_test_io
+   ensure
+     STDERR.reopen(orig_err)
+     STDOUT.reopen(orig_out)
++    Process.kill(:TERM, pid) if pid
+   end
+ end
+ 
