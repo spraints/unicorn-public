@@ -1,0 +1,36 @@
+Return-Path: <e@yhbt.net>
+X-Spam-Checker-Version: SpamAssassin 3.4.2 (2018-09-13) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,AWL,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.2
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id D19371F990;
+	Thu,  6 Aug 2020 21:54:57 +0000 (UTC)
+Date: Thu, 6 Aug 2020 21:54:57 +0000
+From: Eric Wong <e@yhbt.net>
+To: Keven Sticher <ksticher@gmail.com>
+Cc: unicorn-public@yhbt.net
+Subject: Re: Can Unicorn utilize HTTPS?
+Message-ID: <20200806215303.GA7045@dcvr>
+References: <8B1A0D8D-04AC-4063-95A6-F73E1F041419@gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <8B1A0D8D-04AC-4063-95A6-F73E1F041419@gmail.com>
+List-Id: <unicorn-public.yhbt.net>
+
+Keven Sticher <ksticher@gmail.com> wrote:
+> Going through some internal debate, and if end to end encryption is required through all layers, does Unicorn handle TLS, SSL, HTTPS?
+
+Nope.  It's only intended to talk to nginx over a Unix domain
+socket on the same host, or nginx on a fast private LAN.  Having
+something like varnish or haproxy in between nginx and unicorn
+is fine, too, but they must either be on the same host or fast
+LAN.
+
+It fails horribly (by design :>) when talking to the open Internet
+or any high-latency clients.
+
+> Thank you for your response.
+
+no problem :>
