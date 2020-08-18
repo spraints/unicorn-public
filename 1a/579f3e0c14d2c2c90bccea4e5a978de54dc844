@@ -1,0 +1,207 @@
+Return-Path: <michael.bernstein@clicksign.com>
+X-Spam-Checker-Version: SpamAssassin 3.4.2 (2018-09-13) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-Status: No, score=-2.0 required=3.0 tests=BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,DKIM_VALID_AU,DKIM_VALID_EF,NUMERIC_HTTP_ADDR,
+	RCVD_IN_DNSWL_NONE,SPF_HELO_NONE,SPF_PASS shortcircuit=no
+	autolearn=ham autolearn_force=no version=3.4.2
+Received: from mail-io1-xd2b.google.com (mail-io1-xd2b.google.com [IPv6:2607:f8b0:4864:20::d2b])
+	(using TLSv1.3 with cipher TLS_AES_128_GCM_SHA256 (128/128 bits)
+	 key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
+	(No client certificate requested)
+	by dcvr.yhbt.net (Postfix) with ESMTPS id D13661F66E
+	for <unicorn-public@yhbt.net>; Tue, 18 Aug 2020 15:15:37 +0000 (UTC)
+Received: by mail-io1-xd2b.google.com with SMTP id s189so21552289iod.2
+        for <unicorn-public@yhbt.net>; Tue, 18 Aug 2020 08:15:37 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=clicksign.com; s=google1024;
+        h=mime-version:from:date:message-id:subject:to:cc
+         :content-transfer-encoding;
+        bh=fKt3IIfYF1PrWizMreX9kKxiSRHpfUnAQq8Ok90VNpc=;
+        b=SvBGRypbGKd6kdt57zFkMlKPGefCwzIW+cw4FRibwsdt7FLNfzEk2kgVIlExRzdC4/
+         s0EAdwusFVVLRasJhmJlZZxw03xz5cYIY0jyLol6pISGc3wyOCeA1KCWCWnVF+8vaePj
+         gFagjbXeLG9czBUylpAkcZkPKUGv/mLtBJlx0=
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20161025;
+        h=x-gm-message-state:mime-version:from:date:message-id:subject:to:cc
+         :content-transfer-encoding;
+        bh=fKt3IIfYF1PrWizMreX9kKxiSRHpfUnAQq8Ok90VNpc=;
+        b=EPnj3sZMk/3Sc6iIbGk5I0vDqZWI2OaAhNMmYNyKD8ActJzE9V2HtKGcCoUeYPIzSu
+         uGch1iEUTcEVzIUopiGpRJTgNb3d/2O0dy9oX6TTB+hIS1NmL9LZqUsG80NnJq9+mqdR
+         ff2gRD9y8KucpB7tMS4YdRK8Y2RYFgVKvjD5pPBjdKmG21eg8XIk6D5v7A992pADaMrY
+         PUfllL6A1Aq5y4xJvyaXvy85FbE0xoA6eu6BKTlXqw07F1UnD3RYXymPgmgTCZMKahmq
+         9rYCw7T2zrMJu99sXPNq5aULzhvr7aLW1qfucP/qiPA5i4OK1UZVLHjmUhTX9NfoBIga
+         4RPw==
+X-Gm-Message-State: AOAM531l7Q/sDlIkkJykjfoiW5obi0QzG7jIirWDrk8SC5UaMJ8sRiWM
+	/BQKn8syAK2/lvmVuV2cfiihqu71ntLunmirsJzOEBN0sSKdHJuk73rcrK/qVpVAFRoqAcWVGJw
+	J4KOWOclr+fnjIGSxF7ODQJCxrMNioX1wIxU=
+X-Google-Smtp-Source: ABdhPJw/O+T6wqdeSNLLwpPVA4PPPQibp44CT3JPeyhVh7gJtDvH6OWUTpJUkQ8y0ANbnFcH67ONG54mikdF5wP4g4E=
+X-Received: by 2002:a05:6638:12d4:: with SMTP id v20mr18690871jas.108.1597763735494;
+ Tue, 18 Aug 2020 08:15:35 -0700 (PDT)
+MIME-Version: 1.0
+From: Michael Bernstein <michael.bernstein@clicksign.com>
+Date: Tue, 18 Aug 2020 12:15:25 -0300
+Message-ID: <CANgN-T4PPJL=G4SKH7DeaFq_ep9ROYaSXfXimMh32xpRqvyf0w@mail.gmail.com>
+Subject: Connection issues between nginx and unicorn
+To: unicorn-public@yhbt.net
+Cc: Daniel Libanori <daniel.libanori@clicksign.com>, 
+	Luiz Ferreira <luiz.ferreira@clicksign.com>
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
+List-Id: <unicorn-public.yhbt.net>
+
+Hello,
+
+We are having a lot of connection issues between nginx and unicorn,
+but we don't know exactly where is the issue. Can somebody help us?
+
+Exemple from our nginx logs:
+[error] 6#6: *4269348 connect() failed (111: Connection refused) while
+connecting to upstream, client: 10.2.2.252, server: _, request: "POST
+/api/v1/documents?access_token=3D....
+[error] 6#6: *4269169 recv() failed (104: Connection reset by peer)
+while reading response header from upstream, client: 10.2.10.120,
+server: _, request: "GET /api/v1/documents/.....
+[error] 6#6: *4268896 upstream timed out (110: Operation timed out)
+while connecting to upstream, client: 10.2.2.252, server: _, request:
+"GET /accounts/.... HTTP/1.1", upstream:
+"http://172.20.214.176:80/accounts...", host: "app.clicksign.com",
+referrer: "https://app.clicksign.com/..."
+
+############
+Unicorn configuration file:
+
+# frozen_string_literal: true
+
+listen 8080
+worker_processes 4
+timeout 60
+
+preload_app true
+GC.respond_to?(:copy_on_write_friendly=3D) &&
+  (GC.copy_on_write_friendly =3D true)
+
+before_fork do |server, worker|
+  Signal.trap 'TERM' do
+    puts 'Unicorn master intercepting TERM and sending myself QUIT instead'
+    Process.kill 'QUIT', Process.pid
+  end
+
+  defined?(ActiveRecord::Base) &&
+    ActiveRecord::Base.connection.disconnect!
+
+  old_pid =3D "#{server.config[:pid]}.oldbin"
+  if old_pid !=3D server.pid
+    begin
+      sig =3D (worker.nr + 1) >=3D server.worker_processes ? :QUIT : :TTOU
+      Process.kill(sig, File.read(old_pid).to_i)
+    rescue Errno::ENOENT, Errno::ESRCH
+    end
+  end
+
+  sleep 1
+end
+
+after_fork do |_server, _worker|
+  Signal.trap 'TERM' do
+    puts 'Unicorn worker intercepting TERM and doing nothing. Wait for
+master to send QUIT'
+  end
+
+  defined?(ActiveRecord::Base) &&
+    ActiveRecord::Base.establish_connection
+end
+
+
+############
+nginx configuration file:
+
+proxy_cache_path /var/cache/nginx/ levels=3D1:2 keys_zone=3Dassets_cache:10=
+m
+                 max_size=3D1g inactive=3D60m use_temp_path=3Doff;
+
+resolver kube-dns.kube-system.svc.cluster.local valid=3D5s;
+
+upstream backend {
+  server unicorn;
+}
+
+server {
+  server_name _;
+
+  server_tokens off;
+  keepalive_timeout 5;
+  client_max_body_size 100M;
+  client_body_buffer_size 30M;
+
+  sendfile on;
+  tcp_nopush on;
+  tcp_nodelay off;
+
+  gzip on;
+  gzip_min_length 1000;
+  gzip_proxied any;
+  gzip_buffers 16 8k;
+  gzip_http_version 1.0;
+  gzip_types text/css
+             text/plain
+             text/javascript
+             application/javascript
+             application/json
+             application/x-javascript
+             application/xml
+             application/xml+rss
+             application/xhtml+xml
+             application/x-font-ttf
+             application/x-font-opentype
+             application/vnd.ms-fontobject
+             image/svg+xml
+             image/x-icon
+             application/rss+xml
+             application/atom_xml;
+
+  location /healthcheck {
+    return 204;
+  }
+
+  location ~* ^/(fonts|webfonts|assets|packs) {
+    proxy_redirect off;
+    proxy_cache assets_cache;
+    proxy_cache_valid 120m;
+    proxy_pass http://backend;
+    add_header Cache-Control public;
+    if ($http_origin ~
+'^((https*?:\/\/).*?((\.clicksign)\.(com|me|dev)))($|\/.*$)$' ){
+      add_header Access-Control-Allow-Origin $http_origin;
+    }
+    expires max;
+  }
+
+  location / {
+    proxy_pass http://backend;
+    proxy_redirect off;
+    proxy_read_timeout 60;
+    proxy_set_header Host $http_host;
+  }
+}
+
+######
+
+Thanks,
+
+Michael Belfer Bernstein
+michael.bernstein@clicksign.com
+https://www.clicksign.com | https://www.fluxia.com.br
+
+--=20
+A informa=C3=A7=C3=A3o contida nesta mensagem e seus anexos =C3=A9 consider=
+ada secreta,=20
+para uso exclusivo de seu destinat=C3=A1rio. Caso voc=C3=AA n=C3=A3o seja o=
+ destinat=C3=A1rio,=20
+notifique o remetente e elimine esta mensagem. The information contained in=
+=20
+this message and respective attachments is secret, to be used exclusively=
+=20
+by its addressee. If you are not the intended addressee, please notify the=
+=20
+sender and delete this message.
