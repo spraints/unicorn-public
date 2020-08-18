@@ -1,0 +1,132 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.2 (2018-09-13) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-Status: No, score=-3.3 required=3.0 tests=ALL_TRUSTED,AWL,BAYES_00,
+	NUMERIC_HTTP_ADDR shortcircuit=no autolearn=ham autolearn_force=no
+	version=3.4.2
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id A9E901F66E;
+	Tue, 18 Aug 2020 18:06:11 +0000 (UTC)
+Date: Tue, 18 Aug 2020 18:06:11 +0000
+From: Eric Wong <e@80x24.org>
+To: Michael Bernstein <michael.bernstein@clicksign.com>
+Cc: unicorn-public@yhbt.net,
+	Daniel Libanori <daniel.libanori@clicksign.com>,
+	Luiz Ferreira <luiz.ferreira@clicksign.com>
+Subject: Re: Connection issues between nginx and unicorn
+Message-ID: <20200818180611.GA18977@dcvr>
+References: <CANgN-T4PPJL=G4SKH7DeaFq_ep9ROYaSXfXimMh32xpRqvyf0w@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <CANgN-T4PPJL=G4SKH7DeaFq_ep9ROYaSXfXimMh32xpRqvyf0w@mail.gmail.com>
+List-Id: <unicorn-public.yhbt.net>
+
+Michael Bernstein <michael.bernstein@clicksign.com> wrote:
+> Hello,
+> 
+> We are having a lot of connection issues between nginx and unicorn,
+> but we don't know exactly where is the issue. Can somebody help us?
+
+Sure, replies in line...
+
+> Exemple from our nginx logs:
+> [error] 6#6: *4269348 connect() failed (111: Connection refused) while
+> connecting to upstream, client: 10.2.2.252, server: _, request: "POST
+> /api/v1/documents?access_token=....
+> [error] 6#6: *4269169 recv() failed (104: Connection reset by peer)
+> while reading response header from upstream, client: 10.2.10.120,
+> server: _, request: "GET /api/v1/documents/.....
+> [error] 6#6: *4268896 upstream timed out (110: Operation timed out)
+> while connecting to upstream, client: 10.2.2.252, server: _, request:
+> "GET /accounts/.... HTTP/1.1", upstream:
+> "http://172.20.214.176:80/accounts...", host: "app.clicksign.com",
+> referrer: "https://app.clicksign.com/..."
+
+Did any connections ever work?
+
+> ############
+> Unicorn configuration file:
+> 
+> # frozen_string_literal: true
+> 
+> listen 8080
+
+OK, so that means it's listening to all IP addresses on TCP port 8080;
+no problem here.
+
+If you use curl to hit 8080 on the host(s) unicorn is running,
+it should work.
+
+> worker_processes 4
+> timeout 60
+> 
+> preload_app true
+> GC.respond_to?(:copy_on_write_friendly=) &&
+>   (GC.copy_on_write_friendly = true)
+
+Off-topic, GC.copy_on_write_friendly is the default in Ruby 2.0+;
+(and IIRC it wasn't in any official Ruby release, just the
+Phusion "Enterprise Edition")
+
+<snip>
+
+> ############
+> nginx configuration file:
+> 
+> proxy_cache_path /var/cache/nginx/ levels=1:2 keys_zone=assets_cache:10m
+>                  max_size=1g inactive=60m use_temp_path=off;
+> 
+> resolver kube-dns.kube-system.svc.cluster.local valid=5s;
+> 
+> upstream backend {
+>   server unicorn;
+
+Is "unicorn" an entry in your DNS (via search path) or
+an entry in /etc/hosts file?
+
+There's also no reference to port 8080 anywhere in your nginx
+config, so I don't know how nginx is supposed to know that
+unicorn is on port 8080.
+
+I would expect to see something like:
+
+    server unicorn.internal.example.com:8080;
+
+Or if on the same host:
+
+    server 127.0.0.1:8080;
+
+> }
+> 
+> server {
+>   server_name _;
+
+<snip>
+
+>   location ~* ^/(fonts|webfonts|assets|packs) {
+>     proxy_redirect off;
+>     proxy_cache assets_cache;
+>     proxy_cache_valid 120m;
+>     proxy_pass http://backend;
+>     add_header Cache-Control public;
+>     if ($http_origin ~
+> '^((https*?:\/\/).*?((\.clicksign)\.(com|me|dev)))($|\/.*$)$' ){
+>       add_header Access-Control-Allow-Origin $http_origin;
+>     }
+>     expires max;
+>   }
+> 
+>   location / {
+>     proxy_pass http://backend;
+>     proxy_redirect off;
+>     proxy_read_timeout 60;
+>     proxy_set_header Host $http_host;
+>   }
+
+No references to port 8080 in either location block, either.
+
+I don't think you need 8080 in location block if you have them
+in the "upstream backend" block; it's been a while since I've
+used nginx... But you need 8080 (and the correct IP address or
+DNS entry) somewhere.
