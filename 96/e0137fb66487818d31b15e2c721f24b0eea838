@@ -1,0 +1,91 @@
+Return-Path: <jean.boussier@shopify.com>
+X-Spam-Checker-Version: SpamAssassin 3.4.2 (2018-09-13) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-Status: No, score=-3.0 required=3.0 tests=AWL,BAYES_00,DKIMWL_WL_HIGH,
+	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,DKIM_VALID_EF,RCVD_IN_DNSWL_NONE,
+	SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED shortcircuit=no autolearn=ham
+	autolearn_force=no version=3.4.2
+Received: from mail-wm1-x331.google.com (mail-wm1-x331.google.com [IPv6:2a00:1450:4864:20::331])
+	(using TLSv1.3 with cipher TLS_AES_128_GCM_SHA256 (128/128 bits)
+	 key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
+	(No client certificate requested)
+	by dcvr.yhbt.net (Postfix) with ESMTPS id 84BC91F66E
+	for <unicorn-public@yhbt.net>; Tue,  1 Sep 2020 12:17:16 +0000 (UTC)
+Received: by mail-wm1-x331.google.com with SMTP id a65so919575wme.5
+        for <unicorn-public@yhbt.net>; Tue, 01 Sep 2020 05:17:16 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=shopify.com; s=google;
+        h=from:content-transfer-encoding:mime-version:subject:message-id:date
+         :to;
+        bh=PE1AoKO+5O8Zx4ATC4n0Dt1YNvVKgRAmLWsn1wo+Qq0=;
+        b=iizSrVy10DgwLYq20A0NRISnRmfF8G/mkwwOOgezrTfmBdcrV8Zmm4kqRwRlrSwT9m
+         at0RzZvNZ+wL8IQFUUU1LWdMrdl5IXXCbUK2Duuu6L8oCaAPE1skeDQmIyPQ8NS90/O1
+         XhScT5XBXYpOn17WjwaW+X7h4kKuHwZlQK1ms=
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20161025;
+        h=x-gm-message-state:from:content-transfer-encoding:mime-version
+         :subject:message-id:date:to;
+        bh=PE1AoKO+5O8Zx4ATC4n0Dt1YNvVKgRAmLWsn1wo+Qq0=;
+        b=OkeGB5kNuD+OYCRSj5aa8oBGroc2lGXIMBvehvoZBYHhogoS62p5mZcr/8YEKRyEk2
+         yb3M/WCBdJsmP/PaLj9UkE5WDn8wAekWH3x4ORVUh08B4nQIdop0ZjIbY6UFf03KpTnn
+         8Sxs2acpi8IqeRjVKrD1vIfxRId6PS0eE5hptVPzB2bBZy69jzFDL6dkjM69Ud7VP/EV
+         LfPOtOfZI8y2r/ErHp4QrHsLlklLzgcWfZe8JL03TQ/d15TYZAkkmeIl/YOgzsfwG0z0
+         q648lIPnsCFh6J7PV6FDTzgmGC4aAZd/Fl8HzOFHrDLE6z8r9H8zjnB0AiKFWt8UnEts
+         SLqw==
+X-Gm-Message-State: AOAM5324n8fKkivgirOJHC6hcwAKbTeSpASFlWVWPSLI28ERD5cMZAgn
+	ypM0fNa+gEzkLKiokjDykpNqrZtuW4/wfQeexsrmaSpQkhzDyLdYwJHLqjNZkThGapRYqLQ4SIA
+	jwIjzgNmPY/RjbxZnawq3fuMAd9YtQHDLKgH3HhI8ik5rTrXcwkd11dMWOwpPUAV4+w5G6HPVba
+	qFrP8=
+X-Google-Smtp-Source: ABdhPJweiHWDGeBavd8doSom8hjBSM4B1rBPnLLUAiltRIG1kteWMn9uJS7ARO/4npKkwdGMl6fZWg==
+X-Received: by 2002:a1c:f207:: with SMTP id s7mr1522950wmc.22.1598962633034;
+        Tue, 01 Sep 2020 05:17:13 -0700 (PDT)
+Received: from [192.168.0.19] (87-231-62-161.rev.numericable.fr. [87.231.62.161])
+        by smtp.gmail.com with ESMTPSA id v24sm2427445wrd.6.2020.09.01.05.17.12
+        for <unicorn-public@yhbt.net>
+        (version=TLS1_2 cipher=ECDHE-ECDSA-AES128-GCM-SHA256 bits=128/128);
+        Tue, 01 Sep 2020 05:17:12 -0700 (PDT)
+From: Jean Boussier <jean.boussier@shopify.com>
+Content-Type: text/plain;
+	charset=us-ascii
+Content-Transfer-Encoding: quoted-printable
+Mime-Version: 1.0 (Mac OS X Mail 13.4 \(3608.120.23.2.1\))
+Subject: [PATCH] Update ruby_version requirement to allow ruby 3.0 
+Message-Id: <03DE8105-749D-46E8-A163-3AAEA72E6087@shopify.com>
+Date: Tue, 1 Sep 2020 14:17:12 +0200
+To: unicorn-public@yhbt.net
+X-Mailer: Apple Mail (2.3608.120.23.2.1)
+List-Id: <unicorn-public.yhbt.net>
+
+Ruby just recently bump the master version to 3.0 and this version =
+requirement in unicorn breaks our ruby-head CI.
+
+I don't really see any reason to protect against newer Ruby version.
+
+=46rom d1c43dd70b06543727ac88e3930caa0482558a6b Mon Sep 17 00:00:00 2001
+From: Jean Boussier <jean.boussier@gmail.com>
+Date: Tue, 1 Sep 2020 14:14:07 +0200
+Subject: [PATCH] Update ruby_version requirement to allow ruby 3.0
+
+---
+ unicorn.gemspec | 5 +----
+ 1 file changed, 1 insertion(+), 4 deletions(-)
+
+diff --git a/unicorn.gemspec b/unicorn.gemspec
+index cbe855d..9a79055 100644
+--- a/unicorn.gemspec
++++ b/unicorn.gemspec
+@@ -25,10 +25,7 @@
+   s.homepage =3D 'https://yhbt.net/unicorn/'
+   s.test_files =3D test_files
+=20
+-  # technically we need ">=3D 1.9.3", too, but avoid the array here =
+since
+-  # old rubygems versions (1.8.23.2 at least) do not support multiple
+-  # version requirements here.
+-  s.required_ruby_version =3D '< 3.0'
++  s.required_ruby_version =3D '>=3D 1.9.3'
+=20
+   # We do not have a hard dependency on rack, it's possible to load
+   # things which respond to #call.  HTTP status lines in responses
+--=20
+2.26.2=
