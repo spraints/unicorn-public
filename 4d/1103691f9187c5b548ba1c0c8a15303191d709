@@ -1,0 +1,53 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.2 (2018-09-13) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,BAYES_00,
+	URIBL_BLOCKED shortcircuit=no autolearn=ham autolearn_force=no
+	version=3.4.2
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id C0E2E1F66E;
+	Tue,  1 Sep 2020 15:41:17 +0000 (UTC)
+Date: Tue, 1 Sep 2020 15:41:17 +0000
+From: Eric Wong <e@80x24.org>
+To: Jean Boussier <jean.boussier@shopify.com>
+Cc: unicorn-public@yhbt.net
+Subject: Re: [PATCH] Update ruby_version requirement to allow ruby 3.0
+Message-ID: <20200901154117.GA1551@dcvr>
+References: <03DE8105-749D-46E8-A163-3AAEA72E6087@shopify.com>
+ <20200901144829.GA8068@dcvr>
+ <F8D7B612-2EC7-4848-B9D7-615E3740BFCE@shopify.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <F8D7B612-2EC7-4848-B9D7-615E3740BFCE@shopify.com>
+List-Id: <unicorn-public.yhbt.net>
+
+Jean Boussier <jean.boussier@shopify.com> wrote:
+> >> I don't really see any reason to protect against newer Ruby version.
+> > 
+> > I do: Ruby does not have a good track record when it comes to
+> > maintaining backwards compatibility.
+> 
+> Regardless, preventing the gem installation before the version even exists
+> cause massive pains to people trying to do the good thing of testing their
+> app against ruby master.
+> 
+> Until it is known that compatibility is broken, restricting the ruby version
+> causes more harm than good. Just this morning I had to submit patches
+> to a dozen gems.
+
+That sucks.  Perhaps adding warnings about untested+unsupported
+versions to test_helper.rb and extconf.rb is a better way to go?
+(nothing annoying at runtime after it's installed, though)
+
+Then, maybe leave the version check out of the gemspec entirely.
+
+Fwiw, the type of breakage from incompatibilities I'm worried
+about is subtle things that don't show up immediately
+(e.g. encodings, hash ordering, frozen strings, etc...).
+
+Stuff that obviously breaks at startup is preferable
+(e.g. I added some 1.9 symbol hash keys to signal the move
+away from 1.8).
+
+Thanks.
