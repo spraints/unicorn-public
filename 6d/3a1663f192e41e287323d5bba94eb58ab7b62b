@@ -1,0 +1,62 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.2 (2018-09-13) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,BAYES_00,
+	URIBL_BLOCKED shortcircuit=no autolearn=ham autolearn_force=no
+	version=3.4.2
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id 0B1821F66E;
+	Tue,  1 Sep 2020 14:48:30 +0000 (UTC)
+Date: Tue, 1 Sep 2020 14:48:29 +0000
+From: Eric Wong <e@80x24.org>
+To: Jean Boussier <jean.boussier@shopify.com>
+Cc: unicorn-public@yhbt.net
+Subject: Re: [PATCH] Update ruby_version requirement to allow ruby 3.0
+Message-ID: <20200901144829.GA8068@dcvr>
+References: <03DE8105-749D-46E8-A163-3AAEA72E6087@shopify.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <03DE8105-749D-46E8-A163-3AAEA72E6087@shopify.com>
+List-Id: <unicorn-public.yhbt.net>
+
+Jean Boussier <jean.boussier@shopify.com> wrote:
+> Ruby just recently bump the master version to 3.0 and this
+> version requirement in unicorn breaks our ruby-head CI.
+
+Thanks for the note.  Something to that effect should be in the
+commit message body.
+
+> I don't really see any reason to protect against newer Ruby version.
+
+I do: Ruby does not have a good track record when it comes to
+maintaining backwards compatibility.  I no longer start new
+projects in Ruby as a result.
+
+If 3.0 seems OK (we won't be certain until December), then
+bumping it to "< 4.0" should be acceptable for now.
+
+Hint: you can make maintainers' life slightly easier by adding
+a "--8<--\n" line before the patch, so "git am --scissors" works :>
+(the "From " line is also unnecessary)
+
+> From d1c43dd70b06543727ac88e3930caa0482558a6b Mon Sep 17 00:00:00 2001
+> From: Jean Boussier <jean.boussier@gmail.com>
+> Date: Tue, 1 Sep 2020 14:14:07 +0200
+> Subject: [PATCH] Update ruby_version requirement to allow ruby 3.0
+
+As noted above, something along the lines of ruby.git being on
+3.0 and our current code being compatible with it is necessary,
+here.
+
+> --- a/unicorn.gemspec
+ 
+> -  # technically we need ">= 1.9.3", too, but avoid the array here since
+> -  # old rubygems versions (1.8.23.2 at least) do not support multiple
+> -  # version requirements here.
+
+I prefer we keep that above comment, too, to keep working with
+older rubygems.  Thanks.
+
+> -  s.required_ruby_version = '< 3.0'
+> +  s.required_ruby_version = '>= 1.9.3'
