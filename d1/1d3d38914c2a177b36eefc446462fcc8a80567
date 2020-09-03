@@ -1,0 +1,55 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.2 (2018-09-13) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,BAYES_00,
+	URIBL_BLOCKED shortcircuit=no autolearn=ham autolearn_force=no
+	version=3.4.2
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id 725791F66E;
+	Thu,  3 Sep 2020 09:31:50 +0000 (UTC)
+Date: Thu, 3 Sep 2020 09:31:50 +0000
+From: Eric Wong <e@80x24.org>
+To: Jean Boussier <jean.boussier@shopify.com>
+Cc: unicorn-public@yhbt.net
+Subject: Re: [PATCH] Update ruby_version requirement to allow ruby 3.0
+Message-ID: <20200903093150.GA21762@dcvr>
+References: <03DE8105-749D-46E8-A163-3AAEA72E6087@shopify.com>
+ <20200901144829.GA8068@dcvr>
+ <F8D7B612-2EC7-4848-B9D7-615E3740BFCE@shopify.com>
+ <20200901154117.GA1551@dcvr>
+ <1301173B-0CA2-4498-9A9A-A042FEF9665A@shopify.com>
+ <20200903082513.GA21482@dcvr>
+ <A1DFE7EF-FA2F-4D89-9A56-DD47BA5EB5E2@shopify.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <A1DFE7EF-FA2F-4D89-9A56-DD47BA5EB5E2@shopify.com>
+List-Id: <unicorn-public.yhbt.net>
+
+Jean Boussier <jean.boussier@shopify.com> wrote:
+> >> I'm trying to figure out why the symbol isn't exported,
+> >> I might come back with another patch. But just in case
+> >> you might have an idea what's going on.
+> > 
+> > I haven't built+tested ruby.git in ages (my computers are too slow).
+> > It could be a failure to completely clean out the old 2.8 stuff
+> > (either in the Ruby worktree, install paths, or unicorn worktree).
+> 
+> I don't think so, I'm building from a fresh docker image + fresh unicorn
+> clone.
+> 
+> I also tested other similar gems (e.g. puma) and they export the functions
+> just fine. 
+
+Do the current dependencies (kgio, raindrops) export alright, as well?
+Might be worth comparing the generated Makefile with other gems
+and see if there's missing flags or such.
+
+> I have to admit that I don't understand enough about the build process
+> to figure out what's going on, so I'm not very confident I'll find a fix.
+
+I'm not a build/linker expert, either.  Also, did things work a
+few days/weeks ago when ruby.git was still 2.8?  Maybe mkmf.log
+has clues, somewhere, too...
+
+*shrug* my brain hurts from other stuff
