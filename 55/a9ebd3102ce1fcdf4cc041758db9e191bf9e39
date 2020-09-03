@@ -1,0 +1,90 @@
+Return-Path: <jean.boussier@shopify.com>
+X-Spam-Checker-Version: SpamAssassin 3.4.2 (2018-09-13) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-Status: No, score=-3.0 required=3.0 tests=AWL,BAYES_00,DKIMWL_WL_HIGH,
+	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,DKIM_VALID_EF,RCVD_IN_DNSWL_NONE,
+	SPF_HELO_NONE,SPF_PASS,URIBL_BLOCKED shortcircuit=no autolearn=ham
+	autolearn_force=no version=3.4.2
+Received: from mail-wr1-x441.google.com (mail-wr1-x441.google.com [IPv6:2a00:1450:4864:20::441])
+	(using TLSv1.3 with cipher TLS_AES_128_GCM_SHA256 (128/128 bits)
+	 key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
+	(No client certificate requested)
+	by dcvr.yhbt.net (Postfix) with ESMTPS id C3A921F66F
+	for <unicorn-public@yhbt.net>; Thu,  3 Sep 2020 07:52:27 +0000 (UTC)
+Received: by mail-wr1-x441.google.com with SMTP id k15so2043801wrn.10
+        for <unicorn-public@yhbt.net>; Thu, 03 Sep 2020 00:52:27 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=shopify.com; s=google;
+        h=mime-version:subject:from:in-reply-to:date:cc
+         :content-transfer-encoding:message-id:references:to;
+        bh=7lJdboKE6jjllKXQI0mURSjWZLsQoqtalbbmynaInP4=;
+        b=HJ9aaVE0yQ90/IVByZ1tJrZsogpWrAUjZ5ceA8F3OLOekzH2cdK7GXd+vltH92It91
+         TBoErCj+U4z8lhVQBpg5QxqOqibMW5FqPdK6+8SlVHwyquCT4kg9Yt/nPABsXGLSP2fp
+         r3/xMT2h1WQLhxJZVtxLZQpulUNcd0WIPcRXc=
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20161025;
+        h=x-gm-message-state:mime-version:subject:from:in-reply-to:date:cc
+         :content-transfer-encoding:message-id:references:to;
+        bh=7lJdboKE6jjllKXQI0mURSjWZLsQoqtalbbmynaInP4=;
+        b=NqRm+Ju+BQob0N64eu/ZVylY3zpM+Rjx1+nyJkkMmE4/GBMefTgOMqB7DYPmI4CG71
+         hOHoWax7aMHx2zdBU2daRFhJxIJfGLmid181bUI7eHPUz5s4WLmLJQDgGSuVQCcG2dFP
+         eLsa8GmZOajoTmlzPUq1koHzWPuu2FAnUEvQEUH6SY7XciFqx4FtBMEkhwvNm5fi8SDI
+         kmD2omSdZSwkFu3vKwsUWkcXbvRs+73q5APlMtdv5jsN46HyLpfhjpNEpx78Y/jEcufv
+         tZJF4csORDczZBvAkC2NS/WDividg1wCbvg/YdSekOaZlhqRYaxzLlKdUtPqIaKxy7yS
+         gbfQ==
+X-Gm-Message-State: AOAM5302yKrbrgJfqtyH01o8gRnuiO2NpZCbgdN4wr8dfm1wQFOrpvaY
+	6vD6XhohhXkZw/7DB0b9K2Zghg==
+X-Google-Smtp-Source: ABdhPJyiQ0VnBT7N1EM4n4L2MAfDhu+sZ/M0T+fmmAefcfS5RcWfpyka4G6dIzW/HWMYB7MD9drFng==
+X-Received: by 2002:adf:a18c:: with SMTP id u12mr1045755wru.90.1599119545884;
+        Thu, 03 Sep 2020 00:52:25 -0700 (PDT)
+Received: from [192.168.0.19] (87-231-62-161.rev.numericable.fr. [87.231.62.161])
+        by smtp.gmail.com with ESMTPSA id w7sm3007758wrm.92.2020.09.03.00.52.24
+        (version=TLS1_2 cipher=ECDHE-ECDSA-AES128-GCM-SHA256 bits=128/128);
+        Thu, 03 Sep 2020 00:52:25 -0700 (PDT)
+Content-Type: text/plain;
+	charset=us-ascii
+Mime-Version: 1.0 (Mac OS X Mail 13.4 \(3608.120.23.2.1\))
+Subject: Re: [PATCH] Update ruby_version requirement to allow ruby 3.0
+From: Jean Boussier <jean.boussier@shopify.com>
+In-Reply-To: <20200901154117.GA1551@dcvr>
+Date: Thu, 3 Sep 2020 09:52:24 +0200
+Cc: unicorn-public@yhbt.net
+Content-Transfer-Encoding: 7bit
+Message-Id: <1301173B-0CA2-4498-9A9A-A042FEF9665A@shopify.com>
+References: <03DE8105-749D-46E8-A163-3AAEA72E6087@shopify.com>
+ <20200901144829.GA8068@dcvr>
+ <F8D7B612-2EC7-4848-B9D7-615E3740BFCE@shopify.com>
+ <20200901154117.GA1551@dcvr>
+To: Eric Wong <e@80x24.org>
+X-Mailer: Apple Mail (2.3608.120.23.2.1)
+List-Id: <unicorn-public.yhbt.net>
+
+> Perhaps adding warnings about untested+unsupported
+> versions to test_helper.rb and extconf.rb is a better way to go?
+
+That could work yes. Something akin to:
+"This ruby version wasn't tested, blah blah".
+
+> Then, maybe leave the version check out of the gemspec entirely.
+
+The gemspec ruby version is very useful but for minimum requirement
+only. e.g. `>= 1.9.3`.
+
+> Fwiw, the type of breakage from incompatibilities I'm worried
+> about is subtle things that don't show up immediately
+> (e.g. encodings, hash ordering, frozen strings, etc...).
+
+That's understandable, but 3.0 is not any more likely that 2.7
+to break any of these, and it's important that gems are testable on
+ruby pre-release, otherwise you end up with a chicken and egg
+problem of not being able to report compatibility breakages
+to ruby-core.
+
+On a totally different note, it seems that unicorn is not compiling
+quite properly against Ruby 3.0.0-dev, at least on linux:
+
+   unicorn_http.so: undefined symbol: Init_unicorn_http
+
+I'm trying to figure out why the symbol isn't exported,
+I might come back with another patch. But just in case
+you might have an idea what's going on.
