@@ -1,0 +1,110 @@
+Return-Path: <bofh@yhbt.net>
+X-Spam-Checker-Version: SpamAssassin 3.4.2 (2018-09-13) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.2
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id 74AE91F86C;
+	Thu, 26 Nov 2020 11:59:02 +0000 (UTC)
+Date: Thu, 26 Nov 2020 11:59:02 +0000
+From: Eric Wong <bofh@yhbt.net>
+To: unicorn-public@yhbt.net
+Cc: Sam Sanoop <sams@snyk.io>
+Subject: [RFC] http_response: ignore invalid header response characters
+Message-ID: <20201126115902.GA8883@dcvr>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+List-Id: <unicorn-public.yhbt.net>
+
+I don't really like nanny features, and seems like one.
+Neither Sam Sanoop nor I think it's is a big deal; and
+I'm not sure if it's worth the extra complexity...
+(not that I have any code which is affected by this)
+
+So it's an RFC for now and plain-text comments appreciated,
+here, thanks.
+
+----------8<---------
+Subject: [RFC] http_response: ignore invalid header response characters
+
+Rack applications may blindly pass headers from untrusted
+sources, leading to response header injection.  Silently filter
+out some invalid characters which Rack::Lint should've caught,
+anyways.
+
+Additional checks will increase CPU usage for all and may be
+redundant for some users, so perhaps it's not worth penalizing
+all users for the few apps that blindly pass headers through.
+
+Also, the %r{[\(\),\/:;<=>\?@\[\\\]{}[:cntrl:]]} key check may
+be overkill, since %r{\r\n} are all that are needed for the key.
+
+Similarly, the /[\x00-\x09]/ && /[\x0b-\x1f]/ value check may
+also be overkill, since \x0d (\r) is all that's needed for the
+header value.
+
+cf. https://medium.com/cyberverse/crlf-injection-playbook-472c67f1cb46
+
+Reported-by: Twitter user: @ooooooo_q (via Sam Sanoop)
+Reported-by: Sam Sanoop <sams@snyk.io>
+
+Note: As a Free Software project, we cannot endorse proprietary
+  messaging systems and thus have no way of communicating with
+  those who rely on them.
+---
+ lib/unicorn/http_response.rb | 10 +++++++---
+ test/unit/test_response.rb   | 12 ++++++++++++
+ 2 files changed, 19 insertions(+), 3 deletions(-)
+
+diff --git a/lib/unicorn/http_response.rb b/lib/unicorn/http_response.rb
+index b23e521..2585385 100644
+--- a/lib/unicorn/http_response.rb
++++ b/lib/unicorn/http_response.rb
+@@ -33,14 +33,18 @@ def http_response_write(socket, status, headers, body,
+             "Connection: close\r\n"
+       headers.each do |key, value|
+         case key
+-        when %r{\A(?:Date|Connection)\z}i
+-          next
++        when %r{\A(?:Date|Connection)\z}i,
++             %r{[\(\),\/:;<=>\?@\[\\\]{}[:cntrl:]]} # cf. rack/lint.rb
++          # ignore headers we don't like
+         when "rack.hijack"
+           # This should only be hit under Rack >= 1.5, as this was an illegal
+           # key in Rack < 1.5
+           hijack = value
+         else
+-          if value =~ /\n/
++          case value
++          when /[\x00-\x09]/, /[\x0b-\x1f]/
++            # invalid values are noop
++          when /\n/ # rack allows "\n"
+             # avoiding blank, key-only cookies with /\n+/
+             value.split(/\n+/).each { |v| buf << "#{key}: #{v}\r\n" }
+           else
+diff --git a/test/unit/test_response.rb b/test/unit/test_response.rb
+index fbe433f..a3a6deb 100644
+--- a/test/unit/test_response.rb
++++ b/test/unit/test_response.rb
+@@ -42,6 +42,18 @@ def test_response_header_broken_nil
+     assert_match %r{^Nil: \r\n}sm, out.string, 'nil accepted'
+   end
+ 
++  def test_bad_val
++    out = StringIO.new
++    http_response_write(out, 200, {'R' => "\r"}, %w(x))
++    assert_not_match %r{^R: \r\r\n}s, out.string
++  end
++
++  def test_bad_key
++    out = StringIO.new
++    http_response_write(out, 200, {"\r" => "R"}, %w(x))
++    assert_not_match %r{: R\r\n}s, out.string
++  end
++
+   def test_response_string_status
+     out = StringIO.new
+     http_response_write(out,'200', {}, [])
+-- 
+end
