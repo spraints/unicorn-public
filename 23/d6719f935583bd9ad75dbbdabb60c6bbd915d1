@@ -1,0 +1,163 @@
+Return-Path: <blake@blakewilliams.me>
+X-Spam-Checker-Version: SpamAssassin 3.4.2 (2018-09-13) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-Status: No, score=-1.8 required=3.0 tests=BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,NUMERIC_HTTP_ADDR,RCVD_IN_DNSWL_BLOCKED,SPF_HELO_NONE,
+	SPF_NONE shortcircuit=no autolearn=ham autolearn_force=no version=3.4.2
+Received: from mail-qv1-xf32.google.com (mail-qv1-xf32.google.com [IPv6:2607:f8b0:4864:20::f32])
+	(using TLSv1.3 with cipher TLS_AES_128_GCM_SHA256 (128/128 bits)
+	 key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
+	(No client certificate requested)
+	by dcvr.yhbt.net (Postfix) with ESMTPS id 18C781F934
+	for <unicorn-public@yhbt.net>; Tue,  8 Dec 2020 21:47:19 +0000 (UTC)
+Received: by mail-qv1-xf32.google.com with SMTP id a13so3889811qvv.0
+        for <unicorn-public@yhbt.net>; Tue, 08 Dec 2020 13:47:19 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=blakewilliams-me.20150623.gappssmtp.com; s=20150623;
+        h=from:content-transfer-encoding:mime-version:subject:message-id:date
+         :to;
+        bh=EArBvFp/90Jy1/C0p1xWGes/WMuvbUgHMgKCflIOnB4=;
+        b=sCobId88NHhkGMcZUQFei83uQDRP21I1HCrmCL37a1sWa+/g0o7L5OWURBCMBCCyrs
+         m2+UALctY6AUOU88i/jHV1QqwHVUMDO9RtVN284+pipuDD4zm6FDxOkGr+uiuvezW0Si
+         xA27IdG+jiI4iuIHYAxcBqblrcoJ7QQsg4vyUdWdL4I5JGwqO7q3mIL2fcNdtGjcEmDv
+         0O/iUS+cMYQ60JFi2iecdIptusUVPkc7idWsFOS9lSwHbG1iLJ67aDqHMZfzhCourG+2
+         1VkvDzFhnkzuaujyFWDviwHMf4aWmMU62M4UR3YR/F4RADX2ViWGdeH2/ftBNONzdBja
+         i4Yg==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20161025;
+        h=x-gm-message-state:from:content-transfer-encoding:mime-version
+         :subject:message-id:date:to;
+        bh=EArBvFp/90Jy1/C0p1xWGes/WMuvbUgHMgKCflIOnB4=;
+        b=MMEBaQkax00Jd8OC1O7bKO0yO8qXYWmRkfJVcXaGx7iJXW/7SEAtNFaAg4JhKOnhGO
+         3lBYDBCN/CjEhbr/N2BDshV7nRu6gX7fCIl4snSJRn3zbN9IhwHPoJm2DZTmnViKsXmj
+         ftwaWyMpbQsmuRutSA0nUeRBQD9bSdvVyqnsuQanfcaWWZssW+GXjsAWC9J57S5ojBdt
+         AlDIZWiu6TMftKnz4YjsemPP46Vyjas6MLIxAJ3ob6VbprU2SU0rUmO1F2kv+ONYp0xT
+         72q5zjn4JM7Q+pCPR5dVooNYsGSXCi8vXS2xuJw9G25uI+A7iguRDJ01GWApz00NsVX0
+         RGkg==
+X-Gm-Message-State: AOAM533Z1O42mUDXNSvZKtKoZ713S7LzmZsAIbpFpSJZMN1q60vcjTpQ
+	8Pg0qjNLKG4YweEd6btYPZrRAZvv5WL3ZfNw
+X-Google-Smtp-Source: ABdhPJz4ZdU2BHyfN8Qp/oleaKBLZCEWE5Q5gX2cYkOwNxf9HSJksrRm1AqDbVGP4jS/AO+fZgCmBg==
+X-Received: by 2002:ad4:52c3:: with SMTP id p3mr1648015qvs.52.1607464037677;
+        Tue, 08 Dec 2020 13:47:17 -0800 (PST)
+Received: from [192.168.1.246] (inet-64-112-182-228.bos.netblazr.com. [64.112.182.228])
+        by smtp.gmail.com with ESMTPSA id 5sm19561qtp.55.2020.12.08.13.47.16
+        for <unicorn-public@yhbt.net>
+        (version=TLS1_2 cipher=ECDHE-ECDSA-AES128-GCM-SHA256 bits=128/128);
+        Tue, 08 Dec 2020 13:47:17 -0800 (PST)
+From: Blake Williams <blake@blakewilliams.me>
+Content-Type: text/plain;
+	charset=us-ascii
+Content-Transfer-Encoding: quoted-printable
+Mime-Version: 1.0 (Mac OS X Mail 13.4 \(3608.120.23.2.4\))
+Subject: [PATCH] Add rack.after_reply functionality
+Message-Id: <9873E53C-04D3-4759-9678-CA17DBAEF7B7@blakewilliams.me>
+Date: Tue, 8 Dec 2020 16:47:16 -0500
+To: unicorn-public@yhbt.net
+X-Mailer: Apple Mail (2.3608.120.23.2.4)
+List-Id: <unicorn-public.yhbt.net>
+
+This adds `rack.after_reply` functionality which allows rack middleware
+to pass lambdas that will be executed after the client connection has
+been closed.
+
+This was driven by a need to perform actions in a request that shouldn't
+block the request from completing but also don't make sense as
+background jobs.
+
+There is prior art of this being supported found in a few gems, as well
+as this functionality existing in other rack based servers.
+---
+ lib/unicorn/http_server.rb |  4 ++++
+ test/unit/test_server.rb   | 44 ++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 48 insertions(+)
+
+diff --git a/lib/unicorn/http_server.rb b/lib/unicorn/http_server.rb
+index 05dad99..9889f55 100644
+--- a/lib/unicorn/http_server.rb
++++ b/lib/unicorn/http_server.rb
+@@ -629,6 +629,8 @@ def process_client(client)
+       end
+     end
+=20
++    env["rack.after_reply"] =3D []
++
+     status, headers, body =3D @app.call(env)
+=20
+     begin
+@@ -651,6 +653,8 @@ def process_client(client)
+     end
+   rescue =3D> e
+     handle_error(client, e)
++  ensure
++    env["rack.after_reply"].each { |after_reply| after_reply.call }
+   end
+=20
+   def nuke_listeners!(readers)
+diff --git a/test/unit/test_server.rb b/test/unit/test_server.rb
+index 384fa6b..781750d 100644
+--- a/test/unit/test_server.rb
++++ b/test/unit/test_server.rb
+@@ -34,6 +34,24 @@ def call(env)
+   end
+ end
+=20
++class TestRackAfterReply
++  def initialize
++    @called =3D false
++  end
++
++  def call(env)
++    while env['rack.input'].read(4096)
++    end
++
++    env["rack.after_reply"] << -> { @called =3D true }
++
++    [200, { 'Content-Type' =3D> 'text/plain' }, ["after_reply_called: =
+#{@called}"]]
++  rescue Unicorn::ClientShutdown, Unicorn::HttpParserError =3D> e
++    $stderr.syswrite("#{e.class}: #{e.message} =
+#{e.backtrace.empty?}\n")
++    raise e
++  end
++end
++
+ class WebServerTest < Test::Unit::TestCase
+=20
+   def setup
+@@ -114,6 +132,32 @@ def test_early_hints
+     assert_match %r{^HTTP/1.[01] 200\b}, responses
+   end
+=20
++  def test_after_reply
++    teardown
++
++    redirect_test_io do
++      @server =3D HttpServer.new(TestRackAfterReply.new,
++                               :listeners =3D> [ "127.0.0.1:#@port"])
++      @server.start
++    end
++
++    sock =3D TCPSocket.new('127.0.0.1', @port)
++    sock.syswrite("GET / HTTP/1.0\r\n\r\n")
++
++    responses =3D sock.read(4096)
++    assert_match %r{\AHTTP/1.[01] 200\b}, responses
++    assert_match %r{^after_reply_called: false}, responses
++
++    sock =3D TCPSocket.new('127.0.0.1', @port)
++    sock.syswrite("GET / HTTP/1.0\r\n\r\n")
++
++    responses =3D sock.read(4096)
++    assert_match %r{\AHTTP/1.[01] 200\b}, responses
++    assert_match %r{^after_reply_called: true}, responses
++
++    sock.close
++  end
++
+   def test_broken_app
+     teardown
+     app =3D lambda { |env| raise RuntimeError, "hello" }
+--=20
+2.29.2
+
+
