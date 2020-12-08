@@ -1,0 +1,94 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.2 (2018-09-13) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-Status: No, score=-3.8 required=3.0 tests=ALL_TRUSTED,AWL,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.2
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id B59481F4B4;
+	Tue,  8 Dec 2020 22:46:31 +0000 (UTC)
+Date: Tue, 8 Dec 2020 22:46:31 +0000
+From: Eric Wong <e@80x24.org>
+To: Blake Williams <blake@blakewilliams.me>
+Cc: unicorn-public@yhbt.net
+Subject: Re: [PATCH] Add rack.after_reply functionality
+Message-ID: <20201208224631.GA13148@dcvr>
+References: <9873E53C-04D3-4759-9678-CA17DBAEF7B7@blakewilliams.me>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <9873E53C-04D3-4759-9678-CA17DBAEF7B7@blakewilliams.me>
+List-Id: <unicorn-public.yhbt.net>
+
+Blake Williams <blake@blakewilliams.me> wrote:
+> This adds `rack.after_reply` functionality which allows rack middleware
+> to pass lambdas that will be executed after the client connection has
+> been closed.
+> 
+> This was driven by a need to perform actions in a request that shouldn't
+> block the request from completing but also don't make sense as
+> background jobs.
+
+Thanks for the patch and explanation.
+
+In the past, I've used response_body.close in middleware for
+similar things, and nowadays Rack::BodyProxy exists in rack, too.
+
+So I'm a little skeptical if this is actually needed, but it's
+probably too late to do anything about:
+
+> There is prior art of this being supported found in a few gems, as well
+> as this functionality existing in other rack based servers.
+
+Citation(s) needed.  Also, are there any proposal(s) to get this
+into the Rack specification?
+
+While I can't participate in discussions which requires a
+GUI (JS/CAPTCHA) or accepting certain Terms-of-service,
+the rack-devel@googlegroups.com mailing list still exists
+and I can chime in there.
+
+rack.early_hints could probably be in the Rack spec, too...
+
+More below...
+
+> diff --git a/lib/unicorn/http_server.rb b/lib/unicorn/http_server.rb
+> index 05dad99..9889f55 100644
+> --- a/lib/unicorn/http_server.rb
+> +++ b/lib/unicorn/http_server.rb
+> @@ -629,6 +629,8 @@ def process_client(client)
+>        end
+>      end
+>  
+> +    env["rack.after_reply"] = []
+> +
+>      status, headers, body = @app.call(env)
+>  
+>      begin
+> @@ -651,6 +653,8 @@ def process_client(client)
+>      end
+>    rescue => e
+>      handle_error(client, e)
+> +  ensure
+> +    env["rack.after_reply"].each { |after_reply| after_reply.call }
+>    end
+>  
+>    def nuke_listeners!(readers)
+
+I'll have to squash the following in, since an exception can be
+raised if a client truncates the request:
+
+diff --git a/lib/unicorn/http_server.rb b/lib/unicorn/http_server.rb
+index 9889f55c..c0f14ba5 100644
+--- a/lib/unicorn/http_server.rb
++++ b/lib/unicorn/http_server.rb
+@@ -654,7 +654,7 @@ def process_client(client)
+   rescue => e
+     handle_error(client, e)
+   ensure
+-    env["rack.after_reply"].each { |after_reply| after_reply.call }
++    env["rack.after_reply"].each(&:call) if env
+   end
+ 
+   def nuke_listeners!(readers)
+
+Everything else seems OK.  Thanks.
