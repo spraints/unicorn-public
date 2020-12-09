@@ -1,0 +1,83 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.2 (2018-09-13) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-Status: No, score=-3.8 required=3.0 tests=ALL_TRUSTED,AWL,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.2
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id 2244C1F4B4;
+	Wed,  9 Dec 2020 22:18:39 +0000 (UTC)
+Date: Wed, 9 Dec 2020 22:18:39 +0000
+From: Eric Wong <e@80x24.org>
+To: Blake Williams <blake@blakewilliams.me>
+Cc: unicorn-public@yhbt.net
+Subject: Re: [PATCH] Add rack.after_reply functionality
+Message-ID: <20201209221839.GA15862@dcvr>
+References: <9873E53C-04D3-4759-9678-CA17DBAEF7B7@blakewilliams.me>
+ <20201208224631.GA13148@dcvr>
+ <E04F9E8A-02F6-42BC-831C-7AFF2B2F3615@blakewilliams.me>
+ <20201209094344.GA25593@dcvr>
+ <F8937548-A781-4C89-8676-B74ACC93E946@blakewilliams.me>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+Content-Transfer-Encoding: 8bit
+In-Reply-To: <F8937548-A781-4C89-8676-B74ACC93E946@blakewilliams.me>
+List-Id: <unicorn-public.yhbt.net>
+
+Blake Williams <blake@blakewilliams.me> wrote:
+> Totally understood. I looked at Puma, Thin, and Webrick and only Puma
+> supports this functionality without a third-party gem. There is at least one
+> third party gem adding this functionality to web servers that don’t support it,
+> but it doesn’t look like it’s being maintained any longer.
+
+Alright, I guess that third-party gem is no longer relevant.
+
+> I briefly dove into the Puma source and it looks like rack.after_reply has
+> been supported since 2011. It’s also still in use by Puma for their common 
+> logger middleware patch.
+
+Thanks, pushed to https://yhbt.net/unicorn.git as
+commit 673c15e3f020bccc0336838617875b26c9a45f4e
+with Puma noted (see below) and extra `env' check added.
+
+Anything else?  Will wait a few days/week for others to chime in
+and probably cut 5.8 in a week or so.
+
+Btw, a sidenote about some strangeness in your mail replies:
+
+  I'm not sure why, but your "Reply-To" header is set to the
+  unbracketed Message-ID ("20201209094344.GA25593@dcvr") of the
+  message, which makes no sense...
+
+  I wonder if you or your mail client is confusing "Reply-To:"
+  with the "In-Reply-To:" header.  They're completely different:
+  "Reply-To:" should be an email address you control (not a
+  Message-ID) if it differs from what's in the "From:" header.
+
+  In any case, your mail client already sets the "References:"
+  header correctly (probably w/o any interaction on your part),
+  and the "In-Reply-To:" header is not necessary (and it needs
+  angle brackets, anyways, since comments are allowed).
+
+  cf. https://www.jwz.org/doc/threading.html
+
+
+Author: Blake Williams <blake@blakewilliams.me>
+Date:   Tue Dec 8 16:47:16 2020 -0500
+
+    Add rack.after_reply functionality
+    
+    This adds `rack.after_reply` functionality which allows rack middleware
+    to pass lambdas that will be executed after the client connection has
+    been closed.
+    
+    This was driven by a need to perform actions in a request that shouldn't
+    block the request from completing but also don't make sense as
+    background jobs.
+    
+    There is prior art of this being supported found in a few gems, as well
+    as this functionality existing in other rack based servers (e.g. Puma).
+    
+    [ew: check if `env' is set in ensure statement]
+    
+    Acked-by: Eric Wong <e@80x24.org>
