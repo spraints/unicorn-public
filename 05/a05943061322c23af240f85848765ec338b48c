@@ -1,0 +1,42 @@
+Return-Path: <bofh@yhbt.net>
+X-Spam-Checker-Version: SpamAssassin 3.4.2 (2018-09-13) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.2
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id 109171F4B4
+	for <unicorn-public@yhbt.net>; Thu, 24 Dec 2020 20:40:35 +0000 (UTC)
+From: Eric Wong <bofh@yhbt.net>
+To: unicorn-public@yhbt.net
+Subject: [PATCH] build: publish_doc: remove created.rid and index.html from site
+Date: Thu, 24 Dec 2020 20:40:35 +0000
+Message-Id: <20201224204035.18381-1-bofh@yhbt.net>
+MIME-Version: 1.0
+Content-Transfer-Encoding: 8bit
+List-Id: <unicorn-public.yhbt.net>
+
+created.rid has no business being published anyways, and
+index.html is redundant given README.html.  Avoid confusing
+search engines with identical documents at different URLs.
+
+Our "homepage" is just a directory listing, now, which should
+help discoverability of non-HTML docs.  Old content is at
+https://yhbt.net/unicorn/README.html
+---
+ GNUmakefile | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/GNUmakefile b/GNUmakefile
+index d80e6080..dd0a761a 100644
+--- a/GNUmakefile
++++ b/GNUmakefile
+@@ -245,7 +245,8 @@ publish_doc:
+ 	$(MAKE) doc
+ 	$(MAKE) doc_gz
+ 	chmod 644 $$(find doc -type f)
+-	$(RSYNC) -av doc/ yhbt.net:/srv/yhbt/unicorn/
++	$(RSYNC) -av doc/ yhbt.net:/srv/yhbt/unicorn/ \
++		--exclude index.html* --exclude created.rid*
+ 	git ls-files | xargs touch
+ 
+ # Create gzip variants of the same timestamp as the original so nginx
