@@ -1,0 +1,72 @@
+Return-Path: <sams@snyk.io>
+X-Spam-Checker-Version: SpamAssassin 3.4.2 (2018-09-13) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-Status: No, score=-2.7 required=3.0 tests=AWL,BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,DKIM_VALID_AU,DKIM_VALID_EF,RCVD_IN_DNSWL_NONE,
+	SPF_HELO_NONE,SPF_PASS shortcircuit=no autolearn=ham
+	autolearn_force=no version=3.4.2
+Received: from mail-ed1-x532.google.com (mail-ed1-x532.google.com [IPv6:2a00:1450:4864:20::532])
+	(using TLSv1.3 with cipher TLS_AES_128_GCM_SHA256 (128/128 bits)
+	 key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
+	(No client certificate requested)
+	by dcvr.yhbt.net (Postfix) with ESMTPS id 1946A1F4B4
+	for <unicorn-public@yhbt.net>; Thu, 28 Jan 2021 17:29:23 +0000 (UTC)
+Received: by mail-ed1-x532.google.com with SMTP id d2so7572578edz.3
+        for <unicorn-public@yhbt.net>; Thu, 28 Jan 2021 09:29:23 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=snyk.io; s=google;
+        h=mime-version:references:in-reply-to:from:date:message-id:subject:to
+         :cc;
+        bh=p3mAemhNkhVjTZq0aYus+dbr7yvEusNFYJHf5U2198Y=;
+        b=FjS374d/hdmqz/JJ+ghoRbm2Gv90mi1epL2iKtYoKRbYwI95ieCNdv8MYVUKm46Eyo
+         qinFJ8FiE/C9WERL0AzyCFXRfDRflvXBqwweZvh8WUpEYxRdPzkmQ0z0YlVjES2VzEGD
+         M4M7hrSk25mQaroqmcwy1xQlZQ7ZKBDFvwQItmlMBKTzaMS5S2SXq+hjDjnCCfoeqC9Q
+         ZxyZGzczNheFtzKhwJODknMRASILE18hsIAoLRQ+ogIR8JuA7MG1SN3FPXrGVi6cUKpN
+         mAwlL/raPD7FYWSlXvBvQHIcWA6PQcPnEzWre46fYW+igZhmHPCI8GDHVSiWBg6zoDk9
+         nQkA==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20161025;
+        h=x-gm-message-state:mime-version:references:in-reply-to:from:date
+         :message-id:subject:to:cc;
+        bh=p3mAemhNkhVjTZq0aYus+dbr7yvEusNFYJHf5U2198Y=;
+        b=fuPYQby2VW5Rqeaqu6Rq122GWEVLF9Jxo5ZIE5cRdJWk5Vc3G3MeJ9Lzds7/gj1aEk
+         tSMEXev6dntIg1hxnHuKlwbacsGyBg1un5PX43mmmTJaw1B2eelSyGurqiyt3gkndvHC
+         lq//K3IC8IwwGVGEaBe6ty3VuacRHYx7b4TLK82ZVzSZ+QVIU+pLPScYmp9iDtqTGjZi
+         zsaFyCnBnUI30YQxsNGE21mn7Yb45Sv4vN5+2l0AGcKB0iEgKtt22Fbmo4i2egy1fzEW
+         /p3FEFaKk1cysPNA2NZF/DSNlArTyt2hNdIHxgiIGJDpzvz4iscQclGlEQcW1q0GH5OV
+         AagQ==
+X-Gm-Message-State: AOAM532kIV7DThm6AN4WvjwUi8e8WU7J2QloSLqEQZZVZ2tRk5rnEIof
+	07TUW6dnzAQuZki647kcJf/COKrHoQ4dLs4wxRMU8Q==
+X-Google-Smtp-Source: ABdhPJycnT9goxqQpQfj46f5PhaxuJKQgQ25AzIcDn68PzYvM18D95ErV6uj+6yyd9dd5tUuYKvXOY2dGjhlrGhH++g=
+X-Received: by 2002:a05:6402:40c4:: with SMTP id z4mr631810edb.233.1611854961475;
+ Thu, 28 Jan 2021 09:29:21 -0800 (PST)
+MIME-Version: 1.0
+References: <20201126115902.GA8883@dcvr> <20210106175338.GA10985@dcvr>
+ <CAEQPCYLpr-w2K9eg-nnFaKgdDBvVU3h3+1bs-xWEC6CwTrDdzQ@mail.gmail.com> <20210114043706.GA31027@dcvr>
+In-Reply-To: <20210114043706.GA31027@dcvr>
+From: Sam Sanoop <sams@snyk.io>
+Date: Thu, 28 Jan 2021 17:29:10 +0000
+Message-ID: <CAEQPCYLaXU0nnRjHNJn53re9pvmzxnx7oibu9g4tw+-v+sfrxw@mail.gmail.com>
+Subject: Re: [RFC] http_response: ignore invalid header response characters
+To: Eric Wong <bofh@yhbt.net>
+Cc: unicorn-public@yhbt.net
+Content-Type: text/plain; charset="UTF-8"
+List-Id: <unicorn-public.yhbt.net>
+
+Hi Eric, did you get a chance to look at this? any thoughts on patching?
+
+
+On Thu, Jan 14, 2021 at 4:37 AM Eric Wong <bofh@yhbt.net> wrote:
+>
+> Thanks for the forwards, I'll take a closer look at it over the
+> weekend.
+>
+> Would much appreciate comments from other users following along
+> in the meantime.
+
+
+
+-- 
+
+Sam Sanoop
+Security Analyst
