@@ -1,0 +1,62 @@
+Return-Path: <bofh@yhbt.net>
+X-Spam-Checker-Version: SpamAssassin 3.4.2 (2018-09-13) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.2
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id E48BD1F9FD;
+	Fri, 26 Feb 2021 11:15:52 +0000 (UTC)
+Date: Fri, 26 Feb 2021 11:15:52 +0000
+From: Eric Wong <bofh@yhbt.net>
+To: Sam Sanoop <sams@snyk.io>
+Cc: unicorn-public@yhbt.net
+Subject: Re: [RFC] http_response: ignore invalid header response characters
+Message-ID: <20210226111552.GA22901@dcvr>
+References: <20201126115902.GA8883@dcvr>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <20201126115902.GA8883@dcvr>
+List-Id: <unicorn-public.yhbt.net>
+
+cf. https://yhbt.net/unicorn-public/20201126115902.GA8883@dcvr/T/
+
+This RFC patch isn't necessary and it's a waste of CPU cycles
+for existing users returning valid responses.
+
+I've confirmed nginx will return 502 (Bad Gateway) errors if
+either the header key OR header value have "\r" (CR) in it.  The
+client never sees the bad response through nginx, only the 502
+from nginx.
+
+For anybody unfamiliar with unicorn: unicorn was always designed
+to have nginx in front of it, otherwise clients can trivially
+DoS it.
+
+I tested with nginx/1.14.2 on Debian stable (10.x).  Also,
+varnish/6.1.1 (again on Debian stable) will fail with a 503
+error when it sees "\r" in either the header key or value
+(nowadays I rely on varnish quite a bit)
+
+Again, thanks for the concern, but no action is necessary for
+correctly configured deployments using nginx with or w/o varnish.
+
+The following config.ru can be edited by uncommenting either
+of the "cr*" lines to trigger the 502 from nginx.  Leaving
+both lines commented shows a 200 "HI\n" response as expected.
+
+==> config.ru <==
+#\-E none
+use Rack::CommonLogger
+run lambda { |env|
+  [ 200, {
+     'Content-Type' => 'text/plain',
+     'Content-Length' => '3',
+     # uncommenting either of the following lines causes nginx to 502
+     # varnish will 503
+     #  "cr\rkey" => "cr-key",
+     #  "cr-val" => "cr\rkey",
+    },
+    [ "HI\n" ]
+  ]
+}
