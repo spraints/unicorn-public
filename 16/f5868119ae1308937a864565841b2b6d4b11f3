@@ -1,0 +1,561 @@
+Return-Path: <normalperson@yhbt.net>
+X-Spam-Checker-Version: SpamAssassin 3.4.2 (2018-09-13) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.2
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id EA0271F9FD;
+	Fri, 12 Mar 2021 09:41:29 +0000 (UTC)
+Date: Fri, 12 Mar 2021 09:41:29 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: Dirkjan Bussink <dbussink@github.com>
+Cc: John Crepezzi <seejohnrun@github.com>,
+	Kevin Sawicki <kevinsawicki@github.com>, unicorn-public@yhbt.net
+Subject: Re: Potential Unicorn vulnerability
+Message-ID: <20210312094129.GA14538@dcvr>
+References: <F6712BF3-A4DD-41EE-8252-B9799B35E618@github.com>
+ <20210311030250.GA1266@dcvr>
+ <7F6FD017-7802-4871-88A3-1E03D26D967C@github.com>
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="OXfL5xGRrasGEqWY"
+Content-Disposition: inline
+Content-Transfer-Encoding: 8bit
+In-Reply-To: <7F6FD017-7802-4871-88A3-1E03D26D967C@github.com>
+List-Id: <unicorn-public.yhbt.net>
+
+
+--OXfL5xGRrasGEqWY
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+Content-Transfer-Encoding: 8bit
+
+Dirkjan Bussink <dbussink@github.com> wrote:
+> Hello Eric,
+> 
+> > On 11 Mar 2021, at 04:02, Eric Wong <normalperson@yhbt.net> wrote:
+> > 
+> > Thanks for reaching out.  Fwiw, I prefer if everything were made
+> > public right away, but I'll leave it up to you if you're not
+> > comfortable with it.
+> > 
+> > I don't know much about security, anwyays; and don't like
+> > classifying bugs (or classifying anything)...
+> 
+> We reached out privately first out of care and to follow best practices
+> around coordinated disclosure, in case you considered this a security
+> vulnerability. We have no objections to moving this to the public mailing
+> list. We are viewing this patch as a proactive hardening against race
+> conditions more so than a vulnerability. 
+
+OK, I'm adding unicorn-public@yhbt.net to the Cc: of this mail.
+
+Personally, I prefer everything be reported publicly ASAP.
+There's a constant threat of power/network failures from
+disasters and such that could cause messages to be delayed
+too long or indefinitely.
+
+> We are also reaching out to a private Rails Security coordination channel
+> that we’re a part of to raise awareness of this behavior so other Unicorn
+> users in this group can look for similar issues in their code. 
+
+OK.
+
+> To move this discussion to the public list, would you prefer that you move
+> this thread publicly, or that we resend the message or forward it to the
+> public mailing list? 
+
+Attached are the initial two (previously private) emails in this
+thread, so no need to resend.  They have the correct
+message/rfc822 MIME type set so they should be readable from
+most MUAs and mail archives.
+
+> > Ouch, so the hijack check we had in HttpParser_clear didn't fire...
+> 
+> Yes, to our understanding it only would fire if explicitly set and that
+> doesn’t happen here.
+> 
+> >> While we understand and appreciate that Unicorn is not a multi-threaded web
+> >> server, it feels like using the same `Hash` object between requests
+> >> introduces the chance that a dependency like an external gem may use threads
+> >> and thus potentially leak information between requests.
+> > 
+> > Yes, there's likely problems in trying to use threads with a
+> > codebase that was only intended to be single-threaded.  And
+> > using Thread.current[...] here wouldn't have made a. difference.
+> 
+> For us it was also the difference between “requests are handled single threaded”
+> vs “you can’t use threads for anything else either.” We were totally aware of the
+> first, but the latter seems more accidental and has a much broader impact. 
+
+Agreed.
+
+> > I worry some endpoints out there will suffer performance
+> > degradation.  Expensive endpoints probably won't notice,
+> > but maybe the fastest ones will...
+> 
+> That is a good point, but I think in practice most users do enough in most
+> requests that the trade off is totally worth it. At least for us it definitely
+> is. Maybe it would be an option to make the sharing somehow opt-in instead of
+> default behavior? So that by default the safe behavior is used, but for those
+> that want to, they can opt into the sharing if they know their app is safe
+> enough to work with that. 
+
+I'm not in favor of new options since they add support costs
+and increase the learning/maintenance curve.
+
+What I've been thinking about is bumping the major version to 6.0
+
+Although our internals are technically not supported stable API,
+there may be odd stuff out there similar to OobGC that uses
+instance_variable_get or similar things to reach into internals.
+Added with the fact our internals haven't changed in many years;
+I'm inclined to believe there are other OobGC-like things out
+there that can break.
+
+Also, with 6.0; users who completely avoid Threads can keep
+using 5.x, while others can use 6.x
+
+> >> For the sake of transparency to our users, we plan on publishing a public
+> >> post next week on how this was part of the larger series of bugs that had a
+> >> security impact at GitHub. We've also attached a suggested patch that removes
+> >> the environment sharing, which is what we're running right now to reduce the
+> >> risk of this ever happening again.
+> > 
+> > Did you measure performance degradations in any endpoints you have?
+> 
+> We did measure and there were zero noticeable performance degradations. That’s
+> also because all our requests do a bunch of work and are not direct Rack apps,
+> and use stuff like Rails or Sinatra. Those all usually wrap the `env` hash
+> anyway with their own per request object and there’s a lot of other allocations
+> happening anyway.
+> 
+> In microbenchmarks we could see a difference, but even there, at least for us,
+> we’d gladly pay the performance price for the safety if we’d have any endpoints
+> where it would be measurable. 
+
+OK.  Fwiw, there's still some stones left unturned that could
+recover the lost speed if somebody _really_ cares for it(*)
+
+(*) String#clear on response header buffer, swapping Ragel
+    for a faster HTTP parser, ...
+
+> All in all, I think here that a safe default would be helpful for users, as
+> mentioned earlier, and that maybe for those cases where the latest performance
+> bit matters, the existing behavior could be opted into. Whether this option is
+> worth it from a maintenance standpoint is something you’re better able to answer
+> than we are though.
+
+It's probably OK and I'm inclined to accept your patch for 6.0.
+
+At this point, I'm more worried about potential breakage of some
+3rd-party OobGC-like thing that reaches deep into our internals.
+
+Btw, did you consider replacing the @request HttpRequest object
+entirely instead of the env and buf elements?
+I suppose that's more allocations, still; but could've
+been a smaller change.
+
+> > I'll see about finding a less-noisy/overloaded system to run
+> > benchmarks against...
+> > 
+> > I noticed some of the OobGC tests in t/ were failing (patch below),
+> > but few users use the that version of OobGC.
+> 
+> I wasn’t easily able to run the entire suite, but only parts of it which is why
+> I didn’t have a complete fix there. I can add this to the patch then.
+
+Oops, was that the integration tests in t/* ?
+They can run separately via "make test-integration"
+(I never trusted some Ruby behaviors to remain stable,
+ so I started writing tests in Bourne shell).
+
+<snip> I have nothing to add to the rest of the mail
+
+unicorn-public readers: see attachments
+
+--OXfL5xGRrasGEqWY
+Content-Type: message/rfc822
+Content-Disposition: attachment; filename="0001-potential-unicorn-vulnerability.eml"
+
+Return-Path: <dbussink@github.com>
+X-Spam-Checker-Version: SpamAssassin 3.4.2 (2018-09-13) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-Status: No, score=-2.3 required=5.0 tests=BAYES_00,DKIMWL_WL_HIGH,
+	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,DKIM_VALID_EF,RCVD_IN_DNSWL_NONE,
+	SPF_HELO_NONE,SPF_PASS shortcircuit=no autolearn=ham
+	autolearn_force=no version=3.4.2
+X-Original-To: normalperson@yhbt.net
+Delivered-To: ew@dcvr.yhbt.net
+Received: from mail-ej1-x62b.google.com (mail-ej1-x62b.google.com [IPv6:2a00:1450:4864:20::62b])
+	(using TLSv1.3 with cipher TLS_AES_128_GCM_SHA256 (128/128 bits)
+	 key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
+	(No client certificate requested)
+	by dcvr.yhbt.net (Postfix) with ESMTPS id EEFE91F9FD
+	for <normalperson@yhbt.net>; Wed, 10 Mar 2021 17:05:20 +0000 (UTC)
+Received: by mail-ej1-x62b.google.com with SMTP id hs11so40171307ejc.1
+        for <normalperson@yhbt.net>; Wed, 10 Mar 2021 09:05:20 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=github.com; s=google;
+        h=from:mime-version:subject:message-id:date:cc:to;
+        bh=J9pYmgw3+ImpfY4YSWNJK0G/MfV8DBBHUWlo5m9F6jo=;
+        b=hJCchl8Ae8zsQdPDeRg20BrJpw5dsA+h+YG7PwojfTWjQxZimHfXZ+Rl9hNxmdp7rP
+         DzEW54hFnyAuUF4a99K288KD9aoYGoxfbhzEgBJVM3ydTWHPlObr2+WwSvH8HTp+A7SU
+         VXnS1kXHVYjUHFJA3NOB432H6wt8wQV7l3UsxGkiV+xljFgrGr9Ot9jFBNl5AzP7c6X1
+         WK7ogm5YnW7sWlNhl18kcnysNim2rYB+XESPyQMt0cSEIuYmio2Mc4e8hKP69yzovX31
+         uiQwl+rpXuqHbXFCcyh8hEfNHeSI+F22Eflzyn2SQzcmAYt923P3BbAGaJX0Efl7NkKc
+         9cDQ==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20161025;
+        h=x-gm-message-state:from:mime-version:subject:message-id:date:cc:to;
+        bh=J9pYmgw3+ImpfY4YSWNJK0G/MfV8DBBHUWlo5m9F6jo=;
+        b=lJYFabKhbLSJ4IVMnNjwqOGa4LutkWqXUqzH9YCkYYiKByeJPtgX8ewtU0vQvzuu3M
+         LYCKZ5IpccngYP97EkljfHZ+ms6hjaIvHdCcs9vEW1W9JHI1Zvv6gondD/PtJ44DMm0v
+         ONtgyeLTXlTjNzL9aXCKzy+LNBlpVkdM9hxG41PAmwtGjccKnDH8vkWYJOczUPI75wDt
+         hpyL5bNsTM+dpS1nVO4WmtqEWPX01J5WFD/AVt3gBiVrC3gbz1L2nnYbyjNCc39BnldM
+         E/BOQIv6SHnV6Df5P1F5ActKala2qrCE1SBLtDzdCT9ntfhbyn1OFckaLsWRV7wj323F
+         3xmA==
+X-Gm-Message-State: AOAM530KpkfrJd/KX/LxRlEuCxLmfClLpBcWLtzo1qUc+2MFXL2Ommzd
+	S7GrLX3AUcqgKARC87fFk3p/tdObi1chH34iWqsU1reanncCAWFrGzJJTMqNwrFZH28cuyUIb+B
+	DZSHbQW/zBjWCvwg248CAQVsyg0uZVTJU4XX0FaTyqiJMYKCXIJ49ZpzNCp9ssAR3nUc=
+X-Google-Smtp-Source: ABdhPJxPlKPVbpO9pg+eav70BC8oCmKHWh5GXg3bS6iQMN252qM70tIhMw9qjt9wskD90/hHSrTCuw==
+X-Received: by 2002:a17:907:2513:: with SMTP id y19mr4681208ejl.241.1615395917614;
+        Wed, 10 Mar 2021 09:05:17 -0800 (PST)
+Received: from [192.168.1.161] (178-85-12-131.dynamic.upc.nl. [178.85.12.131])
+        by smtp.gmail.com with ESMTPSA id i2sm11344866edy.72.2021.03.10.09.05.16
+        (version=TLS1_2 cipher=ECDHE-ECDSA-AES128-GCM-SHA256 bits=128/128);
+        Wed, 10 Mar 2021 09:05:16 -0800 (PST)
+From: Dirkjan Bussink <dbussink@github.com>
+Content-Type: multipart/mixed;
+	boundary="Apple-Mail=_FD45D81F-436D-4420-BC04-6FE57EE89ECD"
+Mime-Version: 1.0 (Mac OS X Mail 13.4 \(3608.120.23.2.4\))
+Subject: Potential Unicorn vulnerability
+Message-Id: <F6712BF3-A4DD-41EE-8252-B9799B35E618@github.com>
+Date: Wed, 10 Mar 2021 18:05:15 +0100
+Cc: John Crepezzi <seejohnrun@github.com>,
+ Kevin Sawicki <kevinsawicki@github.com>
+To: normalperson@yhbt.net
+X-Mailer: Apple Mail (2.3608.120.23.2.4)
+
+
+--Apple-Mail=_FD45D81F-436D-4420-BC04-6FE57EE89ECD
+Content-Transfer-Encoding: quoted-printable
+Content-Type: text/plain;
+	charset=utf-8
+
+Hello Eric,
+
+We're reaching out privately first on what we think could be classified =
+as a
+security issue in Unicorn. Since there may be other similarly impacted =
+users,
+this is out of an abundance of caution before sending it to the public
+Unicorn mailing list.
+
+The issue at hand is that the environment sharing and reuse between =
+requests
+in Unicorn, combined with other non thread safe code, resulted in a =
+security
+vulnerability where a very small number of user sessions tracked through
+cookies got misrouted. For this reason, we logged everyone out of =
+GitHub, see
+also =
+https://github.blog/2021-03-08-github-security-update-a-bug-related-to-han=
+dling-of-authenticated-sessions/.=20
+
+The unsafe background thread code we had ended up triggering an =
+exception at
+rare times and the exception tracking logic was using a deferred block
+executed through a Ruby Proc to gather information, including things =
+from the
+request at the time the logic started.
+
+That thread captured something from the cookie jar among other things, =
+and
+the following code in Rack memoized that into the (shared) environment.
+
+=46rom =
+https://github.com/rack/rack/blob/2.1.4/lib/rack/request.rb#L219-L229
+
+def cookies
+  hash =3D fetch_header(RACK_REQUEST_COOKIE_HASH) do |k|
+    set_header(k, {})
+  end
+  string =3D get_header HTTP_COOKIE
+
+  return hash if string =3D=3D get_header(RACK_REQUEST_COOKIE_STRING)
+  hash.replace Utils.parse_cookies_header string
+  set_header(RACK_REQUEST_COOKIE_STRING, string)
+  hash
+end
+
+Because of the environment sharing, the memoization ended up overriding =
+what
+would be memoized (with the RACK_REQUEST_COOKIE_STRING key) for the new
+request and because a specific session cookie was bumped then with a new
+timeout on each request, the wrong session cookie was serialized.
+
+While we understand and appreciate that Unicorn is not a multi-threaded =
+web
+server, it feels like using the same `Hash` object between requests
+introduces the chance that a dependency like an external gem may use =
+threads
+and thus potentially leak information between requests.
+
+For the sake of transparency to our users, we plan on publishing a =
+public
+post next week on how this was part of the larger series of bugs that =
+had a
+security impact at GitHub. We've also attached a suggested patch that =
+removes
+the environment sharing, which is what we're running right now to reduce =
+the
+risk of this ever happening again.
+
+We hope you're open to collaborating on a fix prior to any public =
+detailed
+disclosure of how this request environment sharing could lead to =
+security
+issues, if you feel that is desired.=20
+
+I=E2=80=99ve added John & Kevin here on the CC since they=E2=80=99ve =
+also worked on this and
+that way we have some better timezone spread on our side if needed.=20
+
+Cheers,
+
+Dirkjan Bussink
+
+
+--Apple-Mail=_FD45D81F-436D-4420-BC04-6FE57EE89ECD
+Content-Disposition: attachment;
+	filename=0001-Drop-reuse-of-Ruby-level-objects.patch
+Content-Type: application/octet-stream;
+	x-unix-mode=0644;
+	name="0001-Drop-reuse-of-Ruby-level-objects.patch"
+Content-Transfer-Encoding: quoted-printable
+
+=46rom=2044aa6b056e1b24d42ab3efba738b38f4cd54a068=20Mon=20Sep=2017=20=
+00:00:00=202001=0AFrom:=20Dirkjan=20Bussink=20<d.bussink@gmail.com>=0A=
+Date:=20Mon,=208=20Mar=202021=2009:51:09=20+0100=0ASubject:=20[PATCH]=20=
+Drop=20reuse=20of=20Ruby=20level=20objects=0A=0ARemove=20the=20reuse=20=
+of=20environment=20and=20the=20buffer=20as=20Ruby=20level=20objects.=0A=
+Reusing=20these=20is=20very=20risky=20in=20the=20context=20of=20running=20=
+any=20other=20threads=0Awithin=20the=20unicorn=20process,=20also=20for=20=
+threads=20that=20run=20background=20tasks.=0A=0AThis=20lead=20to=20a=20=
+significant=20security=20incident=20where=20the=20problems=20would=0Anot=20=
+have=20happened=20if=20there=20was=20no=20reuse=20of=20the=20`env`=20=
+object.=20=46rom=20a=0Asafety=20perspective,=20this=20also=20removes=20=
+reuse=20of=20the=20buffer=20object=20as=20it's=0Aalso=20a=20Ruby=20=
+object=20and=20could=20be=20grabbed=20and=20retained=20outside=20of=20=
+the=20http=0Aparsing=20logic.=0A=0AThe=20downside=20here=20is=20that=20=
+we=20allocate=20two=20extra=20objects=20on=20each=20request,=0Abut=20=
+that=20is=20worth=20the=20trade=20off=20here=20and=20the=20security=20=
+risk=20we=20otherwise=0Awould=20carry=20to=20leaking=20wrong=20and=20=
+incorrect=20data.=0A---=0A=20ext/unicorn_http/extconf.rb=20=20=20=20=20=20=
+|=20=201=20-=0A=20ext/unicorn_http/unicorn_http.rl=20|=2030=20=
++++---------------------------=0A=20test/unit/test_http_parser.rb=20=20=20=
+=20|=20=203=20+++=0A=203=20files=20changed,=206=20insertions(+),=2028=20=
+deletions(-)=0A=0Adiff=20--git=20a/ext/unicorn_http/extconf.rb=20=
+b/ext/unicorn_http/extconf.rb=0Aindex=2095514bc..7e4775c=20100644=0A---=20=
+a/ext/unicorn_http/extconf.rb=0A+++=20b/ext/unicorn_http/extconf.rb=0A@@=20=
+-10,7=20+10,6=20@@=0A=20have_macro("SIZEOF_SIZE_T",=20"ruby.h")=20or=20=
+check_sizeof("size_t",=20"sys/types.h")=0A=20have_macro("SIZEOF_LONG",=20=
+"ruby.h")=20or=20check_sizeof("long",=20"sys/types.h")=0A=20=
+have_func("rb_str_set_len",=20"ruby.h")=20or=20abort=20'Ruby=201.9.3+=20=
+required'=0A-have_func("rb_hash_clear",=20"ruby.h")=20#=20Ruby=202.0+=0A=20=
+have_func("gmtime_r",=20"time.h")=0A=20=0A=20message('checking=20if=20=
+String#-@=20(str_uminus)=20dedupes...=20')=0Adiff=20--git=20=
+a/ext/unicorn_http/unicorn_http.rl=20b/ext/unicorn_http/unicorn_http.rl=0A=
+index=2021e09d6..9904d85=20100644=0A---=20=
+a/ext/unicorn_http/unicorn_http.rl=0A+++=20=
+b/ext/unicorn_http/unicorn_http.rl=0A@@=20-65,18=20+65,6=20@@=20struct=20=
+http_parser=20{=0A=20static=20ID=20id_set_backtrace,=20id_is_chunked_p;=0A=
+=20static=20VALUE=20cHttpParser;=0A=20=0A-#ifdef=20HAVE_RB_HASH_CLEAR=20=
+/*=20Ruby=20>=3D=202.0=20*/=0A-#=20=20define=20my_hash_clear(h)=20=
+(void)rb_hash_clear(h)=0A-#else=20/*=20!HAVE_RB_HASH_CLEAR=20-=20Ruby=20=
+<=3D=201.9.3=20*/=0A-=0A-static=20ID=20id_clear;=0A-=0A-static=20void=20=
+my_hash_clear(VALUE=20h)=0A-{=0A-=20=20rb_funcall(h,=20id_clear,=200);=0A=
+-}=0A-#endif=20/*=20HAVE_RB_HASH_CLEAR=20*/=0A-=0A=20static=20void=20=
+finalize_header(struct=20http_parser=20*hp);=0A=20=0A=20static=20void=20=
+parser_raise(VALUE=20klass,=20const=20char=20*msg)=0A@@=20-445,6=20=
++433,8=20@@=20static=20void=20http_parser_init(struct=20http_parser=20=
+*hp)=0A=20=20=20hp->cont=20=3D=20Qfalse;=20/*=20zero=20on=20MRI,=20=
+should=20be=20optimized=20away=20by=20above=20*/=0A=20=20=20%%=20write=20=
+init;=0A=20=20=20hp->cs=20=3D=20cs;=0A+=20=20hp->buf=20=3D=20=
+rb_str_new(NULL,=200);=0A+=20=20hp->env=20=3D=20rb_hash_new();=0A=20}=0A=20=
+=0A=20/**=20exec=20**/=0A@@=20-628,8=20+618,6=20@@=20static=20VALUE=20=
+HttpParser_init(VALUE=20self)=0A=20=20=20struct=20http_parser=20*hp=20=3D=20=
+data_get(self);=0A=20=0A=20=20=20http_parser_init(hp);=0A-=20=20hp->buf=20=
+=3D=20rb_str_new(NULL,=200);=0A-=20=20hp->env=20=3D=20rb_hash_new();=0A=20=
+=0A=20=20=20return=20self;=0A=20}=0A@@=20-643,16=20+631,7=20@@=20static=20=
+VALUE=20HttpParser_init(VALUE=20self)=0A=20=20*/=0A=20static=20VALUE=20=
+HttpParser_clear(VALUE=20self)=0A=20{=0A-=20=20struct=20http_parser=20=
+*hp=20=3D=20data_get(self);=0A-=0A-=20=20/*=20we=20can't=20safely=20=
+reuse=20.buf=20and=20.env=20if=20hijacked=20*/=0A-=20=20if=20=
+(HP_FL_TEST(hp,=20HIJACK))=0A-=20=20=20=20return=20=
+HttpParser_init(self);=0A-=0A-=20=20http_parser_init(hp);=0A-=20=20=
+my_hash_clear(hp->env);=0A-=0A-=20=20return=20self;=0A+=20=20return=20=
+HttpParser_init(self);=0A=20}=0A=20=0A=20static=20void=20=
+advance_str(VALUE=20str,=20off_t=20nr)=0A@@=20-1025,9=20+1004,6=20@@=20=
+void=20Init_unicorn_http(void)=0A=20=20=20id_set_backtrace=20=3D=20=
+rb_intern("set_backtrace");=0A=20=20=20init_unicorn_httpdate();=0A=20=0A=
+-#ifndef=20HAVE_RB_HASH_CLEAR=0A-=20=20id_clear=20=3D=20=
+rb_intern("clear");=0A-#endif=0A=20=20=20id_is_chunked_p=20=3D=20=
+rb_intern("is_chunked?");=0A=20}=0A=20#undef=20SET_GLOBAL=0Adiff=20--git=20=
+a/test/unit/test_http_parser.rb=20b/test/unit/test_http_parser.rb=0A=
+index=20697af44..d3f9ae7=20100644=0A---=20=
+a/test/unit/test_http_parser.rb=0A+++=20b/test/unit/test_http_parser.rb=0A=
+@@=20-33,6=20+33,9=20@@=20def=20test_parse_simple=0A=20=20=20=20=20=
+parser.clear=0A=20=20=20=20=20req.clear=0A=20=0A+=20=20=20=20req=20=3D=20=
+parser.env=0A+=20=20=20=20http=20=3D=20parser.buf=0A+=0A=20=20=20=20=20=
+http=20<<=20"G"=0A=20=20=20=20=20assert_nil=20parser.parse=0A=20=20=20=20=
+=20assert_equal=20"G",=20http=0A--=20=0A2.30.1=0A=0A=
+
+--Apple-Mail=_FD45D81F-436D-4420-BC04-6FE57EE89ECD--
+
+--OXfL5xGRrasGEqWY
+Content-Type: message/rfc822
+Content-Disposition: attachment; filename="0002-re-potential-unicorn-vulnerability.eml"
+Content-Transfer-Encoding: 8bit
+
+Return-Path: <normalperson@yhbt.net>
+X-Spam-Checker-Version: SpamAssassin 3.4.2 (2018-09-13) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-Status: No, score=-2.9 required=5.0 tests=ALL_TRUSTED,AWL,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.2
+X-Original-To: e@yhbt.net
+Delivered-To: ew@dcvr.yhbt.net
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id 7187C1F9FD;
+	Thu, 11 Mar 2021 03:02:50 +0000 (UTC)
+Date: Thu, 11 Mar 2021 03:02:50 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: Dirkjan Bussink <dbussink@github.com>
+Cc: John Crepezzi <seejohnrun@github.com>,
+	Kevin Sawicki <kevinsawicki@github.com>
+Subject: Re: Potential Unicorn vulnerability
+Message-ID: <20210311030250.GA1266@dcvr>
+References: <F6712BF3-A4DD-41EE-8252-B9799B35E618@github.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+Content-Transfer-Encoding: 8bit
+In-Reply-To: <F6712BF3-A4DD-41EE-8252-B9799B35E618@github.com>
+
+Dirkjan Bussink <dbussink@github.com> wrote:
+> Hello Eric,
+> 
+> We're reaching out privately first on what we think could be classified as a
+> security issue in Unicorn. Since there may be other similarly impacted users,
+> this is out of an abundance of caution before sending it to the public
+> Unicorn mailing list.
+
+Thanks for reaching out.  Fwiw, I prefer if everything were made
+public right away, but I'll leave it up to you if you're not
+comfortable with it.
+
+I don't know much about security, anwyays; and don't like
+classifying bugs (or classifying anything)...
+
+<snip>
+
+> That thread captured something from the cookie jar among other things, and
+> the following code in Rack memoized that into the (shared) environment.
+
+Ouch, so the hijack check we had in HttpParser_clear didn't fire...
+
+<snip>
+
+> While we understand and appreciate that Unicorn is not a multi-threaded web
+> server, it feels like using the same `Hash` object between requests
+> introduces the chance that a dependency like an external gem may use threads
+> and thus potentially leak information between requests.
+
+Yes, there's likely problems in trying to use threads with a
+codebase that was only intended to be single-threaded.  And
+using Thread.current[...] here wouldn't have made a. difference.
+
+I worry some endpoints out there will suffer performance
+degradation.  Expensive endpoints probably won't notice,
+but maybe the fastest ones will...
+
+`buf' is particularly worrying to me since it's a 16384-byte
+allocation for a socket read on headers that could amount
+to lots of GC pressure and hurt locality all around.
+
+env['rack.input'] may also hold onto `buf', too, since
+input is lazily-consumed (though it may be possible to
+workaround that...).
+
+Losing `env' is probably less worrying since keys are all
+fstrings in modern Rubies.  Though losing the backing store (and
+not having rb_hash_new_with_size in the C API) would mean more
+rehashing with many headers.
+
+The simple Rack apps I worked on back in-the-day which
+benefitted from these object-reuse optimizations are unlikely to
+be upgraded to newer versions of unicorn.  Of course, there
+may be other similar Rack apps out there that depend on these...
+
+> For the sake of transparency to our users, we plan on publishing a public
+> post next week on how this was part of the larger series of bugs that had a
+> security impact at GitHub. We've also attached a suggested patch that removes
+> the environment sharing, which is what we're running right now to reduce the
+> risk of this ever happening again.
+
+Did you measure performance degradations in any endpoints you have?
+
+I'll see about finding a less-noisy/overloaded system to run
+benchmarks against...
+
+I noticed some of the OobGC tests in t/ were failing (patch below),
+but few users use the that version of OobGC.
+
+Also, t/t0200-rack-hijack.sh would go away.
+
+> We hope you're open to collaborating on a fix prior to any public detailed
+> disclosure of how this request environment sharing could lead to security
+> issues, if you feel that is desired. 
+
+Sure, as long as everything is done via plain-text email so
+I won't need working graphics drivers or modern hardware :>
+
+Along the same lines, would you be OK with this entire mail thread
+(including all mail headers) being eventually published in the
+public mailbox at http://ou63pmih66umazou.onion/unicorn-public/
+and https://yhbt.net/unicorn-public/ ?
+
+> I’ve added John & Kevin here on the CC since they’ve also worked on this and
+> that way we have some better timezone spread on our side if needed. 
+
+OK, I'm around/awake at pretty random times.
+
+Aforementioned OomGC change:
+-------8<-------
+diff --git a/lib/unicorn/oob_gc.rb b/lib/unicorn/oob_gc.rb
+index 3b2f488..91a8e51 100644
+--- a/lib/unicorn/oob_gc.rb
++++ b/lib/unicorn/oob_gc.rb
+@@ -60,7 +60,6 @@ def self.new(app, interval = 5, path = %r{\A/})
+     self.const_set :OOBGC_INTERVAL, interval
+     ObjectSpace.each_object(Unicorn::HttpServer) do |s|
+       s.extend(self)
+-      self.const_set :OOBGC_ENV, s.instance_variable_get(:@request).env
+     end
+     app # pretend to be Rack middleware since it was in the past
+   end
+@@ -68,9 +67,10 @@ def self.new(app, interval = 5, path = %r{\A/})
+   #:stopdoc:
+   def process_client(client)
+     super(client) # Unicorn::HttpServer#process_client
+-    if OOBGC_PATH =~ OOBGC_ENV['PATH_INFO'] && ((@@nr -= 1) <= 0)
++    env = instance_variable_get(:@request).env
++    if OOBGC_PATH =~ env['PATH_INFO'] && ((@@nr -= 1) <= 0)
+       @@nr = OOBGC_INTERVAL
+-      OOBGC_ENV.clear
++      env.clear
+       disabled = GC.enable
+       GC.start
+       GC.disable if disabled
+
+--OXfL5xGRrasGEqWY--
