@@ -1,0 +1,95 @@
+Return-Path: <normalperson@yhbt.net>
+X-Spam-Checker-Version: SpamAssassin 3.4.2 (2018-09-13) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.2
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id 766131F9FD;
+	Fri, 12 Mar 2021 12:00:07 +0000 (UTC)
+Date: Fri, 12 Mar 2021 12:00:07 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: Dirkjan Bussink <dbussink@github.com>
+Cc: John Crepezzi <seejohnrun@github.com>,
+	Kevin Sawicki <kevinsawicki@github.com>, unicorn-public@yhbt.net
+Subject: Re: Potential Unicorn vulnerability
+Message-ID: <20210312120007.GA24539@dcvr>
+References: <F6712BF3-A4DD-41EE-8252-B9799B35E618@github.com>
+ <20210311030250.GA1266@dcvr>
+ <7F6FD017-7802-4871-88A3-1E03D26D967C@github.com>
+ <20210312094129.GA14538@dcvr>
+ <382B893C-A07C-4705-950E-6D1CA766D998@github.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+Content-Transfer-Encoding: 8bit
+In-Reply-To: <382B893C-A07C-4705-950E-6D1CA766D998@github.com>
+List-Id: <unicorn-public.yhbt.net>
+
+Dirkjan Bussink <dbussink@github.com> wrote:
+> Hi Eric,
+> 
+> > On 12 Mar 2021, at 10:41, Eric Wong <normalperson@yhbt.net> wrote:
+> > 
+> > I'm not in favor of new options since they add support costs
+> > and increase the learning/maintenance curve.
+> > 
+> > What I've been thinking about is bumping the major version to 6.0
+> > 
+> > Although our internals are technically not supported stable API,
+> > there may be odd stuff out there similar to OobGC that uses
+> > instance_variable_get or similar things to reach into internals.
+> > Added with the fact our internals haven't changed in many years;
+> > I'm inclined to believe there are other OobGC-like things out
+> > there that can break.
+> > 
+> > Also, with 6.0; users who completely avoid Threads can keep
+> > using 5.x, while others can use 6.x
+> 
+> That sounds like a good plan then. Once there’s a new version we can
+> bump that on our side to remove the manual patch then.
+
+OK.  I think it's safe to wait a few days for more comments
+before releasing in case there's more last-minute revelations
+(see below :x)
+
+> > Btw, did you consider replacing the @request HttpRequest object
+> > entirely instead of the env and buf elements?
+> > I suppose that's more allocations, still; but could've
+> > been a smaller change.
+> 
+> Ah, that’s a very good point. I think that would also have been a valid
+> approach but it does indeed add more allocations. If that approach would
+> be preferred, I think it can also be changed to that?
+> 
+> I don’t really have a strong preference on which approach to take here,
+> do you?
+
+I was going to say I didn't have a preference and the
+current approach was fine...
+
+However, I just now realized now that clobbering+replacing all
+of @request is required.
+
+That's because env['rack.input'] is (Stream|Tee)Input,
+and that is lazily consumed and those objects keep state in
+@request (as the historically-named @parser)
+
+If we're to make env safe to be shipped off to another thread,
+then @request still needs to stick around to maintain state
+of env['rack.input'] until it's all consumed.
+
+It probably doesn't affect most apps out there that just decode
+forms via HTTP POST; but the streamed rack.input is something
+that's critical for projects that feed unicorn with PUTs via
+"curl -T"
+
+> > Oops, was that the integration tests in t/* ?
+> 
+> Nope, looks like some platform behavior changes (tried on MacOS first).
+> I was able to get the tests running and working on Debian Buster this
+> morning before I sent a new version of the patch and they are all passing
+> there for me locally.
+
+Ah, no idea about MacOS or any proprietary OS; I've never
+considered them supported.  But yeah, it should work on any
+GNU/Linux and Free-as-in-speech *BSDs
