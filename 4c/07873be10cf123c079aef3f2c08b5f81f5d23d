@@ -1,0 +1,52 @@
+Return-Path: <normalperson@yhbt.net>
+X-Spam-Checker-Version: SpamAssassin 3.4.2 (2018-09-13) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.2
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id 7F5AD1F9FD;
+	Sat, 13 Mar 2021 02:31:31 +0000 (UTC)
+Date: Sat, 13 Mar 2021 02:31:31 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: Dirkjan Bussink <dbussink@github.com>
+Cc: John Crepezzi <seejohnrun@github.com>,
+	Kevin Sawicki <kevinsawicki@github.com>, unicorn-public@yhbt.net
+Subject: [PATCH] http_request: drop unnecessary #clear call
+Message-ID: <20210313023131.GA10724@dcvr>
+References: <F6712BF3-A4DD-41EE-8252-B9799B35E618@github.com>
+ <20210311030250.GA1266@dcvr>
+ <7F6FD017-7802-4871-88A3-1E03D26D967C@github.com>
+ <20210312094129.GA14538@dcvr>
+ <382B893C-A07C-4705-950E-6D1CA766D998@github.com>
+ <20210312120007.GA24539@dcvr>
+ <66A68DD8-83EF-4C7A-80E8-3F1F7AB31670@github.com>
+ <20210313022615.GA32198@dcvr>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <20210313022615.GA32198@dcvr>
+List-Id: <unicorn-public.yhbt.net>
+
+Also noticed #clear is unnecessary, now
+
+------------8<-----------
+Subject: [PATCH] http_request: drop unnecessary #clear call
+
+Since we allocate a new request object for each request,
+the #clear call is now unnecessary
+---
+ lib/unicorn/http_request.rb | 1 -
+ 1 file changed, 1 deletion(-)
+
+diff --git a/lib/unicorn/http_request.rb b/lib/unicorn/http_request.rb
+index 6ca4592..e3ad592 100644
+--- a/lib/unicorn/http_request.rb
++++ b/lib/unicorn/http_request.rb
+@@ -62,7 +62,6 @@ def self.check_client_connection=(bool)
+   # This does minimal exception trapping and it is up to the caller
+   # to handle any socket errors (e.g. user aborted upload).
+   def read(socket)
+-    clear
+     e = env
+ 
+     # From https://www.ietf.org/rfc/rfc3875:
