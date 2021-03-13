@@ -1,0 +1,48 @@
+Return-Path: <normalperson@yhbt.net>
+X-Spam-Checker-Version: SpamAssassin 3.4.2 (2018-09-13) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.2
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id AEAED1F9FD;
+	Sat, 13 Mar 2021 02:26:15 +0000 (UTC)
+Date: Sat, 13 Mar 2021 02:26:15 +0000
+From: Eric Wong <normalperson@yhbt.net>
+To: Dirkjan Bussink <dbussink@github.com>
+Cc: John Crepezzi <seejohnrun@github.com>,
+	Kevin Sawicki <kevinsawicki@github.com>, unicorn-public@yhbt.net
+Subject: Re: Potential Unicorn vulnerability
+Message-ID: <20210313022615.GA32198@dcvr>
+References: <F6712BF3-A4DD-41EE-8252-B9799B35E618@github.com>
+ <20210311030250.GA1266@dcvr>
+ <7F6FD017-7802-4871-88A3-1E03D26D967C@github.com>
+ <20210312094129.GA14538@dcvr>
+ <382B893C-A07C-4705-950E-6D1CA766D998@github.com>
+ <20210312120007.GA24539@dcvr>
+ <66A68DD8-83EF-4C7A-80E8-3F1F7AB31670@github.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+Content-Transfer-Encoding: 8bit
+In-Reply-To: <66A68DD8-83EF-4C7A-80E8-3F1F7AB31670@github.com>
+List-Id: <unicorn-public.yhbt.net>
+
+Dirkjan Bussink <dbussink@github.com> wrote:
+> Ah yeah. So do you think that on top of the current patch we’d need
+> something like the attached patch (which moves the @request allocation),
+> or would only the latter patch be needed then?
+
+Not really, aside from the OobGC change and hijack test removal.
+
+Anyways, I've squashed the test removal, OobGC adjustment, and
+your 2nd patch together as commit c917ac526df214611ec33c21de2b070452ec8434
+and pushed it out as the "v6-wip" branch.
+
+> In the latter case there’s still a bunch of logic for Rack hijack around
+> then which might not be needed at that point, but I’m not entirely sure
+> how that would look like.
+
+Yes, though there are also some other HTTP servers that use the
+parser.  I prefer to minimize changes to the ext code at this
+point given the relative lack of C/Ragel-knowledgeable users
+compared to Ruby-knowledgeable
