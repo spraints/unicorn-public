@@ -1,0 +1,52 @@
+Return-Path: <bofh@yhbt.net>
+X-Spam-Checker-Version: SpamAssassin 3.4.2 (2018-09-13) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.2
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id 60DD71F9FD
+	for <unicorn-public@yhbt.net>; Sat, 13 Mar 2021 02:08:46 +0000 (UTC)
+From: Eric Wong <bofh@yhbt.net>
+To: unicorn-public@yhbt.net
+Subject: [PATCH] test/test_helper: only unlink redirected logs from parent
+Date: Fri, 12 Mar 2021 22:08:46 -0400
+Message-Id: <20210313020846.16192-1-bofh@yhbt.net>
+MIME-Version: 1.0
+Content-Transfer-Encoding: 8bit
+List-Id: <unicorn-public.yhbt.net>
+
+We don't want at_exit firing in child processes and never wanted
+it.  This is apparently a long standing bug in the tests that
+only started causing test_worker_dies_on_dead_master failures
+for me.  I assume it's only showing up now for me due to kernel
+scheduler changes, since I've been using the same 4-core CPU for
+~11 years, now.
+---
+ test/test_helper.rb | 7 +++++--
+ 1 file changed, 5 insertions(+), 2 deletions(-)
+
+diff --git a/test/test_helper.rb b/test/test_helper.rb
+index 974d2f2..ba5ef16 100644
+--- a/test/test_helper.rb
++++ b/test/test_helper.rb
+@@ -42,6 +42,7 @@
+ def redirect_test_io
+   orig_err = STDERR.dup
+   orig_out = STDOUT.dup
++  rdr_pid = $$
+   new_out = File.open("test_stdout.#$$.log", "a")
+   new_err = File.open("test_stderr.#$$.log", "a")
+   new_out.sync = new_err.sync = true
+@@ -59,8 +60,10 @@ def redirect_test_io
+   STDERR.sync = STDOUT.sync = true
+ 
+   at_exit do
+-    File.unlink(new_out.path) rescue nil
+-    File.unlink(new_err.path) rescue nil
++    if rdr_pid == $$
++      File.unlink(new_out.path) rescue nil
++      File.unlink(new_err.path) rescue nil
++    end
+   end
+ 
+   begin
