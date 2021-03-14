@@ -1,0 +1,354 @@
+Return-Path: <bofh@yhbt.net>
+X-Spam-Checker-Version: SpamAssassin 3.4.2 (2018-09-13) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-Status: No, score=-2.8 required=3.0 tests=ALL_TRUSTED,BAYES_00,
+	NUMERIC_HTTP_ADDR shortcircuit=no autolearn=ham autolearn_force=no
+	version=3.4.2
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id 10DFE1F9FD
+	for <unicorn-public@yhbt.net>; Sun, 14 Mar 2021 23:17:25 +0000 (UTC)
+From: EW <bofh@yhbt.net>
+To: unicorn-public@yhbt.net
+Subject: [PATCH] tests: force blocking I/O for Ruby 3.x
+Date: Sun, 14 Mar 2021 23:17:24 +0000
+Message-Id: <20210314231724.18492-1-bofh@yhbt.net>
+MIME-Version: 1.0
+Content-Transfer-Encoding: 8bit
+List-Id: <unicorn-public.yhbt.net>
+
+Otherwise we get test failures since we use sysread
+and syswrite in many places
+---
+ test/exec/test_exec.rb          | 10 +++++-----
+ test/test_helper.rb             | 13 +++++++++++++
+ test/unit/test_ccc.rb           |  7 ++++---
+ test/unit/test_server.rb        | 20 ++++++++++----------
+ test/unit/test_signals.rb       | 12 ++++++------
+ test/unit/test_socket_helper.rb |  2 +-
+ test/unit/test_upload.rb        | 10 +++++-----
+ 7 files changed, 44 insertions(+), 30 deletions(-)
+
+diff --git a/test/exec/test_exec.rb b/test/exec/test_exec.rb
+index 32734c1..aacd917 100644
+--- a/test/exec/test_exec.rb
++++ b/test/exec/test_exec.rb
+@@ -574,7 +574,7 @@ def test_unicorn_config_per_worker_listen
+     assert_equal String, results[0].class
+     worker_pid = results[0].to_i
+     assert_not_equal pid, worker_pid
+-    s = UNIXSocket.new(tmp.path)
++    s = unix_socket(tmp.path)
+     s.syswrite("GET / HTTP/1.0\r\n\r\n")
+     results = ''
+     loop { results << s.sysread(4096) } rescue nil
+@@ -732,7 +732,7 @@ def test_socket_unlinked_restore
+     wait_for_file(sock_path)
+     assert File.socket?(sock_path)
+ 
+-    sock = UNIXSocket.new(sock_path)
++    sock = unix_socket(sock_path)
+     sock.syswrite("GET / HTTP/1.0\r\n\r\n")
+     results = sock.sysread(4096)
+ 
+@@ -742,7 +742,7 @@ def test_socket_unlinked_restore
+     wait_for_file(sock_path)
+     assert File.socket?(sock_path)
+ 
+-    sock = UNIXSocket.new(sock_path)
++    sock = unix_socket(sock_path)
+     sock.syswrite("GET / HTTP/1.0\r\n\r\n")
+     results = sock.sysread(4096)
+ 
+@@ -777,7 +777,7 @@ def test_unicorn_config_file
+     assert_equal pid, File.read(pid_file).to_i
+     assert File.socket?(sock_path), "socket created"
+ 
+-    sock = UNIXSocket.new(sock_path)
++    sock = unix_socket(sock_path)
+     sock.syswrite("GET / HTTP/1.0\r\n\r\n")
+     results = sock.sysread(4096)
+ 
+@@ -803,7 +803,7 @@ def test_unicorn_config_file
+     wait_for_file(new_sock_path)
+     assert File.socket?(new_sock_path), "socket exists"
+     @sockets.each do |path|
+-      sock = UNIXSocket.new(path)
++      sock = unix_socket(path)
+       sock.syswrite("GET / HTTP/1.0\r\n\r\n")
+       results = sock.sysread(4096)
+       assert_equal String, results.class
+diff --git a/test/test_helper.rb b/test/test_helper.rb
+index ba5ef16..d86f83b 100644
+--- a/test/test_helper.rb
++++ b/test/test_helper.rb
+@@ -28,6 +28,7 @@
+ require 'fileutils'
+ require 'logger'
+ require 'unicorn'
++require 'io/nonblock'
+ 
+ if ENV['DEBUG']
+   require 'ruby-debug'
+@@ -291,3 +292,15 @@ def reset_sig_handlers
+     trap(sig, "DEFAULT")
+   end
+ end
++
++def tcp_socket(*args)
++  sock = TCPSocket.new(*args)
++  sock.nonblock = false
++  sock
++end
++
++def unix_socket(*args)
++  sock = UNIXSocket.new(*args)
++  sock.nonblock = false
++  sock
++end
+diff --git a/test/unit/test_ccc.rb b/test/unit/test_ccc.rb
+index 3be1439..0dc72e8 100644
+--- a/test/unit/test_ccc.rb
++++ b/test/unit/test_ccc.rb
+@@ -3,6 +3,7 @@
+ require 'io/wait'
+ require 'tempfile'
+ require 'test/unit'
++require './test/test_helper'
+ 
+ class TestCccTCPI < Test::Unit::TestCase
+   def test_ccc_tcpi
+@@ -42,7 +43,7 @@ def test_ccc_tcpi
+     wr.close
+ 
+     # make sure the server is running, at least
+-    client = TCPSocket.new(host, port)
++    client = tcp_socket(host, port)
+     client.write("GET / HTTP/1.1\r\nHost: example.com\r\n\r\n")
+     assert client.wait(10), 'never got response from server'
+     res = client.read
+@@ -51,13 +52,13 @@ def test_ccc_tcpi
+     client.close
+ 
+     # start a slow request...
+-    sleeper = TCPSocket.new(host, port)
++    sleeper = tcp_socket(host, port)
+     sleeper.write("GET /sleep HTTP/1.1\r\nHost: example.com\r\n\r\n")
+ 
+     # and a bunch of aborted ones
+     nr = 100
+     nr.times do |i|
+-      client = TCPSocket.new(host, port)
++      client = tcp_socket(host, port)
+       client.write("GET /collections/#{rand(10000)} HTTP/1.1\r\n" \
+                    "Host: example.com\r\n\r\n")
+       client.close
+diff --git a/test/unit/test_server.rb b/test/unit/test_server.rb
+index 781750d..bc9a222 100644
+--- a/test/unit/test_server.rb
++++ b/test/unit/test_server.rb
+@@ -121,7 +121,7 @@ def test_early_hints
+       @server.start
+     end
+ 
+-    sock = TCPSocket.new('127.0.0.1', @port)
++    sock = tcp_socket('127.0.0.1', @port)
+     sock.syswrite("GET / HTTP/1.0\r\n\r\n")
+ 
+     responses = sock.read(4096)
+@@ -141,14 +141,14 @@ def test_after_reply
+       @server.start
+     end
+ 
+-    sock = TCPSocket.new('127.0.0.1', @port)
++    sock = tcp_socket('127.0.0.1', @port)
+     sock.syswrite("GET / HTTP/1.0\r\n\r\n")
+ 
+     responses = sock.read(4096)
+     assert_match %r{\AHTTP/1.[01] 200\b}, responses
+     assert_match %r{^after_reply_called: false}, responses
+ 
+-    sock = TCPSocket.new('127.0.0.1', @port)
++    sock = tcp_socket('127.0.0.1', @port)
+     sock.syswrite("GET / HTTP/1.0\r\n\r\n")
+ 
+     responses = sock.read(4096)
+@@ -166,7 +166,7 @@ def test_broken_app
+       @server = HttpServer.new(app, :listeners => [ "127.0.0.1:#@port"] )
+       @server.start
+     end
+-    sock = TCPSocket.new('127.0.0.1', @port)
++    sock = tcp_socket('127.0.0.1', @port)
+     sock.syswrite("GET / HTTP/1.0\r\n\r\n")
+     assert_match %r{\AHTTP/1.[01] 500\b}, sock.sysread(4096)
+     assert_nil sock.close
+@@ -179,7 +179,7 @@ def test_simple_server
+ 
+   def test_client_shutdown_writes
+     bs = 15609315 * rand
+-    sock = TCPSocket.new('127.0.0.1', @port)
++    sock = tcp_socket('127.0.0.1', @port)
+     sock.syswrite("PUT /hello HTTP/1.1\r\n")
+     sock.syswrite("Host: example.com\r\n")
+     sock.syswrite("Transfer-Encoding: chunked\r\n")
+@@ -206,7 +206,7 @@ def test_client_shutdown_writes
+ 
+   def test_client_shutdown_write_truncates
+     bs = 15609315 * rand
+-    sock = TCPSocket.new('127.0.0.1', @port)
++    sock = tcp_socket('127.0.0.1', @port)
+     sock.syswrite("PUT /hello HTTP/1.1\r\n")
+     sock.syswrite("Host: example.com\r\n")
+     sock.syswrite("Transfer-Encoding: chunked\r\n")
+@@ -232,7 +232,7 @@ def test_client_shutdown_write_truncates
+ 
+   def test_client_malformed_body
+     bs = 15653984
+-    sock = TCPSocket.new('127.0.0.1', @port)
++    sock = tcp_socket('127.0.0.1', @port)
+     sock.syswrite("PUT /hello HTTP/1.1\r\n")
+     sock.syswrite("Host: example.com\r\n")
+     sock.syswrite("Transfer-Encoding: chunked\r\n")
+@@ -254,7 +254,7 @@ def test_client_malformed_body
+ 
+   def do_test(string, chunk, close_after=nil, shutdown_delay=0)
+     # Do not use instance variables here, because it needs to be thread safe
+-    socket = TCPSocket.new("127.0.0.1", @port);
++    socket = tcp_socket("127.0.0.1", @port);
+     request = StringIO.new(string)
+     chunks_out = 0
+ 
+@@ -299,14 +299,14 @@ def test_logger_changed
+   end
+ 
+   def test_bad_client_400
+-    sock = TCPSocket.new('127.0.0.1', @port)
++    sock = tcp_socket('127.0.0.1', @port)
+     sock.syswrite("GET / HTTP/1.0\r\nHost: foo\rbar\r\n\r\n")
+     assert_match %r{\AHTTP/1.[01] 400\b}, sock.sysread(4096)
+     assert_nil sock.close
+   end
+ 
+   def test_http_0_9
+-    sock = TCPSocket.new('127.0.0.1', @port)
++    sock = tcp_socket('127.0.0.1', @port)
+     sock.syswrite("GET /hello\r\n")
+     assert_match 'hello!\n', sock.sysread(4096)
+     assert_nil sock.close
+diff --git a/test/unit/test_signals.rb b/test/unit/test_signals.rb
+index 4d9fdc5..56a7dfc 100644
+--- a/test/unit/test_signals.rb
++++ b/test/unit/test_signals.rb
+@@ -52,7 +52,7 @@ def test_worker_dies_on_dead_master
+       redirect_test_io { HttpServer.new(app, opts).start.join }
+     }
+     wait_workers_ready("test_stderr.#{pid}.log", 1)
+-    sock = TCPSocket.new('127.0.0.1', @port)
++    sock = tcp_socket('127.0.0.1', @port)
+     sock.syswrite("GET / HTTP/1.0\r\n\r\n")
+     buf = sock.readpartial(4096)
+     assert_nil sock.close
+@@ -79,7 +79,7 @@ def test_sleepy_kill
+     }
+     wr.close
+     wait_workers_ready("test_stderr.#{pid}.log", 1)
+-    sock = TCPSocket.new('127.0.0.1', @port)
++    sock = tcp_socket('127.0.0.1', @port)
+     sock.syswrite("GET / HTTP/1.0\r\n\r\n")
+     buf = rd.readpartial(1)
+     wait_master_ready("test_stderr.#{pid}.log")
+@@ -102,7 +102,7 @@ def test_timeout_slow_response
+     }
+     t0 = Time.now
+     wait_workers_ready("test_stderr.#{pid}.log", 1)
+-    sock = TCPSocket.new('127.0.0.1', @port)
++    sock = tcp_socket('127.0.0.1', @port)
+     sock.syswrite("GET / HTTP/1.0\r\n\r\n")
+ 
+     buf = nil
+@@ -125,7 +125,7 @@ def test_response_write
+     }
+     redirect_test_io { @server = HttpServer.new(app, @server_opts).start }
+     wait_workers_ready("test_stderr.#{$$}.log", 1)
+-    sock = TCPSocket.new('127.0.0.1', @port)
++    sock = tcp_socket('127.0.0.1', @port)
+     sock.syswrite("GET / HTTP/1.0\r\n\r\n")
+     buf = ''
+     header_len = pid = nil
+@@ -163,13 +163,13 @@ def test_request_read
+     redirect_test_io { @server = HttpServer.new(app, @server_opts).start }
+ 
+     wait_workers_ready("test_stderr.#{$$}.log", 1)
+-    sock = TCPSocket.new('127.0.0.1', @port)
++    sock = tcp_socket('127.0.0.1', @port)
+     sock.syswrite("GET / HTTP/1.0\r\n\r\n")
+     pid = sock.sysread(4096)[/\r\nX-Pid: (\d+)\r\n/, 1].to_i
+     assert_nil sock.close
+ 
+     assert pid > 0, "pid not positive: #{pid.inspect}"
+-    sock = TCPSocket.new('127.0.0.1', @port)
++    sock = tcp_socket('127.0.0.1', @port)
+     sock.syswrite("PUT / HTTP/1.0\r\n")
+     sock.syswrite("Content-Length: #{@bs * @count}\r\n\r\n")
+     1000.times { Process.kill(:HUP, pid) }
+diff --git a/test/unit/test_socket_helper.rb b/test/unit/test_socket_helper.rb
+index fbc7bb9..62d5a3a 100644
+--- a/test/unit/test_socket_helper.rb
++++ b/test/unit/test_socket_helper.rb
+@@ -116,7 +116,7 @@ def test_bind_listen_unix_rebind
+       client.syswrite('abcde')
+       exit 0
+     end
+-    s = UNIXSocket.new(@unix_listener_path)
++    s = unix_socket(@unix_listener_path)
+     IO.select([s])
+     assert_equal 'abcde', s.sysread(5)
+     pid, status = Process.waitpid2(pid)
+diff --git a/test/unit/test_upload.rb b/test/unit/test_upload.rb
+index 8d90e50..76e6c1c 100644
+--- a/test/unit/test_upload.rb
++++ b/test/unit/test_upload.rb
+@@ -60,7 +60,7 @@ def teardown
+ 
+   def test_put
+     start_server(@sha1_app)
+-    sock = TCPSocket.new(@addr, @port)
++    sock = tcp_socket(@addr, @port)
+     sock.syswrite("PUT / HTTP/1.0\r\nContent-Length: #{length}\r\n\r\n")
+     @count.times do |i|
+       buf = @random.sysread(@bs)
+@@ -77,7 +77,7 @@ def test_put
+   def test_put_content_md5
+     md5 = Digest::MD5.new
+     start_server(@sha1_app)
+-    sock = TCPSocket.new(@addr, @port)
++    sock = tcp_socket(@addr, @port)
+     sock.syswrite("PUT / HTTP/1.0\r\nTransfer-Encoding: chunked\r\n" \
+                   "Trailer: Content-MD5\r\n\r\n")
+     @count.times do |i|
+@@ -103,7 +103,7 @@ def test_put_trickle_small
+     @count, @bs = 2, 128
+     start_server(@sha1_app)
+     assert_equal 256, length
+-    sock = TCPSocket.new(@addr, @port)
++    sock = tcp_socket(@addr, @port)
+     hdr = "PUT / HTTP/1.0\r\nContent-Length: #{length}\r\n\r\n"
+     @count.times do
+       buf = @random.sysread(@bs)
+@@ -122,7 +122,7 @@ def test_put_trickle_small
+ 
+   def test_put_keepalive_truncates_small_overwrite
+     start_server(@sha1_app)
+-    sock = TCPSocket.new(@addr, @port)
++    sock = tcp_socket(@addr, @port)
+     to_upload = length + 1
+     sock.syswrite("PUT / HTTP/1.0\r\nContent-Length: #{to_upload}\r\n\r\n")
+     @count.times do
+@@ -155,7 +155,7 @@ def test_put_excessive_overwrite_closed
+       tmp.write(nr.to_s)
+       [ 200, @hdr, [] ]
+     })
+-    sock = TCPSocket.new(@addr, @port)
++    sock = tcp_socket(@addr, @port)
+     buf = ' ' * @bs
+     sock.syswrite("PUT / HTTP/1.0\r\nContent-Length: #{length}\r\n\r\n")
+ 
