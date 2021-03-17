@@ -1,0 +1,66 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.2 (2018-09-13) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.2
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id 3DD4C1F9FC;
+	Wed, 17 Mar 2021 06:43:01 +0000 (UTC)
+Date: Wed, 17 Mar 2021 02:43:01 -0400
+From: Eric Wong <e@80x24.org>
+To: ruby-talk@ruby-lang.org, unicorn-public@yhbt.net
+Cc: Dirkjan Bussink <dbussink@github.com>,
+	John Crepezzi <seejohnrun@github.com>,
+	Kevin Sawicki <kevinsawicki@github.com>
+Subject: [ANN] unicorn 6.0.0 - Rack HTTP server for fast clients and *nix
+Message-ID: <20210317064301.GA613@dcvr>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+List-Id: <unicorn-public.yhbt.net>
+
+unicorn is an HTTP server for Rack applications designed to only serve
+fast clients on low-latency, high-bandwidth connections and take
+advantage of features in Unix/Unix-like kernels.  Slow clients should
+only be served by placing a reverse proxy capable of fully buffering
+both the the request and response in between unicorn and slow clients.
+
+.onion URLs below are available for Tor users and can reduce
+our operating costs:
+
+* https://yhbt.net/unicorn/
+  http://unicorn.ou63pmih66umazou.onion/
+* public list: unicorn-public@yhbt.net
+* mail archives: https://yhbt.net/unicorn-public/
+  http://ou63pmih66umazou.onion/unicorn-public/
+* git clone https://yhbt.net/unicorn.git
+  torsocks git clone http://ou63pmih66umazou.onion/unicorn.git
+* https://yhbt.net/unicorn/NEWS.atom.xml
+  http://unicorn.ou63pmih66umazou.onion/NEWS.atom.xml
+* nntps://news.public-inbox.org/inbox.comp.lang.ruby.unicorn
+  nntp://ou63pmih66umazou.onion/inbox.comp.lang.ruby.unicorn
+  imaps://news.public-inbox.org/inbox.comp.lang.ruby.unicorn.0
+  imap://ou63pmih66umazou.onion/inbox.comp.lang.ruby.unicorn.0
+
+Changes:
+
+    unicorn 6.0.0 - no more recycling Rack env
+    
+    This release allocates a new Rack `env' hash for every request.
+    This is done for safety with internally-(thread|event)-using Rack
+    apps which expect to use `env' after the normal Rack response is
+    complete, but without relying on rack.hijack[1].  Thanks to
+    Dirkjan Bussink <d.bussink@gmail.com> for the patch:
+    
+      https://yhbt.net/unicorn-public/66A68DD8-83EF-4C7A-80E8-3F1F7AB31670@github.com/
+    
+    The major version is bumped since:
+    
+    1) there are performance regressions for some simple Rack apps
+    
+    2) unsupported 3rd-party monkey patches which previously
+       relied on this behavior may be broken (our version of
+       OobGC was).
+    
+    The test suite is also more reliable on multi-core systems
+    and Ruby 3.x.
