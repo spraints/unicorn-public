@@ -1,0 +1,322 @@
+Return-Path: <vtamara@pasosdeJesus.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.2 (2018-09-13) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-Status: No, score=-3.2 required=3.0 tests=BAYES_00,RCVD_IN_DNSWL_HI,
+	SPF_HELO_NONE,SPF_PASS shortcircuit=no autolearn=ham
+	autolearn_force=no version=3.4.2
+Received: from kadosh.pasosdeJesus.org (static-200-75-47-189.static.etb.net.co [200.75.47.189])
+	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+	 key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA512)
+	(No client certificate requested)
+	by dcvr.yhbt.net (Postfix) with ESMTPS id E0FAB1F5AF
+	for <unicorn-public@yhbt.net>; Mon, 29 Mar 2021 19:06:08 +0000 (UTC)
+Received: from www.pasosdejesus.org (static-200-75-47-189.static.etb.net.co [200.75.47.189])
+	by kadosh.pasosdeJesus.org (OpenSMTPD) with ESMTPSA id 9a82eea4 (TLSv1.2:ECDHE-RSA-AES256-SHA:256:NO)
+	for <unicorn-public@yhbt.net>;
+	Mon, 29 Mar 2021 14:06:04 -0500 (-05)
+MIME-Version: 1.0
+Date: Mon, 29 Mar 2021 15:06:03 -0400
+From: vtamara <vtamara@pasosdeJesus.org>
+To: unicorn-public@yhbt.net
+Subject: Bus Error with Unicorn 6.0 on OpenBSD/adJ 6.8 with Ruby 3.0
+User-Agent: Roundcube Webmail/1.4.11
+Message-ID: <6acb1c84c7392d7b4a64572b20498549@pasosdeJesus.org>
+X-Sender: vtamara@pasosdeJesus.org
+Content-Type: text/plain; charset=UTF-8;
+ format=flowed
+Content-Transfer-Encoding: 8bit
+List-Id: <unicorn-public.yhbt.net>
+
+Hi
+
+Launching a rails application with Ruby 3, Unicorn 6 on OpenBSD/adJ 6.8, 
+I'm
+experiencing a lot of "Bus Error" and "Segmentation Faults" during 
+aproximately half hour. Around the first 10 minutes the application is 
+not accessible from a browser. After it is possible to use the 
+application and after half hour it runs withouth errors.  Pasting below 
+what appears in the log file after launching the application at 9:29AM 
+and trying to use it at 9:30AM:
+
+---------------------------------
+% grep ERROR log/unicorn.log
+E, [2021-03-29T09:30:03.442089 #41947] ERROR -- : reaped 
+#<Process::Status: pid 76292 SIGBUS (signal 10) (core dumped)> worker=1
+E, [2021-03-29T09:30:03.510420 #41947] ERROR -- : reaped 
+#<Process::Status: pid 64220 SIGBUS (signal 10) (core dumped)> worker=0
+E, [2021-03-29T09:30:18.142316 #41947] ERROR -- : reaped 
+#<Process::Status: pid 92400 SIGBUS (signal 10) (core dumped)> worker=1
+E, [2021-03-29T09:30:18.479996 #41947] ERROR -- : reaped 
+#<Process::Status: pid 91828 SIGSEGV (signal 11) (core dumped)> worker=0
+E, [2021-03-29T09:30:31.009344 #41947] ERROR -- : reaped 
+#<Process::Status: pid 69666 SIGBUS (signal 10) (core dumped)> worker=1
+E, [2021-03-29T09:30:31.773215 #41947] ERROR -- : reaped 
+#<Process::Status: pid 932 SIGBUS (signal 10) (core dumped)> worker=0
+E, [2021-03-29T09:30:41.854087 #41947] ERROR -- : reaped 
+#<Process::Status: pid 89615 SIGBUS (signal 10) (core dumped)> worker=1
+E, [2021-03-29T09:30:43.806074 #41947] ERROR -- : reaped 
+#<Process::Status: pid 85832 SIGBUS (signal 10) (core dumped)> worker=0
+E, [2021-03-29T09:30:51.204133 #41947] ERROR -- : reaped 
+#<Process::Status: pid 22197 SIGBUS (signal 10) (core dumped)> worker=1
+E, [2021-03-29T09:30:54.411162 #41947] ERROR -- : reaped 
+#<Process::Status: pid 41441 SIGBUS (signal 10) (core dumped)> worker=0
+...
+---------------------------------
+
+It failed 175 times between 9:30 and 9:56 (around 7 times per minute).
+
+I'm pasting below details of the first errors (the others are very 
+similar):
+
+---------------------------------
+I, [2021-03-29T09:29:43.080073 #41947]  INFO -- : listening on 
+addr=0.0.0.0:2023 fd=12
+I, [2021-03-29T09:29:43.080590 #41947]  INFO -- : worker=0 spawning...
+I, [2021-03-29T09:29:43.085933 #41947]  INFO -- : worker=1 spawning...
+I, [2021-03-29T09:29:43.092779 #41947]  INFO -- : master process ready
+I, [2021-03-29T09:29:43.097320 #64220]  INFO -- : worker=0 spawned 
+pid=64220
+I, [2021-03-29T09:29:43.099608 #64220]  INFO -- : Refreshing Gem list
+I, [2021-03-29T09:29:43.098921 #76292]  INFO -- : worker=1 spawned 
+pid=76292
+I, [2021-03-29T09:29:43.101231 #76292]  INFO -- : Refreshing Gem list
+/var/www/bundler/ruby/3.0/gems/unicorn-6.0.0/lib/unicorn.rb:80: [BUG] 
+Bus Error at 0x000003cb54021715
+ruby 3.0.0p0 (2020-12-25 revision 95aff21468) [x86_64-openbsd]
+
+-- Control frame information 
+-----------------------------------------------
+E, [2021-03-29T09:30:03.442089 #41947] ERROR -- : reaped 
+#<Process::Status: pid 76292 SIGBUS (signal 10) (core dumped)> worker=1
+I, [2021-03-29T09:30:03.442265 #41947]  INFO -- : worker=1 spawning...
+I, [2021-03-29T09:30:03.450867 #92400]  INFO -- : worker=1 spawned 
+pid=92400
+I, [2021-03-29T09:30:03.451758 #92400]  INFO -- : Refreshing Gem list
+E, [2021-03-29T09:30:03.510420 #41947] ERROR -- : reaped 
+#<Process::Status: pid 64220 SIGBUS (signal 10) (core dumped)> worker=0
+I, [2021-03-29T09:30:03.510651 #41947]  INFO -- : worker=0 spawning...
+I, [2021-03-29T09:30:03.519324 #91828]  INFO -- : worker=0 spawned 
+pid=91828
+I, [2021-03-29T09:30:03.520401 #91828]  INFO -- : Refreshing Gem list
+/var/www/bundler/ruby/3.0/gems/unicorn-6.0.0/lib/unicorn.rb:80: [BUG] 
+Bus Error at 0x000003cb5402178a
+ruby 3.0.0p0 (2020-12-25 revision 95aff21468) [x86_64-openbsd]
+
+-- Control frame information 
+-----------------------------------------------
+/var/www/bundler/ruby/3.0/gems/unicorn-6.0.0/lib/unicorn.rb:80: [BUG] 
+Segmentation fault at 0x0000002100100001
+ruby 3.0.0p0 (2020-12-25 revision 95aff21468) [x86_64-openbsd]
+
+-- Control frame information 
+-----------------------------------------------
+E, [2021-03-29T09:30:18.142316 #41947] ERROR -- : reaped 
+#<Process::Status: pid 92400 SIGBUS (signal 10) (core dumped)> worker=1
+I, [2021-03-29T09:30:18.142690 #41947]  INFO -- : worker=1 spawning...
+I, [2021-03-29T09:30:18.151973 #69666]  INFO -- : worker=1 spawned 
+pid=69666
+I, [2021-03-29T09:30:18.152831 #69666]  INFO -- : Refreshing Gem list
+E, [2021-03-29T09:30:18.479996 #41947] ERROR -- : reaped 
+#<Process::Status: pid 91828 SIGSEGV (signal 11) (core dumped)> worker=0
+I, [2021-03-29T09:30:18.480196 #41947]  INFO -- : worker=0 spawning...
+I, [2021-03-29T09:30:18.488551 #932]  INFO -- : worker=0 spawned pid=932
+I, [2021-03-29T09:30:18.489657 #932]  INFO -- : Refreshing Gem list
+/var/www/bundler/ruby/3.0/gems/unicorn-6.0.0/lib/unicorn.rb:80: [BUG] 
+Bus Error at 0x000003cb5402178a
+ruby 3.0.0p0 (2020-12-25 revision 95aff21468) [x86_64-openbsd]
+
+-- Control frame information 
+-----------------------------------------------
+/var/www/bundler/ruby/3.0/gems/unicorn-6.0.0/lib/unicorn.rb:80: [BUG] 
+Bus Error at 0x000003cb54021715
+...
+
+----------------------------------------
+
+The line 80 of the file 
+/var/www/bundler/ruby/3.0/gems/unicorn-6.0.0/lib/unicorn.rb is:
+
+case ENV["RACK_ENV"]
+
+Only 4 errors had a backtrace, pasting the first one:
+
+----------------------------------------
+I, [2021-03-29T09:34:31.278771 #37959]  INFO -- : Refreshing Gem list
+/var/www/bundler/ruby/3.0/gems/unicorn-6.0.0/lib/unicorn.rb:80: [BUG] 
+Segmentation fault at 0x0000000000000019
+ruby 3.0.0p0 (2020-12-25 revision 95aff21468) [x86_64-openbsd]
+
+-- Control frame information 
+-----------------------------------------------
+c:0027 p:0168 s:0177 e:000174 BLOCK  
+/var/www/bundler/ruby/3.0/gems/unicorn-6.0.0/lib/unicorn.rb:80
+c:0026 p:0040 s:0167 e:000166 BLOCK  
+/var/www/bundler/ruby/3.0/gems/unicorn-6.0.0/bin/unicorn_rails:139
+c:0025 p:0098 s:0160 e:000157 METHOD 
+/var/www/bundler/ruby/3.0/gems/unicorn-6.0.0/lib/unicorn/http_server.rb:826
+c:0024 p:0180 s:0154 E:001988 METHOD 
+/var/www/bundler/ruby/3.0/gems/unicorn-6.0.0/lib/unicorn/http_server.rb:690
+c:0023 p:0010 s:0147 e:000146 METHOD 
+/var/www/bundler/ruby/3.0/gems/unicorn-6.0.0/lib/unicorn/http_server.rb:712
+c:0022 p:0122 s:0132 e:000131 METHOD 
+/var/www/bundler/ruby/3.0/gems/unicorn-6.0.0/lib/unicorn/http_server.rb:547
+c:0021 p:0030 s:0124 e:000123 METHOD 
+/var/www/bundler/ruby/3.0/gems/unicorn-6.0.0/lib/unicorn/http_server.rb:561
+c:0020 p:0205 s:0119 e:000118 METHOD 
+/var/www/bundler/ruby/3.0/gems/unicorn-6.0.0/lib/unicorn/http_server.rb:294
+c:0019 p:0230 s:0111 E:001550 TOP    
+/var/www/bundler/ruby/3.0/gems/unicorn-6.0.0/bin/unicorn_rails:209 
+[FINISH]
+c:0018 p:---- s:0104 e:000103 CFUNC  :load
+c:0017 p:0112 s:0099 e:000098 TOP    /usr/local/bin/unicorn_rails:23 
+[FINISH]
+c:0016 p:---- s:0094 e:000093 CFUNC  :load
+c:0015 p:0107 s:0089 e:000088 METHOD 
+/usr/local/lib/ruby/gems/3.0/gems/bundler-2.2.15/lib/bundler/cli/exec.rb:63
+c:0014 p:0071 s:0083 e:000082 METHOD 
+/usr/local/lib/ruby/gems/3.0/gems/bundler-2.2.15/lib/bundler/cli/exec.rb:28
+c:0013 p:0024 s:0078 e:000077 METHOD 
+/usr/local/lib/ruby/gems/3.0/gems/bundler-2.2.15/lib/bundler/cli.rb:494
+c:0012 p:0054 s:0073 e:000072 METHOD 
+/usr/local/lib/ruby/gems/3.0/gems/bundler-2.2.15/lib/bundler/vendor/thor/lib/thor/command.rb:27
+c:0011 p:0040 s:0065 e:000064 METHOD 
+/usr/local/lib/ruby/gems/3.0/gems/bundler-2.2.15/lib/bundler/vendor/thor/lib/thor/invocation.rb:127
+c:0010 p:0239 s:0058 e:000057 METHOD 
+/usr/local/lib/ruby/gems/3.0/gems/bundler-2.2.15/lib/bundler/vendor/thor/lib/thor.rb:392
+c:0009 p:0008 s:0045 e:000044 METHOD 
+/usr/local/lib/ruby/gems/3.0/gems/bundler-2.2.15/lib/bundler/cli.rb:30
+c:0008 p:0066 s:0040 e:000039 METHOD 
+/usr/local/lib/ruby/gems/3.0/gems/bundler-2.2.15/lib/bundler/vendor/thor/lib/thor/base.rb:485
+c:0007 p:0008 s:0033 e:000032 METHOD 
+/usr/local/lib/ruby/gems/3.0/gems/bundler-2.2.15/lib/bundler/cli.rb:24
+c:0006 p:0109 s:0028 e:000027 BLOCK  
+/usr/local/lib/ruby/gems/3.0/gems/bundler-2.2.15/exe/bundle:49
+c:0005 p:0014 s:0022 e:000021 METHOD 
+/usr/local/lib/ruby/gems/3.0/gems/bundler-2.2.15/lib/bundler/friendly_errors.rb:130
+c:0004 p:0162 s:0017 E:001778 TOP    
+/usr/local/lib/ruby/gems/3.0/gems/bundler-2.2.15/exe/bundle:37 [FINISH]
+c:0003 p:---- s:0013 e:000012 CFUNC  :load
+c:0002 p:0112 s:0008 E:001580 EVAL   /usr/local/bin/bundle:23 [FINISH]
+c:0001 p:0000 s:0003 E:000740 (none) [FINISH]
+
+-- Ruby level backtrace information 
+----------------------------------------
+/usr/local/bin/bundle:23:in `<main>'
+/usr/local/bin/bundle:23:in `load'
+/usr/local/lib/ruby/gems/3.0/gems/bundler-2.2.15/exe/bundle:37:in `<top 
+(required)>'
+/usr/local/lib/ruby/gems/3.0/gems/bundler-2.2.15/lib/bundler/friendly_errors.rb:130:in 
+`with_friendly_errors'
+/usr/local/lib/ruby/gems/3.0/gems/bundler-2.2.15/exe/bundle:49:in `block 
+in <top (required)>'
+/usr/local/lib/ruby/gems/3.0/gems/bundler-2.2.15/lib/bundler/cli.rb:24:in 
+`start'
+/usr/local/lib/ruby/gems/3.0/gems/bundler-2.2.15/lib/bundler/vendor/thor/lib/thor/base.rb:485:in 
+`start'
+/usr/local/lib/ruby/gems/3.0/gems/bundler-2.2.15/lib/bundler/cli.rb:30:in 
+`dispatch'
+/usr/local/lib/ruby/gems/3.0/gems/bundler-2.2.15/lib/bundler/vendor/thor/lib/thor.rb:392:in 
+`dispatch'
+/usr/local/lib/ruby/gems/3.0/gems/bundler-2.2.15/lib/bundler/vendor/thor/lib/thor/invocation.rb:127:in 
+`invoke_command'
+/usr/local/lib/ruby/gems/3.0/gems/bundler-2.2.15/lib/bundler/vendor/thor/lib/thor/command.rb:27:in 
+`run'
+/usr/local/lib/ruby/gems/3.0/gems/bundler-2.2.15/lib/bundler/cli.rb:494:in 
+`exec'
+/usr/local/lib/ruby/gems/3.0/gems/bundler-2.2.15/lib/bundler/cli/exec.rb:28:in 
+`run'
+/usr/local/lib/ruby/gems/3.0/gems/bundler-2.2.15/lib/bundler/cli/exec.rb:63:in 
+`kernel_load'
+/usr/local/lib/ruby/gems/3.0/gems/bundler-2.2.15/lib/bundler/cli/exec.rb:63:in 
+`load'
+/usr/local/bin/unicorn_rails:23:in `<top (required)>'
+/usr/local/bin/unicorn_rails:23:in `load'
+/var/www/bundler/ruby/3.0/gems/unicorn-6.0.0/bin/unicorn_rails:209:in 
+`<top (required)>'
+/var/www/bundler/ruby/3.0/gems/unicorn-6.0.0/lib/unicorn/http_server.rb:294:in 
+`join'
+/var/www/bundler/ruby/3.0/gems/unicorn-6.0.0/lib/unicorn/http_server.rb:561:in 
+`maintain_worker_count'
+/var/www/bundler/ruby/3.0/gems/unicorn-6.0.0/lib/unicorn/http_server.rb:547:in 
+`spawn_missing_workers'
+/var/www/bundler/ruby/3.0/gems/unicorn-6.0.0/lib/unicorn/http_server.rb:712:in 
+`worker_loop'
+/var/www/bundler/ruby/3.0/gems/unicorn-6.0.0/lib/unicorn/http_server.rb:690:in 
+`init_worker_process'
+/var/www/bundler/ruby/3.0/gems/unicorn-6.0.0/lib/unicorn/http_server.rb:826:in 
+`build_app!'
+/var/www/bundler/ruby/3.0/gems/unicorn-6.0.0/bin/unicorn_rails:139:in 
+`block in rails_builder'
+/var/www/bundler/ruby/3.0/gems/unicorn-6.0.0/lib/unicorn.rb:80:in `block 
+in builder'
+
+-- Other runtime information 
+-----------------------------------------------
+
+* Loaded script: unicorn_rails worker[0] -c 
+/var/www/htdocs/sivel2/config/unicorn.conf.minimal.rb -E production -D
+
+* Loaded features:
+
+     0 enumerator.so
+     1 thread.rb
+     2 rational.so
+     3 complex.so
+     4 ruby2_keywords.rb
+     5 /usr/local/lib/ruby/3.0/x86_64-openbsd/enc/encdb.so
+     6 /usr/local/lib/ruby/3.0/x86_64-openbsd/enc/trans/transdb.so
+     7 /usr/local/lib/ruby/3.0/x86_64-openbsd/rbconfig.rb
+     8 /usr/local/lib/ruby/site_ruby/3.0/rubygems/compatibility.rb
+     9 /usr/local/lib/ruby/site_ruby/3.0/rubygems/defaults.rb
+    10 /usr/local/lib/ruby/site_ruby/3.0/rubygems/deprecate.rb
+    11 /usr/local/lib/ruby/site_ruby/3.0/rubygems/errors.rb
+    12 /usr/local/lib/ruby/site_ruby/3.0/rubygems/exceptions.rb
+    13 /usr/local/lib/ruby/site_ruby/3.0/rubygems/basic_specification.rb
+    14 /usr/local/lib/ruby/site_ruby/3.0/rubygems/stub_specification.rb
+    15 /usr/local/lib/ruby/site_ruby/3.0/rubygems/text.rb
+    16 /usr/local/lib/ruby/site_ruby/3.0/rubygems/user_interaction.rb
+    17 /usr/local/lib/ruby/site_ruby/3.0/rubygems/specification_policy.rb
+    18 /usr/local/lib/ruby/site_ruby/3.0/rubygems/util/list.rb
+    19 /usr/local/lib/ruby/site_ruby/3.0/rubygems/platform.rb
+    20 /usr/local/lib/ruby/site_ruby/3.0/rubygems/version.rb
+    21 /usr/local/lib/ruby/site_ruby/3.0/rubygems/requirement.rb
+    22 /usr/local/lib/ruby/site_ruby/3.0/rubygems/specification.rb
+    23 /usr/local/lib/ruby/site_ruby/3.0/rubygems/util.rb
+    24 /usr/local/lib/ruby/site_ruby/3.0/rubygems/dependency.rb
+...
+  2937 
+/var/www/bundler/ruby/3.0/gems/actioncable-6.1.3.1/lib/action_cable/server/connections.rb
+  2938 
+/var/www/bundler/ruby/3.0/gems/actioncable-6.1.3.1/lib/action_cable/server/configuration.rb
+  2939 
+/var/www/bundler/ruby/3.0/gems/actioncable-6.1.3.1/lib/action_cable/server/worker/active_record_connection_management.rb
+  2940 
+/var/www/bundler/ruby/3.0/gems/actioncable-6.1.3.1/lib/action_cable/server/worker.rb
+  2941 
+/var/www/bundler/ruby/3.0/gems/actioncable-6.1.3.1/lib/action_cable/channel.rb
+  2942 
+/var/www/bundler/ruby/3.0/gems/actioncable-6.1.3.1/lib/action_cable/channel/callbacks.rb
+  2943 
+/var/www/bundler/ruby/3.0/gems/actioncable-6.1.3.1/lib/action_cable/channel/periodic_timers.rb
+  2944 
+/var/www/bundler/ruby/3.0/gems/actioncable-6.1.3.1/lib/action_cable/channel/streams.rb
+  2945 
+/var/www/bundler/ruby/3.0/gems/actioncable-6.1.3.1/lib/action_cable/channel/naming.rb
+  2946 
+/var/www/bundler/ruby/3.0/gems/actioncable-6.1.3.1/lib/action_cable/channel/broadcasting.rb
+  2947 
+/var/www/bundler/ruby/3.0/gems/actioncable-6.1.3.1/lib/action_cable/channel/base.rb
+  2948 
+/var/www/bundler/ruby/3.0/gems/actioncable-6.1.3.1/lib/action_cable/server/base.rb
+  2949 /var/www/htdocs/sivel2/config/environment.rb
+
+----------------------------------------
+
+
+Blessings
+
+-- 
+Dios, gracias por tu amor infinito.
+--
+   Vladimir Támara Patiño.  http://vtamara.pasosdeJesus.org/
+   http://www.pasosdejesus.org/dominio_publico_colombia.html
