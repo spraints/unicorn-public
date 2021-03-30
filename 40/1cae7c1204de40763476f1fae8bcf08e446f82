@@ -1,0 +1,81 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.2 (2018-09-13) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.2
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id 5A6071F5AF;
+	Tue, 30 Mar 2021 01:58:06 +0000 (UTC)
+Date: Tue, 30 Mar 2021 01:58:06 +0000
+From: Eric Wong <e@80x24.org>
+To: vtamara <vtamara@pasosdeJesus.org>
+Cc: unicorn-public@yhbt.net, Jeremy Evans <code@jeremyevans.net>
+Subject: Re: Bus Error with Unicorn 6.0 on OpenBSD/adJ 6.8 with Ruby 3.0
+Message-ID: <20210330015806.GA4267@dcvr>
+References: <6acb1c84c7392d7b4a64572b20498549@pasosdeJesus.org>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <6acb1c84c7392d7b4a64572b20498549@pasosdeJesus.org>
+List-Id: <unicorn-public.yhbt.net>
+
+vtamara <vtamara@pasosdeJesus.org> wrote:
+> Hi
+> 
+> Launching a rails application with Ruby 3, Unicorn 6 on OpenBSD/adJ 6.8, I'm
+> experiencing a lot of "Bus Error" and "Segmentation Faults" during
+> aproximately half hour.
+
++Cc: Jeremy Evans, who is more familiar with OpenBSD and Ruby 3.0 than I
+cf. https://yhbt.net/unicorn-public/6acb1c84c7392d7b4a64572b20498549@pasosdeJesus.org/
+
+vtamara: did previous versions of Ruby, unicorn, or OpenBSD work
+for your app?
+
+Is preload_app in use?  If so, does the problem manifest without
+preload_app?
+
+Are you using Ractor or any other new/experimental stuff
+in Ruby?
+
+Can you reproduce the problem with a simple "hello world"-style app?
+
+> The line 80 of the file
+> /var/www/bundler/ruby/3.0/gems/unicorn-6.0.0/lib/unicorn.rb is:
+> 
+> case ENV["RACK_ENV"]
+> 
+> Only 4 errors had a backtrace, pasting the first one:
+> 
+> ----------------------------------------
+> I, [2021-03-29T09:34:31.278771 #37959]  INFO -- : Refreshing Gem list
+> /var/www/bundler/ruby/3.0/gems/unicorn-6.0.0/lib/unicorn.rb:80: [BUG]
+> Segmentation fault at 0x0000000000000019
+
+That's a strange one, I wonder if OpenBSD getenv(3) has some
+restrictions or other odd behaviors with it?
+
+Do you have any code/dependencies which are calling "ENV#[]=" in
+Ruby; setenv()/putenv() in C, or modifying "environ" directly
+in C?
+
+Especially in sub-threads/Ractors at startup...
+
+<snip>
+
+> * Loaded features:
+> 
+>     0 enumerator.so
+>     1 thread.rb
+>     2 rational.so
+>     3 complex.so
+>     4 ruby2_keywords.rb
+>     5 /usr/local/lib/ruby/3.0/x86_64-openbsd/enc/encdb.so
+>     6 /usr/local/lib/ruby/3.0/x86_64-openbsd/enc/trans/transdb.so
+
+<snip>
+
+> ...
+
+Any other .so extensions?  C extensions can do any number of
+things and maybe some interact badly...
