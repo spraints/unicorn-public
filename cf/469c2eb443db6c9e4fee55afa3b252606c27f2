@@ -1,0 +1,243 @@
+Return-Path: <vtamara@pasosdeJesus.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.2 (2018-09-13) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS19429 200.75.40.0/21
+X-Spam-Status: No, score=-2.6 required=3.0 tests=AWL,BAYES_00,
+	NUMERIC_HTTP_ADDR,RCVD_IN_DNSWL_HI,SPF_HELO_NONE,SPF_PASS
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.2
+Received: from kadosh.pasosdeJesus.org (static-200-75-47-189.static.etb.net.co [200.75.47.189])
+	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+	 key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA512)
+	(No client certificate requested)
+	by dcvr.yhbt.net (Postfix) with ESMTPS id 149A21F934
+	for <unicorn-public@yhbt.net>; Sun,  4 Apr 2021 11:06:39 +0000 (UTC)
+Received: from www.pasosdejesus.org (static-200-75-47-189.static.etb.net.co [200.75.47.189])
+	by kadosh.pasosdeJesus.org (OpenSMTPD) with ESMTPSA id 81a331fd (TLSv1.2:ECDHE-RSA-AES256-SHA:256:NO);
+	Sun, 4 Apr 2021 06:06:32 -0500 (-05)
+MIME-Version: 1.0
+Date: Sun, 04 Apr 2021 07:06:30 -0400
+From: vtamara <vtamara@pasosdeJesus.org>
+To: Jeremy Evans <code@jeremyevans.net>
+Cc: Eric Wong <e@80x24.org>, unicorn-public@yhbt.net
+Subject: Re: Bus Error with Unicorn 6.0 on OpenBSD/adJ 6.8 with Ruby 3.0
+In-Reply-To: <YGKiXgl+TpMt3NYd@jeremyevans.local>
+References: <6acb1c84c7392d7b4a64572b20498549@pasosdeJesus.org>
+ <20210330015806.GA4267@dcvr> <YGKiXgl+TpMt3NYd@jeremyevans.local>
+User-Agent: Roundcube Webmail/1.4.11
+Message-ID: <fa1cb645f69f04b609cf5f4dc804830b@pasosdeJesus.org>
+X-Sender: vtamara@pasosdeJesus.org
+Content-Type: text/plain; charset=UTF-8;
+ format=flowed
+Content-Transfer-Encoding: 8bit
+List-Id: <unicorn-public.yhbt.net>
+
+Hi
+
+Thank you very much for the reply and the interest in helping.
+
+> vtamara: did previous versions of Ruby, unicorn, or OpenBSD work
+> for your app?
+
+The application was working withouth issue on OpenBSD/adJ amd64 6.7, 
+ruby 2.7 and unicorn 6.0.  So there is something in conflict betweeen 
+Unicorn 6.0 with OpenBSD/adJ 6.8 and ruby 3.0.
+
+> Is preload_app in use?  If so, does the problem manifest without
+> preload_app?
+
+No
+
+> Are you using Ractor or any other new/experimental stuff
+> in Ruby?
+
+No
+
+> Can you reproduce the problem with a simple "hello world"-style app?
+
+I don't have a hello world example at hand, but some projects that 
+present this problem when I run them on OpenBSD/adJ amd64 6.8, nginx 
+1.18.0, node 12.16.1, PostgreSQL 13.2, Ruby 3.0, Rails 6.1 and Unicorn 
+6.0 are:
+
+https://github.com/pasosdeJesus/cor1440
+https://github.com/pasosdeJesus/cor1440_pdJ
+https://github.com/pasosdeJesus/sivel2
+https://github.com/pasosdeJesus/si_anzorc
+https://github.com/pasosdeJesus/si_asom
+https://github.com/pasosdeJesus/si_codacop
+https://github.com/pasosdeJesus/sivel2_mujeresindigenas/
+
+The simplest of them is https://github.com/pasosdeJesus/cor1440, althoug 
+it requires:
+* PostgreSQL
+* nginx
+* nodejs
+* yarn. I install it with: doas pkg_add bash; ftp -o- 
+https://yarnpkg.com/install.sh | bash
+* A directory /var/www/bundler/ruby/3.0 where I install the gems with 
+the permissions of a user (not root) that runs the application, and 
+better running:
+   bundle config path /var/www/bundler/.
+* unicorn installed globally with:
+   doas gem install unicorn
+   doas ln -s /usr/local/bin/unicorn_rails30 /usr/local/bin/unicorn
+
+To create the PostgreSQL user (in the following example sipdes) and a 
+database for the production environment  (in the following example 
+cor1440gen_pro):
+
+   doas su - _postgresql
+   createuser -h /var/www/var/run/postgresql/ -U postgres -s sipdes
+   createdb -h /var/www/var/run/postgresql/ -U postgres -O sipdes 
+cor1440gen_pro
+   psql -h /var/www/var/run/postgresql/ -U postgres
+   postgres=# alter user sipdes with password 'xyz';
+   postgres=# \q
+   exit
+
+With nginx suppossng I will run the application in localhost over SSL, 
+what I do is to choose an unused port (let's say 2009) and add to the 
+/etc/nginx/nginx.conf configuration in its http block:
+
+  upstream unicorncor1440 {
+	  server 127.0.0.1:2009 fail_timeout=0;
+   }
+
+I also add a server block inside the http block with:
+
+   server {
+       listen 443 ssl;
+       ssl_certificate /etc/ssl/server.crt;
+       ssl_certificate_key /etc/ssl/private/server.key;
+       root /var/www/htdocs/cor1440/;
+       server_name 127.0.0.1;
+       error_log logs/cor1440.rror.log;
+
+       location /cor1440 {
+         try_files $uri @unicorncor1440;
+       }
+
+       location @unicorncor1440 {
+         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+         proxy_set_header X-Forwarded-Proto $scheme;
+         proxy_set_header Host $http_host;
+         proxy_redirect off;
+         proxy_pass http://unicorncor1440;
+         error_page 500 502 503 504 /500.html;
+         keepalive_timeout 10;
+       }
+
+       location ^~ /cor1440/assets/ {
+         gzip_static on;
+         expires max;
+         add_header Cache-Control public;
+         root /var/www/htdocs/cor1440/public/;
+       }
+
+       location ^~ /cor1440/images/ {
+         gzip_static on;
+         expires max;
+         add_header Cache-Control public;
+         root /var/www/htdocs/cor1440/public/;
+       }
+
+       location ^~ /cor1440/packs/ {
+         gzip_static on;
+         add_header Cache-Control public;
+         root /var/www/htdocs/cor1440/public/;
+       }
+     }
+
+And restarted nginx:
+
+   doas rcctl restart nginx
+
+Then to configure:
+
+   cd /tmp
+   git clone git@github.com:pasosdeJesus/cor1440
+   doas mv cor1440 /var/www/htdocs/
+   doas chown -R $USER:$USER /var/www/htdocs/cor1440
+   cd /var/www/htdocs/cor1440
+   mkdir .bundle
+   echo '---' > .bundle/config
+   echo 'BUNDLE_PATH: "/var/www/bundler"' >> .bundle/config
+   echo 'BUNDLE_DISABLE_SHARED_GEMS: "true"' >> .bundle/config
+   bundle
+
+Here some gems will require installing with special permissions for 
+example:
+
+   doas gem install --install-dir /var/www/bundler/ruby/3.0 unicorn
+
+Other gems that will require this kind of installation will be:
+   racc nio4r websocket-driver bcrypt bindex msgpack ffi redcarpet kgio 
+libxml-ruby pg
+   nokogiri bootsnap puma sassc
+
+Once bundle runs completely:
+
+   cp .env.plantilla .env
+   vi .env
+
+There I set the variables:
+* BD_USUARIO with the database user,
+* BD_CLAVE with the password
+* BD_PRO with the name of the production database
+* CONFIG_HOSTS=127.0.0.1
+* DIRAP with the path to the application
+* RAILS_ENV=production
+* PUERTOUNICORN with the port I choosed and set in nginx.conf
+* USUARIO_AP with the operating system user who will run the application
+
+Prepare credentials and database:
+
+   bin/rails credentials:edit
+   RAILS_ENV=production bin/rails credentials:edit
+   bin/railsp db:setup  db:migrate sip:indices
+
+Precompile assets:
+
+   CXX=c++ yarn
+   doas ln -s /usr/local/bin/node /tmp  # To overcome bug of node with 
+rails on OpenBSD
+   bin/railsp assets:precompile
+
+Run the application with:
+   SECRET_KEY_BASE=cf46 DIRAP=/var/www/htdocs/cor1440/ bin/u.sh
+
+Trying to see the application running with a browser in 
+https://127.0.0.1/cor1440 will produce the errors described in 
+log/unicorn.log.
+
+Blessings. Thank you.
+
+El 2021-03-30 00:00, Jeremy Evans escribió:
+> On 03/30 01:58, Eric Wong wrote:
+>> vtamara <vtamara@pasosdeJesus.org> wrote:
+>> > Hi
+>> >
+>> > Launching a rails application with Ruby 3, Unicorn 6 on OpenBSD/adJ 6.8, I'm
+>> > experiencing a lot of "Bus Error" and "Segmentation Faults" during
+>> > aproximately half hour.
+>> 
+>> +Cc: Jeremy Evans, who is more familiar with OpenBSD and Ruby 3.0 than 
+>> I
+>> cf. 
+>> https://yhbt.net/unicorn-public/6acb1c84c7392d7b4a64572b20498549@pasosdeJesus.org/
+> 
+> I'll be happy to look into this if a minimal self-contained 
+> reproducible
+> example is posted.  Personally, I run my Ruby apps on OpenBSD amd64 
+> with
+> Unicorn, and haven't seen similar errors.  However, I don't use
+> preload_app and use fairly minimal dependencies.
+> 
+> Thanks,
+> Jeremy
+
+-- 
+Dios, gracias por tu amor infinito.
+--
+   Vladimir Támara Patiño.  http://vtamara.pasosdeJesus.org/
+   http://www.pasosdejesus.org/dominio_publico_colombia.html
