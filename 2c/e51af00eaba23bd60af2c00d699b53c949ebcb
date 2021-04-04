@@ -1,0 +1,47 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.2 (2018-09-13) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.2
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id 6331B1F4B4;
+	Sun,  4 Apr 2021 20:03:58 +0000 (UTC)
+Date: Sun, 4 Apr 2021 20:03:58 +0000
+From: Eric Wong <e@80x24.org>
+To: vtamara <vtamara@pasosdejesus.org>
+Cc: Jeremy Evans <code@jeremyevans.net>, unicorn-public@yhbt.net
+Subject: Re: Bus Error with Unicorn 6.0 on OpenBSD/adJ 6.8 with Ruby 3.0
+Message-ID: <20210404200358.GA32719@dcvr>
+References: <6acb1c84c7392d7b4a64572b20498549@pasosdeJesus.org>
+ <20210330015806.GA4267@dcvr>
+ <YGKiXgl+TpMt3NYd@jeremyevans.local>
+ <fa1cb645f69f04b609cf5f4dc804830b@pasosdeJesus.org>
+ <YGnsxfqRYQFzA3/r@jeremyevans.local>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <YGnsxfqRYQFzA3/r@jeremyevans.local>
+List-Id: <unicorn-public.yhbt.net>
+
+Jeremy Evans <code@jeremyevans.net> wrote:
+> Unfortunately, given the required amount of setup, I don't think I'll
+> have time to look into this.  The best way to debug this is to start
+> removing code/dependencies piece by piece until the problem goes away.
+> Once the problem goes away, add that code back, and make sure it fails
+> again, then start removing other code/dependencies.  Repeat this process
+> until you have the most minimal example, where removing any additional
+> code/dependencies will stop the code from failing.
+
+The above is exactly what I would do, too.
+
+I would also try to correlate the time of Bus Errors with logs
+of when + which requests are failing, and try replaying only
+those requests to narrow things down.
+
+Also, do you have core dumps enabled?  Enable those
+("ulimit -c unlimited" in sh), and run gdb on them as you get
+them.  The .gdbinit in the source tree of the Ruby version
+you're using is helpful not just for Ruby itself, but
+also C extensions, too.  I'm no a gdb expert, but it's
+well-documented and has built-in help.
