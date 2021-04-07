@@ -1,0 +1,297 @@
+Return-Path: <vtamara@pasosdeJesus.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.2 (2018-09-13) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS19429 200.75.40.0/21
+X-Spam-Status: No, score=-2.2 required=3.0 tests=AWL,BAYES_00,
+	NUMERIC_HTTP_ADDR,SPF_HELO_NONE,SPF_PASS shortcircuit=no autolearn=ham
+	autolearn_force=no version=3.4.2
+Received: from kadosh.pasosdeJesus.org (static-200-75-47-189.static.etb.net.co [200.75.47.189])
+	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+	 key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA512)
+	(No client certificate requested)
+	by dcvr.yhbt.net (Postfix) with ESMTPS id 26BC61F934
+	for <unicorn-public@yhbt.net>; Wed,  7 Apr 2021 21:19:53 +0000 (UTC)
+Received: from www.pasosdejesus.org (static-200-75-47-189.static.etb.net.co [200.75.47.189])
+	by kadosh.pasosdeJesus.org (OpenSMTPD) with ESMTPSA id 7e589367 (TLSv1.2:ECDHE-RSA-AES256-SHA:256:NO);
+	Wed, 7 Apr 2021 16:19:45 -0500 (-05)
+MIME-Version: 1.0
+Date: Wed, 07 Apr 2021 17:19:44 -0400
+From: vtamara <vtamara@pasosdeJesus.org>
+To: Eric Wong <e@80x24.org>
+Cc: Jeremy Evans <code@jeremyevans.net>, unicorn-public@yhbt.net,
+ ports@openbsd.org
+Subject: Bus Error with Unicorn 6.0 on OpenBSD-current (6.9) with Ruby 3.0 in
+ minimal rails application
+In-Reply-To: <20210404200358.GA32719@dcvr>
+References: <6acb1c84c7392d7b4a64572b20498549@pasosdeJesus.org>
+ <20210330015806.GA4267@dcvr> <YGKiXgl+TpMt3NYd@jeremyevans.local>
+ <fa1cb645f69f04b609cf5f4dc804830b@pasosdeJesus.org>
+ <YGnsxfqRYQFzA3/r@jeremyevans.local> <20210404200358.GA32719@dcvr>
+User-Agent: Roundcube Webmail/1.4.11
+Message-ID: <895749618d9ff29d99b7ab8e0596b6eb@pasosdeJesus.org>
+X-Sender: vtamara@pasosdeJesus.org
+Content-Type: text/plain; charset=UTF-8;
+ format=flowed
+Content-Transfer-Encoding: 8bit
+List-Id: <unicorn-public.yhbt.net>
+
+Good evening
+
+I found that the problem happens also:
+
+1. In OpenBSD-current (what will be 6.9 soon) --for that reason I copy 
+to ports-openbsd
+2. With what I consider the minimal rails application,  started with the 
+flag --minimal, running with sqlite, i.e:
+
+rails new --minimal ap61
+
+The configuration of gems in /var/www/bundler and the configuration of 
+nginx is as I explained in the previous email  
+https://yhbt.net/unicorn-public/20210404200358.GA32719@dcvr/T/#mcf469c2eb443db6c9e4fee55afa3b252606c27f2 
+but  changing cor1440 with ap61.
+
+In my previous email I forgot some details, like how to create self 
+signed certificate and how to install nginx and ruby, here they go:
+
+doas pkg_add nginx
+doas pkg_add ruby-3.0.0p0
+  ln -sf /usr/local/bin/ruby30 /usr/local/bin/ruby
+  ln -sf /usr/local/bin/erb30 /usr/local/bin/erb
+  ln -sf /usr/local/bin/irb30 /usr/local/bin/irb
+  ln -sf /usr/local/bin/rdoc30 /usr/local/bin/racc
+  ln -sf /usr/local/bin/rdoc30 /usr/local/bin/rdoc
+  ln -sf /usr/local/bin/rdoc30 /usr/local/bin/rbs
+  ln -sf /usr/local/bin/ri30 /usr/local/bin/ri
+  ln -sf /usr/local/bin/rake30 /usr/local/bin/rake
+  ln -sf /usr/local/bin/gem30 /usr/local/bin/gem
+  ln -sf /usr/local/bin/bundle30 /usr/local/bin/bundle
+  ln -sf /usr/local/bin/bundler30 /usr/local/bin/bundler
+  ln -sf /usr/local/bin/typeprof30 /usr/local/bin/typeprof
+
+
+# Creating self signed certificate
+doas openssl genrsa -out /etc/ssl/private/server.key 2048
+openssl req -new -key /etc/ssl/private/server.key \
+   -out /etc/ssl/private/server.csr
+openssl x509 -req -days 3650 -in /etc/ssl/private/server.csr \
+   -signkey /etc/ssl/private/server.key -out /etc/ssl/server.crt
+
+# Installing sqlite3
+doas pkg_add sqlite3
+doas gem install --install-dir /var/www/bundler/ruby/3.0/ sqlite3
+
+# Installing rails globally
+doas gem install rails
+doas ln -s /usr/local/bin/rails30 /usr/local/bin/rails
+
+rails new --minimal ap61
+mv ap61 /var/www/htdocs/
+cd /var/www/htdocs/ap61
+
+# Configuring unicorn
+cat <<EOF >> Gemfile
+group :production do
+   gem 'unicorn'
+end
+EOF
+doas gem install --install-dir /var/www/bundler/ruby/3.0 unicorn
+bundle
+cat <<EOF > config/unicorn.rb
+listen 2011
+APP_PATH="/var/www/htdocs/ap61"
+working_directory APP_PATH
+worker_processes 2
+pid APP_PATH + "/tmp/pids/unicorn.pid"
+stderr_path APP_PATH + "/log/unicorn.log"
+stdout_path APP_PATH + "/log/unicorn.log"
+EOF
+
+# Start the application
+bundle exec /usr/local/bin/unicorn_rails -c config/unicorn.rb -E 
+production -D
+
+
+# Try to see the initial rails screen
+doas pkg_add w3m
+w3m https://127.0.0.1/ap61
+
+It will not present the presentation screen, stopping w3m and checking 
+the logfile I see the samen Segmentation faults:
+
+I, [2021-04-07T15:27:34.289298 #75098]  INFO -- : listening on 
+addr=0.0.0.0:2011 fd=12
+I, [2021-04-07T15:27:34.290752 #75098]  INFO -- : worker=0 spawning...
+I, [2021-04-07T15:27:34.303205 #75098]  INFO -- : worker=1 spawning...
+I, [2021-04-07T15:27:34.308574 #98078]  INFO -- : worker=0 spawned 
+pid=98078
+I, [2021-04-07T15:27:34.310157 #98078]  INFO -- : Refreshing Gem list
+I, [2021-04-07T15:27:34.329730 #75098]  INFO -- : master process ready
+I, [2021-04-07T15:27:34.390398 #14713]  INFO -- : worker=1 spawned 
+pid=14713
+I, [2021-04-07T15:27:34.391984 #14713]  INFO -- : Refreshing Gem list
+/var/www/bundler/ruby/3.0/gems/unicorn-6.0.0/lib/unicorn.rb:86: [BUG] 
+Segmentation fault at 0x0000000000000000
+ruby 3.0.0p0 (2020-12-25 revision 95aff21468) [x86_64-openbsd]
+
+
+
+-- Control frame information 
+-----------------------------------------------
+/var/www/bundler/ruby/3.0/gems/unicorn-6.0.0/lib/unicorn.rb:80: [BUG] 
+Segmentation fault at 0x0000000000000001
+ruby 3.0.0p0 (2020-12-25 revision 95aff21468) [x86_64-openbsd]
+
+
+-- Control frame information 
+-----------------------------------------------
+E, [2021-04-07T15:27:50.430649 #75098] ERROR -- : reaped 
+#<Process::Status: pid 98078 SIGSEGV (signal 11) (core dumped)> worker=0
+I, [2021-04-07T15:27:50.430976 #75098]  INFO -- : worker=0 spawning...
+I, [2021-04-07T15:27:50.439973 #19064]  INFO -- : worker=0 spawned 
+pid=19064
+I, [2021-04-07T15:27:50.441607 #19064]  INFO -- : Refreshing Gem list
+E, [2021-04-07T15:27:51.490681 #75098] ERROR -- : reaped 
+#<Process::Status: pid 14713 SIGSEGV (signal 11) (core dumped)> worker=1
+I, [2021-04-07T15:27:51.491040 #75098]  INFO -- : worker=1 spawning...
+I, [2021-04-07T15:27:51.500370 #66270]  INFO -- : worker=1 spawned 
+pid=66270
+I, [2021-04-07T15:27:51.501983 #66270]  INFO -- : Refreshing Gem list
+/var/www/bundler/ruby/3.0/gems/unicorn-6.0.0/lib/unicorn.rb:80: [BUG] 
+Segmentation fault at 0x0000030bbfc8d6f5
+ruby 3.0.0p0 (2020-12-25 revision 95aff21468) [x86_64-openbsd]
+
+
+
+-- Control frame information 
+-----------------------------------------------
+/var/www/bundler/ruby/3.0/gems/unicorn-6.0.0/lib/unicorn.rb:80: [BUG] 
+Segmentation fault at 0x0000000000000001
+ruby 3.0.0p0 (2020-12-25 revision 95aff21468) [x86_64-openbsd]
+
+
+-- Control frame information 
+-----------------------------------------------
+E, [2021-04-07T15:28:05.676716 #75098] ERROR -- : reaped 
+#<Process::Status: pid 19064 SIGSEGV (signal 11) (core dumped)> worker=0
+I, [2021-04-07T15:28:05.677110 #75098]  INFO -- : worker=0 spawning...
+I, [2021-04-07T15:28:05.685956 #32548]  INFO -- : worker=0 spawned 
+pid=32548
+I, [2021-04-07T15:28:05.687658 #32548]  INFO -- : Refreshing Gem list
+E, [2021-04-07T15:28:06.272044 #75098] ERROR -- : reaped 
+#<Process::Status: pid 66270 SIGSEGV (signal 11) (core dumped)> worker=1
+I, [2021-04-07T15:28:06.272459 #75098]  INFO -- : worker=1 spawning...
+I, [2021-04-07T15:28:06.281695 #65711]  INFO -- : worker=1 spawned 
+pid=65711
+I, [2021-04-07T15:28:06.283312 #65711]  INFO -- : Refreshing Gem list
+
+
+
+--------
+
+A core file is generated:
+$ ls -l ruby30.core
+-rw-------  1 servidor  servidor  44485672 Apr  7 15:41 ruby30.core
+
+
+Checking the trace
+
+$ doas pkg_add gdb
+$ egdb /usr/local/bin/ruby30 ruby30.core
+...
+  [New process 601176]
+[New process 412220]
+[New process 332011]
+Core was generated by `ruby30'.
+Program terminated with signal SIGSEGV, Segmentation fault.
+#0  0x0000030bbfc70af8 in rb_vm_frame_method_entry ()
+    from /usr/local/lib/libruby30.so
+[Current thread is 1 (process 601176)]
+(gdb) bt
+#0  0x0000030bbfc70af8 in rb_vm_frame_method_entry ()
+    from /usr/local/lib/libruby30.so
+#1  0x0000030bbfca04cb in rb_vmdebug_stack_dump_raw ()
+    from /usr/local/lib/libruby30.so
+#2  0x0000030bbfca118a in rb_vm_bugreport () from 
+/usr/local/lib/libruby30.so
+#3  0x0000030bbfabd021 in rb_bug_for_fatal_signal ()
+    from /usr/local/lib/libruby30.so
+#4  0x0000030bbfbf4470 in sigsegv () from /usr/local/lib/libruby30.so
+#5  <signal handler called>
+#6  0x0000030bbfc78bb8 in vm_exec_core () from 
+/usr/local/lib/libruby30.so
+#7  0x0000030bbfc89d95 in rb_vm_exec () from /usr/local/lib/libruby30.so
+#8  0x0000030bbfb20b0b in load_iseq_eval () from 
+/usr/local/lib/libruby30.so
+#9  0x0000030bbfb1ebaf in rb_load_internal () from 
+/usr/local/lib/libruby30.so
+#10 0x0000030bbfb20216 in rb_f_load () from /usr/local/lib/libruby30.so
+#11 0x0000030bbfc9717e in vm_call_cfunc_with_frame ()
+    from /usr/local/lib/libruby30.so
+#12 0x0000030bbfc8e955 in vm_sendish () from /usr/local/lib/libruby30.so
+#13 0x0000030bbfc77292 in vm_exec_core () from 
+/usr/local/lib/libruby30.so
+#14 0x0000030bbfc89d95 in rb_vm_exec () from /usr/local/lib/libruby30.so
+#15 0x0000030bbfb20b0b in load_iseq_eval () from 
+/usr/local/lib/libruby30.so
+#16 0x0000030bbfb1ebaf in rb_load_internal () from 
+/usr/local/lib/libruby30.so
+#17 0x0000030bbfb20216 in rb_f_load () from /usr/local/lib/libruby30.so
+#18 0x0000030bbfc9717e in vm_call_cfunc_with_frame ()
+    from /usr/local/lib/libruby30.so
+#19 0x0000030bbfc8e955 in vm_sendish () from /usr/local/lib/libruby30.so
+#20 0x0000030bbfc77292 in vm_exec_core () from 
+/usr/local/lib/libruby30.so
+#21 0x0000030bbfc89d95 in rb_vm_exec () from /usr/local/lib/libruby30.so
+#22 0x0000030bbfb20b0b in load_iseq_eval () from 
+/usr/local/lib/libruby30.so
+#23 0x0000030bbfb1ebaf in rb_load_internal () from 
+/usr/local/lib/libruby30.so
+#24 0x0000030bbfb20216 in rb_f_load () from /usr/local/lib/libruby30.so
+#25 0x0000030bbfc9717e in vm_call_cfunc_with_frame ()
+    from /usr/local/lib/libruby30.so
+#26 0x0000030bbfc8e955 in vm_sendish () from /usr/local/lib/libruby30.so
+#27 0x0000030bbfc77292 in vm_exec_core () from 
+/usr/local/lib/libruby30.so
+#28 0x0000030bbfc89d95 in rb_vm_exec () from /usr/local/lib/libruby30.so
+#29 0x0000030bbfac5044 in rb_ec_exec_node () from 
+/usr/local/lib/libruby30.so
+#30 0x0000030bbfac4eca in ruby_run_node () from 
+/usr/local/lib/libruby30.so
+#31 0x0000030997a42cec in main ()
+
+
+I still have not tried to use the .gdbinit file, but hope to do it soon.
+
+
+Blessings.
+
+El 2021-04-04 16:03, Eric Wong escribió:
+> Jeremy Evans <code@jeremyevans.net> wrote:
+>> Unfortunately, given the required amount of setup, I don't think I'll
+>> have time to look into this.  The best way to debug this is to start
+>> removing code/dependencies piece by piece until the problem goes away.
+>> Once the problem goes away, add that code back, and make sure it fails
+>> again, then start removing other code/dependencies.  Repeat this 
+>> process
+>> until you have the most minimal example, where removing any additional
+>> code/dependencies will stop the code from failing.
+> 
+> The above is exactly what I would do, too.
+> 
+> I would also try to correlate the time of Bus Errors with logs
+> of when + which requests are failing, and try replaying only
+> those requests to narrow things down.
+> 
+> Also, do you have core dumps enabled?  Enable those
+> ("ulimit -c unlimited" in sh), and run gdb on them as you get
+> them.  The .gdbinit in the source tree of the Ruby version
+> you're using is helpful not just for Ruby itself, but
+> also C extensions, too.  I'm no a gdb expert, but it's
+> well-documented and has built-in help.
+
+-- 
+Dios, gracias por tu amor infinito.
+--
+   Vladimir Támara Patiño.  http://vtamara.pasosdeJesus.org/
+   http://www.pasosdejesus.org/dominio_publico_colombia.html
