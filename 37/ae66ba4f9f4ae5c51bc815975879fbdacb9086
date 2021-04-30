@@ -1,0 +1,57 @@
+Return-Path: <bofh@yhbt.net>
+X-Spam-Checker-Version: SpamAssassin 3.4.2 (2018-09-13) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-3.4 required=3.0 tests=ALL_TRUSTED,AWL,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.2
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id BEDA41F5AE;
+	Fri, 30 Apr 2021 18:17:33 +0000 (UTC)
+From: Eric Wong <bofh@yhbt.net>
+To: unicorn-public@yhbt.net
+Cc: Eric Wong <e@80x24.org>
+Subject: [PATCH] test_util: less excessive encoding tests
+Date: Fri, 30 Apr 2021 18:17:33 +0000
+Message-Id: <20210430181733.29083-1-bofh@yhbt.net>
+MIME-Version: 1.0
+Content-Transfer-Encoding: 8bit
+List-Id: <unicorn-public.yhbt.net>
+
+From: Eric Wong <e@80x24.org>
+
+Ruby's handling of encodings hasn't changed much in over
+a decade and these tests haven't failed for me since August 2013:
+
+  https://yhbt.net/unicorn-public/9af083d7f6b97c0f5ebbdd9a42b58478a6f874b7/s/
+
+So lets take a small step in reducing energy consumption
+and save potential developers over 10s of CPU time.
+---
+ test/unit/test_util.rb | 7 ++++---
+ 1 file changed, 4 insertions(+), 3 deletions(-)
+
+diff --git a/test/unit/test_util.rb b/test/unit/test_util.rb
+index 4a820ea..bc7b233 100644
+--- a/test/unit/test_util.rb
++++ b/test/unit/test_util.rb
+@@ -51,7 +51,7 @@ def test_reopen_logs_renamed
+   def test_reopen_logs_renamed_with_encoding
+     tmp = Tempfile.new('')
+     tmp_path = tmp.path.dup.freeze
+-    Encoding.list.each { |encoding|
++    Encoding.list.sample(5).each { |encoding|
+       File.open(tmp_path, "a:#{encoding.to_s}") { |fp|
+         fp.sync = true
+         assert_equal encoding, fp.external_encoding
+@@ -74,8 +74,9 @@ def test_reopen_logs_renamed_with_encoding
+   def test_reopen_logs_renamed_with_internal_encoding
+     tmp = Tempfile.new('')
+     tmp_path = tmp.path.dup.freeze
+-    Encoding.list.each { |ext|
+-      Encoding.list.each { |int|
++    full = Encoding.list
++    full.sample(2).each { |ext|
++      full.sample(2).each { |int|
+         next if ext == int
+         File.open(tmp_path, "a:#{ext.to_s}:#{int.to_s}") { |fp|
+           fp.sync = true
