@@ -1,0 +1,50 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.2 (2018-09-13) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.2
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id 0512D1F8C6;
+	Tue,  6 Jul 2021 23:38:19 +0000 (UTC)
+Date: Tue, 6 Jul 2021 23:38:18 +0000
+From: Eric Wong <e@80x24.org>
+To: Cenon Del Rosario <cdelrosario@publishing.nine.com.au>
+Cc: unicorn-public@yhbt.net
+Subject: Re: Formatting unicorn logs in json format for $stderr
+Message-ID: <20210706233818.GA11462@dcvr>
+References: <CAKZvEvJ2aYd=aZ-tY8JOUMTGbLJ2PDfMZULCFkJi9_7FdLeZ7A@mail.gmail.com>
+ <20210706104124.GA438@dcvr>
+ <CAKZvEvKvXh=_CD7qO2=VHOa4E5YQuvM+UsazvEzGQ1Z5dxM0tw@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <CAKZvEvKvXh=_CD7qO2=VHOa4E5YQuvM+UsazvEzGQ1Z5dxM0tw@mail.gmail.com>
+List-Id: <unicorn-public.yhbt.net>
+
+Cenon Del Rosario <cdelrosario@publishing.nine.com.au> wrote:
+> > I suspect that needs "logger()" around it, like so:
+> >     logger(Logger.new($stderr).tap do |newlgr|
+> >       newlgr.formatter = JsonLogFormatter.new
+> >     end)
+> 
+> Sorry for incomplete code snippets but yes I do have this (I was doing
+> it for either stdout or stderr) and it did not make a difference.
+
+OK, did you see my other paragraph about Rack::CommonLogger?
+(reposted below)
+
+> > > For the most part it works and I get the stdout and stderr in json but
+> > > I also see some other non-json formatted messages, for example:
+> > > {"time":"2021-07-06 17:14:01
+> > > +1000","severity":"INFO","source":"","message":"Started GET \"/admin\"
+> > > for 127.0.0.1 at 2021-07-06 17:14:01 +1000"}
+> > > 127.0.0.1 - - [06/Jul/2021 17:14:01] "GET /admin HTTP/1.1" 301 102 0.4243
+> >
+> > I suspect one of those lines could be the result of
+> > Rack::CommonLogger from RACK_ENV=deployment or similar
+> > (which matched "rackup" defaults back in 2009).
+> >
+> > Personally, I always used something non-standard like "RACK_ENV=none"
+> > to disable all default Rack middleware (--no-default-middleware
+> > exists nowadays, too).
