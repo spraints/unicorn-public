@@ -1,0 +1,108 @@
+Return-Path: <cdelrosario@fairfaxmedia.com.au>
+X-Spam-Checker-Version: SpamAssassin 3.4.2 (2018-09-13) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-3.1 required=3.0 tests=AWL,BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,DKIM_VALID_AU,RCVD_IN_DNSWL_NONE,SPF_HELO_NONE,SPF_PASS
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.2
+Received: from mail-lf1-x12e.google.com (mail-lf1-x12e.google.com [IPv6:2a00:1450:4864:20::12e])
+	(using TLSv1.3 with cipher TLS_AES_128_GCM_SHA256 (128/128 bits)
+	 key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
+	(No client certificate requested)
+	by dcvr.yhbt.net (Postfix) with ESMTPS id E47461F8C6
+	for <unicorn-public@yhbt.net>; Tue,  6 Jul 2021 07:23:05 +0000 (UTC)
+Received: by mail-lf1-x12e.google.com with SMTP id n14so36627599lfu.8
+        for <unicorn-public@yhbt.net>; Tue, 06 Jul 2021 00:23:05 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=publishing.nine.com.au; s=google;
+        h=mime-version:from:date:message-id:subject:to;
+        bh=5/CEoWlN1YFhyc9FemHPBXXY4xFujqsJtlma5qkdLTA=;
+        b=tRq26uiX3f6i0+b2ZXrXl8dEMcF8yey9SWob1JnBxAwnRGw/D8TkogROABqNzDEEpu
+         tdRh6MZnlZfQLyIsCeyl4W3BoYjwLHKMnKatm1g1813D0Sn2+bsUZeDv7Kz56/74SN5V
+         Kc8XlPC2dDkyly8FRFcweRCAdM/WruAmCK4Kw=
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20161025;
+        h=x-gm-message-state:mime-version:from:date:message-id:subject:to;
+        bh=5/CEoWlN1YFhyc9FemHPBXXY4xFujqsJtlma5qkdLTA=;
+        b=nrmssZ6kVPkMC5G9D51m2rIdRoPTrYJq7uuEqkqt2wYCZD8kcpYlnFxOCpThI/+Wp2
+         +ToFoA+6xYVjbwZONY5deq8Yab9HtU1EGKQ5tEBu+bnRaINn9XWwz5XbMMeLZbcJPpBm
+         2RyzO5oO2JBByLOtbPmJhrp1hUjSraGTWw5lxYQOhNmSnr6hK8F9hJ+QdDPaLMkokrxo
+         vfeV45L87RRd/VccKCQ6HhlqY9m5F/ZLl+0tdrBTzbDu6wkMKJlu0flmG0LLQy/mrmz6
+         U8GAK4xxjyx3sM5+ViodHRFW0+a3DsCa2Nkm+pMVoMMUZVCA4bddOfH4CagZfOiE/HXe
+         OkHw==
+X-Gm-Message-State: AOAM530NmsXHPHr7YN0l2gZL8inwoPgozkuORYR/7hGpAhmDij/Syc2H
+	dJLMRaelIs05Pharat4eDl5CTHmYlu1Vtg483/qOP0aOB5ffnfmPb95oIfxoZU38vMzyVFDspHK
+	dMTJHChlrEiox28GBeJjKNx1RoOiWTB/D4qFXoA==
+X-Google-Smtp-Source: ABdhPJycWuwtduFJ+mMgiOgh/oYwsYr4qbhPVyHqu0lURlgFSEORf9UrMNau0CXkHh8GPJqxCM+9sBxlO6lq3PTJza8=
+X-Received: by 2002:ac2:4d51:: with SMTP id 17mr8924937lfp.618.1625556183702;
+ Tue, 06 Jul 2021 00:23:03 -0700 (PDT)
+MIME-Version: 1.0
+From: Cenon Del Rosario <cdelrosario@publishing.nine.com.au>
+Date: Tue, 6 Jul 2021 17:22:27 +1000
+Message-ID: <CAKZvEvJ2aYd=aZ-tY8JOUMTGbLJ2PDfMZULCFkJi9_7FdLeZ7A@mail.gmail.com>
+Subject: Formatting unicorn logs in json format for $stderr
+To: unicorn-public@yhbt.net
+Content-Type: text/plain; charset="UTF-8"
+List-Id: <unicorn-public.yhbt.net>
+
+Hi,
+
+I am using rails 3.2.22 / ruby 2.1.8 and am trying to reformat the
+unicorn log output from stderr into json format and have had partial
+success.
+
+I have a basic json formatter:
+class JsonLogFormatter < Logger::Formatter
+  def call(severity, datetime, progname, msg)
+    log_msg = {
+      time: "#{datetime}",
+      severity: "#{severity}",
+      source: "#{progname}"
+    }
+    msg.is_a?(Hash) ? log_msg.merge!(msg) : log_msg.merge!(message: "#{msg}")
+    "#{log_msg.to_json}\n"
+  end
+end
+
+I have this in my unicorn config:
+Logger.new($stderr).tap do |newlgr|
+  newlgr.formatter = JsonLogFormatter.new
+end
+
+I have this in my application.rb:
+Logger.new(STDOUT).tap do |logr|
+  JsonLogFormatter.new.tap do |frmtr|
+    logr.formatter = frmtr
+    Rails.logger = config.logger = logr
+  end
+end
+
+For the most part it works and I get the stdout and stderr in json but
+I also see some other non-json formatted messages, for example:
+{"time":"2021-07-06 17:14:01
++1000","severity":"INFO","source":"","message":"Started GET \"/admin\"
+for 127.0.0.1 at 2021-07-06 17:14:01 +1000"}
+127.0.0.1 - - [06/Jul/2021 17:14:01] "GET /admin HTTP/1.1" 301 102 0.4243
+
+It seems that rails logs are working and then the unicorn process
+itself is outputting its own logs because I can see duplicates of the
+same log message one in json and the other in plain text.
+
+Just want to know if there is a way to get this working consistently?
+
+Thank you,
+Cenon Del Rosario
+
+-- 
+The information contained in this e-mail message and any accompanying files 
+is or may be confidential. If you are not the intended recipient, any use, 
+dissemination, reliance, forwarding, printing or copying of this e-mail or 
+any attached files is unauthorised. This e-mail is subject to copyright. No 
+part of it should be reproduced, adapted or communicated without the 
+written consent of the copyright owner. If you have received this e-mail in 
+error please advise the sender immediately by return e-mail or telephone 
+and delete all copies. Nine Group does not guarantee the accuracy or 
+completeness of any information contained in this e-mail or attached files. 
+Internet communications are not secure, therefore Nine Group does not 
+accept legal responsibility for the contents of this message or attached 
+files.
