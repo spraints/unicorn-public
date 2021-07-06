@@ -1,0 +1,133 @@
+Return-Path: <cdelrosario@fairfaxmedia.com.au>
+X-Spam-Checker-Version: SpamAssassin 3.4.2 (2018-09-13) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-3.2 required=3.0 tests=AWL,BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,DKIM_VALID_AU,RCVD_IN_DNSWL_HI,SPF_HELO_NONE,SPF_PASS
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.2
+Received: from mail-lj1-x235.google.com (mail-lj1-x235.google.com [IPv6:2a00:1450:4864:20::235])
+	(using TLSv1.3 with cipher TLS_AES_128_GCM_SHA256 (128/128 bits)
+	 key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
+	(No client certificate requested)
+	by dcvr.yhbt.net (Postfix) with ESMTPS id 94FA51F8C6
+	for <unicorn-public@yhbt.net>; Tue,  6 Jul 2021 23:21:52 +0000 (UTC)
+Received: by mail-lj1-x235.google.com with SMTP id u25so216281ljj.11
+        for <unicorn-public@yhbt.net>; Tue, 06 Jul 2021 16:21:52 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=publishing.nine.com.au; s=google;
+        h=mime-version:references:in-reply-to:from:date:message-id:subject:to
+         :cc;
+        bh=HNPSnwFMz6yQBMo+jQ9x3ciBakFAy5Smpzx/2F6zWlI=;
+        b=vzlxS3pm/Wq9xOmVYmhZeZjBsaAPb+hyn1+nxlKEpe0a8nn9v4iJ1HlemwAb9BIoHO
+         7MRZ5vNXiweH+aFJnnNuukO5LYm6qKeMfWCsLf12ABUE8ZvnnZn/b37L56Lq+GkIn5By
+         Osg6ClVZmDwKaFRb7zx6VkAECjZe7F5WpB/Nw=
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20161025;
+        h=x-gm-message-state:mime-version:references:in-reply-to:from:date
+         :message-id:subject:to:cc;
+        bh=HNPSnwFMz6yQBMo+jQ9x3ciBakFAy5Smpzx/2F6zWlI=;
+        b=QB06Rj3aaXJQ/PTEaCoTt/MIqtxjYG2HpPEI3haEeGZWSr+3nl3dmOqMNxDIf8lvib
+         1vuFalmoOLhBtmZFMOi0Ks3rLovU9L0kbIfHtDOH4cxGcPmbRmnE5H3UNTgies4r226R
+         +vRYuUIA0vuazTCqdWnpj8r8rV4uE4HoBfAYgF23+wC2m05D2YpBsqWvezaPzqEj4Pri
+         o2Zrg35gWmDGy9o8DAfeHKvLPyaiZzR2X+KObpwfdUJY3xW1zTmKgNxkGBaY6XkDpAhO
+         2sxm+EPeTac7qi9e6QIGES1xJssn+kNiI5RJY2Q8Dz928yGCDm9YNgTnXPAFTdqxBYUv
+         W/xQ==
+X-Gm-Message-State: AOAM532r711BIwWzuxRtS3wrYoITnRzaR0mnOul5Hpcxu8+erAIRwauP
+	tRd+4J2YKPvgklcSrSJAfSQwcws+u1lafsJ87iI22s/SeOIXbYmSPxF52UHfrNj5iQcoNnQck3Z
+	Zc4WnZDm+uR3HaeWWwlTR4FGebV8=
+X-Google-Smtp-Source: ABdhPJwstjBCwOu8n24jmxmlCIPUc30TXGMVqhPwJmPghUiKRQ3eUG5tufUhah32XkZnzdKlRyI8gEJsQqhfUytVrSU=
+X-Received: by 2002:a2e:8613:: with SMTP id a19mr17163875lji.410.1625613709898;
+ Tue, 06 Jul 2021 16:21:49 -0700 (PDT)
+MIME-Version: 1.0
+References: <CAKZvEvJ2aYd=aZ-tY8JOUMTGbLJ2PDfMZULCFkJi9_7FdLeZ7A@mail.gmail.com>
+ <20210706104124.GA438@dcvr>
+In-Reply-To: <20210706104124.GA438@dcvr>
+From: Cenon Del Rosario <cdelrosario@publishing.nine.com.au>
+Date: Wed, 7 Jul 2021 09:21:13 +1000
+Message-ID: <CAKZvEvKvXh=_CD7qO2=VHOa4E5YQuvM+UsazvEzGQ1Z5dxM0tw@mail.gmail.com>
+Subject: Re: Formatting unicorn logs in json format for $stderr
+To: Eric Wong <e@80x24.org>
+Cc: unicorn-public@yhbt.net
+Content-Type: text/plain; charset="UTF-8"
+List-Id: <unicorn-public.yhbt.net>
+
+> I suspect that needs "logger()" around it, like so:
+>     logger(Logger.new($stderr).tap do |newlgr|
+>       newlgr.formatter = JsonLogFormatter.new
+>     end)
+
+Sorry for incomplete code snippets but yes I do have this (I was doing
+it for either stdout or stderr) and it did not make a difference.
+
+On Tue, 6 Jul 2021 at 20:41, Eric Wong <e@80x24.org> wrote:
+>
+> Cenon Del Rosario <cdelrosario@publishing.nine.com.au> wrote:
+> > Hi,
+> >
+> > I am using rails 3.2.22 / ruby 2.1.8 and am trying to reformat the
+> > unicorn log output from stderr into json format and have had partial
+> > success.
+> >
+> > I have a basic json formatter:
+> > class JsonLogFormatter < Logger::Formatter
+> >   def call(severity, datetime, progname, msg)
+> >     log_msg = {
+> >       time: "#{datetime}",
+> >       severity: "#{severity}",
+> >       source: "#{progname}"
+> >     }
+> >     msg.is_a?(Hash) ? log_msg.merge!(msg) : log_msg.merge!(message: "#{msg}")
+> >     "#{log_msg.to_json}\n"
+> >   end
+> > end
+> >
+> > I have this in my unicorn config:
+> > Logger.new($stderr).tap do |newlgr|
+> >   newlgr.formatter = JsonLogFormatter.new
+> > end
+>
+> I suspect that needs "logger()" around it, like so:
+>
+>     logger(Logger.new($stderr).tap do |newlgr|
+>       newlgr.formatter = JsonLogFormatter.new
+>     end)
+>
+> cf. https://urldefense.com/v3/__https://yhbt.net/unicorn/Unicorn/Configurator.html*method-i-logger__;Iw!!LBk0ZmAmG_H4m2o!9io6HA1SNuu8dkgdMRtwNuyjMJZwMCtZCUQsYqfcIvMvaFlkjfE17UHZSB15oiNN9YiW_Lm-hw$
+>
+> > For the most part it works and I get the stdout and stderr in json but
+> > I also see some other non-json formatted messages, for example:
+> > {"time":"2021-07-06 17:14:01
+> > +1000","severity":"INFO","source":"","message":"Started GET \"/admin\"
+> > for 127.0.0.1 at 2021-07-06 17:14:01 +1000"}
+> > 127.0.0.1 - - [06/Jul/2021 17:14:01] "GET /admin HTTP/1.1" 301 102 0.4243
+>
+> I suspect one of those lines could be the result of
+> Rack::CommonLogger from RACK_ENV=deployment or similar
+> (which matched "rackup" defaults back in 2009).
+>
+> Personally, I always used something non-standard like "RACK_ENV=none"
+> to disable all default Rack middleware (--no-default-middleware
+> exists nowadays, too).
+>
+> > It seems that rails logs are working and then the unicorn process
+> > itself is outputting its own logs because I can see duplicates of the
+> > same log message one in json and the other in plain text.
+> >
+> > Just want to know if there is a way to get this working consistently?
+>
+> I've never used the "logger" directive much myself; maybe others
+> here can chime in with experience using non-standard loggers.
+
+-- 
+The information contained in this e-mail message and any accompanying files 
+is or may be confidential. If you are not the intended recipient, any use, 
+dissemination, reliance, forwarding, printing or copying of this e-mail or 
+any attached files is unauthorised. This e-mail is subject to copyright. No 
+part of it should be reproduced, adapted or communicated without the 
+written consent of the copyright owner. If you have received this e-mail in 
+error please advise the sender immediately by return e-mail or telephone 
+and delete all copies. Nine Group does not guarantee the accuracy or 
+completeness of any information contained in this e-mail or attached files. 
+Internet communications are not secure, therefore Nine Group does not 
+accept legal responsibility for the contents of this message or attached 
+files.
