@@ -1,0 +1,108 @@
+Return-Path: <cdelrosario@fairfaxmedia.com.au>
+X-Spam-Checker-Version: SpamAssassin 3.4.2 (2018-09-13) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-3.2 required=3.0 tests=AWL,BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,DKIM_VALID_AU,RCVD_IN_DNSWL_HI,SPF_HELO_NONE,SPF_PASS
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.2
+Received: from mail-lf1-x12c.google.com (mail-lf1-x12c.google.com [IPv6:2a00:1450:4864:20::12c])
+	(using TLSv1.3 with cipher TLS_AES_128_GCM_SHA256 (128/128 bits)
+	 key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
+	(No client certificate requested)
+	by dcvr.yhbt.net (Postfix) with ESMTPS id 50AB41F8C7
+	for <unicorn-public@yhbt.net>; Wed,  7 Jul 2021 00:05:23 +0000 (UTC)
+Received: by mail-lf1-x12c.google.com with SMTP id p16so853156lfc.5
+        for <unicorn-public@yhbt.net>; Tue, 06 Jul 2021 17:05:23 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=publishing.nine.com.au; s=google;
+        h=mime-version:references:in-reply-to:from:date:message-id:subject:to
+         :cc;
+        bh=3I8vW27uLyLdSqFF5mE096reRwKS3qpGLhbq4DO1HLU=;
+        b=vamTs96/9N1i0AtBA+UO+R5uXx6e+u3iYpux/jA4hkzYJtQYZPuJMFPZb+xPwr3jjf
+         C4pcLQ/LdpVh3Boapjmq8aUtx1F9mYua4Gd5Oq+ky39zJpdv3QxmjnW/zVCgvBdg8POg
+         XpodQ1PSFBm3XD9sCxP3xUBAbAMs1TtBTc2J4=
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20161025;
+        h=x-gm-message-state:mime-version:references:in-reply-to:from:date
+         :message-id:subject:to:cc;
+        bh=3I8vW27uLyLdSqFF5mE096reRwKS3qpGLhbq4DO1HLU=;
+        b=mtJLtJ73YPvjC/JYURIleEoaPYjHc9TzF/NjyNOKEm4rrGpr5O42UpdwjKZs4/32ih
+         YhrppUPFhwdRWHl/TKDVRVrKpZQ+8RaIL5bS2Iw8+nu6fXQXiZYYD12ZUUs1YbH89+xy
+         YxtPILE03jSZLZZg4bdT2CLaNMSIX6CsCrayuWmSNW+O9HdJJuV6qpdxqom8tUKca/HZ
+         8bQrK5W0wHt4uPMiwAWdSxYetKqdqmhsx1a/kvuDO6TjZtWS4TYgpfXCEPmgwXUKsUOt
+         aGwMHVMwkXHldPh3QvAyq3WD6T1qozhKabVNShUUnKvk/WHBkiIjHAvecw61a/xymDIF
+         nEIg==
+X-Gm-Message-State: AOAM531vIPofdEu+NrTieAx63biTIzlZj9EHYNCo6Am62LzlxyrZ8NXM
+	wUa72pbSi8jdqsAvHymAUbeIrgLbd0Jme2KdcvBnaJKzk+un3cMWU8kssZBz5F2NsLZEksEgALD
+	aLkeCrGoq2Thib9XfnHhpkHX8NENQtWJkKPQ=
+X-Google-Smtp-Source: ABdhPJyeuvlbW9HPoCSypVx3JGw2SRDsuvN9aRk100M5vVwC3IHR/tJS/ngYPsk/I92krlBlKrviKGedf7NhtPtg0DQ=
+X-Received: by 2002:ac2:596a:: with SMTP id h10mr17709735lfp.305.1625616321203;
+ Tue, 06 Jul 2021 17:05:21 -0700 (PDT)
+MIME-Version: 1.0
+References: <CAKZvEvJ2aYd=aZ-tY8JOUMTGbLJ2PDfMZULCFkJi9_7FdLeZ7A@mail.gmail.com>
+ <20210706104124.GA438@dcvr> <CAKZvEvKvXh=_CD7qO2=VHOa4E5YQuvM+UsazvEzGQ1Z5dxM0tw@mail.gmail.com>
+ <20210706233818.GA11462@dcvr>
+In-Reply-To: <20210706233818.GA11462@dcvr>
+From: Cenon Del Rosario <cdelrosario@publishing.nine.com.au>
+Date: Wed, 7 Jul 2021 10:04:44 +1000
+Message-ID: <CAKZvEv+UeQGqrJBSFCH2fYos-ScysK2Bozb7fM8ijoWSubvkdA@mail.gmail.com>
+Subject: Re: Formatting unicorn logs in json format for $stderr
+To: Eric Wong <e@80x24.org>
+Cc: unicorn-public@yhbt.net
+Content-Type: text/plain; charset="UTF-8"
+List-Id: <unicorn-public.yhbt.net>
+
+> > > I suspect one of those lines could be the result of
+> > > Rack::CommonLogger from RACK_ENV=deployment or similar
+> > > (which matched "rackup" defaults back in 2009).
+> > >
+
+Yes I just tried this and it fixed the issue (I used -N but
+RACK_ENV=none also worked)
+
+Just wondering what other things will be impacted by turning off rack
+middleware?
+
+
+On Wed, 7 Jul 2021 at 09:38, Eric Wong <e@80x24.org> wrote:
+>
+> Cenon Del Rosario <cdelrosario@publishing.nine.com.au> wrote:
+> > > I suspect that needs "logger()" around it, like so:
+> > >     logger(Logger.new($stderr).tap do |newlgr|
+> > >       newlgr.formatter = JsonLogFormatter.new
+> > >     end)
+> >
+> > Sorry for incomplete code snippets but yes I do have this (I was doing
+> > it for either stdout or stderr) and it did not make a difference.
+>
+> OK, did you see my other paragraph about Rack::CommonLogger?
+> (reposted below)
+>
+> > > > For the most part it works and I get the stdout and stderr in json but
+> > > > I also see some other non-json formatted messages, for example:
+> > > > {"time":"2021-07-06 17:14:01
+> > > > +1000","severity":"INFO","source":"","message":"Started GET \"/admin\"
+> > > > for 127.0.0.1 at 2021-07-06 17:14:01 +1000"}
+> > > > 127.0.0.1 - - [06/Jul/2021 17:14:01] "GET /admin HTTP/1.1" 301 102 0.4243
+> > >
+> > > I suspect one of those lines could be the result of
+> > > Rack::CommonLogger from RACK_ENV=deployment or similar
+> > > (which matched "rackup" defaults back in 2009).
+> > >
+> > > Personally, I always used something non-standard like "RACK_ENV=none"
+> > > to disable all default Rack middleware (--no-default-middleware
+> > > exists nowadays, too).
+
+-- 
+The information contained in this e-mail message and any accompanying files 
+is or may be confidential. If you are not the intended recipient, any use, 
+dissemination, reliance, forwarding, printing or copying of this e-mail or 
+any attached files is unauthorised. This e-mail is subject to copyright. No 
+part of it should be reproduced, adapted or communicated without the 
+written consent of the copyright owner. If you have received this e-mail in 
+error please advise the sender immediately by return e-mail or telephone 
+and delete all copies. Nine Group does not guarantee the accuracy or 
+completeness of any information contained in this e-mail or attached files. 
+Internet communications are not secure, therefore Nine Group does not 
+accept legal responsibility for the contents of this message or attached 
+files.
