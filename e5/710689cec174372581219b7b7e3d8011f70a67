@@ -1,0 +1,47 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.2 (2018-09-13) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.2
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id 672101F8C6;
+	Wed,  7 Jul 2021 00:16:04 +0000 (UTC)
+Date: Wed, 7 Jul 2021 00:16:04 +0000
+From: Eric Wong <e@80x24.org>
+To: Cenon Del Rosario <cdelrosario@publishing.nine.com.au>
+Cc: unicorn-public@yhbt.net
+Subject: Re: Formatting unicorn logs in json format for $stderr
+Message-ID: <20210707001604.GA18838@dcvr>
+References: <CAKZvEvJ2aYd=aZ-tY8JOUMTGbLJ2PDfMZULCFkJi9_7FdLeZ7A@mail.gmail.com>
+ <20210706104124.GA438@dcvr>
+ <CAKZvEvKvXh=_CD7qO2=VHOa4E5YQuvM+UsazvEzGQ1Z5dxM0tw@mail.gmail.com>
+ <20210706233818.GA11462@dcvr>
+ <CAKZvEv+UeQGqrJBSFCH2fYos-ScysK2Bozb7fM8ijoWSubvkdA@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <CAKZvEv+UeQGqrJBSFCH2fYos-ScysK2Bozb7fM8ijoWSubvkdA@mail.gmail.com>
+List-Id: <unicorn-public.yhbt.net>
+
+Cenon Del Rosario <cdelrosario@publishing.nine.com.au> wrote:
+> > > > I suspect one of those lines could be the result of
+> > > > Rack::CommonLogger from RACK_ENV=deployment or similar
+> > > > (which matched "rackup" defaults back in 2009).
+> > > >
+> 
+> Yes I just tried this and it fixed the issue (I used -N but
+> RACK_ENV=none also worked)
+
+Cool, good to know.
+
+> Just wondering what other things will be impacted by turning off rack
+> middleware?
+
+Rack::{ContentLength,Chunked,TempfileReaper} for prod:
+https://yhbt.net/unicorn-public/d5991fea2df857480b728e27c927d69c3df2080f/s/?b=lib/unicorn.rb#n67
+
+You can set them up yourself in config.ru, but maybe Rails
+also does that for you.  I haven't used Rails in many years,
+but I seem to recall Rails had its own middleware stack somewhere,
+too, but you'll have to refer to Rails docs for that.
