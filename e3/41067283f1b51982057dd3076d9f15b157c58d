@@ -1,0 +1,38 @@
+Return-Path: <bofh@yhbt.net>
+X-Spam-Checker-Version: SpamAssassin 3.4.2 (2018-09-13) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-3.9 required=3.0 tests=ALL_TRUSTED,AWL,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.2
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id BE6C01F934
+	for <unicorn-public@yhbt.net>; Tue, 14 Sep 2021 23:39:23 +0000 (UTC)
+From: Eric Wong <bofh@yhbt.net>
+To: unicorn-public@yhbt.net
+Subject: [PATCH 2/2] drop unnecessary IO#close_on_exec=true assignment
+Date: Tue, 14 Sep 2021 23:39:23 +0000
+Message-Id: <20210914233923.30278-3-bofh@yhbt.net>
+In-Reply-To: <20210914233923.30278-1-bofh@yhbt.net>
+References: <20210914233923.30278-1-bofh@yhbt.net>
+MIME-Version: 1.0
+Content-Transfer-Encoding: 8bit
+List-Id: <unicorn-public.yhbt.net>
+
+Ruby 2.0+ sets FD_CLOEXEC by default on all FDs.
+---
+ lib/unicorn.rb | 2 --
+ 1 file changed, 2 deletions(-)
+
+diff --git a/lib/unicorn.rb b/lib/unicorn.rb
+index d5991fe..1a50631 100644
+--- a/lib/unicorn.rb
++++ b/lib/unicorn.rb
+@@ -114,8 +114,6 @@ def self.log_error(logger, prefix, exc)
+ 
+   def self.pipe # :nodoc:
+     Kgio::Pipe.new.each do |io|
+-      io.close_on_exec = true  # remove this when we only support Ruby >= 2.0
+-
+       # shrink pipes to minimize impact on /proc/sys/fs/pipe-user-pages-soft
+       # limits.
+       if defined?(F_SETPIPE_SZ)
