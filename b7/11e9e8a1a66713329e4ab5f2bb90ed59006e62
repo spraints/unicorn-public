@@ -1,0 +1,371 @@
+Return-Path: <bofh@yhbt.net>
+X-Spam-Checker-Version: SpamAssassin 3.4.2 (2018-09-13) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.2
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id 0B3111FB0F
+	for <unicorn-public@yhbt.net>; Fri,  1 Oct 2021 03:09:25 +0000 (UTC)
+From: Eric Wong <bofh@yhbt.net>
+To: unicorn-public@yhbt.net
+Subject: [PATCH 6/6] use EPOLLEXCLUSIVE on Linux 4.5+
+Date: Fri,  1 Oct 2021 03:09:23 +0000
+Message-Id: <20211001030923.26705-7-bofh@yhbt.net>
+In-Reply-To: <20211001030923.26705-1-bofh@yhbt.net>
+References: <20211001030923.26705-1-bofh@yhbt.net>
+MIME-Version: 1.0
+Content-Transfer-Encoding: 8bit
+List-Id: <unicorn-public.yhbt.net>
+
+While the capabilities of epoll cannot be fully exploited given
+our primitive design; avoiding thundering herd wakeups on larger
+SMP machines while below 100% utilization is possible with
+Linux 4.5+.
+
+With this change, only one worker wakes up per-connect(2)
+(instead of all of them via select(2)), avoiding the thundering
+herd effect when the system is mostly idle.
+
+Saturated instances should not notice the difference if they
+rarely had multiple workers sleeping in select(2).  This change
+benefits non-saturated instances.
+
+With 2 parallel clients and 8 workers on a nominally (:P)
+8-core CPU (AMD FX-8320), the uconnect.perl test script
+invocation showed a reduction from ~3.4s to ~2.5s when
+reading an 11-byte response body:
+
+  echo worker_processes 8 >u.conf.rb
+  bs=11 ruby -I lib -I test/ruby-2.5.5/ext/unicorn_http/ bin/unicorn \
+    test/benchmark/dd.ru -E none -l /tmp/u.sock -c u.conf.rb
+  time perl -I lib -w test/benchmark/uconnect.perl \
+    -n 100000 -c 2 /tmp/u.sock
+
+Times improve less as "-c" increases for uconnect.perl (system
+noise and timings are inconsistent).  The benefit of this change
+should be more noticeable on systems with more workers (and
+more cores).
+
+I wanted to use EPOLLET (Edge-Triggered) to further reduce
+syscalls, here, (similar to the old select()-avoidance bet) but
+that would've either added too much complexity to deduplicate
+wakeup sources, or run into the same starvation problem we
+solved in April 2020[1].
+
+Since the kernel already has the complexity and deduplication
+built-in for Level-Triggered epoll support, we'll just let the
+kernel deal with it.
+
+Note: do NOT take this as an example of how epoll should be used
+in a sophisticated server.  unicorn is primitive by design and
+cannot use threads nor handle multiple clients at once, thus it
+it only uses epoll in this extremely limited manner.
+
+Linux 4.5+ users will notice a regression of one extra epoll FD
+per-worker and at least two epoll watches, so
+/proc/sys/fs/epoll/max_user_watches may need to be changed along
+with RLIMIT_NOFILE.
+
+This change has also been tested on Linux 3.10.x (CentOS 7.x)
+and FreeBSD 11.x to ensure compatibility with systems without
+EPOLLEXCLUSIVE.
+
+Various EPOLLEXCLUSIVE discussions over the years:
+  https://yhbt.net/lore/lkml/?q=s:EPOLLEXCLUSIVE+d:..20211001&x=t&o=-1
+
+[1] https://yhbt.net/unicorn-public/CAMBWrQ=Yh42MPtzJCEO7XryVknDNetRMuA87irWfqVuLdJmiBQ@mail.gmail.com/
+---
+ ext/unicorn_http/epollexclusive.h | 125 ++++++++++++++++++++++++++++++
+ ext/unicorn_http/extconf.rb       |   1 +
+ ext/unicorn_http/unicorn_http.rl  |   3 +
+ lib/unicorn/http_server.rb        |  17 +++-
+ lib/unicorn/select_waiter.rb      |   6 ++
+ t/test-lib.sh                     |   3 +-
+ test/unit/test_waiter.rb          |  34 ++++++++
+ 7 files changed, 184 insertions(+), 5 deletions(-)
+ create mode 100644 ext/unicorn_http/epollexclusive.h
+ create mode 100644 lib/unicorn/select_waiter.rb
+ create mode 100644 test/unit/test_waiter.rb
+
+diff --git a/ext/unicorn_http/epollexclusive.h b/ext/unicorn_http/epollexclusive.h
+new file mode 100644
+index 0000000..2d2a589
+--- /dev/null
++++ b/ext/unicorn_http/epollexclusive.h
+@@ -0,0 +1,125 @@
++/*
++ * This is only intended for use inside a unicorn worker, nowhere else.
++ * EPOLLEXCLUSIVE somewhat mitigates the thundering herd problem for
++ * mostly idle processes since we can't use blocking accept4.
++ * This is NOT intended for use with multi-threaded servers, nor
++ * single-threaded multi-client ("C10K") servers or anything advanced
++ * like that.  This use of epoll is only appropriate for a primitive,
++ * single-client, single-threaded servers like unicorn that need to
++ * support SIGKILL timeouts and parent death detection.
++ */
++#if defined(HAVE_EPOLL_CREATE1)
++#  include <sys/epoll.h>
++#  include <errno.h>
++#  include <ruby/io.h>
++#  include <ruby/thread.h>
++#endif /* __linux__ */
++
++#if defined(EPOLLEXCLUSIVE) && defined(HAVE_EPOLL_CREATE1)
++#  define USE_EPOLL (1)
++#else
++#  define USE_EPOLL (0)
++#endif
++
++#if USE_EPOLL
++/*
++ * :nodoc:
++ * returns IO object if EPOLLEXCLUSIVE works and arms readers
++ */
++static VALUE prep_readers(VALUE cls, VALUE readers)
++{
++	long i;
++	int epfd = epoll_create1(EPOLL_CLOEXEC);
++	VALUE epio;
++
++	if (epfd < 0) rb_sys_fail("epoll_create1");
++
++	epio = rb_funcall(cls, rb_intern("for_fd"), 1, INT2NUM(epfd));
++
++	Check_Type(readers, T_ARRAY);
++	for (i = 0; i < RARRAY_LEN(readers); i++) {
++		int rc;
++		struct epoll_event e;
++		rb_io_t *fptr;
++		VALUE io = rb_ary_entry(readers, i);
++
++		e.data.u64 = i; /* the reason readers shouldn't change */
++
++		/*
++		 * I wanted to use EPOLLET here, but maintaining our own
++		 * equivalent of ep->rdllist in Ruby-space doesn't fit
++		 * our design at all (and the kernel already has it's own
++		 * code path for doing it).  So let the kernel spend
++		 * cycles on maintaining level-triggering.
++		 */
++		e.events = EPOLLEXCLUSIVE | EPOLLIN;
++		io = rb_io_get_io(io);
++		GetOpenFile(io, fptr);
++		rc = epoll_ctl(epfd, EPOLL_CTL_ADD, fptr->fd, &e);
++		if (rc < 0) rb_sys_fail("epoll_ctl");
++	}
++	return epio;
++}
++#endif /* USE_EPOLL */
++
++#if USE_EPOLL
++struct ep_wait {
++	struct epoll_event *events;
++	rb_io_t *fptr;
++	int maxevents;
++	int timeout_msec;
++};
++
++static void *do_wait(void *ptr) /* runs w/o GVL */
++{
++	struct ep_wait *epw = ptr;
++
++	return (void *)(long)epoll_wait(epw->fptr->fd, epw->events,
++				epw->maxevents, epw->timeout_msec);
++}
++
++/* :nodoc: */
++/* readers must not change between prepare_readers and get_readers */
++static VALUE
++get_readers(VALUE epio, VALUE ready, VALUE readers, VALUE timeout_msec)
++{
++	struct ep_wait epw;
++	long i, n;
++	VALUE buf;
++
++	Check_Type(ready, T_ARRAY);
++	Check_Type(readers, T_ARRAY);
++	epw.maxevents = RARRAY_LENINT(readers);
++	buf = rb_str_buf_new(sizeof(struct epoll_event) * epw.maxevents);
++	epw.events = (struct epoll_event *)RSTRING_PTR(buf);
++	epio = rb_io_get_io(epio);
++	GetOpenFile(epio, epw.fptr);
++
++	epw.timeout_msec = NUM2INT(timeout_msec);
++	n = (long)rb_thread_call_without_gvl(do_wait, &epw, RUBY_UBF_IO, NULL);
++	if (n < 0) {
++		if (errno != EINTR) rb_sys_fail("epoll_wait");
++		n = 0;
++	}
++	/* Linux delivers events in order received */
++	for (i = 0; i < n; i++) {
++		struct epoll_event *ev = &epw.events[i];
++		VALUE obj = rb_ary_entry(readers, ev->data.u64);
++
++		if (RTEST(obj))
++			rb_ary_push(ready, obj);
++	}
++	rb_str_resize(buf, 0);
++	rb_gc_force_recycle(buf);
++	return Qfalse;
++}
++#endif /* USE_EPOLL */
++
++static void init_epollexclusive(VALUE mUnicorn)
++{
++#if USE_EPOLL
++	VALUE cWaiter = rb_define_class_under(mUnicorn, "Waiter", rb_cIO);
++	rb_define_singleton_method(cWaiter, "prep_readers", prep_readers, 1);
++	rb_define_method(cWaiter, "get_readers", get_readers, 3);
++#endif
++}
+diff --git a/ext/unicorn_http/extconf.rb b/ext/unicorn_http/extconf.rb
+index 46070a7..13dec41 100644
+--- a/ext/unicorn_http/extconf.rb
++++ b/ext/unicorn_http/extconf.rb
+@@ -38,4 +38,5 @@
+   message("no, needs Ruby 2.6+\n")
+ end
+ 
++have_func('epoll_create1', %w(sys/epoll.h))
+ create_makefile("unicorn_http")
+diff --git a/ext/unicorn_http/unicorn_http.rl b/ext/unicorn_http/unicorn_http.rl
+index e934a32..605b23f 100644
+--- a/ext/unicorn_http/unicorn_http.rl
++++ b/ext/unicorn_http/unicorn_http.rl
+@@ -12,6 +12,7 @@
+ #include "common_field_optimization.h"
+ #include "global_variables.h"
+ #include "c_util.h"
++#include "epollexclusive.h"
+ 
+ void init_unicorn_httpdate(void);
+ 
+@@ -1017,5 +1018,7 @@ void Init_unicorn_http(void)
+   id_clear = rb_intern("clear");
+ #endif
+   id_is_chunked_p = rb_intern("is_chunked?");
++
++  init_epollexclusive(mUnicorn);
+ }
+ #undef SET_GLOBAL
+diff --git a/lib/unicorn/http_server.rb b/lib/unicorn/http_server.rb
+index 7f33f98..21f2a05 100644
+--- a/lib/unicorn/http_server.rb
++++ b/lib/unicorn/http_server.rb
+@@ -685,7 +685,6 @@ def init_worker_process(worker)
+     LISTENERS.each { |sock| sock.close_on_exec = true }
+ 
+     worker.user(*user) if user.kind_of?(Array) && ! worker.switched
+-    self.timeout /= 2.0 # halve it for select()
+     @config = nil
+     build_app! unless preload_app
+     @after_fork = @listener_opts = @orig_app = nil
+@@ -705,11 +704,22 @@ def reopen_worker_logs(worker_nr)
+     exit!(77) # EX_NOPERM in sysexits.h
+   end
+ 
++  def prep_readers(readers)
++    wtr = Unicorn::Waiter.prep_readers(readers)
++    @timeout *= 500 # to milliseconds for epoll, but halved
++    wtr
++  rescue
++    require_relative 'select_waiter'
++    @timeout /= 2.0 # halved for IO.select
++    Unicorn::SelectWaiter.new
++  end
++
+   # runs inside each forked worker, this sits around and waits
+   # for connections and doesn't die until the parent dies (or is
+   # given a INT, QUIT, or TERM signal)
+   def worker_loop(worker)
+     readers = init_worker_process(worker)
++    waiter = prep_readers(readers)
+     reopen = false
+ 
+     # this only works immediately if the master sent us the signal
+@@ -722,8 +732,7 @@ def worker_loop(worker)
+     begin
+       reopen = reopen_worker_logs(worker.nr) if reopen
+       worker.tick = time_now.to_i
+-      tmp = ready.dup
+-      while sock = tmp.shift
++      while sock = ready.shift
+         # Unicorn::Worker#kgio_tryaccept is not like accept(2) at all,
+         # but that will return false
+         if client = sock.kgio_tryaccept
+@@ -735,7 +744,7 @@ def worker_loop(worker)
+ 
+       # timeout so we can .tick and keep parent from SIGKILL-ing us
+       worker.tick = time_now.to_i
+-      ret = IO.select(readers, nil, nil, @timeout) and ready = ret[0]
++      waiter.get_readers(ready, readers, @timeout)
+     rescue => e
+       redo if reopen && readers[0]
+       Unicorn.log_error(@logger, "listen loop error", e) if readers[0]
+diff --git a/lib/unicorn/select_waiter.rb b/lib/unicorn/select_waiter.rb
+new file mode 100644
+index 0000000..cb84aab
+--- /dev/null
++++ b/lib/unicorn/select_waiter.rb
+@@ -0,0 +1,6 @@
++# fallback for non-Linux and Linux <4.5 systems w/o EPOLLEXCLUSIVE
++class Unicorn::SelectWaiter # :nodoc:
++  def get_readers(ready, readers, timeout) # :nodoc:
++    ret = IO.select(readers, nil, nil, timeout) and ready.replace(ret[0])
++  end
++end
+diff --git a/t/test-lib.sh b/t/test-lib.sh
+index 7f97958..e70d0c6 100644
+--- a/t/test-lib.sh
++++ b/t/test-lib.sh
+@@ -94,7 +94,8 @@ check_stderr () {
+ 	set +u
+ 	_r_err=${1-${r_err}}
+ 	set -u
+-	if grep -v $T $_r_err | grep -i Error
++	if grep -v $T $_r_err | grep -i Error | \
++		grep -v NameError.*Unicorn::Waiter
+ 	then
+ 		die "Errors found in $_r_err"
+ 	elif grep SIGKILL $_r_err
+diff --git a/test/unit/test_waiter.rb b/test/unit/test_waiter.rb
+new file mode 100644
+index 0000000..0995de2
+--- /dev/null
++++ b/test/unit/test_waiter.rb
+@@ -0,0 +1,34 @@
++require 'test/unit'
++require 'unicorn'
++require 'unicorn/select_waiter'
++class TestSelectWaiter < Test::Unit::TestCase
++
++  def test_select_timeout # n.b. this is level-triggered
++    sw = Unicorn::SelectWaiter.new
++    IO.pipe do |r,w|
++      sw.get_readers(ready = [], [r], 0)
++      assert_equal [], ready
++      w.syswrite '.'
++      sw.get_readers(ready, [r], 1000)
++      assert_equal [r], ready
++      sw.get_readers(ready, [r], 0)
++      assert_equal [r], ready
++    end
++  end
++
++  def test_linux # ugh, also level-triggered, unlikely to change
++    IO.pipe do |r,w|
++      wtr = Unicorn::Waiter.prep_readers([r])
++      wtr.get_readers(ready = [], [r], 0)
++      assert_equal [], ready
++      w.syswrite '.'
++      wtr.get_readers(ready = [], [r], 1000)
++      assert_equal [r], ready
++      wtr.get_readers(ready = [], [r], 1000)
++      assert_equal [r], ready, 'still ready (level-triggered :<)'
++      assert_nil wtr.close
++    end
++  rescue SystemCallError => e
++    warn "#{e.message} (#{e.class})"
++  end if Unicorn.const_defined?(:Waiter)
++end
