@@ -1,0 +1,52 @@
+Return-Path: <bofh@yhbt.net>
+X-Spam-Checker-Version: SpamAssassin 3.4.2 (2018-09-13) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.2
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id 14BE31F8C8
+	for <unicorn-public@yhbt.net>; Fri,  1 Oct 2021 03:09:24 +0000 (UTC)
+From: Eric Wong <bofh@yhbt.net>
+To: unicorn-public@yhbt.net
+Subject: [PATCH 0/6] reduce thundering herds on Linux 4.5+
+Date: Fri,  1 Oct 2021 03:09:17 +0000
+Message-Id: <20211001030923.26705-1-bofh@yhbt.net>
+MIME-Version: 1.0
+Content-Transfer-Encoding: 8bit
+List-Id: <unicorn-public.yhbt.net>
+
+1-5 are straightforward changes, with 4+5 are probably
+being long overdue.
+
+PATCH 6/6 is fairly significant (more detail in that message),
+but doesn't benefit completely saturated instances, either.
+I don't know if completely saturated instances are that common,
+actually...
+
+Yup, unicorn using epoll: WTF :P
+
+Eric Wong (6):
+  extconf.rb: get rid of unnecessary checks
+  makefile: reduce unnecessary rebuilds
+  HACKING: drop outdated information about pandoc
+  http_server: get rid of Process.ppid check
+  worker_loop: get rid of select() avoidance hack
+  use EPOLLEXCLUSIVE on Linux 4.5+
+
+ GNUmakefile                       |   4 +-
+ HACKING                           |   7 --
+ ext/unicorn_http/c_util.h         |  18 ++---
+ ext/unicorn_http/epollexclusive.h | 125 ++++++++++++++++++++++++++++++
+ ext/unicorn_http/ext_help.h       |  24 ------
+ ext/unicorn_http/extconf.rb       |   6 +-
+ ext/unicorn_http/httpdate.c       |   1 +
+ ext/unicorn_http/unicorn_http.rl  |   3 +
+ lib/unicorn/http_server.rb        |  45 +++++------
+ lib/unicorn/select_waiter.rb      |   6 ++
+ t/test-lib.sh                     |   3 +-
+ test/unit/test_waiter.rb          |  34 ++++++++
+ 12 files changed, 199 insertions(+), 77 deletions(-)
+ create mode 100644 ext/unicorn_http/epollexclusive.h
+ create mode 100644 lib/unicorn/select_waiter.rb
+ create mode 100644 test/unit/test_waiter.rb
