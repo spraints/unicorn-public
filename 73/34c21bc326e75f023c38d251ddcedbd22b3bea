@@ -1,0 +1,47 @@
+Return-Path: <bofh@yhbt.net>
+X-Spam-Checker-Version: SpamAssassin 3.4.2 (2018-09-13) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.2
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id ADBD01FB06
+	for <unicorn-public@yhbt.net>; Fri,  1 Oct 2021 03:09:24 +0000 (UTC)
+From: Eric Wong <bofh@yhbt.net>
+To: unicorn-public@yhbt.net
+Subject: [PATCH 4/6] http_server: get rid of Process.ppid check
+Date: Fri,  1 Oct 2021 03:09:21 +0000
+Message-Id: <20211001030923.26705-5-bofh@yhbt.net>
+In-Reply-To: <20211001030923.26705-1-bofh@yhbt.net>
+References: <20211001030923.26705-1-bofh@yhbt.net>
+MIME-Version: 1.0
+Content-Transfer-Encoding: 8bit
+List-Id: <unicorn-public.yhbt.net>
+
+It's actually been unnecessary since commit 6f6e4115b4bb03e5
+(rework master-to-worker signaling to use a pipe, 2013-12-09)
+---
+ lib/unicorn/http_server.rb | 3 ---
+ 1 file changed, 3 deletions(-)
+
+diff --git a/lib/unicorn/http_server.rb b/lib/unicorn/http_server.rb
+index cd6e63b..09c5ec2 100644
+--- a/lib/unicorn/http_server.rb
++++ b/lib/unicorn/http_server.rb
+@@ -708,7 +708,6 @@ def reopen_worker_logs(worker_nr)
+   # for connections and doesn't die until the parent dies (or is
+   # given a INT, QUIT, or TERM signal)
+   def worker_loop(worker)
+-    ppid = @master_pid
+     readers = init_worker_process(worker)
+     nr = 0 # this becomes negative if we need to reopen logs
+ 
+@@ -745,8 +744,6 @@ def worker_loop(worker)
+         redo
+       end
+ 
+-      ppid == Process.ppid or return
+-
+       # timeout used so we can detect parent death:
+       worker.tick = time_now.to_i
+       ret = IO.select(readers, nil, nil, @timeout) and ready = ret[0]
