@@ -1,0 +1,80 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.2 (2018-09-13) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.2
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id E957E1F953;
+	Sat, 25 Dec 2021 18:06:40 +0000 (UTC)
+Date: Sat, 25 Dec 2021 18:06:40 +0000
+From: Eric Wong <e@80x24.org>
+To: ruby-talk@ruby-lang.org, unicorn-public@yhbt.net
+Subject: [ANN] unicorn 6.1.0 - Rack HTTP server for fast clients and *nix
+Message-ID: <20211225180640.GA25149@dcvr>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+List-Id: <unicorn-public.yhbt.net>
+
+unicorn is an HTTP server for Rack applications designed to only serve
+fast clients on low-latency, high-bandwidth connections and take
+advantage of features in Unix/Unix-like kernels.  Slow clients should
+only be served by placing a reverse proxy capable of fully buffering
+both the the request and response in between unicorn and slow clients.
+
+Disclaimer:
+
+Due to its ability to tolerate crashes and isolate clients, unicorn
+is unfortunately known to prolong the existence of bugs in applications
+and libraries which run on top of it.
+
+Consider this just an announcement to inform existing users of a
+new version, not something to convince you to switch to something
+that set the entire Ruby world back decades in terms of concurrency.
+
+Note:
+.onion URLs below are available for Tor users and can reduce
+our operating costs:
+
+* https://yhbt.net/unicorn/
+  http://unicorn.7fh6tueqddpjyxjmgtdiueylzoqt6pt7hec3pukyptlmohoowvhde4yd.onion/
+* public list: unicorn-public@yhbt.net
+* mail archives: https://yhbt.net/unicorn-public/
+  http://7fh6tueqddpjyxjmgtdiueylzoqt6pt7hec3pukyptlmohoowvhde4yd.onion/unicorn-public/
+* git clone https://yhbt.net/unicorn.git
+  torsocks git clone http://7fh6tueqddpjyxjmgtdiueylzoqt6pt7hec3pukyptlmohoowvhde4yd.onion/unicorn.git
+* https://yhbt.net/unicorn/NEWS.atom.xml
+  http://unicorn.7fh6tueqddpjyxjmgtdiueylzoqt6pt7hec3pukyptlmohoowvhde4yd.onion/NEWS.atom.xml
+* nntps://news.public-inbox.org/inbox.comp.lang.ruby.unicorn
+  nntp://7fh6tueqddpjyxjmgtdiueylzoqt6pt7hec3pukyptlmohoowvhde4yd.onion/inbox.comp.lang.ruby.unicorn
+  imaps://yhbt.net/inbox.comp.lang.ruby.unicorn.0
+  imap://7fh6tueqddpjyxjmgtdiueylzoqt6pt7hec3pukyptlmohoowvhde4yd.onion/inbox.comp.lang.ruby.unicorn.0
+
+Changes:
+
+    This release reduces CPU usage for Linux 4.5+ in most cases.
+    See "[PATCH 6/6] use EPOLLEXCLUSIVE on Linux 4.5+" for more details:
+      https://yhbt.net/unicorn-public/20211001030923.26705-7-bofh@yhbt.net/
+
+    There's a couple of updates for Ruby 3.1, but we've finally
+    started relying on Ruby 2.0.0 features after 9 years :P
+    (so Ruby 1.9.3 users are stuck with older versions).
+
+    And the usual round of doc updates and some build speedups.
+
+    13 changes by the Bozo Doofus maintainer since v6.0.0:
+
+          test_util: less excessive encoding tests
+          drop Ruby 1.9.3 support, require 2.0+ for now
+          drop unnecessary IO#close_on_exec=true assignment
+          extconf.rb: get rid of unnecessary checks
+          makefile: reduce unnecessary rebuilds
+          HACKING: drop outdated information about pandoc
+          http_server: get rid of Process.ppid check
+          worker_loop: get rid of select() avoidance hack
+          use EPOLLEXCLUSIVE on Linux 4.5+
+          allow Ruby to deduplicate remaining globals
+          epollexclusive: remove rb_gc_force_recycle call
+          drop Ruby version warning, fix speling errer
+          doc: v3 .onion updates, nntp => nntps, minor wording changes
