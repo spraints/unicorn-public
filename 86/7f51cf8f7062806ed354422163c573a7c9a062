@@ -1,0 +1,55 @@
+Return-Path: <BOFH@YHBT.net>
+X-Spam-Checker-Version: SpamAssassin 3.4.2 (2018-09-13) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,BAYES_00
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.2
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id E5F2F1FA00;
+	Sat, 25 Dec 2021 17:41:43 +0000 (UTC)
+From: Eric Wong <BOFH@YHBT.net>
+To: unicorn-public@yhbt.net
+Subject: [PATCH 2/3] drop Ruby version warning, fix speling errer
+Date: Sat, 25 Dec 2021 17:41:42 +0000
+Message-Id: <20211225174143.2857074-3-BOFH@YHBT.net>
+In-Reply-To: <20211225174143.2857074-1-BOFH@YHBT.net>
+References: <20211225174143.2857074-1-BOFH@YHBT.net>
+MIME-Version: 1.0
+Content-Transfer-Encoding: 8bit
+List-Id: <unicorn-public.yhbt.net>
+
+The warning was probably lost in the noise of the build, anyways.
+---
+ ext/unicorn_http/extconf.rb | 5 -----
+ unicorn.gemspec             | 2 +-
+ 2 files changed, 1 insertion(+), 6 deletions(-)
+
+diff --git a/ext/unicorn_http/extconf.rb b/ext/unicorn_http/extconf.rb
+index 13dec412..80d00e56 100644
+--- a/ext/unicorn_http/extconf.rb
++++ b/ext/unicorn_http/extconf.rb
+@@ -1,11 +1,6 @@
+ # -*- encoding: binary -*-
+ require 'mkmf'
+ 
+-unless RUBY_VERSION < '3.1'
+-  warn "Unicorn was only tested against MRI up to 3.0.\n" \
+-       "It might not properly work with #{RUBY_VERSION}"
+-end
+-
+ have_func("rb_hash_clear", "ruby.h") or abort 'Ruby 2.0+ required'
+ 
+ message('checking if String#-@ (str_uminus) dedupes... ')
+diff --git a/unicorn.gemspec b/unicorn.gemspec
+index 9230199d..b12cf9d3 100644
+--- a/unicorn.gemspec
++++ b/unicorn.gemspec
+@@ -25,7 +25,7 @@
+   s.homepage = 'https://yhbt.net/unicorn/'
+   s.test_files = test_files
+ 
+-  # 2.0.0 is the minumum supported version. We don't specify
++  # 2.0.0 is the minimum supported version. We don't specify
+   # a maximum version to make it easier to test pre-releases,
+   # but we do warn users if they install unicorn on an untested
+   # version in extconf.rb
