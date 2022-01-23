@@ -1,0 +1,66 @@
+Return-Path: <me@toshimaru.net>
+X-Spam-Checker-Version: SpamAssassin 3.4.2 (2018-09-13) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-3.2 required=3.0 tests=BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,RCVD_IN_DNSWL_HI,SPF_HELO_NONE,SPF_PASS shortcircuit=no
+	autolearn=ham autolearn_force=no version=3.4.2
+Received: from mail-lj1-x232.google.com (mail-lj1-x232.google.com [IPv6:2a00:1450:4864:20::232])
+	(using TLSv1.3 with cipher TLS_AES_128_GCM_SHA256 (128/128 bits)
+	 key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
+	(No client certificate requested)
+	by dcvr.yhbt.net (Postfix) with ESMTPS id 56EF21F852
+	for <unicorn-public@yhbt.net>; Sun, 23 Jan 2022 16:11:26 +0000 (UTC)
+Received: by mail-lj1-x232.google.com with SMTP id f21so7732054ljc.2
+        for <unicorn-public@yhbt.net>; Sun, 23 Jan 2022 08:11:26 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=toshimaru-net.20210112.gappssmtp.com; s=20210112;
+        h=mime-version:from:date:message-id:subject:to;
+        bh=TzCJOOyLadQbth04yDBdV5ii8C8earC5oat6BqXVCSk=;
+        b=zfxKJjnS5e0oZz6yLlpO/8PElD46lEpG9hACFxlFszIcf7IyCdQ3sLO8MyOsJq0HUZ
+         E/4oMzFop6mtTEnQ6P6D2LCpwnG4dj8Mn+AWZqCJi/PDyEojlLIlZWXnYHNwrwYh+lOU
+         eIUxeQcveuRPeNv7oOLVxzHJPEGosWISbuVKahJUKUZ1ZxeiiSdD5dnBpX973+qS9Krb
+         vuPp1cisHAz1O2X2WLBQfC8pHjVR1AFVMMiQh0n6EZqZuNCe7ij3KWmeGvTDvKvwCGhj
+         2jXPH1ebd8k9XXOxcCh73hw/MwQfMQfVwqc6B2qkY4HbRZ5w1zZ2FQJcnCk7kN5KpZu2
+         j7GQ==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20210112;
+        h=x-gm-message-state:mime-version:from:date:message-id:subject:to;
+        bh=TzCJOOyLadQbth04yDBdV5ii8C8earC5oat6BqXVCSk=;
+        b=g2lPuZjK5bW2CgA3KX3v/ANwbJ1KA2Hwu+izNA8WSUcwR9F4MT/L9CNjhDVZrJDfes
+         btxtJ488PfrXHfERVf9Q3YYMTGdvvGDJz+/vqo87Ho2r2xCbu1+yMiLhCB1cP3uatYln
+         L3X3iteuWY5x7MIAKzERJOlo6mBJlGzU79qkpC8JuRaBzkukPFDaR7tUVk+zS+0T1ruW
+         9M3doZNANu7vetGO4tKRNbyb2jfJqPG1CZdGv4ev0qqGATgqfis/Bp5Qa1yxl/Ym8G17
+         oz1bqjzQLvfHIr4jJX1ylcQ/xMUqhcd+it3dOy7puyzvM2mQBoRS5K+Dxnf6Izq5A5Tz
+         dW8A==
+X-Gm-Message-State: AOAM531902nBiD3db/hZAK8nkxBhnLWJ4SXBvOsaRNHbScCR1weYANQq
+	AI2y0mNbltTPvsxUMcjSDGCOzFeYum9tSs1aF3hbVTBWyrQesw==
+X-Google-Smtp-Source: ABdhPJy9XLq1RQzPuDan/TV/jXi4xDsmkozasYFDvnjGQPUeJleLXFClmTurfjSp5uUBZYyG2Yrc7FrXgIZ5UYkgHwU=
+X-Received: by 2002:a05:651c:a10:: with SMTP id k16mr8852061ljq.180.1642954283800;
+ Sun, 23 Jan 2022 08:11:23 -0800 (PST)
+MIME-Version: 1.0
+From: Toshimaru Enomoto <me@toshimaru.net>
+Date: Mon, 24 Jan 2022 01:10:45 +0900
+Message-ID: <CABFfzqv+K3ufQ=6wZBF_1J05_rKDF7CoCG5qE7eztur9txVf3Q@mail.gmail.com>
+Subject: Memory usage enhancement in unicorn 6.1?
+To: unicorn-public@yhbt.net
+Content-Type: text/plain; charset="UTF-8"
+List-Id: <unicorn-public.yhbt.net>
+
+Hi,
+
+After bumping unicorn from 6.0 to 6.1,
+I observed it reduced memory usage much.
+
+In production, the memory usage has been almost halved! :0
+Startup memory usage is almost the same, but after a few minutes,
+there is a big difference in the memory usage between v6.0 and v6.1.
+
+I looked into the cause of this and I found using epoll reduces memory usage.
+https://gist.github.com/toshimaru/c33cfdb2e1b2540ff0481092e8c36745
+
+Does anyone observe the same enhancement?
+Or does anyone have an idea why it happened?
+
+Thanks,
+Toshi
