@@ -1,0 +1,113 @@
+Return-Path: <bofh@yhbt.net>
+X-Spam-Checker-Version: SpamAssassin 3.4.2 (2018-09-13) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,AWL,BAYES_00,
+	T_SCC_BODY_TEXT_LINE shortcircuit=no autolearn=ham autolearn_force=no
+	version=3.4.2
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id DF4E61F670;
+	Wed, 16 Feb 2022 22:39:18 +0000 (UTC)
+Date: Wed, 16 Feb 2022 22:39:18 +0000
+From: Eric Wong <bofh@yhbt.net>
+To: Toshimaru Enomoto <me@toshimaru.net>
+Cc: unicorn-public@yhbt.net
+Subject: Re: Memory usage enhancement in unicorn 6.1?
+Message-ID: <20220216223918.M808451@dcvr>
+References: <CABFfzqv+K3ufQ=6wZBF_1J05_rKDF7CoCG5qE7eztur9txVf3Q@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <CABFfzqv+K3ufQ=6wZBF_1J05_rKDF7CoCG5qE7eztur9txVf3Q@mail.gmail.com>
+List-Id: <unicorn-public.yhbt.net>
+
+Toshimaru Enomoto <me@toshimaru.net> wrote:
+> Hi,
+> 
+> After bumping unicorn from 6.0 to 6.1,
+> I observed it reduced memory usage much.
+> 
+> In production, the memory usage has been almost halved! :0
+> Startup memory usage is almost the same, but after a few minutes,
+> there is a big difference in the memory usage between v6.0 and v6.1.
+> 
+> I looked into the cause of this and I found using epoll reduces memory usage.
+> https://gist.github.com/toshimaru/c33cfdb2e1b2540ff0481092e8c36745
+
+Quoting the lynx dump of above gist:
+> Environment
+> 
+>      * Ruby 3.1 (ruby:3.1 docker image)
+>      * unicorn 6.1
+>      * Rails 6.1
+> 
+> Workload
+> 
+>      * Run unicorn with 4 worker processes
+>      * Request 100 times to unicorn app
+> 
+> unicorn 6.1 without epoll
+> 
+>   def prep_readers(readers)
+> -   wtr = Unicorn::Waiter.prep_readers(readers)
+> -   @timeout *= 500 # to milliseconds for epoll, but halved
+> -   wtr
+> - rescue
+>     require_relative 'select_waiter'
+>     @timeout /= 2.0 # halved for IO.select
+>     Unicorn::SelectWaiter.new
+>   end
+> 
+> # free -h # before 100 requests
+>                total        used        free      shared  buff/cache   available
+> Mem:           1.9Gi       805Mi       169Mi       199Mi       1.0Gi       797Mi
+> Swap:          1.0Gi       155Mi       868Mi
+> 
+> # free -h # after 100 requests
+>                total        used        free      shared  buff/cache   available
+> Mem:           1.9Gi       943Mi        85Mi       192Mi       956Mi       670Mi
+> Swap:          1.0Gi       163Mi       860Mi
+> 
+> unicorn 6.1 with epoll
+> 
+>   def prep_readers(readers)
+>     wtr = Unicorn::Waiter.prep_readers(readers)
+>     @timeout *= 500 # to milliseconds for epoll, but halved
+>     wtr
+> - rescue
+> -   require_relative 'select_waiter'
+> -   @timeout /= 2.0 # halved for IO.select
+> -   Unicorn::SelectWaiter.new
+>   end
+> 
+> # free -h # before 100 requests
+>                total        used        free      shared  buff/cache   available
+> Mem:           1.9Gi       802Mi       160Mi       192Mi       1.0Gi       811Mi
+> Swap:          1.0Gi       163Mi       860Mi
+> # free -h # after 100 requests
+>                total        used        free      shared  buff/cache   available
+> Mem:           1.9Gi       805Mi       156Mi       192Mi       1.0Gi       808Mi
+> Swap:          1.0Gi       163Mi       860Mi
+> 
+> Does anyone observe the same enhancement?
+
+I haven't seen it, nor is it expected...
+Note: free(1) may be misleading if other processes are active.
+
+What do the VSZ and RSS columns of "ps aux" say?
+
+> Or does anyone have an idea why it happened?
+
+Nobody else responded, so I guess not.
+
+How complex is your application w.r.t memory allocations?  The
+epoll code path may use fewer allocations and stack than
+IO.select, but I figured it'd be lost in the noise since most
+applications do a lot more allocations.
+
+Btw, please don't use gist or similar services for small text
+that can easily be inlined w/o HTML/JS overhead on websites.
+Some users download and read mail offline; requiring extra network
+round-trips decreases the likelyhood your messages will be read.
+My mindset as a GNU/Linux hacker remains optimizing everything
+for i486 users on dialup :)
