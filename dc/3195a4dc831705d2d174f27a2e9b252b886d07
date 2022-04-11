@@ -1,0 +1,48 @@
+Return-Path: <bofh@yhbt.net>
+X-Spam-Checker-Version: SpamAssassin 3.4.2 (2018-09-13) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,AWL,BAYES_00,
+	T_SCC_BODY_TEXT_LINE shortcircuit=no autolearn=ham autolearn_force=no
+	version=3.4.2
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id 144171F4CE;
+	Mon, 11 Apr 2022 20:42:37 +0000 (UTC)
+Date: Mon, 11 Apr 2022 20:42:36 +0000
+From: Eric Wong <bofh@yhbt.net>
+To: pudiva chip =?utf-8?Q?l=C3=ADquida?= <pudiva@skylittlesystem.org>
+Cc: unicorn-public@yhbt.net
+Subject: Re: at_exit ignored on worker processes
+Message-ID: <20220411204236.GA4777@dcvr>
+References: <CAHpAuDGRjr8XmfUcmu+qjSQ+_9wbRykYLDtUMM6sMosfUNg-Ng@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+Content-Transfer-Encoding: 8bit
+In-Reply-To: <CAHpAuDGRjr8XmfUcmu+qjSQ+_9wbRykYLDtUMM6sMosfUNg-Ng@mail.gmail.com>
+List-Id: <unicorn-public.yhbt.net>
+
+pudiva chip líquida <pudiva@skylittlesystem.org> wrote:
+> Dear unicorns,
+> 
+> I was trying to register some code with `at_exit`, so that it would
+> execute when my app processes terminated, but I found out that it was
+> being run only for the main unicorn process, not the workers, as those
+> are terminated with `exit!` (note the !):
+> 
+> https://yhbt.net/unicorn.git/tree/lib/unicorn/http_server.rb?h=v6.0.0#n675
+> 
+> Would you mind me asking why you decided to go with `exit!` instead of
+> plain `exit`, and what would be the correct way of executing code on
+> worker termination?
+
+That `exit!' is only temporary during worker init on SIGQUIT.
+
+:QUIT is retrapped and made graceful at the end of init_worker_process:
+
+  https://yhbt.net/unicorn.git/tree/lib/unicorn/http_server.rb?h=v6.0.0#n694
+
+t/t0020-at_exit-handler.sh should be testing SIGQUIT behavior
+
+SIGTERM/SIGINT remain `exit!' since they're specified as immediate
+(well, as soon as Ruby sig handlers fire)
