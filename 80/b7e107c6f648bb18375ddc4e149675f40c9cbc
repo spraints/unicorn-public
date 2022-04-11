@@ -1,0 +1,73 @@
+Return-Path: <pudiva@skylittlesystem.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.2 (2018-09-13) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-3.2 required=3.0 tests=BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,RCVD_IN_DNSWL_HI,SPF_HELO_NONE,SPF_PASS,
+	T_SCC_BODY_TEXT_LINE shortcircuit=no autolearn=ham autolearn_force=no
+	version=3.4.2
+Received: from mail-wr1-x42c.google.com (mail-wr1-x42c.google.com [IPv6:2a00:1450:4864:20::42c])
+	(using TLSv1.3 with cipher TLS_AES_128_GCM_SHA256 (128/128 bits)
+	 key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
+	(No client certificate requested)
+	by dcvr.yhbt.net (Postfix) with ESMTPS id 1FA401F4CE
+	for <unicorn-public@yhbt.net>; Mon, 11 Apr 2022 19:03:08 +0000 (UTC)
+Received: by mail-wr1-x42c.google.com with SMTP id s28so8502515wrb.5
+        for <unicorn-public@yhbt.net>; Mon, 11 Apr 2022 12:03:08 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=skylittlesystem-org.20210112.gappssmtp.com; s=20210112;
+        h=mime-version:from:date:message-id:subject:to
+         :content-transfer-encoding;
+        bh=xz1vtoOySRYfyl/1CYtNApuaKO1Qfyv7KHkWFOPRdQY=;
+        b=R+bKKgLlGKnt1gPwdViSUl/JlgDf4347MMP46TjZaXPt++vonPiCEoxangoYdxClsZ
+         QUP6zc+jnln089h46FA1qRGSxc5uqIqoxiFEiF7ibFIiWiELA0oZ7yQT5iyftNVk7e/V
+         PURPiM4pvu8eCYK7eEla/LSV7hk3DzbZLxtx1EU3Vcsr/yzkVRSkJzrn8AxSSa4ZG7p8
+         dGvAa04wYdpzAN+TYZ7a9hSHoPMNHpSGC/OzAs0HIZQbZvyO/12UppGZnD36hL+AbsSq
+         bxlKehK7yWM3jS1ObJJnBA2BVZrLkMdFqvWMYCw8xVUoGgTcod5n1EVGOzwp01n/rK9i
+         XyEA==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20210112;
+        h=x-gm-message-state:mime-version:from:date:message-id:subject:to
+         :content-transfer-encoding;
+        bh=xz1vtoOySRYfyl/1CYtNApuaKO1Qfyv7KHkWFOPRdQY=;
+        b=LD/gIJqoOMtl37Y6PLiFNZS/NIR83ZA6rrKbN0JL2AAVMUCdFoID5KDJOYttWKr0fL
+         VNpIQCu8+OVvii65Jak4+kOxKu3xC5sZwbmRzSSGPw0tv6PU0aREFzkBQRsRAzIrQS+s
+         wHGynTPtY6szaNdD94iethAWelcOX3OmXPBDYDX3BDCxd9qJclL0VWqmWt4CQaeOaBIU
+         ly0TbTszDG5agEz1jATlkb52ckBkz9blCWIkKUmfa4m5xnQ7saHnJ87bmuooTLTJ7hSe
+         hi7s1pB21ML1RsSUw0W6BUhPOM8B7f453+678vMw2TL5nvOif2RuyO2TdKbfFVcb4L3F
+         Uayw==
+X-Gm-Message-State: AOAM533bzhfwGvbP1Lp+d9nyauRxJlWzRr4gbOdUvE7Tb+4wZPAGJdaU
+	OsFjGqia9nW4CrcKHef0cVLu8cErvXW8gPKcb3d+T0svGwhjeQ==
+X-Google-Smtp-Source: ABdhPJwqhxmCqQPpFe4/hkRIEBFUO4D8+ru89MOywvvq0nt5KmSE9ptTcR6MNZGorWzOHou47inRytIUYYs/8zJA0Go=
+X-Received: by 2002:a5d:53cd:0:b0:207:a478:4fb6 with SMTP id
+ a13-20020a5d53cd000000b00207a4784fb6mr6701612wrw.306.1649703784623; Mon, 11
+ Apr 2022 12:03:04 -0700 (PDT)
+MIME-Version: 1.0
+From: =?UTF-8?Q?pudiva_chip_l=C3=ADquida?= <pudiva@skylittlesystem.org>
+Date: Mon, 11 Apr 2022 20:02:38 +0100
+Message-ID: <CAHpAuDGRjr8XmfUcmu+qjSQ+_9wbRykYLDtUMM6sMosfUNg-Ng@mail.gmail.com>
+Subject: at_exit ignored on worker processes
+To: unicorn-public@yhbt.net
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
+List-Id: <unicorn-public.yhbt.net>
+
+Dear unicorns,
+
+I was trying to register some code with `at_exit`, so that it would
+execute when my app processes terminated, but I found out that it was
+being run only for the main unicorn process, not the workers, as those
+are terminated with `exit!` (note the !):
+
+https://yhbt.net/unicorn.git/tree/lib/unicorn/http_server.rb?h=3Dv6.0.0#n67=
+5
+
+Would you mind me asking why you decided to go with `exit!` instead of
+plain `exit`, and what would be the correct way of executing code on
+worker termination?
+
+Thank you!
+Best regards,
+
+--=20
+pudiva chip l=C3=ADquida
