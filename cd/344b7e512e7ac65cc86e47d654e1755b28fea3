@@ -1,0 +1,74 @@
+Return-Path: <pudiva@skylittlesystem.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.2 (2018-09-13) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-3.1 required=3.0 tests=AWL,BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,RCVD_IN_DNSWL_NONE,SPF_HELO_NONE,SPF_PASS,
+	T_SCC_BODY_TEXT_LINE shortcircuit=no autolearn=ham autolearn_force=no
+	version=3.4.2
+Received: from mail-wm1-x333.google.com (mail-wm1-x333.google.com [IPv6:2a00:1450:4864:20::333])
+	(using TLSv1.3 with cipher TLS_AES_128_GCM_SHA256 (128/128 bits)
+	 key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
+	(No client certificate requested)
+	by dcvr.yhbt.net (Postfix) with ESMTPS id 2165E1F4CE
+	for <unicorn-public@yhbt.net>; Tue, 12 Apr 2022 00:28:12 +0000 (UTC)
+Received: by mail-wm1-x333.google.com with SMTP id h16so10981460wmd.0
+        for <unicorn-public@yhbt.net>; Mon, 11 Apr 2022 17:28:12 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=skylittlesystem-org.20210112.gappssmtp.com; s=20210112;
+        h=mime-version:references:in-reply-to:from:date:message-id:subject:to
+         :cc:content-transfer-encoding;
+        bh=nzQajRhypZIJ/j9kSQYL1LTimru+ZFeJOBrJzoGx5WY=;
+        b=LZOnO4dusmODzeh31JW0OWfxnbZX+LnRdxs/rwEF/+B1nSYEK2q7bCHE3FHIyQRVKf
+         +9AHkVst3OLowI/IEzGwph3GTWEN9gfY2R25tZScPjM38MSm+EuXwl6NIHnIN+y4LfNZ
+         QZwHbwDfD13C3KN/iC2QIS3fPbTYgCik2y4XWJXL+1RItlr4x7tf2pLHcjBLL2KkK9IX
+         IBNw1F0ApFjWSpNKhfged7XPtLgNqXOGPLKAzphSkq6vu8gSUc2cpIRzcKLmd/65IO4H
+         1zxiVMPbmruwxTGsrL3e6+ajg2oLXoSkGUrIgQsTzi9V+SDT7xyKkUSBlZcmP8bQyPQ4
+         TKcw==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20210112;
+        h=x-gm-message-state:mime-version:references:in-reply-to:from:date
+         :message-id:subject:to:cc:content-transfer-encoding;
+        bh=nzQajRhypZIJ/j9kSQYL1LTimru+ZFeJOBrJzoGx5WY=;
+        b=6zT6hIF/T79giwimCJ9w6xci6O6ktT7IKut29Ce63InOmhbYXY2S5mhd9WWA8GmY5j
+         i9/SnWkA/VEl0k7ScQbWS+ICcIOSDFMYh7PJy2LEJSzQLLxhlrTodn5kJcTNvW4pp1Yu
+         qKmBKonjR0tzuXKAriNhcy3HTVwOkG7a8Zce2FSPMQzGpxwlLkDmic+ObP+iJ/0V+TjO
+         +4+idFF8HKkf1ODa6nXNGClclYHgp5FhinCcHzhVfGmC8bKDdTsffj5c6i31ZUjfGSv6
+         GbhRuqeu+usyavw+wvUz+XliapWMF4Ss1LHPYcrC26ohZcIzA2R8rcB9e5SW/zUcgTM9
+         KDjQ==
+X-Gm-Message-State: AOAM531HeTxnagJARHuEFNm4LGBYvlditC2d6riFaWzz0wNsqPPoxg8q
+	LTP3lajwVnhqbu45mmvdnGT3BRdfbIwEsw8USM0Z5g==
+X-Google-Smtp-Source: ABdhPJy3GodQZzIOzBLK/Gg6c2HScxndeB6z9bZ0siBjYrlI+iUu37p+C9cs913Bv8wIaaSMmjTEegjHzYGj0Cwe+Kg=
+X-Received: by 2002:a05:600c:4f82:b0:38c:9185:1ecd with SMTP id
+ n2-20020a05600c4f8200b0038c91851ecdmr1486471wmq.130.1649723289092; Mon, 11
+ Apr 2022 17:28:09 -0700 (PDT)
+MIME-Version: 1.0
+References: <CAHpAuDGRjr8XmfUcmu+qjSQ+_9wbRykYLDtUMM6sMosfUNg-Ng@mail.gmail.com>
+ <20220411204236.GA4777@dcvr>
+In-Reply-To: <20220411204236.GA4777@dcvr>
+From: =?UTF-8?Q?pudiva_chip_l=C3=ADquida?= <pudiva@skylittlesystem.org>
+Date: Tue, 12 Apr 2022 01:27:42 +0100
+Message-ID: <CAHpAuDG7OJbdFMkJuhWweo8CszqYk-QSaNR_=AMsCssn-j7Qjw@mail.gmail.com>
+Subject: Re: at_exit ignored on worker processes
+To: Eric Wong <bofh@yhbt.net>
+Cc: unicorn-public@yhbt.net
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
+List-Id: <unicorn-public.yhbt.net>
+
+> That `exit!' is only temporary during worker init on SIGQUIT.
+>
+> :QUIT is retrapped and made graceful at the end of init_worker_process:
+>
+>   https://yhbt.net/unicorn.git/tree/lib/unicorn/http_server.rb?h=3Dv6.0.0=
+#n694
+>
+> t/t0020-at_exit-handler.sh should be testing SIGQUIT behavior
+>
+> SIGTERM/SIGINT remain `exit!' since they're specified as immediate
+> (well, as soon as Ruby sig handlers fire)
+
+Ahhhh I see! Thank you!
+
+--=20
+pudia chip l=C3=ADquida
