@@ -1,0 +1,107 @@
+Return-Path: <cedriccarrard@gmail.com>
+X-Spam-Checker-Version: SpamAssassin 3.4.2 (2018-09-13) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS3215 2.6.0.0/16
+X-Spam-Status: No, score=-1.9 required=3.0 tests=AWL,BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,DKIM_VALID_AU,DKIM_VALID_EF,FREEMAIL_FROM,FREEMAIL_REPLYTO,
+	RCVD_IN_DNSWL_NONE,SPF_HELO_NONE,SPF_PASS,T_SCC_BODY_TEXT_LINE
+	shortcircuit=no autolearn=no autolearn_force=no version=3.4.2
+Received: from mail-io1-xd29.google.com (mail-io1-xd29.google.com [IPv6:2607:f8b0:4864:20::d29])
+	(using TLSv1.3 with cipher TLS_AES_128_GCM_SHA256 (128/128 bits)
+	 key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
+	(No client certificate requested)
+	by dcvr.yhbt.net (Postfix) with ESMTPS id 690AB1F4D7
+	for <unicorn-public@yhbt.net>; Fri,  6 May 2022 13:55:54 +0000 (UTC)
+Received: by mail-io1-xd29.google.com with SMTP id e3so8111589ios.6
+        for <unicorn-public@yhbt.net>; Fri, 06 May 2022 06:55:54 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20210112;
+        h=mime-version:reply-to:from:date:message-id:subject:to
+         :content-transfer-encoding;
+        bh=mbDE7lwu0O6YL575vbDwxwuORU9QOrqzhjH6g4Rl5lY=;
+        b=S0MEiq6w8CQphVufClJUdnfZ9RM09Jb6ZNATC8iSNn2JOxtuWqoEPusN0S27JYEowp
+         MYsskTQCaHN9OCu8XFr4vSMbhZ0trFwDj6RXp0hl6sqKj8aK87ei2Xf0ARr/BR1Z+ZHs
+         nWL5gbh8IpVzvxtL57Zllz0CESxHkSJ/erCgksL4W3yaQ9t0lX+S9eqsqK7qHIC4eh4I
+         ldc/oaabfmthlsPkmCxNHlUuKzjsYq9XaZuJ7q34j8qiwTmEIUb7HA67vswbKHgjZUdn
+         ntsz4vYkHnK8hBe40qUD179Lv/1VAwZOBSQzCcg0SFsYqBHqszv/cfDBAsT4/kot1D83
+         KZKA==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20210112;
+        h=x-gm-message-state:mime-version:reply-to:from:date:message-id
+         :subject:to:content-transfer-encoding;
+        bh=mbDE7lwu0O6YL575vbDwxwuORU9QOrqzhjH6g4Rl5lY=;
+        b=lnzW1cPOQRV+auW2hbQQfR34UFfMyUypDmE7mLvxVuQ4v9LAImOhF69D4pw4XkCvKZ
+         C99KfQ9Tgzj3S/LTZwnpHTMjLt6MV/rSjIOJaXKDYvGSBZs35OmYCq7mxjvLBgQHh1GS
+         uPMXQX6lKjz07/5oMCbalrE8F8vXAy/vyXXeTRyMt8MlLrwwnufA9vEQnOoQDMGsc14r
+         s2tki6bal7lnQRpAqD6vCYJ9OFlZyZ9M8ffOYeHga7s0lMDgX9eGn44I1+RwyxXMJGOT
+         Z5yJGTIjG56yPYfDvNFrsgktmk4UVJQ1DKJ0OvC3PHJxpJtMQIkadCerPip6g/9HSxnW
+         VnOw==
+X-Gm-Message-State: AOAM531/HfIk/VgQOMPi3Edf1Ul1KZngRDwvItCnUwLUrctJfHKyhq8q
+	1ryJkp7SAShi+N7BE1EO2pNuqix8LapMZiFVusllVDEwGg8=
+X-Google-Smtp-Source: ABdhPJzzdBbzviJ9NyvCUJcxABiL7btvezZd6Qa6VXaVxF7M+KrA2ep2ceLXG6t3zXqlWxy38UAPW7iZ1S7qYcGGAqo=
+X-Received: by 2002:a02:11c8:0:b0:328:8f79:557c with SMTP id
+ 191-20020a0211c8000000b003288f79557cmr1415374jaf.265.1651845353409; Fri, 06
+ May 2022 06:55:53 -0700 (PDT)
+MIME-Version: 1.0
+Reply-To: cedric.carrard@gmail.com
+From: =?UTF-8?Q?C=C3=A9dric_Carrard?= <cedriccarrard@gmail.com>
+Date: Fri, 6 May 2022 15:55:42 +0200
+Message-ID: <CAOYoJW_=iOgik_wgKJNkvzkKJeu1uxOEW96iHXbr+VR99Rf0wg@mail.gmail.com>
+Subject: Rails 7 - Unicorn 6.1.0 -- reaped with preload_app
+To: unicorn-public@yhbt.net
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
+List-Id: <unicorn-public.yhbt.net>
+
+Hello
+
+Since the update to rails 7 and ruby 3.1.1 I have errors with unicorn
+6.1.0 (we use docker-compose, nginx, sidekiq, postgresql and
+unicorn-worker-killer).
+
+1:10280 configurator.rb:49] Unicorn -- reaped #<Process::Status: pid
+415 exit 1> worker=3D15
+
+Here is the unicorn configuration:
+
+require 'semantic_logger'
+
+worker_processes(File.read('/proc/cpuinfo').scan(/^processor\s*:/).size
+* (ENV['WORKERS_PER_CPU'] || 2).to_i)
+timeout 300
+preload_app true
+listen(ENV["PORT"] || 3000)
+logger SemanticLogger['Unicorn']
+
+before_fork do |server, _worker|
+  Signal.trap 'TERM' do
+    server.logger.info 'Unicorn master intercepting TERM and sending
+myself QUIT instead'
+    Process.kill 'QUIT', Process.pid
+  end
+
+  defined?(ActiveRecord::Base) && ActiveRecord::Base.connection.disconnect!
+end
+
+after_fork do |server, _worker|
+  Signal.trap 'TERM' do
+    server.logger.info 'Unicorn worker intercepting TERM and doing
+nothing. Wait for master to send QUIT'
+  end
+
+  SemanticLogger.reopen
+
+  defined?(ActiveRecord::Base) && ActiveRecord::Base.establish_connection
+end
+
+If I remove the preload_app it works (but apparently it is recommended
+to leave this setting)
+
+Do you have any idea where the problem could be?
+
+Thanks for your help
+
+------------------------
+Best regards
+
+C=C3=A9dric Carrard
