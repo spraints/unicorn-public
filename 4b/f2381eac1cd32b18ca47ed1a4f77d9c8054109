@@ -1,0 +1,114 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.2 (2018-09-13) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,AWL,BAYES_00,
+	T_SCC_BODY_TEXT_LINE shortcircuit=no autolearn=ham autolearn_force=no
+	version=3.4.2
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id 1F03A1F4D7;
+	Sat,  7 May 2022 17:27:06 +0000 (UTC)
+Date: Sat, 7 May 2022 17:27:05 +0000
+From: Eric Wong <e@80x24.org>
+To: cedric.carrard@gmail.com
+Cc: unicorn-public@yhbt.net
+Subject: Re: Rails 7 - Unicorn 6.1.0 -- reaped with preload_app
+Message-ID: <20220507172705.GA28579@dcvr>
+References: <CAOYoJW_=iOgik_wgKJNkvzkKJeu1uxOEW96iHXbr+VR99Rf0wg@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+Content-Transfer-Encoding: 8bit
+In-Reply-To: <CAOYoJW_=iOgik_wgKJNkvzkKJeu1uxOEW96iHXbr+VR99Rf0wg@mail.gmail.com>
+List-Id: <unicorn-public.yhbt.net>
+
+Cédric Carrard <cedriccarrard@gmail.com> wrote:
+> Hello
+> 
+> Since the update to rails 7 and ruby 3.1.1 I have errors with unicorn
+> 6.1.0 (we use docker-compose, nginx, sidekiq, postgresql and
+> unicorn-worker-killer).
+
+You might need something in your before_fork / after_fork hooks
+for sidekiq or anything else that might make connections...
+
+more below...
+
+> 1:10280 configurator.rb:49] Unicorn -- reaped #<Process::Status: pid
+> 415 exit 1> worker=15
+
+Is there anything else?
+
+> Here is the unicorn configuration:
+> 
+> require 'semantic_logger'
+> 
+> worker_processes(File.read('/proc/cpuinfo').scan(/^processor\s*:/).size
+> * (ENV['WORKERS_PER_CPU'] || 2).to_i)
+
+Sidenote: Etc.nprocessors is available since Ruby 2.2 and more
+portable than reading /proc/cpuinfo.
+
+I also recommend starting with 1-2 workers whenever you're
+debugging to help narrow things down.  Some (most) FD
+sharing problems appear when going to 1 -> 2, and 2 is usually
+as good as dozens (until system memory/FD limits are hit)
+
+> timeout 300
+> preload_app true
+> listen(ENV["PORT"] || 3000)
+> logger SemanticLogger['Unicorn']
+> 
+> before_fork do |server, _worker|
+>   Signal.trap 'TERM' do
+>     server.logger.info 'Unicorn master intercepting TERM and sending
+> myself QUIT instead'
+>     Process.kill 'QUIT', Process.pid
+>   end
+> 
+>   defined?(ActiveRecord::Base) && ActiveRecord::Base.connection.disconnect!
+
+OK, I guess AR is for Postgres.  Any other things that need to
+be handled here?  (e.g. sidekiq, sqlite, xapian, memcached, redis, ...).
+
+"lsof -p $PID" on both master and any single worker can be used
+to spot inadvertant FD sharing for things that may need to be
+shared.
+
+> end
+> 
+> after_fork do |server, _worker|
+>   Signal.trap 'TERM' do
+>     server.logger.info 'Unicorn worker intercepting TERM and doing
+> nothing. Wait for master to send QUIT'
+>   end
+> 
+>   SemanticLogger.reopen
+
+I assume SemanticLogger is just a filesystem-based logger?
+If it establishes a connection, maybe it needed to be
+disconnected in before_fork.
+
+>   defined?(ActiveRecord::Base) && ActiveRecord::Base.establish_connection
+> end
+> 
+> If I remove the preload_app it works (but apparently it is recommended
+> to leave this setting)
+
+Recommendations depend on needs vs willingness to make things work :)
+Yes, preload_app saves memory and improves startup time; but it
+requires deeper app knowledge to use correctly (as you're
+finding out).
+
+> Do you have any idea where the problem could be?
+
+Maybe the above helps, but it's really your codebase nobody in
+here knows...
+
+I have no idea what SemanticLogger is, but having fewer dependencies
+can help you narrow things down.  In other words, try the normal
+logger.
+
+If you don't know the app very well (e.g. inherited from someone
+else); I'd start by editing out large sections of the codebase
+to narrow things down.
