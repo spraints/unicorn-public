@@ -1,0 +1,494 @@
+Return-Path: <jean.boussier@shopify.com>
+X-Spam-Checker-Version: SpamAssassin 3.4.2 (2018-09-13) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-2.6 required=3.0 tests=BAYES_00,BODY_8BITS,
+	DKIMWL_WL_HIGH,DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,DKIM_VALID_EF,
+	RCVD_IN_DNSWL_HI,SPF_HELO_NONE,SPF_PASS,T_SCC_BODY_TEXT_LINE
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.2
+Received: from mail-wr1-x431.google.com (mail-wr1-x431.google.com [IPv6:2a00:1450:4864:20::431])
+	(using TLSv1.3 with cipher TLS_AES_128_GCM_SHA256 (128/128 bits)
+	 key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
+	(No client certificate requested)
+	by dcvr.yhbt.net (Postfix) with ESMTPS id 958DA1F403
+	for <unicorn-public@yhbt.net>; Tue,  5 Jul 2022 20:05:17 +0000 (UTC)
+Authentication-Results: dcvr.yhbt.net;
+	dkim=pass (1024-bit key; unprotected) header.d=shopify.com header.i=@shopify.com header.b="K5ez2HjP";
+	dkim-atps=neutral
+Received: by mail-wr1-x431.google.com with SMTP id v14so19071086wra.5
+        for <unicorn-public@yhbt.net>; Tue, 05 Jul 2022 13:05:17 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=shopify.com; s=google;
+        h=message-id:date:mime-version:user-agent:content-language:from
+         :subject:to:content-transfer-encoding;
+        bh=GaTWn+yLEeKkaEDONUAJBLCAlmxNvvyY9ttsheNCl5Q=;
+        b=K5ez2HjPsM7Cea6JmGvwQp8vFIANGImz/yLk2EMqmeCWv+8q5wrgJtpT0RkGWCaWUj
+         PEHNHOiCfXAAwyfKN/dpCDTulEpZq+wSD3S4nMdCzqgNdyVb1ACftkIoIw/aml2t1z35
+         De5UOm1ULLguJ4KKurpqBF1UZ3kYaQIg1WVy4=
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20210112;
+        h=x-gm-message-state:message-id:date:mime-version:user-agent
+         :content-language:from:subject:to:content-transfer-encoding;
+        bh=GaTWn+yLEeKkaEDONUAJBLCAlmxNvvyY9ttsheNCl5Q=;
+        b=5LrPbBVfgGRLBHfo1xOtRvPTbCR64N5rKf+dADEKDSvJBElM2fp05pJY7yhNQj+g4o
+         Pz3mGjR2nXj86BuXcszO81cD+UATTRYXJPgVCxyya49/Q4+8Qf6xpaWnrvugt5MBWaYj
+         rHEmlMBP3CrHMv+PjO0w4DkUG6Jd+cCDyN2/WYURd28TpN6/qjXUqiNZdXrJN86AayhF
+         Iv9K5KRKWnm5mEi0YXZQ18qWgg+7CTBp0gf83TtXZZ3lncyTjejaxkyoDmGukhopHcCl
+         TiVCrhxsPxWZay5NLnwQjccpedVAZGEpl+FZy/Vo9Z4H3Qflq+gc8TqhXWNXOWFaVeMX
+         Gbmw==
+X-Gm-Message-State: AJIora/ln+adjFf0dHOCAJhyFfyAGWyls1dkvZ83uKSFtjd4CugR2jM7
+	C4m9pM5a5iVprerI3nYetogebukWracY435R+sIEIknUEiGTSNeY6GRKS9EgZD5n9sMhvBNC4OC
+	pujgK2eVw1J10AqsMeAtuSHJjU0ANlleGJ3ISHs5GEANCYu5xetw5tUS9cFQwqom4Ss2Ktj1Dds
+	AIJ+Q=
+X-Google-Smtp-Source: AGRyM1v+4ygayh+TSepKHTxzTn61RIFmQaF8Ttsa8mzfZmSqBzo2IW479ngAEkxuBPnZ+JD/e3p2PQ==
+X-Received: by 2002:a5d:4d90:0:b0:21d:70a9:985f with SMTP id b16-20020a5d4d90000000b0021d70a9985fmr5535322wru.565.1657051514320;
+        Tue, 05 Jul 2022 13:05:14 -0700 (PDT)
+Received: from ?IPV6:2a01:e0a:2a1:c1c0:b571:f15b:a215:9ea1? ([2a01:e0a:2a1:c1c0:b571:f15b:a215:9ea1])
+        by smtp.gmail.com with ESMTPSA id m10-20020adff38a000000b0021d6de18f68sm4921967wro.22.2022.07.05.13.05.12
+        for <unicorn-public@yhbt.net>
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Tue, 05 Jul 2022 13:05:13 -0700 (PDT)
+Message-ID: <b9a7c1b1-0242-af8c-71a2-4d659ab4647d@shopify.com>
+Date: Tue, 5 Jul 2022 22:05:11 +0200
+MIME-Version: 1.0
+User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:91.0)
+ Gecko/20100101 Thunderbird/91.11.0
+Content-Language: fr
+From: Jean Boussier <jean.boussier@shopify.com>
+Subject: [PATCH] Master promotion with SIGURG (CoW optimization)
+To: unicorn-public@yhbt.net
+Content-Type: text/plain; charset=UTF-8; format=flowed
+Content-Transfer-Encoding: 8bit
+List-Id: <unicorn-public.yhbt.net>
+
+Unicorn rely on Copy on Write to limit applications' memory usage,
+however Ruby Copy on Write performance isn't exactly perfect.
+As code get executed various internal performance caches get warmed
+which cause shared pages to be invalidated.
+
+While there's certainly some improvements to be made to Ruby itself
+on that front, it will likely get worse in the near future if YJIT
+become popular, as it will generate executable code in the workers
+hence won't be shared.
+
+One way effective CoW performance could be improved would be to
+periodically promote one worker as the new master. Since that worker
+processed some requests, VM caches, JITed code, etc should be somewhat
+warm already, hence shared pages should be dirtied less frequently after
+each promotion.
+
+Puma 5.0.0 introduced a similar experimental feature called
+`fork_worker` or `refork`.
+
+It's a bit more limited though, as instead of promoting a new
+master and exiting, they only ask worker #0 to fork itself to
+replace its siblings. So once all workers are replaces, there
+is 3 levels of processes: cluster -> first_worker -> other_workers.
+
+They also include automatic reforking after a predetermined amount
+of requests (1k by default).
+
+The happy path works pretty much like this:
+
+- Assume daemonized mode.
+
+- master: on `SIGURG`
+   - Forward `SIGURG` to a chosen worker.
+
+- worker: on `SIGURG` (become a master)
+   - do the prep, register traps, open self-pipe, etc
+   - don't spawn any worker, set number of wokers to 0.
+   - send `SIGWHINCH` to master.
+
+- old master: on `SIGWHINCH`
+   - Gracefully shutdown workers, like during a reexec.
+
+- old master: when a worker is reaped.
+   - Send `SIGTTIN` to the new master
+   - If it was the last worker:
+     - replace pidfile
+     - exit
+
+This patch is not exactly production quality yet:
+
+   - I need to write some tests
+   - There's a race condition that can cause the promoted master
+     master to have one less worker than required. Need to be addressed.
+   - The pidfile replacement should be improved.
+   - Multiple corner cases like a `QUIT` during promotion are not handled.
+
+However it work well enough for demonstration.
+
+So I figured I'd ask wether the feature is desired upstream
+before investing more effort into it.
+
+For this to be used in production without too much integration effort
+I think automatic promotion based on some criteria like number of
+request or process lifetime would be needed.
+
+Ideally a hook interface to programatically trigger promotion would
+be very valuable as I'd likely want to trigger promotion
+based on memory metrics read from `/proc/<pid>/smaps_rollup`.
+---
+  SIGNALS                        |   4 ++
+  lib/unicorn.rb                 |   2 +-
+  lib/unicorn/http_server.rb     | 115 +++++++++++++++++++++++++--------
+  lib/unicorn/promoted_worker.rb |  40 ++++++++++++
+  4 files changed, 134 insertions(+), 27 deletions(-)
+  create mode 100644 lib/unicorn/promoted_worker.rb
+
+diff --git a/SIGNALS b/SIGNALS
+index 7321f2b..f5716b9 100644
+--- a/SIGNALS
++++ b/SIGNALS
+@@ -39,6 +39,10 @@ https://yhbt.net/unicorn/examples/init.sh
+  * WINCH - gracefully stops workers but keep the master running.
+    This will only work for daemonized processes.
+
++* URG - promote one of the existing workers as a new master, and gracefully
++  stop workers.
++  This will only work for daemonized processes.
++
+  * TTIN - increment the number of worker processes by one
+
+  * TTOU - decrement the number of worker processes by one
+diff --git a/lib/unicorn.rb b/lib/unicorn.rb
+index 1a50631..832f78d 100644
+--- a/lib/unicorn.rb
++++ b/lib/unicorn.rb
+@@ -133,6 +133,6 @@ def self.pipe # :nodoc:
+  # :enddoc:
+
+  %w(const socket_helper stream_input tee_input http_request configurator
+-   tmpio util http_response worker http_server).each do |s|
++   tmpio util http_response worker promoted_worker http_server).each do |s|
+    require_relative "unicorn/#{s}"
+  end
+diff --git a/lib/unicorn/http_server.rb b/lib/unicorn/http_server.rb
+index 21f2a05..dd8f021 100644
+--- a/lib/unicorn/http_server.rb
++++ b/lib/unicorn/http_server.rb
+@@ -50,6 +50,7 @@ class Unicorn::HttpServer
+    #   Unicorn::HttpServer::START_CTX[0] = "/home/bofh/2.3.0/bin/unicorn"
+    START_CTX = {
+      :argv => ARGV.map(&:dup),
++    :generation => 0,
+      0 => $0.dup,
+    }
+    # We favor ENV['PWD'] since it is (usually) symlink aware for Capistrano
+@@ -106,7 +107,7 @@ def initialize(app, options = {})
+      @orig_app = app
+      # list of signals we care about and trap in master.
+      @queue_sigs = [
+-      :WINCH, :QUIT, :INT, :TERM, :USR1, :USR2, :HUP, :TTIN, :TTOU ]
++      :WINCH, :QUIT, :INT, :TERM, :USR1, :USR2, :HUP, :TTIN, :TTOU, :URG ]
+
+      @worker_data = if worker_data = ENV['UNICORN_WORKER']
+        worker_data = worker_data.split(',').map!(&:to_i)
+@@ -119,7 +120,24 @@ def initialize(app, options = {})
+
+    # Runs the thing.  Returns self so you can run join on it
+    def start
++    @new_master = false
+      inherit_listeners!
++    promote
++
++    # write pid early for Mongrel compatibility if we're not inheriting 
+sockets
++    # This is needed for compatibility some Monit setups at least.
++    # This unfortunately has the side effect of clobbering valid PID if
++    # we upgrade and the upgrade breaks during preload_app==true && 
+build_app!
++    self.pid = config[:pid]
++
++    build_app! if preload_app
++    bind_new_listeners!
++
++    spawn_missing_workers
++    self
++  end
++
++  def promote
+      # this pipe is used to wake us up from select(2) in #join when signals
+      # are trapped.  See trap_deferred.
+      @self_pipe.replace(Unicorn.pipe)
+@@ -130,18 +148,6 @@ def start
+      # Note that signals don't actually get handled until the #join method
+      @queue_sigs.each { |sig| trap(sig) { @sig_queue << sig; 
+awaken_master } }
+      trap(:CHLD) { awaken_master }
+-
+-    # write pid early for Mongrel compatibility if we're not inheriting 
+sockets
+-    # This is needed for compatibility some Monit setups at least.
+-    # This unfortunately has the side effect of clobbering valid PID if
+-    # we upgrade and the upgrade breaks during preload_app==true && 
+build_app!
+-    self.pid = config[:pid]
+-
+-    build_app! if preload_app
+-    bind_new_listeners!
+-
+-    spawn_missing_workers
+-    self
+    end
+
+    # replaces current listener set with +listeners+.  This will
+@@ -178,16 +184,16 @@ def logger=(obj)
+      Unicorn::HttpRequest::DEFAULTS["rack.logger"] = @logger = obj
+    end
+
+-  def clobber_pid(path)
++  def clobber_pid(path, content = $$)
+      unlink_pid_safe(@pid) if @pid
+      if path
+        fp = begin
+-        tmp = "#{File.dirname(path)}/#{rand}.#$$"
++        tmp = "#{File.dirname(path)}/#{rand}.#{content}"
+          File.open(tmp, File::RDWR|File::CREAT|File::EXCL, 0644)
+        rescue Errno::EEXIST
+          retry
+        end
+-      fp.syswrite("#$$\n")
++      fp.syswrite("#{content}\n")
+        File.rename(fp.path, path)
+        fp.close
+      end
+@@ -279,6 +285,11 @@ def join
+        end
+        @ready_pipe = @ready_pipe.close rescue nil
+      end
++
++    if @promoted
++      Process.kill(:WINCH, Process.ppid)
++    end
++
+      begin
+        reap_all_workers
+        case @sig_queue.shift
+@@ -292,6 +303,13 @@ def join
+            @logger.debug("waiting #{sleep_time}s after 
+suspend/hibernation")
+          end
+          maintain_worker_count if respawn
++
++        if @new_master && @new_master.ready? && @workers.empty?
++          # TODO: we should handle the new master dying like with reexec.
++          clobber_pid(pid, @new_master.pid)
++          break
++        end
++
+          master_sleep(sleep_time)
+        when :QUIT # graceful shutdown
+          break
+@@ -305,10 +323,20 @@ def join
+          soft_kill_each_worker(:USR1)
+        when :USR2 # exec binary, stay alive in case something went wrong
+          reexec
++      when :URG
++        if $stdin.tty?
++          logger.info "SIGURG ignored because we're not daemonized"
++        else
++          promote_new_master
++        end
+        when :WINCH
+          if $stdin.tty?
+            logger.info "SIGWINCH ignored because we're not daemonized"
+          else
++          if @new_master
++            @new_master.ready!
++          end
++
+            respawn = false
+            logger.info "gracefully stopping all workers"
+            soft_kill_each_worker(:QUIT)
+@@ -408,11 +436,30 @@ def reap_all_workers
+          worker = @workers.delete(wpid) and worker.close rescue nil
+          @after_worker_exit.call(self, worker, status)
+        end
++
++      if @new_master && @new_master.ready?
++        @new_master.scale(@workers.size)
++      end
+      rescue Errno::ECHILD
+        break
+      end while true
+    end
+
++  def promote_new_master
++    # Promoting the oldest worker
++    # TODO: handle `@new_master` being dead.
++    if @new_master
++      logger.error "can't promote because worker=#{@new_master.nr} is 
+being promoted"
++    elsif pair = @workers.first
++      @new_master = Unicorn::PromotedWorker.new(*pair, worker_processes)
++      @workers.delete(@new_master.pid)
++      logger.info "master promoting worker=#{@new_master.worker.nr}"
++      @new_master.promote
++    else
++      logger.error "can't promote because there is no existing workers"
++    end
++  end
++
+    # reexecutes the START_CTX with a new binary
+    def reexec
+      if @reexec_pid > 0
+@@ -516,10 +563,11 @@ def murder_lazy_workers
+    end
+
+    def after_fork_internal
++    self.worker_processes = 0
+      @self_pipe.each(&:close).clear # this is master-only, now
+      @ready_pipe.close if @ready_pipe
+      Unicorn::Configurator::RACKUP.clear
+-    @ready_pipe = @init_listeners = @before_exec = @before_fork = nil
++    @ready_pipe = nil
+
+      # The OpenSSL PRNG is seeded with only the pid, and apps with 
+frequently
+      # dying workers can recycle pids
+@@ -545,6 +593,13 @@ def spawn_missing_workers
+        unless pid
+          after_fork_internal
+          worker_loop(worker)
++
++        if @promoted
++          worker.tick = 0
++          promote
++          join
++        end
++
+          exit
+        end
+
+@@ -678,19 +733,22 @@ def init_worker_process(worker)
+      trap(:CHLD, 'DEFAULT')
+      @sig_queue.clear
+      proc_name "worker[#{worker.nr}]"
+-    START_CTX.clear
+      @workers.clear
+
+      after_fork.call(self, worker) # can drop perms and create listeners
+      LISTENERS.each { |sock| sock.close_on_exec = true }
+
+      worker.user(*user) if user.kind_of?(Array) && ! worker.switched
+-    @config = nil
+      build_app! unless preload_app
+-    @after_fork = @listener_opts = @orig_app = nil
++    @listener_opts = @orig_app = nil
+      readers = LISTENERS.dup
+      readers << worker
+      trap(:QUIT) { nuke_listeners!(readers) }
++    @promoted = false
++    trap(:URG) do
++      @promoted = true
++      START_CTX[:generation] += 1
++    end
+      readers
+    end
+
+@@ -706,11 +764,11 @@ def reopen_worker_logs(worker_nr)
+
+    def prep_readers(readers)
+      wtr = Unicorn::Waiter.prep_readers(readers)
+-    @timeout *= 500 # to milliseconds for epoll, but halved
++    @select_timeout = @timeout * 500 # to milliseconds for epoll, but 
+halved
+      wtr
+    rescue
+      require_relative 'select_waiter'
+-    @timeout /= 2.0 # halved for IO.select
++    @select_timeout = @timeout / 2.0 # halved for IO.select
+      Unicorn::SelectWaiter.new
+    end
+
+@@ -720,7 +778,7 @@ def prep_readers(readers)
+    def worker_loop(worker)
+      readers = init_worker_process(worker)
+      waiter = prep_readers(readers)
+-    reopen = false
++    promote = reopen = false
+
+      # this only works immediately if the master sent us the signal
+      # (which is the normal case)
+@@ -739,12 +797,17 @@ def worker_loop(worker)
+            process_client(client)
+            worker.tick = time_now.to_i
+          end
++        if @promoted
++          worker.tick = time_now.to_i
++          return
++        end
++
+          break if reopen
+        end
+
+        # timeout so we can .tick and keep parent from SIGKILL-ing us
+        worker.tick = time_now.to_i
+-      waiter.get_readers(ready, readers, @timeout)
++      waiter.get_readers(ready, readers, @select_timeout)
+      rescue => e
+        redo if reopen && readers[0]
+        Unicorn.log_error(@logger, "listen loop error", e) if readers[0]
+@@ -823,8 +886,8 @@ def build_app!
+    end
+
+    def proc_name(tag)
+-    $0 = ([ File.basename(START_CTX[0]), tag
+-          ]).concat(START_CTX[:argv]).join(' ')
++    $0 = ([ File.basename(START_CTX[0]), tag, "(gen: 
+#{START_CTX[:generation]})",
++          ]).concat(START_CTX[:argv]).compact.join(' ')
+    end
+
+    def redirect_io(io, path)
+diff --git a/lib/unicorn/promoted_worker.rb b/lib/unicorn/promoted_worker.rb
+new file mode 100644
+index 0000000..2595182
+--- /dev/null
++++ b/lib/unicorn/promoted_worker.rb
+@@ -0,0 +1,40 @@
++# -*- encoding: binary -*-
++
++class Unicorn::PromotedWorker
++  attr_reader :pid, :worker
++
++  def initialize(pid, worker, expected_worker_processes)
++    @pid = pid
++    @worker = worker
++    @worker_processes = 0
++    @expected_worker_processes = expected_worker_processes
++    @ready = false
++  end
++
++  def ready?
++    @ready
++  end
++
++  def ready!
++    @ready = true
++  end
++
++  def promote
++    @worker.soft_kill(:URG)
++  end
++
++  def scale(old_master_worker_processes)
++    diff = @expected_worker_processes -
++      old_master_worker_processes -
++      @worker_processes
++
++    if diff > 0
++      diff.times { kill(:TTIN) }
++      @worker_processes += diff
++    end
++  end
++
++  def kill(sig)
++    Process.kill(sig, @pid)
++  end
++end
+-- 
+2.35.1
+
