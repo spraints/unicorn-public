@@ -1,0 +1,189 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.2 (2018-09-13) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.1 required=3.0 tests=ALL_TRUSTED,AWL,BAYES_00,
+	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,DKIM_VALID_EF,
+	T_SCC_BODY_TEXT_LINE shortcircuit=no autolearn=ham autolearn_force=no
+	version=3.4.2
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id 81F831F403;
+	Wed,  6 Jul 2022 02:33:52 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=80x24.org;
+	s=selector1; t=1657074832;
+	bh=JpEV21gnqxB4t1AiBIzNv0RgELYVbprYWWUDQboeVbo=;
+	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
+	b=thMv4nAHsLxcuAfKc32UNmkuNrJYz3lfoESBGHFjiI8Z/v49d9MtDQUMqeKgKuLrz
+	 ce8Jz/d8gyCVXfKZuCmMVaedjyJdHCOWu+1Ve2H9UL8dH6AfRNeYOYICDrtADaBtlv
+	 bjRvvpee+gYaCilibvmEZC5V24qStA85QIxQAGFo=
+Date: Tue, 5 Jul 2022 16:33:52 -1000
+From: Eric Wong <e@80x24.org>
+To: Jean Boussier <jean.boussier@shopify.com>
+Cc: unicorn-public@yhbt.net
+Subject: Re: [PATCH] Master promotion with SIGURG (CoW optimization)
+Message-ID: <20220706023352.M393316@dcvr>
+References: <b9a7c1b1-0242-af8c-71a2-4d659ab4647d@shopify.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+Content-Transfer-Encoding: 8bit
+In-Reply-To: <b9a7c1b1-0242-af8c-71a2-4d659ab4647d@shopify.com>
+List-Id: <unicorn-public.yhbt.net>
+
+Jean Boussier <jean.boussier@shopify.com> wrote:
+> Unicorn rely on Copy on Write to limit applications' memory usage,
+> however Ruby Copy on Write performance isn't exactly perfect.
+> As code get executed various internal performance caches get warmed
+> which cause shared pages to be invalidated.
+> 
+> While there's certainly some improvements to be made to Ruby itself
+> on that front, it will likely get worse in the near future if YJIT
+> become popular, as it will generate executable code in the workers
+> hence won't be shared.
+> 
+> One way effective CoW performance could be improved would be to
+> periodically promote one worker as the new master. Since that worker
+> processed some requests, VM caches, JITed code, etc should be somewhat
+> warm already, hence shared pages should be dirtied less frequently after
+> each promotion.
+
+Agreed, there's potential for savings, here...
+
+> Puma 5.0.0 introduced a similar experimental feature called
+> `fork_worker` or `refork`.
+> 
+> It's a bit more limited though, as instead of promoting a new
+> master and exiting, they only ask worker #0 to fork itself to
+> replace its siblings. So once all workers are replaces, there
+> is 3 levels of processes: cluster -> first_worker -> other_workers.
+
+OK, any numbers from Puma users which can be used to project
+improvements for unicorn (and other servers)?
+
+> They also include automatic reforking after a predetermined amount
+> of requests (1k by default).
+
+1k seems like a lot of requests (more on this below)
+
+> The happy path works pretty much like this:
+> 
+> - Assume daemonized mode.
+> 
+> - master: on `SIGURG`
+>   - Forward `SIGURG` to a chosen worker.
+
+OK, I guess SIGURG is safe to use since nobody else relies on it (right?).
+
+> - worker: on `SIGURG` (become a master)
+>   - do the prep, register traps, open self-pipe, etc
+>   - don't spawn any worker, set number of wokers to 0.
+>   - send `SIGWHINCH` to master.
+> 
+> - old master: on `SIGWHINCH`
+>   - Gracefully shutdown workers, like during a reexec.
+
+nit: only one `H' in `SIGWINCH`
+
+> - old master: when a worker is reaped.
+>   - Send `SIGTTIN` to the new master
+>   - If it was the last worker:
+>     - replace pidfile
+>     - exit
+> 
+> This patch is not exactly production quality yet:
+> 
+>   - I need to write some tests
+>   - There's a race condition that can cause the promoted master
+>     master to have one less worker than required. Need to be addressed.
+>   - The pidfile replacement should be improved.
+>   - Multiple corner cases like a `QUIT` during promotion are not handled.
+
+Right.  PID file races and corner cases were painful to deal
+with in the earliest days of this project, and I don't look
+forward to having to deal with them ever again...
+
+It looked like the world was moving towards socket-activation
+with dedicated process managers and away from fragile PID files;
+so being self-daemonization dependent seems like a step back.
+
+> However it work well enough for demonstration.
+> 
+> So I figured I'd ask wether the feature is desired upstream
+> before investing more effort into it.
+
+It really depends on:
+
+1) what memory savings and/or speedups can be achieved
+
+2) what support can we expect from you (and other users) for
+   this feature and potential regressions going forward?
+
+I don't have the free time nor mental capacity to deal with
+fallout from major new features such as this, myself.
+
+> For this to be used in production without too much integration effort
+> I think automatic promotion based on some criteria like number of
+> request or process lifetime would be needed.
+> 
+> Ideally a hook interface to programatically trigger promotion would
+> be very valuable as I'd likely want to trigger promotion
+> based on memory metrics read from `/proc/<pid>/smaps_rollup`.
+
+The hook interface would be yet another documentation+support
+burden I'm worried about (and also more unicorn-specific stuff
+to lock people in :<).
+
+
+A completely different idea which should achieve the same goal,
+completely independent of unicorn:
+
+  App startup/loading can be made to trigger warmup paths which
+  hit common endpoints.  IOW, app loading could run a small
+  warmup suite which simulates common requests to heat up caches
+  and trigger JIT.
+
+  That would be completely self-contained in each app and work
+  on every single app server; not just ones with special
+  provisions to deal with this.  Of course, CoW-aware setups
+  (preload_app) will still have the advantage, here.
+
+  Best of all, it could be deterministic, too, instead of
+  waiting and hoping 1k random requests will be sufficient
+  warmup, developers can tune and mock exactly the requests
+  required for warmup.  Of course, a lazy developer replay 1k
+  requests from an old log, too.
+
+
+Ultimately (long-term for ruby-core), it would be better to make
+JIT (and perhaps even VM cache) results persistent and shareable
+across different processes, somehow...  That would help all Ruby
+tools, even short-lived CLI tools.  Portable locking would be a
+pain, I suppose, but proprietary OSes are always a pain :P
+
+>  4 files changed, 134 insertions(+), 27 deletions(-)
+>  create mode 100644 lib/unicorn/promoted_worker.rb
+
+There's some line-wrapping issues caused by your MUA;
+I got this from "git am":
+
+  warning: Patch sent with format=flowed; space at the end of lines might be lost.
+  Applying: Master promotion with SIGURG (CoW optimization)
+  error: corrupt patch at line 14
+
+The git-format-patch(1) manpage has a section for Thunderbird users
+which may help.
+
+> --- a/SIGNALS
+> +++ b/SIGNALS
+> @@ -39,6 +39,10 @@ https://yhbt.net/unicorn/examples/init.sh
+>  * WINCH - gracefully stops workers but keep the master running.
+>    This will only work for daemonized processes.
+> 
+> +* URG - promote one of the existing workers as a new master, and gracefully
+> +  stop workers.
+> +  This will only work for daemonized processes.
+
+Perhaps documenting this as experimental and subject to removal
+at any time would make the addition of a major new feature an
+easier pill to swallow; but I still think this is better outside
+of app servers.
