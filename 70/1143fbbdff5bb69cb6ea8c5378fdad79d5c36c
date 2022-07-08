@@ -1,0 +1,159 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.2 (2018-09-13) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.1 required=3.0 tests=ALL_TRUSTED,AWL,BAYES_00,
+	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,DKIM_VALID_EF,
+	T_SCC_BODY_TEXT_LINE shortcircuit=no autolearn=ham autolearn_force=no
+	version=3.4.2
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id A18321F403;
+	Fri,  8 Jul 2022 00:30:23 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=80x24.org;
+	s=selector1; t=1657240223;
+	bh=3hH8fjzeybmwpymcmekW/uAjmug5CeuiaV8VWiR6whI=;
+	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
+	b=mfUc/G3ZW8HVwZugywWZk4bj4Gl5F0A+uHCFjG6hWLo2R+kuJ70vzM76m00ELWfqL
+	 7wZjvnaYbR4ztVKdBDCZqtC+0coIupD0l/ieuTX/c8vkkHuBuTDDpEOV7Zamzzm9bQ
+	 CWPlklmT8lvCoE8xYXIhkYc3jxk6ii92vIy0AyFI=
+Date: Fri, 8 Jul 2022 00:30:23 +0000
+From: Eric Wong <e@80x24.org>
+To: Jean Boussier <jean.boussier@shopify.com>
+Cc: unicorn-public@yhbt.net
+Subject: Re: [PATCH] Master promotion with SIGURG (CoW optimization)
+Message-ID: <20220708003023.M508180@dcvr>
+References: <b9a7c1b1-0242-af8c-71a2-4d659ab4647d@shopify.com>
+ <20220706023352.M393316@dcvr>
+ <CANPRWbHmZz42YLVBDfngU20ODfdVytQtv9LQ-nVn3b8bMP0c1w@mail.gmail.com>
+ <20220707102330.M110641@dcvr>
+ <CANPRWbHTNiEcYq5qhN6Kio8Wg9a+2gXmc2bAcB2oVw4LZv8rcw@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <CANPRWbHTNiEcYq5qhN6Kio8Wg9a+2gXmc2bAcB2oVw4LZv8rcw@mail.gmail.com>
+List-Id: <unicorn-public.yhbt.net>
+
+Jean Boussier <jean.boussier@shopify.com> wrote:
+
+(fully quoting original message for archival purposes, original
+was sent privately)
+
+> > SIGURG is fine, having SIGUSR2 mean two things seems fragile and error-prone
+> 
+> Ack.
+> 
+> 
+> > I'm fine with requiring Linux for this feature, existing
+> > features need to continue working on *BSD...
+> 
+> Sounds good.
+> 
+> 
+> > *_fork callbacks already work for your current patch, though, right?;
+> > so hopefully *_refork won't be needed...
+> 
+> Yeah, I don't think it's necessary.
+> 
+> > sidenote: no need for kgio, I've been meaning to get rid of it
+> > (Ruby 2.3+ has everything we'd need, I think...)
+> 
+> Yes. I just didn't want to make such change in my patch.
+> I can send a patch to remove kgio and require Ruby 2.3 if you wish.
+
+I don't think Ruby 2.3+ is even necessary, just yet, nor kgio.
+None of these new code paths should be exception-intensive to be
+a performance problem.
+
+> > I would prefer this Linux-only approach if it gets rid of PID
+> > files and doesn't introduce new temporary files/FIFOs.
+> 
+> Ack. I'll get back to that one then.
+> 
+> > It seems socketpair(..., SOCK_SEQPACKET) can be used for
+> > packetized bidirectional IPC, perhaps with send_io + recv_io iff
+> > necessary.  There shouldn't be any need for new, fragile FS
+> > interactions.
+> 
+> Hum. I'm not familiar with socketpair, I'll have to read on it.
+
+SOCK_SEQPACKET has worked well on Linux for ages; and seems to
+work well on FreeBSD 12+, at least; but I haven't tried it on
+other OSes...
+
+socketpair itself is ancient and every *nix has it (but only
+SOCK_STREAM and SOCK_DGRAM, SOCK_SEQPACKET came a bit later).
+
+> > Another idea, have you considered letting master work on some requests?
+> > Signal handling would be delayed, and EINTR handling bugs in
+> > gems could be exposed, but it'd be completely portable...
+> 
+> I haven't considered it no, but I'm not really kin on it, because if you do
+> this, requests handled by the master can't be timed out.
+
+OK, fair enough.
+
+> If anything, the reliable timeout is the number one reason why I still
+> believe unicorn
+> is the superior server out there.
+
+/me hides under a desk :<
+
+Honestly, you have no idea how embarrased I am of that (mis)feature.
+
+> > It depends on whether the monitoring process/library can work
+> > with other Rack servers, probably; and signal compatibility.
+> 
+> That's a good point. Assuming unicorn and puma both do reforking on SIGURG,
+> then that monitoring process could work with both. Not a bad idea.
+> 
+> > >   - Many endpoints require database and other network access you probably
+> > >     don't want in the master.
+> >
+> > Wouldn't the *_fork hooks handle that, anyways?
+> 
+> They are supposed to yes. But I suspect many apps currently work fine
+> because some connection are lazily established on first access and just never
+> accessed as part of the boot process.
+> 
+> Once you enable reforking, you might realized that you are missing some code
+> in `before_fork`.
+
+OK, fair enough.  I think it's simpler to tell people to improve
+existing hooks than introduce new names for similar concepts
+(and likely a chunk of duplicated code in their configs)
+
+> > >   - Endpoints may have side effects.
+> >
+> > Yeah, this would optimize the GET endpoints, at least.
+> 
+> Well, `GET` endpoints may have side effects too, e.g. a visit counter.
+> 
+> > Nope, still wrapped.  According to the git-format-patch(1) manpage,
+> > Thunderbird can work w/o extensions, actually.
+> 
+> Damn it, I sent that one using GMail's plain test mode.
+> 
+> I'm sorry but my work laptop is kinda locked down, so I'm very limited
+> in my choice of mail clients. I'll try to send it from my personal computer.
+
+OK, your initial message was from Thunderbird and probably close;
+so I figure git@vger.kernel.org could use the feedback if the
+git manpage has fallen out-of-date.
+
+> Also less convenient for you, but I guess you can pull my fork:
+> 
+> git@github.com:casperisfine/unicorn.git
+> 
+> The two branches are: master-promote and worker-refork.
+
+That would be: https://github.com/casperisfine/unicorn.git
+
+Anonymous HTTPS is mostly fine (more steps to quote/reply to,
+and inaccessible offline)
+
+Registration is what I have major problems with.
+
+> > I'm fine with "maintaining it" if it just means Cc-ing you on
+> > bugs related to this :>
+> 
+> Oh that's fine, that was pretty much implied.
