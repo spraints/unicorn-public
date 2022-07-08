@@ -1,0 +1,125 @@
+Return-Path: <jean.boussier@gmail.com>
+X-Spam-Checker-Version: SpamAssassin 3.4.2 (2018-09-13) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-3.4 required=3.0 tests=BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,DKIM_VALID_AU,DKIM_VALID_EF,FREEMAIL_FROM,RCVD_IN_DNSWL_HI,
+	SPF_HELO_NONE,SPF_PASS,T_SCC_BODY_TEXT_LINE shortcircuit=no
+	autolearn=ham autolearn_force=no version=3.4.2
+Received: from mail-wr1-x435.google.com (mail-wr1-x435.google.com [IPv6:2a00:1450:4864:20::435])
+	(using TLSv1.3 with cipher TLS_AES_128_GCM_SHA256 (128/128 bits)
+	 key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
+	(No client certificate requested)
+	by dcvr.yhbt.net (Postfix) with ESMTPS id 2148B1F403
+	for <unicorn-public@yhbt.net>; Fri,  8 Jul 2022 07:46:55 +0000 (UTC)
+Authentication-Results: dcvr.yhbt.net;
+	dkim=pass (2048-bit key; unprotected) header.d=gmail.com header.i=@gmail.com header.b="hFjU0dAg";
+	dkim-atps=neutral
+Received: by mail-wr1-x435.google.com with SMTP id a5so14698167wrx.12
+        for <unicorn-public@yhbt.net>; Fri, 08 Jul 2022 00:46:55 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20210112;
+        h=from:content-transfer-encoding:mime-version:subject:message-id:date
+         :to;
+        bh=qrfDTrvyBvlCTZswyJJ1LUiX9OjgJBpJTTmlIEuAzvc=;
+        b=hFjU0dAgCXoMGDXKeC1JMyp6buYxLZIBy9uXzH+M2hqIi10Hr1qSYx8mcXoV4mQOup
+         lxULae5HbcLJajit/UL/vTrPKOU9Lk48UUWqdcgWDP3Df+BRrQW9IOaVnWTLS9FwHH4y
+         0okqNYhuxG2lrlD6yr05iEBA9MF67JNR58WEiCEU8kZUBYUFDcUNjkkHE1029YZw/cGC
+         41P6hhMSwKOtjRiSOrRuOvTTaS1UHh9kB30CVUO8Vo1R8H+MZg7sZvabvSseT8aJutN1
+         SKq5/Wpz5PLPNi1MZMJUA0uG91J6G/GOg5UYyAVdDHxH1BaX1PYt8W2JpjriGYG/+I07
+         uIFA==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20210112;
+        h=x-gm-message-state:from:content-transfer-encoding:mime-version
+         :subject:message-id:date:to;
+        bh=qrfDTrvyBvlCTZswyJJ1LUiX9OjgJBpJTTmlIEuAzvc=;
+        b=IE9kOlCW9H40ivpvGTtEhQju0vtZ4vM/gEfu0b2G/8+EXEvI0OndTCMTCDnwyb2bB1
+         LRVoGSYKFAh5B1J8brOyshdgKFsXwqLETzLK42hPJ5AZbofLG3ugBfY1VvyXpnt+EReY
+         psKNBUSq5CV9Cv1jiLDNNY7Il335g+u5KLiVW5EH7INnZgvXmOBXa1+9g5Xl6iefn9uE
+         pvY7GIXqAMSrklI28dbLYYZF4YNJnRAcDBEFA1Vi1yD+PCp4xSQbZTi5/O8ijw4A5PVY
+         V1Eig342jc6CuHLWyIXG72eMv0lzheDBGbjyJ8X8El7k4CCX+Ipg/QYF7G/6d/9hgRPN
+         HMPw==
+X-Gm-Message-State: AJIora+nGvT857yT65Blran0TUw9MsFO0jfU6OxEQcSanSxplcXtd69K
+	K3noxyva/L/8eNNXXqcoYLtb4Xosxp4PYTrX
+X-Google-Smtp-Source: AGRyM1tATWT3mq5bDAvGhsdHsUGyGNbnZYHbRAX4n4HWA7biYj7Qh3Rp+uR6WGkdphuPlwAsP0Pv+A==
+X-Received: by 2002:a5d:64cc:0:b0:21d:4307:feb4 with SMTP id f12-20020a5d64cc000000b0021d4307feb4mr1870579wri.104.1657266412285;
+        Fri, 08 Jul 2022 00:46:52 -0700 (PDT)
+Received: from smtpclient.apple ([2a01:e0a:2a1:c1c0:79b9:c95f:8722:b0a6])
+        by smtp.gmail.com with ESMTPSA id z10-20020a1cf40a000000b003a2c7bf0497sm1276433wma.16.2022.07.08.00.46.51
+        for <unicorn-public@yhbt.net>
+        (version=TLS1_2 cipher=ECDHE-ECDSA-AES128-GCM-SHA256 bits=128/128);
+        Fri, 08 Jul 2022 00:46:51 -0700 (PDT)
+From: Jean Boussier <jean.boussier@gmail.com>
+Content-Type: text/plain;
+	charset=utf-8
+Content-Transfer-Encoding: quoted-printable
+Mime-Version: 1.0 (Mac OS X Mail 16.0 \(3696.80.82.1.1\))
+Subject: [PATCH] Make the gem usable as a git gem
+Message-Id: <A035FC5A-9859-48E0-9BC0-809BAE645B9A@gmail.com>
+Date: Fri, 8 Jul 2022 09:46:51 +0200
+To: unicorn-public@yhbt.net
+X-Mailer: Apple Mail (2.3696.80.82.1.1)
+List-Id: <unicorn-public.yhbt.net>
+
+Ok, so I=E2=80=99m sorry, but I=E2=80=99ve now tried for hours and
+I can=E2=80=99t for the life of me figure out how to send a patch
+cleanly with the tools I have available.
+
+So you can download the patch here:
+=
+https://github.com/byroot/unicorn/commit/e7f49852875de54cce974c7cbdd5540dd=
+c5e4eeb.patch
+
+=E2=80=94=E2=80=94=20
+
+Bundler allow to install arbitrary revision
+of a gem via its git repository, e.g.
+
+```ruby
+gem "unicorn", git: "https://yhbt.net/unicorn.git"
+```
+
+But this currently doesn't work with unicorn because
+some files are not committed, and they are only generated
+by the makefile.
+
+This change would make it much easier to test
+unreleased versions.
+
+NB: I didn't commit ext/unicorn_http/unicorn_http.c
+because I think you might as well generate it and commit
+it yourself so that you don't have to review it.
+---
+ .gitignore             | 2 --
+ lib/unicorn/version.rb | 1 +
+ 2 files changed, 1 insertion(+), 2 deletions(-)
+ create mode 100644 lib/unicorn/version.rb
+
+diff --git a/.gitignore b/.gitignore
+index ad92808..9aa3cad 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -11,7 +11,6 @@
+ /test/rbx-*
+ /test/ruby-*
+ ext/unicorn_http/Makefile
+-ext/unicorn_http/unicorn_http.c
+ log/
+ pkg/
+ /vendor
+@@ -21,5 +20,4 @@ pkg/
+ /man
+ /tmp
+ /LATEST
+-/lib/unicorn/version.rb
+ /*_1
+diff --git a/lib/unicorn/version.rb b/lib/unicorn/version.rb
+new file mode 100644
+index 0000000..f456bdd
+--- /dev/null
++++ b/lib/unicorn/version.rb
+@@ -0,0 +1 @@
++Unicorn::Const::UNICORN_VERSION =3D '6.1.0.dirty'
+--=20
+2.11.0
+
