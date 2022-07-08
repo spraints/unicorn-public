@@ -1,0 +1,99 @@
+Return-Path: <jean.boussier@shopify.com>
+X-Spam-Checker-Version: SpamAssassin 3.4.2 (2018-09-13) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS3215 2.6.0.0/16
+X-Spam-Status: No, score=-3.6 required=3.0 tests=AWL,BAYES_00,DKIMWL_WL_HIGH,
+	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,DKIM_VALID_EF,RCVD_IN_DNSWL_HI,
+	SPF_HELO_NONE,SPF_PASS,T_SCC_BODY_TEXT_LINE shortcircuit=no
+	autolearn=ham autolearn_force=no version=3.4.2
+Received: from mail-oi1-x232.google.com (mail-oi1-x232.google.com [IPv6:2607:f8b0:4864:20::232])
+	(using TLSv1.3 with cipher TLS_AES_128_GCM_SHA256 (128/128 bits)
+	 key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
+	(No client certificate requested)
+	by dcvr.yhbt.net (Postfix) with ESMTPS id 85AE31F403
+	for <unicorn-public@yhbt.net>; Fri,  8 Jul 2022 06:22:12 +0000 (UTC)
+Authentication-Results: dcvr.yhbt.net;
+	dkim=pass (1024-bit key; unprotected) header.d=shopify.com header.i=@shopify.com header.b="fCmGZP1w";
+	dkim-atps=neutral
+Received: by mail-oi1-x232.google.com with SMTP id s128so11212655oie.10
+        for <unicorn-public@yhbt.net>; Thu, 07 Jul 2022 23:22:12 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=shopify.com; s=google;
+        h=mime-version:references:in-reply-to:from:date:message-id:subject:to
+         :cc;
+        bh=3z5Zzb2IHRQ2twbduwBn4U4tletobRPiIJmn2PWPNgo=;
+        b=fCmGZP1wIaOimiFH0O1jpVIBLAGawGrFbT1vpWkQ2KcSCyRGdobKZTTQMUER0ybvk0
+         tZGH5IgX8s6GcpUgQwS6ooWqf6BoksmpLk5JCxzwHCguY1Dz/JZLK+v25Ymr7szIBhye
+         Qed04pMwn5Lp45ORMRl6/qOm6hL3fpcYtyejU=
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20210112;
+        h=x-gm-message-state:mime-version:references:in-reply-to:from:date
+         :message-id:subject:to:cc;
+        bh=3z5Zzb2IHRQ2twbduwBn4U4tletobRPiIJmn2PWPNgo=;
+        b=fm/NhZADmGV8YdA1uYeKEgjH9cC2yBqrYB4JbIpOwcNKGCPv8NoBWAnPX0FzUeLNPr
+         mR7fJwGTWfaTcoh3zIpBFQ+XB+PoAJqFIGWD/0bPQSV6SC+kgk5XHL1WBe5F60IlwxQr
+         wc7YtCxobORYEvng/etI3M4yjM4dO5FF2HWtyEFLs6kSvo4v57LrZlPkENVS8D21RDl6
+         nEnfRsBSFd8cHQ5cyARm5tutrK+zOU72IX8X7uZvMajxA40/+/ipm+LTRqTaW49H8Myh
+         TpBo1TAvDkR2HbJaT/nCCZ3OcQlm2bKRVmBb44Mp9v0Vx2ywrs8TJMG+Q1DOyemzHa7Z
+         yvWg==
+X-Gm-Message-State: AJIora8ZWvMar1QNDrDc+NfL1NqMHfHNGZ9jLRFbvUawcZwkSiNNwUBK
+	dCf6F3dhkbsHPx+5jETpt94SCJJsDW/Mq9ai9P5YTdT5delGKA==
+X-Google-Smtp-Source: AGRyM1t+FYBCrMhfHouBZ42d3s4aWn1tcqyHNPCIOytpOyeZqT4UpeUF0Bd5m/GWcd0Q86mKtCKjX5rjaDV2FBkEqmU=
+X-Received: by 2002:a05:6808:21a6:b0:337:abf7:96c7 with SMTP id
+ be38-20020a05680821a600b00337abf796c7mr4556717oib.98.1657261331476; Thu, 07
+ Jul 2022 23:22:11 -0700 (PDT)
+MIME-Version: 1.0
+References: <b9a7c1b1-0242-af8c-71a2-4d659ab4647d@shopify.com>
+ <20220706023352.M393316@dcvr> <CANPRWbHmZz42YLVBDfngU20ODfdVytQtv9LQ-nVn3b8bMP0c1w@mail.gmail.com>
+ <20220707102330.M110641@dcvr> <CANPRWbHTNiEcYq5qhN6Kio8Wg9a+2gXmc2bAcB2oVw4LZv8rcw@mail.gmail.com>
+ <20220708003023.M508180@dcvr>
+In-Reply-To: <20220708003023.M508180@dcvr>
+From: Jean Boussier <jean.boussier@shopify.com>
+Date: Fri, 8 Jul 2022 08:22:00 +0200
+Message-ID: <CANPRWbFHajthfE0vN8zgRfRd1QY6gsZ0piK83YSoHQbftTDmCw@mail.gmail.com>
+Subject: Re: [PATCH] Master promotion with SIGURG (CoW optimization)
+To: Eric Wong <e@80x24.org>
+Cc: unicorn-public@yhbt.net
+Content-Type: text/plain; charset="UTF-8"
+List-Id: <unicorn-public.yhbt.net>
+
+> (fully quoting original message for archival purposes, original
+> was sent privately)
+
+Sorry for this. Again our company laptops got locked down recently
+and now I'm just struggling with shitty mail clients I don't know how to use.
+
+
+> I don't think Ruby 2.3+ is even necessary, just yet, nor kgio.
+> None of these new code paths should be exception-intensive to be
+> a performance problem.
+
+True.
+
+
+> > If anything, the reliable timeout is the number one reason why I still
+> > believe unicorn
+> > is the superior server out there.
+>
+> /me hides under a desk :<
+>
+> Honestly, you have no idea how embarrased I am of that (mis)feature.
+
+It's a bit off topic, but really you shouldn't. A proper timeout mechanism
+is absolutely essential to ensure resiliency of the service.
+
+Unless your app is really trivial, it's pretty much impossible to ensure
+that all your endpoints will always complete in a reasonable amount
+of time, even more so when you have malicious actors trying to DOS
+you, or some bugs in database clients and such.
+
+Killing these stuck workers allows to keep the service healthy until the
+problem is fixed. The only thing we changed is that we first send SIGTERM
+so that we can report the backtrace and other debug data.
+
+> send pipes or any other IO objects across.
+
+Oh, that's what I missed, that makes sense. I'll try the C wrapper
+to send both the message and the IO at the same time.
+
+Thanks again, I'll likely get back to you next week with a patch.
