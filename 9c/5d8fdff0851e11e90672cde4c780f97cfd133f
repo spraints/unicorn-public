@@ -1,0 +1,90 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.2 (2018-09-13) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-3.3 required=3.0 tests=ALL_TRUSTED,AWL,BAYES_00,
+	BODY_8BITS,DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,DKIM_VALID_EF,
+	T_SCC_BODY_TEXT_LINE shortcircuit=no autolearn=ham autolearn_force=no
+	version=3.4.2
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id 57C331F54E;
+	Fri,  8 Jul 2022 19:20:23 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=80x24.org;
+	s=selector1; t=1657308023;
+	bh=naKvQmthpMdg4MW/iHJxztyzAL/r9fkTwKrDuTcAH/U=;
+	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
+	b=Uu0QW+gf1hK58p2+/YvhFIenaRPdbAIH7tyPQTm71tAT1REC9VKaqhE3ndkqbfGNc
+	 Q92D7wUAur4YW2pazZlawIdJTIviHhVFAJx3jytEOvEWKiDUp4hK7x63OMdi5z0Wcj
+	 fO6oVjRgnsyL9D4dGd9Juz58WzLz4VV52zdzQXT4=
+Date: Fri, 8 Jul 2022 19:20:23 +0000
+From: Eric Wong <e@80x24.org>
+To: Jean Boussier <jean.boussier@shopify.com>
+Cc: unicorn-public@yhbt.net
+Subject: Re: [PATCH] Get rid of Kgio
+Message-ID: <20220708192023.M250152@dcvr>
+References: <2c3b457c-7525-44ca-8bdb-493f5a785dad@shopify.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+Content-Transfer-Encoding: 8bit
+In-Reply-To: <2c3b457c-7525-44ca-8bdb-493f5a785dad@shopify.com>
+List-Id: <unicorn-public.yhbt.net>
+
+Jean Boussier <jean.boussier@shopify.com> wrote:
+> As discussed kgio is no longer absolutely necessary.
+> 
+> We can use Ruby 2+ non blocking IO capabilities instead.
+
+I think there was a misunderstanding, here.  I meant kgio wasn't
+necessary for new process management code.  Notes inline...
+
+> diff --git a/lib/unicorn/http_server.rb b/lib/unicorn/http_server.rb
+> index 21f2a05..98cd119 100644
+> --- a/lib/unicorn/http_server.rb
+> +++ b/lib/unicorn/http_server.rb
+
+> @@ -733,9 +742,15 @@ def worker_loop(worker)
+>        reopen = reopen_worker_logs(worker.nr) if reopen
+>        worker.tick = time_now.to_i
+>        while sock = ready.shift
+> -        # Unicorn::Worker#kgio_tryaccept is not like accept(2) at all,
+> +        # Unicorn::Worker#accept_nonblock is not like accept(2) at all,
+>          # but that will return false
+> -        if client = sock.kgio_tryaccept
+> +        client = begin
+> +          sock.accept_nonblock
+> +        rescue Errno::EAGAIN
+> +          false
+> +        end
+> +
+
+Exception garbage in hotter code paths like accept_nonblock was
+the reason kgio exists, especially for trivial Rack apps I tend
+to write.  Ruby 2.3+ added `exception: false' to accept_nonblock.
+
+It's less bad for Linux nowadays with EPOLLEXCLUSIVE, but that's
+not portable.
+
+> diff --git a/lib/unicorn/stream_input.rb b/lib/unicorn/stream_input.rb
+> index 41d28a0..3241ff4 100644
+> --- a/lib/unicorn/stream_input.rb
+> +++ b/lib/unicorn/stream_input.rb
+
+> @@ -72,8 +77,7 @@ def read(length = nil, rv = '')
+>    # Returns nil if called at the end of file.
+>    # This takes zero arguments for strict Rack::Lint compatibility,
+>    # unlike IO#gets.
+> -  def gets
+> -    sep = $/
+> +  def gets(sep = $/)
+>      if sep.nil?
+>        read_all(rv = '')
+>        return rv.empty? ? nil : rv
+
+This change to #gets is unrelated and should've belonged in a
+separate commit.  But the change itself seems wrong, too, given
+what Rack::Lint enforces.  Note the comment above the method.
+I also just checked current Rack::Lint::InputWrapper#gets,
+and it still forbids args.
+
+Thanks.
