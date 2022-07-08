@@ -1,0 +1,840 @@
+Return-Path: <jean.boussier@shopify.com>
+X-Spam-Checker-Version: SpamAssassin 3.4.2 (2018-09-13) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-2.5 required=3.0 tests=AWL,BAYES_00,BODY_8BITS,
+	DKIMWL_WL_HIGH,DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,DKIM_VALID_EF,
+	RCVD_IN_DNSWL_NONE,SPF_HELO_NONE,SPF_PASS,T_SCC_BODY_TEXT_LINE
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.2
+Received: from mail-wr1-x433.google.com (mail-wr1-x433.google.com [IPv6:2a00:1450:4864:20::433])
+	(using TLSv1.3 with cipher TLS_AES_128_GCM_SHA256 (128/128 bits)
+	 key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
+	(No client certificate requested)
+	by dcvr.yhbt.net (Postfix) with ESMTPS id 8476B1F54E
+	for <unicorn-public@yhbt.net>; Fri,  8 Jul 2022 13:18:02 +0000 (UTC)
+Authentication-Results: dcvr.yhbt.net;
+	dkim=pass (1024-bit key; unprotected) header.d=shopify.com header.i=@shopify.com header.b="kDbP+jHb";
+	dkim-atps=neutral
+Received: by mail-wr1-x433.google.com with SMTP id h17so17371049wrx.0
+        for <unicorn-public@yhbt.net>; Fri, 08 Jul 2022 06:18:02 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=shopify.com; s=google;
+        h=message-id:date:mime-version:user-agent:content-language:to:from
+         :subject;
+        bh=wCo0CXMS21/mGaZZnVK2tx/9MgHDa6yb0+zbV5zExVE=;
+        b=kDbP+jHb51MiCdOclZIadW604EquzHRXc53xun3sp+da+eWCYHqw5F8ONZznJM3YLW
+         lNYk4dKDGH8mabN5nBC+dSzbzpyhgwvAP76Hsy8axaDc95tdoSEfTERJby+xrmNnGwQi
+         n/aBuiDfTRm7GGgbMZKJQlNxw79p0/dJzGO6Q=
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20210112;
+        h=x-gm-message-state:message-id:date:mime-version:user-agent
+         :content-language:to:from:subject;
+        bh=wCo0CXMS21/mGaZZnVK2tx/9MgHDa6yb0+zbV5zExVE=;
+        b=tcVpS9NabEy0pK/ERaLX1x0bS4DOOohF2q/Gfng/iyQbagn3a/GWonZRj4/Nl5tuJW
+         W8DQBRWcb++dPbN/f9zPAx+ut3oYAk2wEPSjjmTOtYEIdYoty3zUBof4OSXUaE28zVou
+         bZljsiuz7Pqn/Fz3Q2wUlp59je08AO6u32iGWrdDR3RE+xXwvKZSESL5UqP2lud2A7Ku
+         JcwZ2zHNdKPCL/6NH6p34vfi2KNeAeyWLpM3D9Wf1cXu9cBblhFmaIjD8ztjCh15oLzt
+         cYXv529Fqbwd15k1xla30QVdJMcA2agFjfVXd7k6dELHiUi2R6TSdY2eq5y0AF7gpIec
+         1KPA==
+X-Gm-Message-State: AJIora+d2u9qF3427ngWWx0mttK7FamhCmC6r8Hdb4CNO8Wt407yvqa9
+	bDrohY+K8eqWITYJuP3qoMY39+pbnYhLwvChA6I/V42zcgat0yD/xwWZ8/cF/SPP8DecLxWLjPW
+	W+gWXRJpec3CLIvT3Dl5Ucjp9h+dly3BVZqGTajaHAkEnPLgCxV3pwikT4ySS/DkL3gXVwMqYpi
+	GFkFU=
+X-Google-Smtp-Source: AGRyM1va7onHbKbG9OhgvTTV9gm2uEIUXZT/JDlOZGd68hYZGpwnmsXXAK6+BD2TRDmerNmko/tr3w==
+X-Received: by 2002:adf:e187:0:b0:21d:64c6:74f0 with SMTP id az7-20020adfe187000000b0021d64c674f0mr3365402wrb.221.1657286280126;
+        Fri, 08 Jul 2022 06:18:00 -0700 (PDT)
+Received: from ?IPV6:2a01:e0a:2a1:c1c0:a187:5c4e:9794:471? ([2a01:e0a:2a1:c1c0:a187:5c4e:9794:471])
+        by smtp.gmail.com with ESMTPSA id m3-20020a1c2603000000b003a2dbc3b41dsm1183629wmm.21.2022.07.08.06.17.58
+        for <unicorn-public@yhbt.net>
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Fri, 08 Jul 2022 06:17:59 -0700 (PDT)
+Content-Type: multipart/mixed; boundary="------------JSVtpHM09juSu3qlGeuhE8w5"
+Message-ID: <2c3b457c-7525-44ca-8bdb-493f5a785dad@shopify.com>
+Date: Fri, 8 Jul 2022 15:17:58 +0200
+MIME-Version: 1.0
+User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:91.0)
+ Gecko/20100101 Thunderbird/91.11.0
+Content-Language: fr
+To: unicorn-public@yhbt.net
+From: Jean Boussier <jean.boussier@shopify.com>
+Subject: [PATCH] Get rid of Kgio
+List-Id: <unicorn-public.yhbt.net>
+
+This is a multi-part message in MIME format.
+--------------JSVtpHM09juSu3qlGeuhE8w5
+Content-Type: text/plain; charset=UTF-8; format=flowed
+Content-Transfer-Encoding: 8bit
+
+As discussed kgio is no longer absolutely necessary.
+
+We can use Ruby 2+ non blocking IO capabilities instead.
+
+Also available at https://github.com/casperisfine/unicorn.git (remove-kgio)
+
+---
+  lib/unicorn.rb                 |  3 +--
+  lib/unicorn/http_request.rb    | 15 +++++++++-----
+  lib/unicorn/http_server.rb     | 33 +++++++++++++++++++++--------
+  lib/unicorn/socket_helper.rb   | 20 ++++--------------
+  lib/unicorn/stream_input.rb    | 16 ++++++++------
+  lib/unicorn/worker.rb          | 38 ++++++++++++++++++++++------------
+  t/oob_gc.ru                    |  2 +-
+  t/oob_gc_path.ru               |  2 +-
+  test/unit/test_request.rb      | 16 +++-----------
+  test/unit/test_stream_input.rb |  7 ++-----
+  test/unit/test_tee_input.rb    |  2 +-
+  unicorn.gemspec                |  1 -
+  12 files changed, 82 insertions(+), 73 deletions(-)
+
+diff --git a/lib/unicorn.rb b/lib/unicorn.rb
+index 1a50631..170719c 100644
+--- a/lib/unicorn.rb
++++ b/lib/unicorn.rb
+@@ -1,7 +1,6 @@
+  # -*- encoding: binary -*-
+  require 'etc'
+  require 'stringio'
+-require 'kgio'
+  require 'raindrops'
+  require 'io/wait'
+
+@@ -113,7 +112,7 @@ def self.log_error(logger, prefix, exc)
+    F_SETPIPE_SZ = 1031 if RUBY_PLATFORM =~ /linux/
+
+    def self.pipe # :nodoc:
+-    Kgio::Pipe.new.each do |io|
++    IO.pipe.each do |io|
+        # shrink pipes to minimize impact on 
+/proc/sys/fs/pipe-user-pages-soft
+        # limits.
+        if defined?(F_SETPIPE_SZ)
+diff --git a/lib/unicorn/http_request.rb b/lib/unicorn/http_request.rb
+index e3ad592..7f7324b 100644
+--- a/lib/unicorn/http_request.rb
++++ b/lib/unicorn/http_request.rb
+@@ -71,14 +71,19 @@ def read(socket)
+      #  identify the client for the immediate request to the server;
+      #  that client may be a proxy, gateway, or other intermediary
+      #  acting on behalf of the actual source client."
+-    e['REMOTE_ADDR'] = socket.kgio_addr
++    address = socket.remote_address
++    e['REMOTE_ADDR'] = if address.unix?
++      "127.0.0.1"
++    else
++      address.ip_address
++    end
+
+      # short circuit the common case with small GET requests first
+-    socket.kgio_read!(16384, buf)
++    socket.readpartial(16384, buf)
+      if parse.nil?
+        # Parser is not done, queue up more data to read and continue 
+parsing
+        # an Exception thrown from the parser will throw us out of the loop
+-      false until add_parse(socket.kgio_read!(16384))
++      false until add_parse(socket.readpartial(16384))
+      end
+
+      check_client_connection(socket) if @@check_client_connection
+@@ -108,7 +113,7 @@ def hijacked?
+      TCPI = Raindrops::TCP_Info.allocate
+
+      def check_client_connection(socket) # :nodoc:
+-      if Unicorn::TCPClient === socket
++      if TCPSocket === socket
+          # Raindrops::TCP_Info#get!, #state (reads struct 
+tcp_info#tcpi_state)
+          raise Errno::EPIPE, "client closed connection".freeze,
+                EMPTY_ARRAY if closed_state?(TCPI.get!(socket).state)
+@@ -153,7 +158,7 @@ def closed_state?(state) # :nodoc:
+      # Not that efficient, but probably still better than doing unnecessary
+      # work after a client gives up.
+      def check_client_connection(socket) # :nodoc:
+-      if Unicorn::TCPClient === socket && @@tcpi_inspect_ok
++      if TCPSocket === socket && @@tcpi_inspect_ok
+          opt = socket.getsockopt(Socket::IPPROTO_TCP, 
+Socket::TCP_INFO).inspect
+          if opt =~ /\bstate=(\S+)/
+            raise Errno::EPIPE, "client closed connection".freeze,
+diff --git a/lib/unicorn/http_server.rb b/lib/unicorn/http_server.rb
+index 21f2a05..98cd119 100644
+--- a/lib/unicorn/http_server.rb
++++ b/lib/unicorn/http_server.rb
+@@ -111,7 +111,7 @@ def initialize(app, options = {})
+      @worker_data = if worker_data = ENV['UNICORN_WORKER']
+        worker_data = worker_data.split(',').map!(&:to_i)
+        worker_data[1] = worker_data.slice!(1..2).map do |i|
+-        Kgio::Pipe.for_fd(i)
++        IO.for_fd(i)
+        end
+        worker_data
+      end
+@@ -240,7 +240,7 @@ def listen(address, opt = 
+{}.merge(listener_opts[address] || {}))
+      tries = opt[:tries] || 5
+      begin
+        io = bind_listen(address, opt)
+-      unless Kgio::TCPServer === io || Kgio::UNIXServer === io
++      unless TCPServer === io || UNIXServer === io
+          io.autoclose = false
+          io = server_cast(io)
+        end
+@@ -386,12 +386,18 @@ def master_sleep(sec)
+      # the Ruby itself and not require a separate malloc (on 32-bit MRI 
+1.9+).
+      # Most reads are only one byte here and uncommon, so it's not worth a
+      # persistent buffer, either:
+-    @self_pipe[0].kgio_tryread(11)
++    begin
++      @self_pipe[0].read_nonblock(11)
++    rescue Errno::EAGAIN
++    end
+    end
+
+    def awaken_master
+      return if $$ != @master_pid
+-    @self_pipe[1].kgio_trywrite('.') # wakeup master process from select
++    begin
++      @self_pipe[1].write_nonblock('.') # wakeup master process from select
++    rescue Errno::EAGAIN
++    end
+    end
+
+    # reaps all unreaped workers
+@@ -581,7 +587,10 @@ def handle_error(client, e)
+        500
+      end
+      if code
+-      client.kgio_trywrite(err_response(code, 
+@request.response_start_sent))
++      begin
++        client.write_nonblock(err_response(code, 
+@request.response_start_sent))
++      rescue Errno::EAGAIN
++      end
+      end
+      client.close
+    rescue
+@@ -733,9 +742,15 @@ def worker_loop(worker)
+        reopen = reopen_worker_logs(worker.nr) if reopen
+        worker.tick = time_now.to_i
+        while sock = ready.shift
+-        # Unicorn::Worker#kgio_tryaccept is not like accept(2) at all,
++        # Unicorn::Worker#accept_nonblock is not like accept(2) at all,
+          # but that will return false
+-        if client = sock.kgio_tryaccept
++        client = begin
++          sock.accept_nonblock
++        rescue Errno::EAGAIN
++          false
++        end
++
++        if client
+            process_client(client)
+            worker.tick = time_now.to_i
+          end
+@@ -834,7 +849,7 @@ def redirect_io(io, path)
+
+    def inherit_listeners!
+      # inherit sockets from parents, they need to be plain Socket objects
+-    # before they become Kgio::UNIXServer or Kgio::TCPServer
++    # before they become UNIXServer or TCPServer
+      inherited = ENV['UNICORN_FD'].to_s.split(',')
+
+      # emulate sd_listen_fds() for systemd
+@@ -858,7 +873,7 @@ def inherit_listeners!
+      LISTENERS.replace(inherited)
+
+      # we start out with generic Socket objects that get cast to either
+-    # Kgio::TCPServer or Kgio::UNIXServer objects; but since the Socket
++    # TCPServer or UNIXServer objects; but since the Socket
+      # objects share the same OS-level file descriptor as the higher-level
+      # *Server objects; we need to prevent Socket objects from being
+      # garbage-collected
+diff --git a/lib/unicorn/socket_helper.rb b/lib/unicorn/socket_helper.rb
+index 8a6f6ee..9d2ba52 100644
+--- a/lib/unicorn/socket_helper.rb
++++ b/lib/unicorn/socket_helper.rb
+@@ -3,18 +3,6 @@
+  require 'socket'
+
+  module Unicorn
+-
+-  # Instead of using a generic Kgio::Socket for everything,
+-  # tag TCP sockets so we can use TCP_INFO under Linux without
+-  # incurring extra syscalls for Unix domain sockets.
+-  # TODO: remove these when we remove kgio
+-  TCPClient = Class.new(Kgio::Socket) # :nodoc:
+-  class TCPSrv < Kgio::TCPServer # :nodoc:
+-    def kgio_tryaccept # :nodoc:
+-      super(TCPClient)
+-    end
+-  end
+-
+    module SocketHelper
+
+      # internal interface
+@@ -135,7 +123,7 @@ def bind_listen(address = '0.0.0.0:8080', opt = {})
+          end
+          old_umask = File.umask(opt[:umask] || 0)
+          begin
+-          Kgio::UNIXServer.new(address)
++          UNIXServer.new(address)
+          ensure
+            File.umask(old_umask)
+          end
+@@ -164,7 +152,7 @@ def new_tcp_server(addr, port, opt)
+        end
+        sock.bind(Socket.pack_sockaddr_in(port, addr))
+        sock.autoclose = false
+-      TCPSrv.for_fd(sock.fileno)
++      TCPServer.for_fd(sock.fileno)
+      end
+
+      # returns rfc2732-style (e.g. "[::1]:666") addresses for IPv6
+@@ -201,9 +189,9 @@ def sock_name(sock)
+      def server_cast(sock)
+        begin
+          Socket.unpack_sockaddr_in(sock.getsockname)
+-        TCPSrv.for_fd(sock.fileno)
++        TCPServer.for_fd(sock.fileno)
+        rescue ArgumentError
+-        Kgio::UNIXServer.for_fd(sock.fileno)
++        UNIXServer.for_fd(sock.fileno)
+        end
+      end
+
+diff --git a/lib/unicorn/stream_input.rb b/lib/unicorn/stream_input.rb
+index 41d28a0..3241ff4 100644
+--- a/lib/unicorn/stream_input.rb
++++ b/lib/unicorn/stream_input.rb
+@@ -1,3 +1,4 @@
++
+  # -*- encoding: binary -*-
+
+  # When processing uploads, unicorn may expose a StreamInput object under
+@@ -49,7 +50,11 @@ def read(length = nil, rv = '')
+          to_read = length - @rbuf.size
+          rv.replace(@rbuf.slice!(0, @rbuf.size))
+          until to_read == 0 || eof? || (rv.size > 0 && @chunked)
+-          @socket.kgio_read(to_read, @buf) or eof!
++          begin
++            @socket.readpartial(to_read, @buf)
++          rescue EOFError
++            eof!
++          end
+            filter_body(@rbuf, @buf)
+            rv << @rbuf
+            to_read -= @rbuf.size
+@@ -72,8 +77,7 @@ def read(length = nil, rv = '')
+    # Returns nil if called at the end of file.
+    # This takes zero arguments for strict Rack::Lint compatibility,
+    # unlike IO#gets.
+-  def gets
+-    sep = $/
++  def gets(sep = $/)
+      if sep.nil?
+        read_all(rv = '')
+        return rv.empty? ? nil : rv
+@@ -83,7 +87,7 @@ def gets
+      begin
+        @rbuf.sub!(re, '') and return $1
+        return @rbuf.empty? ? nil : @rbuf.slice!(0, @rbuf.size) if eof?
+-      @socket.kgio_read(@@io_chunk_size, @buf) or eof!
++      @socket.readpartial(@@io_chunk_size, @buf) or eof!
+        filter_body(once = '', @buf)
+        @rbuf << once
+      end while true
+@@ -107,7 +111,7 @@ def each
+    def eof?
+      if @parser.body_eof?
+        while @chunked && ! @parser.parse
+-        once = @socket.kgio_read(@@io_chunk_size) or eof!
++        once = @socket.readpartial(@@io_chunk_size) or eof!
+          @buf << once
+        end
+        @socket = nil
+@@ -127,7 +131,7 @@ def read_all(dst)
+      dst.replace(@rbuf)
+      @socket or return
+      until eof?
+-      @socket.kgio_read(@@io_chunk_size, @buf) or eof!
++      @socket.readpartial(@@io_chunk_size, @buf) or eof!
+        filter_body(@rbuf, @buf)
+        dst << @rbuf
+      end
+diff --git a/lib/unicorn/worker.rb b/lib/unicorn/worker.rb
+index 5ddf379..fe741c0 100644
+--- a/lib/unicorn/worker.rb
++++ b/lib/unicorn/worker.rb
+@@ -63,27 +63,39 @@ def soft_kill(sig) # :nodoc:
+        signum = Signal.list[sig.to_s] or
+            raise ArgumentError, "BUG: bad signal: #{sig.inspect}"
+      end
++
+      # writing and reading 4 bytes on a pipe is atomic on all POSIX 
+platforms
+      # Do not care in the odd case the buffer is full, here.
+-    @master.kgio_trywrite([signum].pack('l'))
++    begin
++      @master.write_nonblock([signum].pack('l'))
++    rescue Errno::EAGAIN
++    end
+    rescue Errno::EPIPE
+      # worker will be reaped soon
+    end
+
+    # this only runs when the Rack app.call is not running
+    # act like a listener
+-  def kgio_tryaccept # :nodoc:
+-    case buf = @to_io.kgio_tryread(4)
+-    when String
+-      # unpack the buffer and trigger the signal handler
+-      signum = buf.unpack('l')
+-      fake_sig(signum[0])
+-      # keep looping, more signals may be queued
+-    when nil # EOF: master died, but we are at a safe place to exit
+-      fake_sig(:QUIT)
+-    when :wait_readable # keep waiting
+-      return false
+-    end while true # loop, as multiple signals may be sent
++  def accept_nonblock # :nodoc:
++    loop do
++      buf = begin
++        @to_io.read_nonblock(4)
++      rescue Errno::EAGAIN # keep waiting
++        return false
++      rescue EOFError # master died, but we are at a safe place to exit
++        fake_sig(:QUIT)
++      end
++
++      case buf
++      when String
++        # unpack the buffer and trigger the signal handler
++        signum = buf.unpack('l')
++        fake_sig(signum[0])
++        # keep looping, more signals may be queued
++      else
++        raise TypeError, "Unexpected read_nonblock returns: #{buf.inspect}"
++      end
++    end # loop, as multiple signals may be sent
+    end
+
+    # worker objects may be compared to just plain Integers
+diff --git a/t/oob_gc.ru b/t/oob_gc.ru
+index c253540..43c0f68 100644
+--- a/t/oob_gc.ru
++++ b/t/oob_gc.ru
+@@ -7,7 +7,7 @@
+
+  # Mock GC.start
+  def GC.start
+-  ObjectSpace.each_object(Kgio::Socket) do |x|
++  ObjectSpace.each_object(Socket) do |x|
+      x.closed? or abort "not closed #{x}"
+    end
+    $gc_started = true
+diff --git a/t/oob_gc_path.ru b/t/oob_gc_path.ru
+index af8e3b9..e772261 100644
+--- a/t/oob_gc_path.ru
++++ b/t/oob_gc_path.ru
+@@ -7,7 +7,7 @@
+
+  # Mock GC.start
+  def GC.start
+-  ObjectSpace.each_object(Kgio::Socket) do |x|
++  ObjectSpace.each_object(Socket) do |x|
+      x.closed? or abort "not closed #{x}"
+    end
+    $gc_started = true
+diff --git a/test/unit/test_request.rb b/test/unit/test_request.rb
+index 6cb0268..a951057 100644
+--- a/test/unit/test_request.rb
++++ b/test/unit/test_request.rb
+@@ -11,11 +11,8 @@
+  class RequestTest < Test::Unit::TestCase
+
+    class MockRequest < StringIO
+-    alias_method :readpartial, :sysread
+-    alias_method :kgio_read!, :sysread
+-    alias_method :read_nonblock, :sysread
+-    def kgio_addr
+-      '127.0.0.1'
++    def remote_address
++      Addrinfo.tcp('127.0.0.1', 55608)
+      end
+    end
+
+@@ -152,14 +149,7 @@ def test_rack_lint_big_put
+      buf = (' ' * bs).freeze
+      length = bs * count
+      client = Tempfile.new('big_put')
+-    def client.kgio_addr; '127.0.0.1'; end
+-    def client.kgio_read(*args)
+-      readpartial(*args)
+-    rescue EOFError
+-    end
+-    def client.kgio_read!(*args)
+-      readpartial(*args)
+-    end
++    def client.remote_address; Addrinfo.tcp('127.0.0.1', 55608); end
+      client.syswrite(
+        "PUT / HTTP/1.1\r\n" \
+        "Host: foo\r\n" \
+diff --git a/test/unit/test_stream_input.rb b/test/unit/test_stream_input.rb
+index 1a07ec3..445b415 100644
+--- a/test/unit/test_stream_input.rb
++++ b/test/unit/test_stream_input.rb
+@@ -6,16 +6,14 @@
+
+  class TestStreamInput < Test::Unit::TestCase
+    def setup
+-    @rs = $/
+      @env = {}
+-    @rd, @wr = Kgio::UNIXSocket.pair
++    @rd, @wr = UNIXSocket.pair
+      @rd.sync = @wr.sync = true
+      @start_pid = $$
+    end
+
+    def teardown
+      return if $$ != @start_pid
+-    $/ = @rs
+      @rd.close rescue nil
+      @wr.close rescue nil
+      Process.waitall
+@@ -54,10 +52,9 @@ def test_gets_multiline
+    end
+
+    def test_gets_empty_rs
+-    $/ = nil
+      r = init_request("a\nb\n\n")
+      si = Unicorn::StreamInput.new(@rd, r)
+-    assert_equal "a\nb\n\n", si.gets
++    assert_equal "a\nb\n\n", si.gets(nil)
+      assert_nil si.gets
+    end
+
+diff --git a/test/unit/test_tee_input.rb b/test/unit/test_tee_input.rb
+index 4647e66..21b90f1 100644
+--- a/test/unit/test_tee_input.rb
++++ b/test/unit/test_tee_input.rb
+@@ -12,7 +12,7 @@ class TestTeeInput < Test::Unit::TestCase
+
+    def setup
+      @rs = $/
+-    @rd, @wr = Kgio::UNIXSocket.pair
++    @rd, @wr = UNIXSocket.pair
+      @rd.sync = @wr.sync = true
+      @start_pid = $$
+    end
+diff --git a/unicorn.gemspec b/unicorn.gemspec
+index 7bb1154..85183d9 100644
+--- a/unicorn.gemspec
++++ b/unicorn.gemspec
+@@ -36,7 +36,6 @@
+    # won't have descriptive text, only the numeric status.
+    s.add_development_dependency(%q<rack>)
+
+-  s.add_dependency(%q<kgio>, '~> 2.6')
+    s.add_dependency(%q<raindrops>, '~> 0.7')
+
+    s.add_development_dependency('test-unit', '~> 3.0')
+-- 
+2.35.1
+
+--------------JSVtpHM09juSu3qlGeuhE8w5
+Content-Type: text/plain; charset=UTF-8; name="0001-Get-rid-of-Kgio.patch"
+Content-Disposition: attachment; filename="0001-Get-rid-of-Kgio.patch"
+Content-Transfer-Encoding: base64
+
+RnJvbSBkMDQxMmU3MzA1ZDdiNmI0YWJjNjQ5OTYxMTllNTcyMjcwOWJiNmIwIE1vbiBTZXAg
+MTcgMDA6MDA6MDAgMjAwMQpGcm9tOiBKZWFuIEJvdXNzaWVyIDxqZWFuLmJvdXNzaWVyQGdt
+YWlsLmNvbT4KRGF0ZTogRnJpLCA4IEp1bCAyMDIyIDEyOjU4OjI1ICswMjAwClN1YmplY3Q6
+IFtQQVRDSF0gR2V0IHJpZCBvZiBLZ2lvCgpBcyBkaXNjdXNzZWQga2dpbyBpcyBubyBsb25n
+ZXIgYWJzb2x1dGVseSBuZWNlc3NhcnkuCgpXZSBjYW4gdXNlIFJ1YnkgMisgbm9uIGJsb2Nr
+aW5nIElPIGNhcGFiaWxpdGllcyBpbnN0ZWFkLgotLS0KIGxpYi91bmljb3JuLnJiICAgICAg
+ICAgICAgICAgICB8ICAzICstLQogbGliL3VuaWNvcm4vaHR0cF9yZXF1ZXN0LnJiICAgIHwg
+MTUgKysrKysrKysrLS0tLS0KIGxpYi91bmljb3JuL2h0dHBfc2VydmVyLnJiICAgICB8IDMz
+ICsrKysrKysrKysrKysrKysrKysrKy0tLS0tLS0tCiBsaWIvdW5pY29ybi9zb2NrZXRfaGVs
+cGVyLnJiICAgfCAyMCArKysrLS0tLS0tLS0tLS0tLS0KIGxpYi91bmljb3JuL3N0cmVhbV9p
+bnB1dC5yYiAgICB8IDE2ICsrKysrKysrLS0tLS0tCiBsaWIvdW5pY29ybi93b3JrZXIucmIg
+ICAgICAgICAgfCAzOCArKysrKysrKysrKysrKysrKysrKysrLS0tLS0tLS0tLS0tCiB0L29v
+Yl9nYy5ydSAgICAgICAgICAgICAgICAgICAgfCAgMiArLQogdC9vb2JfZ2NfcGF0aC5ydSAg
+ICAgICAgICAgICAgIHwgIDIgKy0KIHRlc3QvdW5pdC90ZXN0X3JlcXVlc3QucmIgICAgICB8
+IDE2ICsrKy0tLS0tLS0tLS0tCiB0ZXN0L3VuaXQvdGVzdF9zdHJlYW1faW5wdXQucmIgfCAg
+NyArKy0tLS0tCiB0ZXN0L3VuaXQvdGVzdF90ZWVfaW5wdXQucmIgICAgfCAgMiArLQogdW5p
+Y29ybi5nZW1zcGVjICAgICAgICAgICAgICAgIHwgIDEgLQogMTIgZmlsZXMgY2hhbmdlZCwg
+ODIgaW5zZXJ0aW9ucygrKSwgNzMgZGVsZXRpb25zKC0pCgpkaWZmIC0tZ2l0IGEvbGliL3Vu
+aWNvcm4ucmIgYi9saWIvdW5pY29ybi5yYgppbmRleCAxYTUwNjMxLi4xNzA3MTljIDEwMDY0
+NAotLS0gYS9saWIvdW5pY29ybi5yYgorKysgYi9saWIvdW5pY29ybi5yYgpAQCAtMSw3ICsx
+LDYgQEAKICMgLSotIGVuY29kaW5nOiBiaW5hcnkgLSotCiByZXF1aXJlICdldGMnCiByZXF1
+aXJlICdzdHJpbmdpbycKLXJlcXVpcmUgJ2tnaW8nCiByZXF1aXJlICdyYWluZHJvcHMnCiBy
+ZXF1aXJlICdpby93YWl0JwogCkBAIC0xMTMsNyArMTEyLDcgQEAgZGVmIHNlbGYubG9nX2Vy
+cm9yKGxvZ2dlciwgcHJlZml4LCBleGMpCiAgIEZfU0VUUElQRV9TWiA9IDEwMzEgaWYgUlVC
+WV9QTEFURk9STSA9fiAvbGludXgvCiAKICAgZGVmIHNlbGYucGlwZSAjIDpub2RvYzoKLSAg
+ICBLZ2lvOjpQaXBlLm5ldy5lYWNoIGRvIHxpb3wKKyAgICBJTy5waXBlLmVhY2ggZG8gfGlv
+fAogICAgICAgIyBzaHJpbmsgcGlwZXMgdG8gbWluaW1pemUgaW1wYWN0IG9uIC9wcm9jL3N5
+cy9mcy9waXBlLXVzZXItcGFnZXMtc29mdAogICAgICAgIyBsaW1pdHMuCiAgICAgICBpZiBk
+ZWZpbmVkPyhGX1NFVFBJUEVfU1opCmRpZmYgLS1naXQgYS9saWIvdW5pY29ybi9odHRwX3Jl
+cXVlc3QucmIgYi9saWIvdW5pY29ybi9odHRwX3JlcXVlc3QucmIKaW5kZXggZTNhZDU5Mi4u
+N2Y3MzI0YiAxMDA2NDQKLS0tIGEvbGliL3VuaWNvcm4vaHR0cF9yZXF1ZXN0LnJiCisrKyBi
+L2xpYi91bmljb3JuL2h0dHBfcmVxdWVzdC5yYgpAQCAtNzEsMTQgKzcxLDE5IEBAIGRlZiBy
+ZWFkKHNvY2tldCkKICAgICAjICBpZGVudGlmeSB0aGUgY2xpZW50IGZvciB0aGUgaW1tZWRp
+YXRlIHJlcXVlc3QgdG8gdGhlIHNlcnZlcjsKICAgICAjICB0aGF0IGNsaWVudCBtYXkgYmUg
+YSBwcm94eSwgZ2F0ZXdheSwgb3Igb3RoZXIgaW50ZXJtZWRpYXJ5CiAgICAgIyAgYWN0aW5n
+IG9uIGJlaGFsZiBvZiB0aGUgYWN0dWFsIHNvdXJjZSBjbGllbnQuIgotICAgIGVbJ1JFTU9U
+RV9BRERSJ10gPSBzb2NrZXQua2dpb19hZGRyCisgICAgYWRkcmVzcyA9IHNvY2tldC5yZW1v
+dGVfYWRkcmVzcworICAgIGVbJ1JFTU9URV9BRERSJ10gPSBpZiBhZGRyZXNzLnVuaXg/Cisg
+ICAgICAiMTI3LjAuMC4xIgorICAgIGVsc2UKKyAgICAgIGFkZHJlc3MuaXBfYWRkcmVzcwor
+ICAgIGVuZAogCiAgICAgIyBzaG9ydCBjaXJjdWl0IHRoZSBjb21tb24gY2FzZSB3aXRoIHNt
+YWxsIEdFVCByZXF1ZXN0cyBmaXJzdAotICAgIHNvY2tldC5rZ2lvX3JlYWQhKDE2Mzg0LCBi
+dWYpCisgICAgc29ja2V0LnJlYWRwYXJ0aWFsKDE2Mzg0LCBidWYpCiAgICAgaWYgcGFyc2Uu
+bmlsPwogICAgICAgIyBQYXJzZXIgaXMgbm90IGRvbmUsIHF1ZXVlIHVwIG1vcmUgZGF0YSB0
+byByZWFkIGFuZCBjb250aW51ZSBwYXJzaW5nCiAgICAgICAjIGFuIEV4Y2VwdGlvbiB0aHJv
+d24gZnJvbSB0aGUgcGFyc2VyIHdpbGwgdGhyb3cgdXMgb3V0IG9mIHRoZSBsb29wCi0gICAg
+ICBmYWxzZSB1bnRpbCBhZGRfcGFyc2Uoc29ja2V0LmtnaW9fcmVhZCEoMTYzODQpKQorICAg
+ICAgZmFsc2UgdW50aWwgYWRkX3BhcnNlKHNvY2tldC5yZWFkcGFydGlhbCgxNjM4NCkpCiAg
+ICAgZW5kCiAKICAgICBjaGVja19jbGllbnRfY29ubmVjdGlvbihzb2NrZXQpIGlmIEBAY2hl
+Y2tfY2xpZW50X2Nvbm5lY3Rpb24KQEAgLTEwOCw3ICsxMTMsNyBAQCBkZWYgaGlqYWNrZWQ/
+CiAgICAgVENQSSA9IFJhaW5kcm9wczo6VENQX0luZm8uYWxsb2NhdGUKIAogICAgIGRlZiBj
+aGVja19jbGllbnRfY29ubmVjdGlvbihzb2NrZXQpICMgOm5vZG9jOgotICAgICAgaWYgVW5p
+Y29ybjo6VENQQ2xpZW50ID09PSBzb2NrZXQKKyAgICAgIGlmIFRDUFNvY2tldCA9PT0gc29j
+a2V0CiAgICAgICAgICMgUmFpbmRyb3BzOjpUQ1BfSW5mbyNnZXQhLCAjc3RhdGUgKHJlYWRz
+IHN0cnVjdCB0Y3BfaW5mbyN0Y3BpX3N0YXRlKQogICAgICAgICByYWlzZSBFcnJubzo6RVBJ
+UEUsICJjbGllbnQgY2xvc2VkIGNvbm5lY3Rpb24iLmZyZWV6ZSwKICAgICAgICAgICAgICAg
+RU1QVFlfQVJSQVkgaWYgY2xvc2VkX3N0YXRlPyhUQ1BJLmdldCEoc29ja2V0KS5zdGF0ZSkK
+QEAgLTE1Myw3ICsxNTgsNyBAQCBkZWYgY2xvc2VkX3N0YXRlPyhzdGF0ZSkgIyA6bm9kb2M6
+CiAgICAgIyBOb3QgdGhhdCBlZmZpY2llbnQsIGJ1dCBwcm9iYWJseSBzdGlsbCBiZXR0ZXIg
+dGhhbiBkb2luZyB1bm5lY2Vzc2FyeQogICAgICMgd29yayBhZnRlciBhIGNsaWVudCBnaXZl
+cyB1cC4KICAgICBkZWYgY2hlY2tfY2xpZW50X2Nvbm5lY3Rpb24oc29ja2V0KSAjIDpub2Rv
+YzoKLSAgICAgIGlmIFVuaWNvcm46OlRDUENsaWVudCA9PT0gc29ja2V0ICYmIEBAdGNwaV9p
+bnNwZWN0X29rCisgICAgICBpZiBUQ1BTb2NrZXQgPT09IHNvY2tldCAmJiBAQHRjcGlfaW5z
+cGVjdF9vawogICAgICAgICBvcHQgPSBzb2NrZXQuZ2V0c29ja29wdChTb2NrZXQ6OklQUFJP
+VE9fVENQLCBTb2NrZXQ6OlRDUF9JTkZPKS5pbnNwZWN0CiAgICAgICAgIGlmIG9wdCA9fiAv
+XGJzdGF0ZT0oXFMrKS8KICAgICAgICAgICByYWlzZSBFcnJubzo6RVBJUEUsICJjbGllbnQg
+Y2xvc2VkIGNvbm5lY3Rpb24iLmZyZWV6ZSwKZGlmZiAtLWdpdCBhL2xpYi91bmljb3JuL2h0
+dHBfc2VydmVyLnJiIGIvbGliL3VuaWNvcm4vaHR0cF9zZXJ2ZXIucmIKaW5kZXggMjFmMmEw
+NS4uOThjZDExOSAxMDA2NDQKLS0tIGEvbGliL3VuaWNvcm4vaHR0cF9zZXJ2ZXIucmIKKysr
+IGIvbGliL3VuaWNvcm4vaHR0cF9zZXJ2ZXIucmIKQEAgLTExMSw3ICsxMTEsNyBAQCBkZWYg
+aW5pdGlhbGl6ZShhcHAsIG9wdGlvbnMgPSB7fSkKICAgICBAd29ya2VyX2RhdGEgPSBpZiB3
+b3JrZXJfZGF0YSA9IEVOVlsnVU5JQ09STl9XT1JLRVInXQogICAgICAgd29ya2VyX2RhdGEg
+PSB3b3JrZXJfZGF0YS5zcGxpdCgnLCcpLm1hcCEoJjp0b19pKQogICAgICAgd29ya2VyX2Rh
+dGFbMV0gPSB3b3JrZXJfZGF0YS5zbGljZSEoMS4uMikubWFwIGRvIHxpfAotICAgICAgICBL
+Z2lvOjpQaXBlLmZvcl9mZChpKQorICAgICAgICBJTy5mb3JfZmQoaSkKICAgICAgIGVuZAog
+ICAgICAgd29ya2VyX2RhdGEKICAgICBlbmQKQEAgLTI0MCw3ICsyNDAsNyBAQCBkZWYgbGlz
+dGVuKGFkZHJlc3MsIG9wdCA9IHt9Lm1lcmdlKGxpc3RlbmVyX29wdHNbYWRkcmVzc10gfHwg
+e30pKQogICAgIHRyaWVzID0gb3B0Wzp0cmllc10gfHwgNQogICAgIGJlZ2luCiAgICAgICBp
+byA9IGJpbmRfbGlzdGVuKGFkZHJlc3MsIG9wdCkKLSAgICAgIHVubGVzcyBLZ2lvOjpUQ1BT
+ZXJ2ZXIgPT09IGlvIHx8IEtnaW86OlVOSVhTZXJ2ZXIgPT09IGlvCisgICAgICB1bmxlc3Mg
+VENQU2VydmVyID09PSBpbyB8fCBVTklYU2VydmVyID09PSBpbwogICAgICAgICBpby5hdXRv
+Y2xvc2UgPSBmYWxzZQogICAgICAgICBpbyA9IHNlcnZlcl9jYXN0KGlvKQogICAgICAgZW5k
+CkBAIC0zODYsMTIgKzM4NiwxOCBAQCBkZWYgbWFzdGVyX3NsZWVwKHNlYykKICAgICAjIHRo
+ZSBSdWJ5IGl0c2VsZiBhbmQgbm90IHJlcXVpcmUgYSBzZXBhcmF0ZSBtYWxsb2MgKG9uIDMy
+LWJpdCBNUkkgMS45KykuCiAgICAgIyBNb3N0IHJlYWRzIGFyZSBvbmx5IG9uZSBieXRlIGhl
+cmUgYW5kIHVuY29tbW9uLCBzbyBpdCdzIG5vdCB3b3J0aCBhCiAgICAgIyBwZXJzaXN0ZW50
+IGJ1ZmZlciwgZWl0aGVyOgotICAgIEBzZWxmX3BpcGVbMF0ua2dpb190cnlyZWFkKDExKQor
+ICAgIGJlZ2luCisgICAgICBAc2VsZl9waXBlWzBdLnJlYWRfbm9uYmxvY2soMTEpCisgICAg
+cmVzY3VlIEVycm5vOjpFQUdBSU4KKyAgICBlbmQKICAgZW5kCiAKICAgZGVmIGF3YWtlbl9t
+YXN0ZXIKICAgICByZXR1cm4gaWYgJCQgIT0gQG1hc3Rlcl9waWQKLSAgICBAc2VsZl9waXBl
+WzFdLmtnaW9fdHJ5d3JpdGUoJy4nKSAjIHdha2V1cCBtYXN0ZXIgcHJvY2VzcyBmcm9tIHNl
+bGVjdAorICAgIGJlZ2luCisgICAgICBAc2VsZl9waXBlWzFdLndyaXRlX25vbmJsb2NrKCcu
+JykgIyB3YWtldXAgbWFzdGVyIHByb2Nlc3MgZnJvbSBzZWxlY3QKKyAgICByZXNjdWUgRXJy
+bm86OkVBR0FJTgorICAgIGVuZAogICBlbmQKIAogICAjIHJlYXBzIGFsbCB1bnJlYXBlZCB3
+b3JrZXJzCkBAIC01ODEsNyArNTg3LDEwIEBAIGRlZiBoYW5kbGVfZXJyb3IoY2xpZW50LCBl
+KQogICAgICAgNTAwCiAgICAgZW5kCiAgICAgaWYgY29kZQotICAgICAgY2xpZW50LmtnaW9f
+dHJ5d3JpdGUoZXJyX3Jlc3BvbnNlKGNvZGUsIEByZXF1ZXN0LnJlc3BvbnNlX3N0YXJ0X3Nl
+bnQpKQorICAgICAgYmVnaW4KKyAgICAgICAgY2xpZW50LndyaXRlX25vbmJsb2NrKGVycl9y
+ZXNwb25zZShjb2RlLCBAcmVxdWVzdC5yZXNwb25zZV9zdGFydF9zZW50KSkKKyAgICAgIHJl
+c2N1ZSBFcnJubzo6RUFHQUlOCisgICAgICBlbmQKICAgICBlbmQKICAgICBjbGllbnQuY2xv
+c2UKICAgcmVzY3VlCkBAIC03MzMsOSArNzQyLDE1IEBAIGRlZiB3b3JrZXJfbG9vcCh3b3Jr
+ZXIpCiAgICAgICByZW9wZW4gPSByZW9wZW5fd29ya2VyX2xvZ3Mod29ya2VyLm5yKSBpZiBy
+ZW9wZW4KICAgICAgIHdvcmtlci50aWNrID0gdGltZV9ub3cudG9faQogICAgICAgd2hpbGUg
+c29jayA9IHJlYWR5LnNoaWZ0Ci0gICAgICAgICMgVW5pY29ybjo6V29ya2VyI2tnaW9fdHJ5
+YWNjZXB0IGlzIG5vdCBsaWtlIGFjY2VwdCgyKSBhdCBhbGwsCisgICAgICAgICMgVW5pY29y
+bjo6V29ya2VyI2FjY2VwdF9ub25ibG9jayBpcyBub3QgbGlrZSBhY2NlcHQoMikgYXQgYWxs
+LAogICAgICAgICAjIGJ1dCB0aGF0IHdpbGwgcmV0dXJuIGZhbHNlCi0gICAgICAgIGlmIGNs
+aWVudCA9IHNvY2sua2dpb190cnlhY2NlcHQKKyAgICAgICAgY2xpZW50ID0gYmVnaW4KKyAg
+ICAgICAgICBzb2NrLmFjY2VwdF9ub25ibG9jaworICAgICAgICByZXNjdWUgRXJybm86OkVB
+R0FJTgorICAgICAgICAgIGZhbHNlCisgICAgICAgIGVuZAorCisgICAgICAgIGlmIGNsaWVu
+dAogICAgICAgICAgIHByb2Nlc3NfY2xpZW50KGNsaWVudCkKICAgICAgICAgICB3b3JrZXIu
+dGljayA9IHRpbWVfbm93LnRvX2kKICAgICAgICAgZW5kCkBAIC04MzQsNyArODQ5LDcgQEAg
+ZGVmIHJlZGlyZWN0X2lvKGlvLCBwYXRoKQogCiAgIGRlZiBpbmhlcml0X2xpc3RlbmVycyEK
+ICAgICAjIGluaGVyaXQgc29ja2V0cyBmcm9tIHBhcmVudHMsIHRoZXkgbmVlZCB0byBiZSBw
+bGFpbiBTb2NrZXQgb2JqZWN0cwotICAgICMgYmVmb3JlIHRoZXkgYmVjb21lIEtnaW86OlVO
+SVhTZXJ2ZXIgb3IgS2dpbzo6VENQU2VydmVyCisgICAgIyBiZWZvcmUgdGhleSBiZWNvbWUg
+VU5JWFNlcnZlciBvciBUQ1BTZXJ2ZXIKICAgICBpbmhlcml0ZWQgPSBFTlZbJ1VOSUNPUk5f
+RkQnXS50b19zLnNwbGl0KCcsJykKIAogICAgICMgZW11bGF0ZSBzZF9saXN0ZW5fZmRzKCkg
+Zm9yIHN5c3RlbWQKQEAgLTg1OCw3ICs4NzMsNyBAQCBkZWYgaW5oZXJpdF9saXN0ZW5lcnMh
+CiAgICAgTElTVEVORVJTLnJlcGxhY2UoaW5oZXJpdGVkKQogCiAgICAgIyB3ZSBzdGFydCBv
+dXQgd2l0aCBnZW5lcmljIFNvY2tldCBvYmplY3RzIHRoYXQgZ2V0IGNhc3QgdG8gZWl0aGVy
+Ci0gICAgIyBLZ2lvOjpUQ1BTZXJ2ZXIgb3IgS2dpbzo6VU5JWFNlcnZlciBvYmplY3RzOyBi
+dXQgc2luY2UgdGhlIFNvY2tldAorICAgICMgVENQU2VydmVyIG9yIFVOSVhTZXJ2ZXIgb2Jq
+ZWN0czsgYnV0IHNpbmNlIHRoZSBTb2NrZXQKICAgICAjIG9iamVjdHMgc2hhcmUgdGhlIHNh
+bWUgT1MtbGV2ZWwgZmlsZSBkZXNjcmlwdG9yIGFzIHRoZSBoaWdoZXItbGV2ZWwKICAgICAj
+ICpTZXJ2ZXIgb2JqZWN0czsgd2UgbmVlZCB0byBwcmV2ZW50IFNvY2tldCBvYmplY3RzIGZy
+b20gYmVpbmcKICAgICAjIGdhcmJhZ2UtY29sbGVjdGVkCmRpZmYgLS1naXQgYS9saWIvdW5p
+Y29ybi9zb2NrZXRfaGVscGVyLnJiIGIvbGliL3VuaWNvcm4vc29ja2V0X2hlbHBlci5yYgpp
+bmRleCA4YTZmNmVlLi45ZDJiYTUyIDEwMDY0NAotLS0gYS9saWIvdW5pY29ybi9zb2NrZXRf
+aGVscGVyLnJiCisrKyBiL2xpYi91bmljb3JuL3NvY2tldF9oZWxwZXIucmIKQEAgLTMsMTgg
+KzMsNiBAQAogcmVxdWlyZSAnc29ja2V0JwogCiBtb2R1bGUgVW5pY29ybgotCi0gICMgSW5z
+dGVhZCBvZiB1c2luZyBhIGdlbmVyaWMgS2dpbzo6U29ja2V0IGZvciBldmVyeXRoaW5nLAot
+ICAjIHRhZyBUQ1Agc29ja2V0cyBzbyB3ZSBjYW4gdXNlIFRDUF9JTkZPIHVuZGVyIExpbnV4
+IHdpdGhvdXQKLSAgIyBpbmN1cnJpbmcgZXh0cmEgc3lzY2FsbHMgZm9yIFVuaXggZG9tYWlu
+IHNvY2tldHMuCi0gICMgVE9ETzogcmVtb3ZlIHRoZXNlIHdoZW4gd2UgcmVtb3ZlIGtnaW8K
+LSAgVENQQ2xpZW50ID0gQ2xhc3MubmV3KEtnaW86OlNvY2tldCkgIyA6bm9kb2M6Ci0gIGNs
+YXNzIFRDUFNydiA8IEtnaW86OlRDUFNlcnZlciAjIDpub2RvYzoKLSAgICBkZWYga2dpb190
+cnlhY2NlcHQgIyA6bm9kb2M6Ci0gICAgICBzdXBlcihUQ1BDbGllbnQpCi0gICAgZW5kCi0g
+IGVuZAotCiAgIG1vZHVsZSBTb2NrZXRIZWxwZXIKIAogICAgICMgaW50ZXJuYWwgaW50ZXJm
+YWNlCkBAIC0xMzUsNyArMTIzLDcgQEAgZGVmIGJpbmRfbGlzdGVuKGFkZHJlc3MgPSAnMC4w
+LjAuMDo4MDgwJywgb3B0ID0ge30pCiAgICAgICAgIGVuZAogICAgICAgICBvbGRfdW1hc2sg
+PSBGaWxlLnVtYXNrKG9wdFs6dW1hc2tdIHx8IDApCiAgICAgICAgIGJlZ2luCi0gICAgICAg
+ICAgS2dpbzo6VU5JWFNlcnZlci5uZXcoYWRkcmVzcykKKyAgICAgICAgICBVTklYU2VydmVy
+Lm5ldyhhZGRyZXNzKQogICAgICAgICBlbnN1cmUKICAgICAgICAgICBGaWxlLnVtYXNrKG9s
+ZF91bWFzaykKICAgICAgICAgZW5kCkBAIC0xNjQsNyArMTUyLDcgQEAgZGVmIG5ld190Y3Bf
+c2VydmVyKGFkZHIsIHBvcnQsIG9wdCkKICAgICAgIGVuZAogICAgICAgc29jay5iaW5kKFNv
+Y2tldC5wYWNrX3NvY2thZGRyX2luKHBvcnQsIGFkZHIpKQogICAgICAgc29jay5hdXRvY2xv
+c2UgPSBmYWxzZQotICAgICAgVENQU3J2LmZvcl9mZChzb2NrLmZpbGVubykKKyAgICAgIFRD
+UFNlcnZlci5mb3JfZmQoc29jay5maWxlbm8pCiAgICAgZW5kCiAKICAgICAjIHJldHVybnMg
+cmZjMjczMi1zdHlsZSAoZS5nLiAiWzo6MV06NjY2IikgYWRkcmVzc2VzIGZvciBJUHY2CkBA
+IC0yMDEsOSArMTg5LDkgQEAgZGVmIHNvY2tfbmFtZShzb2NrKQogICAgIGRlZiBzZXJ2ZXJf
+Y2FzdChzb2NrKQogICAgICAgYmVnaW4KICAgICAgICAgU29ja2V0LnVucGFja19zb2NrYWRk
+cl9pbihzb2NrLmdldHNvY2tuYW1lKQotICAgICAgICBUQ1BTcnYuZm9yX2ZkKHNvY2suZmls
+ZW5vKQorICAgICAgICBUQ1BTZXJ2ZXIuZm9yX2ZkKHNvY2suZmlsZW5vKQogICAgICAgcmVz
+Y3VlIEFyZ3VtZW50RXJyb3IKLSAgICAgICAgS2dpbzo6VU5JWFNlcnZlci5mb3JfZmQoc29j
+ay5maWxlbm8pCisgICAgICAgIFVOSVhTZXJ2ZXIuZm9yX2ZkKHNvY2suZmlsZW5vKQogICAg
+ICAgZW5kCiAgICAgZW5kCiAKZGlmZiAtLWdpdCBhL2xpYi91bmljb3JuL3N0cmVhbV9pbnB1
+dC5yYiBiL2xpYi91bmljb3JuL3N0cmVhbV9pbnB1dC5yYgppbmRleCA0MWQyOGEwLi4zMjQx
+ZmY0IDEwMDY0NAotLS0gYS9saWIvdW5pY29ybi9zdHJlYW1faW5wdXQucmIKKysrIGIvbGli
+L3VuaWNvcm4vc3RyZWFtX2lucHV0LnJiCkBAIC0xLDMgKzEsNCBAQAorCiAjIC0qLSBlbmNv
+ZGluZzogYmluYXJ5IC0qLQogCiAjIFdoZW4gcHJvY2Vzc2luZyB1cGxvYWRzLCB1bmljb3Ju
+IG1heSBleHBvc2UgYSBTdHJlYW1JbnB1dCBvYmplY3QgdW5kZXIKQEAgLTQ5LDcgKzUwLDEx
+IEBAIGRlZiByZWFkKGxlbmd0aCA9IG5pbCwgcnYgPSAnJykKICAgICAgICAgdG9fcmVhZCA9
+IGxlbmd0aCAtIEByYnVmLnNpemUKICAgICAgICAgcnYucmVwbGFjZShAcmJ1Zi5zbGljZSEo
+MCwgQHJidWYuc2l6ZSkpCiAgICAgICAgIHVudGlsIHRvX3JlYWQgPT0gMCB8fCBlb2Y/IHx8
+IChydi5zaXplID4gMCAmJiBAY2h1bmtlZCkKLSAgICAgICAgICBAc29ja2V0LmtnaW9fcmVh
+ZCh0b19yZWFkLCBAYnVmKSBvciBlb2YhCisgICAgICAgICAgYmVnaW4KKyAgICAgICAgICAg
+IEBzb2NrZXQucmVhZHBhcnRpYWwodG9fcmVhZCwgQGJ1ZikKKyAgICAgICAgICByZXNjdWUg
+RU9GRXJyb3IKKyAgICAgICAgICAgIGVvZiEKKyAgICAgICAgICBlbmQKICAgICAgICAgICBm
+aWx0ZXJfYm9keShAcmJ1ZiwgQGJ1ZikKICAgICAgICAgICBydiA8PCBAcmJ1ZgogICAgICAg
+ICAgIHRvX3JlYWQgLT0gQHJidWYuc2l6ZQpAQCAtNzIsOCArNzcsNyBAQCBkZWYgcmVhZChs
+ZW5ndGggPSBuaWwsIHJ2ID0gJycpCiAgICMgUmV0dXJucyBuaWwgaWYgY2FsbGVkIGF0IHRo
+ZSBlbmQgb2YgZmlsZS4KICAgIyBUaGlzIHRha2VzIHplcm8gYXJndW1lbnRzIGZvciBzdHJp
+Y3QgUmFjazo6TGludCBjb21wYXRpYmlsaXR5LAogICAjIHVubGlrZSBJTyNnZXRzLgotICBk
+ZWYgZ2V0cwotICAgIHNlcCA9ICQvCisgIGRlZiBnZXRzKHNlcCA9ICQvKQogICAgIGlmIHNl
+cC5uaWw/CiAgICAgICByZWFkX2FsbChydiA9ICcnKQogICAgICAgcmV0dXJuIHJ2LmVtcHR5
+PyA/IG5pbCA6IHJ2CkBAIC04Myw3ICs4Nyw3IEBAIGRlZiBnZXRzCiAgICAgYmVnaW4KICAg
+ICAgIEByYnVmLnN1YiEocmUsICcnKSBhbmQgcmV0dXJuICQxCiAgICAgICByZXR1cm4gQHJi
+dWYuZW1wdHk/ID8gbmlsIDogQHJidWYuc2xpY2UhKDAsIEByYnVmLnNpemUpIGlmIGVvZj8K
+LSAgICAgIEBzb2NrZXQua2dpb19yZWFkKEBAaW9fY2h1bmtfc2l6ZSwgQGJ1Zikgb3IgZW9m
+IQorICAgICAgQHNvY2tldC5yZWFkcGFydGlhbChAQGlvX2NodW5rX3NpemUsIEBidWYpIG9y
+IGVvZiEKICAgICAgIGZpbHRlcl9ib2R5KG9uY2UgPSAnJywgQGJ1ZikKICAgICAgIEByYnVm
+IDw8IG9uY2UKICAgICBlbmQgd2hpbGUgdHJ1ZQpAQCAtMTA3LDcgKzExMSw3IEBAIGRlZiBl
+YWNoCiAgIGRlZiBlb2Y/CiAgICAgaWYgQHBhcnNlci5ib2R5X2VvZj8KICAgICAgIHdoaWxl
+IEBjaHVua2VkICYmICEgQHBhcnNlci5wYXJzZQotICAgICAgICBvbmNlID0gQHNvY2tldC5r
+Z2lvX3JlYWQoQEBpb19jaHVua19zaXplKSBvciBlb2YhCisgICAgICAgIG9uY2UgPSBAc29j
+a2V0LnJlYWRwYXJ0aWFsKEBAaW9fY2h1bmtfc2l6ZSkgb3IgZW9mIQogICAgICAgICBAYnVm
+IDw8IG9uY2UKICAgICAgIGVuZAogICAgICAgQHNvY2tldCA9IG5pbApAQCAtMTI3LDcgKzEz
+MSw3IEBAIGRlZiByZWFkX2FsbChkc3QpCiAgICAgZHN0LnJlcGxhY2UoQHJidWYpCiAgICAg
+QHNvY2tldCBvciByZXR1cm4KICAgICB1bnRpbCBlb2Y/Ci0gICAgICBAc29ja2V0LmtnaW9f
+cmVhZChAQGlvX2NodW5rX3NpemUsIEBidWYpIG9yIGVvZiEKKyAgICAgIEBzb2NrZXQucmVh
+ZHBhcnRpYWwoQEBpb19jaHVua19zaXplLCBAYnVmKSBvciBlb2YhCiAgICAgICBmaWx0ZXJf
+Ym9keShAcmJ1ZiwgQGJ1ZikKICAgICAgIGRzdCA8PCBAcmJ1ZgogICAgIGVuZApkaWZmIC0t
+Z2l0IGEvbGliL3VuaWNvcm4vd29ya2VyLnJiIGIvbGliL3VuaWNvcm4vd29ya2VyLnJiCmlu
+ZGV4IDVkZGYzNzkuLmZlNzQxYzAgMTAwNjQ0Ci0tLSBhL2xpYi91bmljb3JuL3dvcmtlci5y
+YgorKysgYi9saWIvdW5pY29ybi93b3JrZXIucmIKQEAgLTYzLDI3ICs2MywzOSBAQCBkZWYg
+c29mdF9raWxsKHNpZykgIyA6bm9kb2M6CiAgICAgICBzaWdudW0gPSBTaWduYWwubGlzdFtz
+aWcudG9fc10gb3IKICAgICAgICAgICByYWlzZSBBcmd1bWVudEVycm9yLCAiQlVHOiBiYWQg
+c2lnbmFsOiAje3NpZy5pbnNwZWN0fSIKICAgICBlbmQKKwogICAgICMgd3JpdGluZyBhbmQg
+cmVhZGluZyA0IGJ5dGVzIG9uIGEgcGlwZSBpcyBhdG9taWMgb24gYWxsIFBPU0lYIHBsYXRm
+b3JtcwogICAgICMgRG8gbm90IGNhcmUgaW4gdGhlIG9kZCBjYXNlIHRoZSBidWZmZXIgaXMg
+ZnVsbCwgaGVyZS4KLSAgICBAbWFzdGVyLmtnaW9fdHJ5d3JpdGUoW3NpZ251bV0ucGFjaygn
+bCcpKQorICAgIGJlZ2luCisgICAgICBAbWFzdGVyLndyaXRlX25vbmJsb2NrKFtzaWdudW1d
+LnBhY2soJ2wnKSkKKyAgICByZXNjdWUgRXJybm86OkVBR0FJTgorICAgIGVuZAogICByZXNj
+dWUgRXJybm86OkVQSVBFCiAgICAgIyB3b3JrZXIgd2lsbCBiZSByZWFwZWQgc29vbgogICBl
+bmQKIAogICAjIHRoaXMgb25seSBydW5zIHdoZW4gdGhlIFJhY2sgYXBwLmNhbGwgaXMgbm90
+IHJ1bm5pbmcKICAgIyBhY3QgbGlrZSBhIGxpc3RlbmVyCi0gIGRlZiBrZ2lvX3RyeWFjY2Vw
+dCAjIDpub2RvYzoKLSAgICBjYXNlIGJ1ZiA9IEB0b19pby5rZ2lvX3RyeXJlYWQoNCkKLSAg
+ICB3aGVuIFN0cmluZwotICAgICAgIyB1bnBhY2sgdGhlIGJ1ZmZlciBhbmQgdHJpZ2dlciB0
+aGUgc2lnbmFsIGhhbmRsZXIKLSAgICAgIHNpZ251bSA9IGJ1Zi51bnBhY2soJ2wnKQotICAg
+ICAgZmFrZV9zaWcoc2lnbnVtWzBdKQotICAgICAgIyBrZWVwIGxvb3BpbmcsIG1vcmUgc2ln
+bmFscyBtYXkgYmUgcXVldWVkCi0gICAgd2hlbiBuaWwgIyBFT0Y6IG1hc3RlciBkaWVkLCBi
+dXQgd2UgYXJlIGF0IGEgc2FmZSBwbGFjZSB0byBleGl0Ci0gICAgICBmYWtlX3NpZyg6UVVJ
+VCkKLSAgICB3aGVuIDp3YWl0X3JlYWRhYmxlICMga2VlcCB3YWl0aW5nCi0gICAgICByZXR1
+cm4gZmFsc2UKLSAgICBlbmQgd2hpbGUgdHJ1ZSAjIGxvb3AsIGFzIG11bHRpcGxlIHNpZ25h
+bHMgbWF5IGJlIHNlbnQKKyAgZGVmIGFjY2VwdF9ub25ibG9jayAjIDpub2RvYzoKKyAgICBs
+b29wIGRvCisgICAgICBidWYgPSBiZWdpbgorICAgICAgICBAdG9faW8ucmVhZF9ub25ibG9j
+ayg0KQorICAgICAgcmVzY3VlIEVycm5vOjpFQUdBSU4gIyBrZWVwIHdhaXRpbmcKKyAgICAg
+ICAgcmV0dXJuIGZhbHNlCisgICAgICByZXNjdWUgRU9GRXJyb3IgIyBtYXN0ZXIgZGllZCwg
+YnV0IHdlIGFyZSBhdCBhIHNhZmUgcGxhY2UgdG8gZXhpdAorICAgICAgICBmYWtlX3NpZyg6
+UVVJVCkKKyAgICAgIGVuZAorCisgICAgICBjYXNlIGJ1ZgorICAgICAgd2hlbiBTdHJpbmcK
+KyAgICAgICAgIyB1bnBhY2sgdGhlIGJ1ZmZlciBhbmQgdHJpZ2dlciB0aGUgc2lnbmFsIGhh
+bmRsZXIKKyAgICAgICAgc2lnbnVtID0gYnVmLnVucGFjaygnbCcpCisgICAgICAgIGZha2Vf
+c2lnKHNpZ251bVswXSkKKyAgICAgICAgIyBrZWVwIGxvb3BpbmcsIG1vcmUgc2lnbmFscyBt
+YXkgYmUgcXVldWVkCisgICAgICBlbHNlCisgICAgICAgIHJhaXNlIFR5cGVFcnJvciwgIlVu
+ZXhwZWN0ZWQgcmVhZF9ub25ibG9jayByZXR1cm5zOiAje2J1Zi5pbnNwZWN0fSIKKyAgICAg
+IGVuZAorICAgIGVuZCAjIGxvb3AsIGFzIG11bHRpcGxlIHNpZ25hbHMgbWF5IGJlIHNlbnQK
+ICAgZW5kCiAKICAgIyB3b3JrZXIgb2JqZWN0cyBtYXkgYmUgY29tcGFyZWQgdG8ganVzdCBw
+bGFpbiBJbnRlZ2VycwpkaWZmIC0tZ2l0IGEvdC9vb2JfZ2MucnUgYi90L29vYl9nYy5ydQpp
+bmRleCBjMjUzNTQwLi40M2MwZjY4IDEwMDY0NAotLS0gYS90L29vYl9nYy5ydQorKysgYi90
+L29vYl9nYy5ydQpAQCAtNyw3ICs3LDcgQEAKIAogIyBNb2NrIEdDLnN0YXJ0CiBkZWYgR0Mu
+c3RhcnQKLSAgT2JqZWN0U3BhY2UuZWFjaF9vYmplY3QoS2dpbzo6U29ja2V0KSBkbyB8eHwK
+KyAgT2JqZWN0U3BhY2UuZWFjaF9vYmplY3QoU29ja2V0KSBkbyB8eHwKICAgICB4LmNsb3Nl
+ZD8gb3IgYWJvcnQgIm5vdCBjbG9zZWQgI3t4fSIKICAgZW5kCiAgICRnY19zdGFydGVkID0g
+dHJ1ZQpkaWZmIC0tZ2l0IGEvdC9vb2JfZ2NfcGF0aC5ydSBiL3Qvb29iX2djX3BhdGgucnUK
+aW5kZXggYWY4ZTNiOS4uZTc3MjI2MSAxMDA2NDQKLS0tIGEvdC9vb2JfZ2NfcGF0aC5ydQor
+KysgYi90L29vYl9nY19wYXRoLnJ1CkBAIC03LDcgKzcsNyBAQAogCiAjIE1vY2sgR0Muc3Rh
+cnQKIGRlZiBHQy5zdGFydAotICBPYmplY3RTcGFjZS5lYWNoX29iamVjdChLZ2lvOjpTb2Nr
+ZXQpIGRvIHx4fAorICBPYmplY3RTcGFjZS5lYWNoX29iamVjdChTb2NrZXQpIGRvIHx4fAog
+ICAgIHguY2xvc2VkPyBvciBhYm9ydCAibm90IGNsb3NlZCAje3h9IgogICBlbmQKICAgJGdj
+X3N0YXJ0ZWQgPSB0cnVlCmRpZmYgLS1naXQgYS90ZXN0L3VuaXQvdGVzdF9yZXF1ZXN0LnJi
+IGIvdGVzdC91bml0L3Rlc3RfcmVxdWVzdC5yYgppbmRleCA2Y2IwMjY4Li5hOTUxMDU3IDEw
+MDY0NAotLS0gYS90ZXN0L3VuaXQvdGVzdF9yZXF1ZXN0LnJiCisrKyBiL3Rlc3QvdW5pdC90
+ZXN0X3JlcXVlc3QucmIKQEAgLTExLDExICsxMSw4IEBACiBjbGFzcyBSZXF1ZXN0VGVzdCA8
+IFRlc3Q6OlVuaXQ6OlRlc3RDYXNlCiAKICAgY2xhc3MgTW9ja1JlcXVlc3QgPCBTdHJpbmdJ
+TwotICAgIGFsaWFzX21ldGhvZCA6cmVhZHBhcnRpYWwsIDpzeXNyZWFkCi0gICAgYWxpYXNf
+bWV0aG9kIDprZ2lvX3JlYWQhLCA6c3lzcmVhZAotICAgIGFsaWFzX21ldGhvZCA6cmVhZF9u
+b25ibG9jaywgOnN5c3JlYWQKLSAgICBkZWYga2dpb19hZGRyCi0gICAgICAnMTI3LjAuMC4x
+JworICAgIGRlZiByZW1vdGVfYWRkcmVzcworICAgICAgQWRkcmluZm8udGNwKCcxMjcuMC4w
+LjEnLCA1NTYwOCkKICAgICBlbmQKICAgZW5kCiAKQEAgLTE1MiwxNCArMTQ5LDcgQEAgZGVm
+IHRlc3RfcmFja19saW50X2JpZ19wdXQKICAgICBidWYgPSAoJyAnICogYnMpLmZyZWV6ZQog
+ICAgIGxlbmd0aCA9IGJzICogY291bnQKICAgICBjbGllbnQgPSBUZW1wZmlsZS5uZXcoJ2Jp
+Z19wdXQnKQotICAgIGRlZiBjbGllbnQua2dpb19hZGRyOyAnMTI3LjAuMC4xJzsgZW5kCi0g
+ICAgZGVmIGNsaWVudC5rZ2lvX3JlYWQoKmFyZ3MpCi0gICAgICByZWFkcGFydGlhbCgqYXJn
+cykKLSAgICByZXNjdWUgRU9GRXJyb3IKLSAgICBlbmQKLSAgICBkZWYgY2xpZW50LmtnaW9f
+cmVhZCEoKmFyZ3MpCi0gICAgICByZWFkcGFydGlhbCgqYXJncykKLSAgICBlbmQKKyAgICBk
+ZWYgY2xpZW50LnJlbW90ZV9hZGRyZXNzOyBBZGRyaW5mby50Y3AoJzEyNy4wLjAuMScsIDU1
+NjA4KTsgZW5kCiAgICAgY2xpZW50LnN5c3dyaXRlKAogICAgICAgIlBVVCAvIEhUVFAvMS4x
+XHJcbiIgXAogICAgICAgIkhvc3Q6IGZvb1xyXG4iIFwKZGlmZiAtLWdpdCBhL3Rlc3QvdW5p
+dC90ZXN0X3N0cmVhbV9pbnB1dC5yYiBiL3Rlc3QvdW5pdC90ZXN0X3N0cmVhbV9pbnB1dC5y
+YgppbmRleCAxYTA3ZWMzLi40NDViNDE1IDEwMDY0NAotLS0gYS90ZXN0L3VuaXQvdGVzdF9z
+dHJlYW1faW5wdXQucmIKKysrIGIvdGVzdC91bml0L3Rlc3Rfc3RyZWFtX2lucHV0LnJiCkBA
+IC02LDE2ICs2LDE0IEBACiAKIGNsYXNzIFRlc3RTdHJlYW1JbnB1dCA8IFRlc3Q6OlVuaXQ6
+OlRlc3RDYXNlCiAgIGRlZiBzZXR1cAotICAgIEBycyA9ICQvCiAgICAgQGVudiA9IHt9Ci0g
+ICAgQHJkLCBAd3IgPSBLZ2lvOjpVTklYU29ja2V0LnBhaXIKKyAgICBAcmQsIEB3ciA9IFVO
+SVhTb2NrZXQucGFpcgogICAgIEByZC5zeW5jID0gQHdyLnN5bmMgPSB0cnVlCiAgICAgQHN0
+YXJ0X3BpZCA9ICQkCiAgIGVuZAogCiAgIGRlZiB0ZWFyZG93bgogICAgIHJldHVybiBpZiAk
+JCAhPSBAc3RhcnRfcGlkCi0gICAgJC8gPSBAcnMKICAgICBAcmQuY2xvc2UgcmVzY3VlIG5p
+bAogICAgIEB3ci5jbG9zZSByZXNjdWUgbmlsCiAgICAgUHJvY2Vzcy53YWl0YWxsCkBAIC01
+NCwxMCArNTIsOSBAQCBkZWYgdGVzdF9nZXRzX211bHRpbGluZQogICBlbmQKIAogICBkZWYg
+dGVzdF9nZXRzX2VtcHR5X3JzCi0gICAgJC8gPSBuaWwKICAgICByID0gaW5pdF9yZXF1ZXN0
+KCJhXG5iXG5cbiIpCiAgICAgc2kgPSBVbmljb3JuOjpTdHJlYW1JbnB1dC5uZXcoQHJkLCBy
+KQotICAgIGFzc2VydF9lcXVhbCAiYVxuYlxuXG4iLCBzaS5nZXRzCisgICAgYXNzZXJ0X2Vx
+dWFsICJhXG5iXG5cbiIsIHNpLmdldHMobmlsKQogICAgIGFzc2VydF9uaWwgc2kuZ2V0cwog
+ICBlbmQKIApkaWZmIC0tZ2l0IGEvdGVzdC91bml0L3Rlc3RfdGVlX2lucHV0LnJiIGIvdGVz
+dC91bml0L3Rlc3RfdGVlX2lucHV0LnJiCmluZGV4IDQ2NDdlNjYuLjIxYjkwZjEgMTAwNjQ0
+Ci0tLSBhL3Rlc3QvdW5pdC90ZXN0X3RlZV9pbnB1dC5yYgorKysgYi90ZXN0L3VuaXQvdGVz
+dF90ZWVfaW5wdXQucmIKQEAgLTEyLDcgKzEyLDcgQEAgY2xhc3MgVGVzdFRlZUlucHV0IDwg
+VGVzdDo6VW5pdDo6VGVzdENhc2UKIAogICBkZWYgc2V0dXAKICAgICBAcnMgPSAkLwotICAg
+IEByZCwgQHdyID0gS2dpbzo6VU5JWFNvY2tldC5wYWlyCisgICAgQHJkLCBAd3IgPSBVTklY
+U29ja2V0LnBhaXIKICAgICBAcmQuc3luYyA9IEB3ci5zeW5jID0gdHJ1ZQogICAgIEBzdGFy
+dF9waWQgPSAkJAogICBlbmQKZGlmZiAtLWdpdCBhL3VuaWNvcm4uZ2Vtc3BlYyBiL3VuaWNv
+cm4uZ2Vtc3BlYwppbmRleCA3YmIxMTU0Li44NTE4M2Q5IDEwMDY0NAotLS0gYS91bmljb3Ju
+LmdlbXNwZWMKKysrIGIvdW5pY29ybi5nZW1zcGVjCkBAIC0zNiw3ICszNiw2IEBACiAgICMg
+d29uJ3QgaGF2ZSBkZXNjcmlwdGl2ZSB0ZXh0LCBvbmx5IHRoZSBudW1lcmljIHN0YXR1cy4K
+ICAgcy5hZGRfZGV2ZWxvcG1lbnRfZGVwZW5kZW5jeSglcTxyYWNrPikKIAotICBzLmFkZF9k
+ZXBlbmRlbmN5KCVxPGtnaW8+LCAnfj4gMi42JykKICAgcy5hZGRfZGVwZW5kZW5jeSglcTxy
+YWluZHJvcHM+LCAnfj4gMC43JykKIAogICBzLmFkZF9kZXZlbG9wbWVudF9kZXBlbmRlbmN5
+KCd0ZXN0LXVuaXQnLCAnfj4gMy4wJykKLS0gCjIuMzUuMQoK
+
+--------------JSVtpHM09juSu3qlGeuhE8w5--
