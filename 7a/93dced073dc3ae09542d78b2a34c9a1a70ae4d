@@ -1,0 +1,103 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.2 (2018-09-13) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.1 required=3.0 tests=ALL_TRUSTED,AWL,BAYES_00,
+	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,DKIM_VALID_EF,
+	T_SCC_BODY_TEXT_LINE shortcircuit=no autolearn=ham autolearn_force=no
+	version=3.4.2
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id 8C44D1F403;
+	Fri,  8 Jul 2022 12:12:08 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=80x24.org;
+	s=selector1; t=1657282328;
+	bh=U81UMBW6R2cPB33p1kMOBdMBFPc1mXrdkhuDSmC7Wp8=;
+	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
+	b=0F+N7JsmJhK+brnmDe2I+FyKNf8HxOo05mT9165b37WaIDlOEM++gyBVQ7Kvzqj1b
+	 C7tQaIQPLr9ekyg5o6bGAJzAMgpQTkHo+tK4L7J7OCvPypNcdu7lHIP/4TsRGn0TIF
+	 wwEhMVAR5yWnthrGT1lXcN5yoK+XkeE/lMPQnQyQ=
+Date: Fri, 8 Jul 2022 12:12:08 +0000
+From: Eric Wong <e@80x24.org>
+To: Jean Boussier <jean.boussier@gmail.com>
+Cc: unicorn-public@yhbt.net
+Subject: Re: [PATCH] Make the gem usable as a git gem
+Message-ID: <20220708121208.M511869@dcvr>
+References: <A035FC5A-9859-48E0-9BC0-809BAE645B9A@gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+Content-Transfer-Encoding: 8bit
+In-Reply-To: <A035FC5A-9859-48E0-9BC0-809BAE645B9A@gmail.com>
+List-Id: <unicorn-public.yhbt.net>
+
+Jean Boussier <jean.boussier@gmail.com> wrote:
+> Ok, so I’m sorry, but I’ve now tried for hours and
+> I can’t for the life of me figure out how to send a patch
+> cleanly with the tools I have available.
+
+Ugh, I guess your employer doesn't want you fixing Linux kernel bugs,
+either :<
+
+> So you can download the patch here:
+> https://github.com/byroot/unicorn/commit/e7f49852875de54cce974c7cbdd5540ddc5e4eeb.patch
+
+OK, I suggest setting up mirrors on repo.or.cz or somewhere
+else, as well, for redundancy and accessibility behind
+blockades/firewalls.
+
+> —— 
+> 
+> Bundler allow to install arbitrary revision
+> of a gem via its git repository, e.g.
+> 
+> ```ruby
+> gem "unicorn", git: "https://yhbt.net/unicorn.git"
+> ```
+> 
+> But this currently doesn't work with unicorn because
+> some files are not committed, and they are only generated
+> by the makefile.
+> 
+> This change would make it much easier to test
+> unreleased versions.
+
+Understood; but I'm not in favor of having generated files in
+version control due to noise from needless diffs/dirty-states.
+
+And I just had problems in another project because of generated
+hunks the other day.
+
+I suggest pointing the gemfile towards your own repo and
+rebasing this patch on top of upstream, instead.
+
+> NB: I didn't commit ext/unicorn_http/unicorn_http.c
+> because I think you might as well generate it and commit
+> it yourself so that you don't have to review it.
+
+Minor changes to the .rl files (or Ragel itself) can lead noisy
+comment/whitespace changes; and a constant dirty index if two
+contributors are using different revisions of Ragel[1].
+
+I encounter constant dirty index with autotools and gnulib-using
+projects across different systems, too; and it's a PITA to deal
+with when trying to fix platform-specific bugs.
+
+> --- /dev/null
+> +++ b/lib/unicorn/version.rb
+> @@ -0,0 +1 @@
+> +Unicorn::Const::UNICORN_VERSION = '6.1.0.dirty'
+
+That's a regression, a version based on `git describe'
+can be quite informative, especially when somebody isn't
+sure if they've loaded the correct version or not.
+
+
+
+[1] on a side note, I started getting rid of the Ragel dependency
+    last year (replacing with vendored picohttpparser), but got
+    sidetracked with Real-Life crap which I'm still dealing with.
+    The problem is Ragel 7 (experimental) won't be compatible with
+    6, and FreeBSD only packages 7 while Debian-based is staying
+    with 6 for now.  There were nasty incompatibilities going from
+    Ragel 5->6 back in the Mongrel days, too; so I'd rather just go
+    with a standalone C parser I've been abusing elsewhere.
