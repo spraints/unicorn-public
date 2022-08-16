@@ -1,0 +1,102 @@
+Return-Path: <bofh@yhbt.net>
+X-Spam-Checker-Version: SpamAssassin 3.4.2 (2018-09-13) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.1 required=3.0 tests=ALL_TRUSTED,AWL,BAYES_00,
+	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,DKIM_VALID_EF,
+	T_SCC_BODY_TEXT_LINE shortcircuit=no autolearn=ham autolearn_force=no
+	version=3.4.2
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id 2D5891F54E
+	for <unicorn-public@yhbt.net>; Tue, 16 Aug 2022 18:44:24 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=yhbt.net;
+	s=selector1; t=1660675464;
+	bh=NYDDG/yWxZzr4knKHD52KXbbOT7b2cDpElZ0C62bcaU=;
+	h=From:To:Subject:Date:From;
+	b=jfIvmLhNSVwf9BnSmMYS/mOCIH0rDH/4P7VjmrR1Hcd7mmaMeihFsJIpGny1qmFAD
+	 Snt8P8rzij0mdwFzht9FfekpoASD4M+YIxrtPL8GX5i2Jjbs7WmO+f2kqGPDEVwNs0
+	 rt0j366tP/WHR+Xh2YgcmCTillikgn76vQMc5Wyo=
+From: Eric Wong <bofh@yhbt.net>
+To: unicorn-public@yhbt.net
+Subject: [PATCH] doc: add POP3 archive link, favor AUTH=ANONYMOUS for IMAP
+Date: Tue, 16 Aug 2022 18:44:24 +0000
+Message-Id: <20220816184424.31653-1-bofh@yhbt.net>
+MIME-Version: 1.0
+Content-Transfer-Encoding: 8bit
+List-Id: <unicorn-public.yhbt.net>
+
+POP3 access is less straightforward since it requires a UUID
+cookie embedded into the username to track deletes, and also
+requires embedding the mailbox name into the username (since
+POP3 has a 1:1 user:folder mapping).  Of course, a Tor .onion
+endpoint is supported for anonymity.
+
+AUTH=ANONYMOUS is recommended for IMAP since bots were attempting
+to use compromised logins to scrape the public mail archives for
+private info and burning up my CPU.
+---
+ .olddoc.yml |  4 ++--
+ ISSUES      |  7 ++++---
+ README      | 11 ++++++-----
+ 3 files changed, 12 insertions(+), 10 deletions(-)
+
+diff --git a/.olddoc.yml b/.olddoc.yml
+index 10ddc07..9780a83 100644
+--- a/.olddoc.yml
++++ b/.olddoc.yml
+@@ -14,8 +14,8 @@ noindex:
+ - unicorn_rails_1
+ public_email: unicorn-public@yhbt.net
+ imap_url:
+-- imaps://yhbt.net/inbox.comp.lang.ruby.unicorn.0
+-- imap://7fh6tueqddpjyxjmgtdiueylzoqt6pt7hec3pukyptlmohoowvhde4yd.onion/inbox.comp.lang.ruby.unicorn.0
++- imaps://;AUTH=ANONYMOUS@yhbt.net/inbox.comp.lang.ruby.unicorn.0
++- imap://;AUTH=ANONYMOUS@7fh6tueqddpjyxjmgtdiueylzoqt6pt7hec3pukyptlmohoowvhde4yd.onion/inbox.comp.lang.ruby.unicorn.0
+ nntp_url:
+ - nntps://news.public-inbox.org/inbox.comp.lang.ruby.unicorn
+ - nntp://7fh6tueqddpjyxjmgtdiueylzoqt6pt7hec3pukyptlmohoowvhde4yd.onion/inbox.comp.lang.ruby.unicorn
+diff --git a/ISSUES b/ISSUES
+index 015de37..083b1c8 100644
+--- a/ISSUES
++++ b/ISSUES
+@@ -81,14 +81,15 @@ Mail is publicly-archived, SMTP subscription is discouraged to avoid
+ servers being a single-point-of-failure, so Cc: all participants.
+ 
+ The HTTP(S) archives have links to per-thread Atom feeds and downloadable
+-mboxes.  Read-only IMAP(S) folders and NNTP(S) newsgroups are also available.
++mboxes.  Read-only IMAP(S) folders, POP3, and NNTP(S) newsgroups are available.
+ 
+ * https://yhbt.net/unicorn-public/
+ * http://7fh6tueqddpjyxjmgtdiueylzoqt6pt7hec3pukyptlmohoowvhde4yd.onion/unicorn-public/
+-* imaps://yhbt.net/inbox.comp.lang.ruby.unicorn.0
+-* imap://7fh6tueqddpjyxjmgtdiueylzoqt6pt7hec3pukyptlmohoowvhde4yd.onion/inbox.comp.lang.ruby.unicorn.0
++* imaps://;AUTH=ANONYMOUS@yhbt.net/inbox.comp.lang.ruby.unicorn.0
++* imap://;AUTH=ANONYMOUS@7fh6tueqddpjyxjmgtdiueylzoqt6pt7hec3pukyptlmohoowvhde4yd.onion/inbox.comp.lang.ruby.unicorn.0
+ * nntps://news.public-inbox.org/inbox.comp.lang.ruby.unicorn
+ * nntp://news.gmane.io/gmane.comp.lang.ruby.unicorn.general
++* https://yhbt.net/unicorn-public/_/text/help/#pop3
+ 
+ Full Atom feeds:
+ * https://yhbt.net/unicorn-public/new.atom
+diff --git a/README b/README
+index 22c27e8..5411003 100644
+--- a/README
++++ b/README
+@@ -140,11 +140,12 @@ Read-only NNTP access is available at:
+ nntps://news.public-inbox.org/inbox.comp.lang.ruby.unicorn and
+ nntp://news.gmane.io/gmane.comp.lang.ruby.unicorn.general
+ 
+-Read-only IMAP access is also avaialble at:
+-imaps://yhbt.net/inbox.comp.lang.ruby.unicorn.0 and
+-imap://7fh6tueqddpjyxjmgtdiueylzoqt6pt7hec3pukyptlmohoowvhde4yd.onion/inbox.comp.lang.ruby.unicorn.0
+-The AUTH=ANONYMOUS mechanism is supported, as is any username+password
+-combination.
++Read-only IMAP access is also available at:
++imaps://;AUTH=ANONYMOUS@yhbt.net/inbox.comp.lang.ruby.unicorn.0 and
++imap://;AUTH=ANONYMOUS@7fh6tueqddpjyxjmgtdiueylzoqt6pt7hec3pukyptlmohoowvhde4yd.onion/inbox.comp.lang.ruby.unicorn.0
++
++Archives are also available over POP3, instructions at:
++https://yhbt.net/unicorn-public/_/text/help/#pop3
+ 
+ For the latest on unicorn releases, you may also finger us at
+ unicorn@yhbt.net or check our NEWS page (and subscribe to our Atom
