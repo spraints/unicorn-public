@@ -1,0 +1,93 @@
+Return-Path: <e@yhbt.net>
+X-Spam-Checker-Version: SpamAssassin 3.4.2 (2018-09-13) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-2.3 required=3.0 tests=ALL_TRUSTED,AWL,BAYES_00,
+	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,DKIM_VALID_EF,NORMAL_HTTP_TO_IP,
+	NUMERIC_HTTP_ADDR,T_SCC_BODY_TEXT_LINE,URIBL_BLACK shortcircuit=no
+	autolearn=no autolearn_force=no version=3.4.2
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id 4A05C1F54E;
+	Mon, 29 Aug 2022 06:42:45 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=yhbt.net;
+	s=selector1; t=1661755365;
+	bh=YZgmoL1kbwGqujiqMtXDiCq7OS9Hx9UbaJYcF010j+Y=;
+	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
+	b=dEoLnfyy8tfo3WrT5dgW/uAXKemaMJtxEWBjtqENURANyRktEbrsrv3O3gm6I4zM3
+	 Y6Ty4dOyTt6tKffKVxZqegh/yUWBufR2cj9vCOLPpIQOlnV70dxRrOekvWbKtkM+T9
+	 r+zxn/3vUrnybhnBt42Q2/G3dT2zulxHtsewBuWc=
+Date: Mon, 29 Aug 2022 06:42:45 +0000
+From: Eric Wong <e@yhbt.net>
+To: Samuel Williams <samuel@oriontransfer.net>
+Cc: unicorn-public@yhbt.net
+Subject: Re: Is Rack partial hijack supported?
+Message-ID: <20220829064245.GA1272@dcvr>
+References: <B9DAECE5-D139-44E5-A442-9FAF3E2A920B@oriontransfer.net>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+Content-Transfer-Encoding: 8bit
+In-Reply-To: <B9DAECE5-D139-44E5-A442-9FAF3E2A920B@oriontransfer.net>
+List-Id: <unicorn-public.yhbt.net>
+
+Samuel Williams <samuel@oriontransfer.net> wrote:
+> Hi Eric,
+> 
+> I’ve been testing Rack server conformance and behaviour and noticed that while unicorn advertises `env[‘rack.hijack?’]` as true, it fails to correctly stream the following response:
+> 
+> if env['rack.hijack?']
+>   callback = proc do |stream|
+>     stream.write "Hello World"
+>     stream.close
+>   end
+>   
+>   return [200, {'rack.hijack' => callback}, nil]
+> else
+>   [404, {}, []]
+> end
+
+That looks fine...
+
+> Am I misunderstanding something about how this should work or does Unicorn not support partial hijack?
+
+I wonder if it's Rack::Chunked being loaded by default w/
+RACK_ENV=(development|deployment) being the problem.
+
+What error do you see? (assuming you're using curl or similar
+for testing).
+
+Does using `-E none' or RACK_ENV=none fix it?
+
+$ cat >hijack.ru <<EOF
+use Rack::ContentType, 'text/plain'
+run(lambda do |env|
+  if env['rack.hijack?']
+    callback = proc do |stream|
+      stream.write "Hello World"
+      stream.close
+    end
+    return [200, {'rack.hijack' => callback}, nil]
+  else
+    [404, {}, []]
+  end
+end)
+EOF
+
+# This works fine:
+$ unicorn -E none hijack.ru
+$ curl -Ssf http://0:8080/
+
+# This fails since Rack::Chunk is loaded by default:
+$ unicorn hijack.ru
+$ curl -Ssf http://0:8080/
+curl: (56) Illegal or missing hexadecimal sequence in chunked-encoding
+
+So I think the hijack callback needs to do the chunking itself;
+I'm not sure...
+
+That said, I have no idea if rack.hijack gets used at all w/
+unicorn; and I seem to recall there being a bit of confusion
+on how hijack and middleware would interact...
+
+
+(please reply-all for archival purposes, thanks)
