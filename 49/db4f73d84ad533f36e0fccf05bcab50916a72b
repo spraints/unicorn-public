@@ -1,0 +1,72 @@
+Return-Path: <samuel@oriontransfer.net>
+X-Spam-Checker-Version: SpamAssassin 3.4.2 (2018-09-13) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS63949 194.195.248.0/21
+X-Spam-Status: No, score=-2.4 required=3.0 tests=AWL,BAYES_00,
+	NORMAL_HTTP_TO_IP,NUMERIC_HTTP_ADDR,SPF_HELO_NONE,SPF_PASS,
+	T_SCC_BODY_TEXT_LINE shortcircuit=no autolearn=ham autolearn_force=no
+	version=3.4.2
+Received: from mail.oriontransfer.net (mail.oriontransfer.net [194.195.253.146])
+	by dcvr.yhbt.net (Postfix) with ESMTP id E9D061F54E;
+	Mon, 29 Aug 2022 07:19:49 +0000 (UTC)
+Received: from smtpclient.apple (unknown [203.86.197.151])
+	by mail.oriontransfer.net (Postfix) with ESMTPSA id F3D742B0BF;
+	Mon, 29 Aug 2022 07:19:48 +0000 (UTC)
+From: Samuel Williams <samuel@oriontransfer.net>
+Content-Type: text/plain;
+	charset=utf-8
+Content-Transfer-Encoding: quoted-printable
+Mime-Version: 1.0 (Mac OS X Mail 16.0 \(3696.120.41.1.1\))
+Subject: Re: Is Rack partial hijack supported?
+Date: Mon, 29 Aug 2022 19:19:48 +1200
+References: <B9DAECE5-D139-44E5-A442-9FAF3E2A920B@oriontransfer.net>
+ <20220829064245.GA1272@dcvr>
+To: Eric Wong <e@yhbt.net>,
+ unicorn-public@yhbt.net
+In-Reply-To: <20220829064245.GA1272@dcvr>
+Message-Id: <75F28F52-26B6-4BBE-B6A0-AD4F6D8855CD@oriontransfer.net>
+X-Mailer: Apple Mail (2.3696.120.41.1.1)
+List-Id: <unicorn-public.yhbt.net>
+
+Thanks Eric.
+
+> # This works fine:
+> $ unicorn -E none hijack.ru
+> $ curl -Ssf http://0:8080/
+>=20
+> # This fails since Rack::Chunk is loaded by default:
+> $ unicorn hijack.ru
+> $ curl -Ssf http://0:8080/
+> curl: (56) Illegal or missing hexadecimal sequence in chunked-encoding
+>=20
+> So I think the hijack callback needs to do the chunking itself;
+> I'm not sure...
+>=20
+> That said, I have no idea if rack.hijack gets used at all w/
+> unicorn; and I seem to recall there being a bit of confusion
+> on how hijack and middleware would interact=E2=80=A6
+
+Using `-E none` solves the issue and I can proceed with the conformance =
+checks, thanks! AFAIK, no other server behaves like this (using =
+`Rack::Server` for default middleware) although I can understand why for =
+Rack 2 that was a logical choice.
+
+FYI, we have deprecated `Rack::Chunked` in Rack 3. The wire format =
+should be the responsibility of the server, not the =
+application/middleware. This middleware in particular was a blocker to =
+support HTTP/2 which does chunked encoding using binary framing. In =
+addition, `Rack::Server` has also been moved out of the Rack gem. The =
+Rack gem should focus on Rack the interface, rather than Rack the =
+(server) implementation. As such, the =
+`default_middleware_by_environment` should be an internal detail of the =
+implementation rather than the middleware/application.
+
+My suggestion is that you implement chunked encoding directly in your =
+server and only if it makes sense according to the response you get back =
+from the application. For a hijacked response, given that you are =
+already using `connection: close`, you can probably just directly pass =
+the socket to the hijack proc. This will be compatible with websockets =
+too.
+
+Kind regards,
+Samuel=
