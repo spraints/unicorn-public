@@ -1,0 +1,48 @@
+Return-Path: <samuel@oriontransfer.net>
+X-Spam-Checker-Version: SpamAssassin 3.4.2 (2018-09-13) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS63949 194.195.248.0/21
+X-Spam-Status: No, score=-3.0 required=3.0 tests=BAYES_00,SPF_HELO_NONE,
+	SPF_PASS,T_SCC_BODY_TEXT_LINE shortcircuit=no autolearn=ham
+	autolearn_force=no version=3.4.2
+Received: from mail.oriontransfer.net (mail.oriontransfer.net [194.195.253.146])
+	by dcvr.yhbt.net (Postfix) with ESMTP id 638561F54E
+	for <unicorn-public@yhbt.net>; Mon, 29 Aug 2022 05:56:28 +0000 (UTC)
+Received: from smtpclient.apple (unknown [203.86.197.151])
+	by mail.oriontransfer.net (Postfix) with ESMTPSA id 9DFA12B0BF
+	for <unicorn-public@yhbt.net>; Mon, 29 Aug 2022 05:56:27 +0000 (UTC)
+From: Samuel Williams <samuel@oriontransfer.net>
+Content-Type: text/plain;
+	charset=utf-8
+Content-Transfer-Encoding: quoted-printable
+Mime-Version: 1.0 (Mac OS X Mail 16.0 \(3696.120.41.1.1\))
+Subject: Is Rack partial hijack supported?
+Message-Id: <B9DAECE5-D139-44E5-A442-9FAF3E2A920B@oriontransfer.net>
+Date: Mon, 29 Aug 2022 17:56:26 +1200
+To: unicorn-public@yhbt.net
+X-Mailer: Apple Mail (2.3696.120.41.1.1)
+List-Id: <unicorn-public.yhbt.net>
+
+Hi Eric,
+
+I=E2=80=99ve been testing Rack server conformance and behaviour and =
+noticed that while unicorn advertises `env[=E2=80=98rack.hijack?=E2=80=99]=
+` as true, it fails to correctly stream the following response:
+
+if env['rack.hijack?']
+  callback =3D proc do |stream|
+    stream.write "Hello World"
+    stream.close
+  end
+ =20
+  return [200, {'rack.hijack' =3D> callback}, nil]
+else
+  [404, {}, []]
+end
+
+Am I misunderstanding something about how this should work or does =
+Unicorn not support partial hijack?
+
+Kind regards,
+Samuel
+
