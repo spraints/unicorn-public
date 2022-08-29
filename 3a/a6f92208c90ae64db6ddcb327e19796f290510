@@ -1,0 +1,78 @@
+Return-Path: <e@yhbt.net>
+X-Spam-Checker-Version: SpamAssassin 3.4.2 (2018-09-13) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-2.8 required=3.0 tests=ALL_TRUSTED,AWL,BAYES_00,
+	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,DKIM_VALID_EF,
+	T_SCC_BODY_TEXT_LINE,URIBL_BLACK shortcircuit=no autolearn=no
+	autolearn_force=no version=3.4.2
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id A29F11F54E;
+	Mon, 29 Aug 2022 08:14:15 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=yhbt.net;
+	s=selector1; t=1661760855;
+	bh=BNybI4fkuUm8qQMNXq6AJJOE5eIy2gPdsmrk8ea/PWY=;
+	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
+	b=WaTPkzCB4TdmqCSxqDMBH4zzA1KClRZgP8X5WmyRSby6G6W9I7kUxQwyJ2B/jSGRn
+	 DwObvAmljGnNashFjVQTUREdixj4SfwUaGd+7MBMqROuM/UwrV4jn7vux4tSl0KqEd
+	 XA/3RGJOOpRK3r2OgU4PQU33nnlAUUasP2JkqduY=
+Date: Mon, 29 Aug 2022 08:14:15 +0000
+From: Eric Wong <e@yhbt.net>
+To: Samuel Williams <samuel@oriontransfer.net>
+Cc: unicorn-public@yhbt.net
+Subject: Re: Is Rack partial hijack supported?
+Message-ID: <20220829081415.GA7335@dcvr>
+References: <B9DAECE5-D139-44E5-A442-9FAF3E2A920B@oriontransfer.net>
+ <20220829064245.GA1272@dcvr>
+ <75F28F52-26B6-4BBE-B6A0-AD4F6D8855CD@oriontransfer.net>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <75F28F52-26B6-4BBE-B6A0-AD4F6D8855CD@oriontransfer.net>
+List-Id: <unicorn-public.yhbt.net>
+
+Samuel Williams <samuel@oriontransfer.net> wrote:
+> Using `-E none` solves the issue and I can proceed with the
+> conformance checks, thanks! AFAIK, no other server behaves
+> like this (using `Rack::Server` for default middleware)
+> although I can understand why for Rack 2 that was a logical
+> choice.
+
+OK, good to know.  I think the defaults were copied from rack
+0.9 or so...  I'm still trying to keep unicorn supported across
+as many Rack versions as possible since it tends to be used by
+legacy systems that rarely see updates.
+
+I've always used `-E none' for my projects.
+
+> FYI, we have deprecated `Rack::Chunked` in Rack 3. The wire
+> format should be the responsibility of the server, not the
+> application/middleware. This middleware in particular was a
+> blocker to support HTTP/2 which does chunked encoding using
+> binary framing. In addition, `Rack::Server` has also been
+> moved out of the Rack gem. The Rack gem should focus on Rack
+> the interface, rather than Rack the (server) implementation.
+> As such, the `default_middleware_by_environment` should be an
+> internal detail of the implementation rather than the
+> middleware/application.
+
+Couldn't Rack::Chunked be made a no-op for everything aside from
+HTTP/1.1?  That would cause less problems for existing Rack <=2.x
+users wanting to upgrade.  It's already a no-op for HTTP/1.0...
+(cf. rack/chunked.rb::chunkable_version? )
+
+> My suggestion is that you implement chunked encoding directly
+> in your server and only if it makes sense according to the
+> response you get back from the application. For a hijacked
+> response, given that you are already using `connection:
+> close`, you can probably just directly pass the socket to the
+> hijack proc. This will be compatible with websockets too.
+
+"Connection: close" alone isn't enough.  body.each {...} can
+crash and leave truncated responses clients don't know about
+(especially. with non-HTML/XML/JSON content that has no closing
+tag).  Either chunked is required (but HTTP/1.1-only), or
+relying on gzip for built-in error-checking w/ HTTP/1.0 clients.
+
+Anyways I'll wait a bit for rack 3 to finalize since I'm busy
+with other stuff atm.
