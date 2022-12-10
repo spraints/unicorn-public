@@ -1,0 +1,87 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.2 (2018-09-13) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.1 required=3.0 tests=ALL_TRUSTED,AWL,BAYES_00,
+	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,DKIM_VALID_EF shortcircuit=no
+	autolearn=ham autolearn_force=no version=3.4.2
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id E31591F601;
+	Sat, 10 Dec 2022 02:42:46 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=80x24.org;
+	s=selector1; t=1670640166;
+	bh=jOaZzLLpIn6hmhcsk0YKR/2wp84TDwmHLTqZYJBsMDA=;
+	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
+	b=d8HRkQseA/aOxHdArHO2YInyWInhlM4WrfcgKbD9ntX8CZSIM6q70DhsFBIeQMGF2
+	 fBMVie28FZX0a0ESOk4PB/7Cploqy9D+qYIYto2IloUiXLQkr/FKvSeMfjhGsAsD6j
+	 3V/Wi6pbmAUOIMPKKQoeXiX9GeSy1GjY7NZEBiW8=
+Date: Sat, 10 Dec 2022 02:42:46 +0000
+From: Eric Wong <e@80x24.org>
+To: Martin Posthumus <martin.posthumus@gmail.com>
+Cc: unicorn-public@yhbt.net
+Subject: Re: Support for Rack 3 headers formatted as arrays
+Message-ID: <20221210024246.GA8584@dcvr>
+References: <f25e283e-95e7-a812-c0fd-c79bc31894de@gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <f25e283e-95e7-a812-c0fd-c79bc31894de@gmail.com>
+List-Id: <unicorn-public.yhbt.net>
+
+Martin Posthumus <martin.posthumus@gmail.com> wrote:
+> Hello,
+> 
+> As of Rack v3, the internal representation of headers containing multiple
+> values appears to have been changed to use an array of strings rather than a
+> newline-separated string. Pull request visible here:
+> https://github.com/rack/rack/pull/1793
+> 
+> The Rack changelog (https://github.com/rack/rack/blob/main/CHANGELOG.md)
+> also includes this entry under 3.0.0:
+> "Response header values can be an Array to handle multiple values (and no
+> longer supports \n encoded headers)."
+
+OK.  unicorn has no choice to support all Rack as long as Rack <= 2
+applications exist...
+
+> I'm running into some serialization issues with this sort of header when
+> trying to run an application on Unicorn that makes use of multiple cookies.
+> The `set-cookie` header is returning what appears to be a stringified array:
+> 
+> set-cookie: ["my.cookie=.....; domain=......; path=/", "rack.session=......;
+> path=/; httponly"]
+> 
+> Which in turn results in cookies getting registered with names like
+> `["rack.session` rather than `rack.session`.
+> 
+> I'm not especially familiar with Unicorn's internals, but poking around a
+> little bit, it looks like this might be related to the definition of
+> `http_response_write` in lib/unicorn/http_response.rb, where it handles
+> newline-separated strings, but not arrays. I can confirm that the set-cookie
+> header value appears to be an array in this method, not a string.
+
+Does this work for you?
+
+diff --git a/lib/unicorn/http_response.rb b/lib/unicorn/http_response.rb
+index b23e521..3308c9b 100644
+--- a/lib/unicorn/http_response.rb
++++ b/lib/unicorn/http_response.rb
+@@ -40,7 +40,10 @@ def http_response_write(socket, status, headers, body,
+           # key in Rack < 1.5
+           hijack = value
+         else
+-          if value =~ /\n/
++          case value
++          when Array # Rack 3
++            value.each { |v| buf << "#{key}: #{v}\r\n" }
++          when /\n/ # Rack 2
+             # avoiding blank, key-only cookies with /\n+/
+             value.split(/\n+/).each { |v| buf << "#{key}: #{v}\r\n" }
+           else
+
+> At present I'm only seeing this issue when running on a Unicorn server. When
+> I swap out something like webrick, it appears the array values are handled
+> as expected.
+
+Yeah, I haven't looked deeply at Rack 3 support and hate dealing
+with the culture of breaking changes prevalent in the Ruby world :<
