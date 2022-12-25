@@ -1,0 +1,140 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.6 (2021-04-09) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.2 required=3.0 tests=ALL_TRUSTED,BAYES_00,
+	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,DKIM_VALID_EF shortcircuit=no
+	autolearn=ham autolearn_force=no version=3.4.6
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id EFDF91F698;
+	Sun, 25 Dec 2022 22:56:57 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=80x24.org;
+	s=selector1; t=1672009018;
+	bh=jM7LH4ZjQObqn6V+fFYZa0nvwgwX/VfKLIeiBHjB2+A=;
+	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
+	b=TFy2mvnC8rl1a1xLaKB2kMJBZC6hKDuCsgrd37B1J4I1DKderl79V6Oj4xk3ytvRy
+	 2yUdVjPez1gp6/zAa25SpY4CGS0/+PTgKhFjsR8Sq+p3kcDpuGLc2EpVErRNntV5HO
+	 jfcc1bdBVocn/QHKPG8lwy4x3/2YwdUAOljR+BVc=
+Date: Sun, 25 Dec 2022 22:56:58 +0000
+From: Eric Wong <e@80x24.org>
+To: Martin Posthumus <martin.posthumus@gmail.com>
+Cc: unicorn-public@yhbt.net, Jean Boussier <jean.boussier@shopify.com>
+Subject: Re: Support for Rack 3 headers formatted as arrays
+Message-ID: <20221225225658.M711750@dcvr>
+References: <f25e283e-95e7-a812-c0fd-c79bc31894de@gmail.com>
+ <20221210024246.GA8584@dcvr>
+ <7c851d8a-bc57-7df8-3240-2f5ab831c47c@gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <7c851d8a-bc57-7df8-3240-2f5ab831c47c@gmail.com>
+List-Id: <unicorn-public.yhbt.net>
+
+Martin Posthumus <martin.posthumus@gmail.com> wrote:
+> > OK.  unicorn has no choice to support all Rack as long as Rack <= 2
+> > applications exist...
+> 
+> Understood, I just wanted to show that I'm reasonably confident this isn't
+> due to something weird I was doing in application code, and that ultimately
+> I couldn't find any workaround that didn't involve monkeypatching either
+> Rack or Unicorn.
+> 
+> > Does this work for you?
+> 
+> Indeed it does!
+
+Thanks for the confirmation and good to know.
+
+> > Yeah, I haven't looked deeply at Rack 3 support and hate dealing
+> > with the culture of breaking changes prevalent in the Ruby world :<
+> 
+> Yeah, I get it. To be fair the array representation probably makes more
+> sense for a header with multiple values, but downstream in practice it means
+> you have to deal with both.
+
+Yes, and Rack 3 also breaks the array of arrays `[ [ k, v1 ], [ k, v2 ] ]'
+representation I was relying on :<
+
+In any case, I'm thinking about hoisting out append_header()
+into its own method to reuse between normal responses and
+rack.early_hints 103 responses.
+
+Cc-ing Jean to see if anything is amiss with the following
+since they wrote the original code.
+
+Original Rack 3 headers patch at:
+   https://yhbt.net/unicorn-public/20221210024246.GA8584@dcvr/
+
+
+diff --git a/lib/unicorn/http_response.rb b/lib/unicorn/http_response.rb
+index 3308c9be..19469b47 100644
+--- a/lib/unicorn/http_response.rb
++++ b/lib/unicorn/http_response.rb
+@@ -19,6 +19,18 @@ def err_response(code, response_start_sent)
+       "#{code} #{STATUS_CODES[code]}\r\n\r\n"
+   end
+ 
++  def append_header(buf, key, value)
++    case value
++    when Array # Rack 3
++      value.each { |v| buf << "#{key}: #{v}\r\n" }
++    when /\n/ # Rack 2
++      # avoiding blank, key-only cookies with /\n+/
++      value.split(/\n+/).each { |v| buf << "#{key}: #{v}\r\n" }
++    else
++      buf << "#{key}: #{value}\r\n"
++    end
++  end
++
+   # writes the rack_response to socket as an HTTP response
+   def http_response_write(socket, status, headers, body,
+                           req = Unicorn::HttpRequest.new)
+@@ -40,15 +52,7 @@ def http_response_write(socket, status, headers, body,
+           # key in Rack < 1.5
+           hijack = value
+         else
+-          case value
+-          when Array # Rack 3
+-            value.each { |v| buf << "#{key}: #{v}\r\n" }
+-          when /\n/ # Rack 2
+-            # avoiding blank, key-only cookies with /\n+/
+-            value.split(/\n+/).each { |v| buf << "#{key}: #{v}\r\n" }
+-          else
+-            buf << "#{key}: #{value}\r\n"
+-          end
++          append_header(buf, key, value)
+         end
+       end
+       socket.write(buf << "\r\n".freeze)
+diff --git a/lib/unicorn/http_server.rb b/lib/unicorn/http_server.rb
+index 3416808f..cad515b9 100644
+--- a/lib/unicorn/http_server.rb
++++ b/lib/unicorn/http_server.rb
+@@ -589,22 +589,11 @@ def handle_error(client, e)
+   end
+ 
+   def e103_response_write(client, headers)
+-    response = if @request.response_start_sent
+-      "103 Early Hints\r\n"
+-    else
+-      "HTTP/1.1 103 Early Hints\r\n"
+-    end
+-
+-    headers.each_pair do |k, vs|
+-      next if !vs || vs.empty?
+-      values = vs.to_s.split("\n".freeze)
+-      values.each do |v|
+-        response << "#{k}: #{v}\r\n"
+-      end
+-    end
+-    response << "\r\n".freeze
+-    response << "HTTP/1.1 ".freeze if @request.response_start_sent
+-    client.write(response)
++    rss = @request.response_start_sent
++    buf = rss ? "103 Early Hints\r\n" : "HTTP/1.1 103 Early Hints\r\n"
++    headers.each { |key, value| append_header(buf, key, value) }
++    buf << (rss ? "\r\nHTTP/1.1 ".freeze : "\r\n".freeze)
++    client.write(buf)
+   end
+ 
+   def e100_response_write(client, env)
