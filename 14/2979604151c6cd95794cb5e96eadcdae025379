@@ -1,0 +1,57 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.6 (2021-04-09) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.1 required=3.0 tests=ALL_TRUSTED,AWL,BAYES_00,
+	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,DKIM_VALID_EF shortcircuit=no
+	autolearn=ham autolearn_force=no version=3.4.6
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id B880C1F47C;
+	Wed, 11 Jan 2023 11:40:08 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=80x24.org;
+	s=selector1; t=1673437208;
+	bh=qvceQiDLl1LMi2aTlxKfgkJBTcfceqH3Kn7ky2PY68c=;
+	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
+	b=2hJGAPoyRmG9tFB6RqFXzqKX2AnXaVyIK2GV9xOTTSEJmfC1eh0jTmfJ2J4yDQtL+
+	 qqQDYtFwjFqE2gZrbi7JCBxjSVv93EolQBx5ThaUEEYEqvjgxHbOzELzB+f6oG3Emr
+	 fPz9XCyg3EcO4lCqG9DIy2F3Nv4f4PFYK8tAtBi8=
+Date: Wed, 11 Jan 2023 11:40:09 +0000
+From: Eric Wong <e@80x24.org>
+To: Jean Boussier <jean.boussier@shopify.com>
+Cc: Martin Posthumus <martin.posthumus@gmail.com>, unicorn-public@yhbt.net
+Subject: Re: Support for Rack 3 headers formatted as arrays
+Message-ID: <20230111114009.M42943@dcvr>
+References: <f25e283e-95e7-a812-c0fd-c79bc31894de@gmail.com>
+ <20221210024246.GA8584@dcvr>
+ <7c851d8a-bc57-7df8-3240-2f5ab831c47c@gmail.com>
+ <20221225225658.M711750@dcvr>
+ <f79ea4aa-421e-4c63-c704-efe2d5fd03cb@shopify.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <f79ea4aa-421e-4c63-c704-efe2d5fd03cb@shopify.com>
+List-Id: <unicorn-public.yhbt.net>
+
+Jean Boussier <jean.boussier@shopify.com> wrote:
+> Interestingly, this patch would also help with Ruby 3.2 compatibility.
+> 
+> Ruby 3.2 removed `Kernel#=~`, so when misbehaving app return header values
+> in e.g. Integer
+> unicorn now choke on it:
+
+Thanks for that note.  2 things:
+
+1. Ugh.  That sort disregard for compatibility at the expense of making
+   things "better" is why I and most people I've known no longer do new
+   projects in Ruby :<  Heck, I started rewriting many of unicorn's tests
+   in Perl5 a few weeks ago since I want to be able to trust them decades
+   from now.
+
+2. I suppose unicorn will continue letting misbehaving apps have
+   their way.  It would be nice if developers consistently
+   tested with Rack::Lint, of course
+
+> Whereas on 3.1 and older, `42 =~ /\n/` would simply not match and cast the
+> header as a String.
+
+Now I wonder if case/when === behavior will break someday...
