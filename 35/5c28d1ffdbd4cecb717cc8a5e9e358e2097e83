@@ -1,0 +1,97 @@
+Return-Path: <bofh@yhbt.net>
+X-Spam-Checker-Version: SpamAssassin 3.4.6 (2021-04-09) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,AWL,BAYES_00,
+	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,DKIM_VALID_EF shortcircuit=no
+	autolearn=ham autolearn_force=no version=3.4.6
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id 97D671F626
+	for <unicorn-public@yhbt.net>; Wed, 15 Feb 2023 07:58:13 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=yhbt.net;
+	s=selector1; t=1676447893;
+	bh=B8NNTj174wGLRA+NBTyKu2wnWlxMV7wHA/DtOxpQRNo=;
+	h=From:To:Subject:Date:From;
+	b=tbwr7W3bOfgoqV7sOoWEOZudqQQHAJh+Z8CGMacf8MKC9uQjWsk1zjMMeOkJJKVfl
+	 i7d9INIo0I62uEaUo4o+0Ald1+IcmtL4MaOVd0vmN/MZmYNVhiW4cq9npOSwfhZbTX
+	 AXpB/nJKBpGnaOT8LFvBPW/vEWtSFkESxSwyKU48=
+From: Eric Wong <bofh@yhbt.net>
+To: unicorn-public@yhbt.net
+Subject: [PATCH] epollexclusive: avoid Ruby object allocation for buffer
+Date: Wed, 15 Feb 2023 07:58:13 +0000
+Message-Id: <20230215075813.1732969-1-bofh@yhbt.net>
+MIME-Version: 1.0
+Content-Transfer-Encoding: 8bit
+List-Id: <unicorn-public.yhbt.net>
+
+Leaving a dangling Ruby object around is suboptimal since it
+adds to GC pressure.
+
+`__attribute__((__cleanup__(foo)))' is an old gcc extension to
+provide automatic cleanup functionality by running a pre-declared
+function at the end of scope.
+
+gcc introduced this two decades ago and clang's had it for over
+a decade.  Even tinycc supports it since 2019, and I expect it
+to be easy to support in any C compiler since they're already
+required to do cleanup for on-stack allocations.
+
+So no, it's not standardized in C, but it makes life significantly
+easier for C hackers.
+---
+ ext/unicorn_http/epollexclusive.h | 19 +++++++++++--------
+ 1 file changed, 11 insertions(+), 8 deletions(-)
+
+diff --git a/ext/unicorn_http/epollexclusive.h b/ext/unicorn_http/epollexclusive.h
+index 677e1fe..67a9ba6 100644
+--- a/ext/unicorn_http/epollexclusive.h
++++ b/ext/unicorn_http/epollexclusive.h
+@@ -78,6 +78,14 @@ static void *do_wait(void *ptr) /* runs w/o GVL */
+ 				epw->maxevents, epw->timeout_msec);
+ }
+ 
++/* cleanup is supported since 2003 (gcc), 2009 (clang), tinycc: 2019 */
++#define AUTO_XFREE __attribute__((__cleanup__(cleanup_xfree)))
++static void cleanup_xfree(void *any)
++{
++	void **p = any;
++	xfree(*p);
++}
++
+ /* :nodoc: */
+ /* readers must not change between prepare_readers and get_readers */
+ static VALUE
+@@ -85,22 +93,18 @@ get_readers(VALUE epio, VALUE ready, VALUE readers, VALUE timeout_msec)
+ {
+ 	struct ep_wait epw;
+ 	long i, n;
+-	VALUE buf;
++	AUTO_XFREE void *buf = NULL;
+ 
+ 	Check_Type(ready, T_ARRAY);
+ 	Check_Type(readers, T_ARRAY);
+ 	epw.maxevents = RARRAY_LENINT(readers);
+-	buf = rb_str_buf_new(sizeof(struct epoll_event) * epw.maxevents);
+-	epw.events = (struct epoll_event *)RSTRING_PTR(buf);
++	epw.events = buf = ALLOC_N(struct epoll_event, epw.maxevents);
+ 	epio = rb_io_get_io(epio);
+ 	GetOpenFile(epio, epw.fptr);
+ 
+ 	epw.timeout_msec = NUM2INT(timeout_msec);
+ 	n = (long)rb_thread_call_without_gvl(do_wait, &epw, RUBY_UBF_IO, NULL);
+-	if (n < 0) {
+-		if (errno != EINTR) rb_sys_fail("epoll_wait");
+-		n = 0;
+-	}
++	if (n < 0 && errno != EINTR) rb_sys_fail("epoll_wait");
+ 	/* Linux delivers events in order received */
+ 	for (i = 0; i < n; i++) {
+ 		struct epoll_event *ev = &epw.events[i];
+@@ -109,7 +113,6 @@ get_readers(VALUE epio, VALUE ready, VALUE readers, VALUE timeout_msec)
+ 		if (RTEST(obj))
+ 			rb_ary_push(ready, obj);
+ 	}
+-	rb_str_resize(buf, 0);
+ 	return Qfalse;
+ }
+ #endif /* USE_EPOLL */
