@@ -1,0 +1,72 @@
+Return-Path: <bofh@yhbt.net>
+X-Spam-Checker-Version: SpamAssassin 3.4.6 (2021-04-09) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,AWL,BAYES_00,
+	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,DKIM_VALID_EF shortcircuit=no
+	autolearn=ham autolearn_force=no version=3.4.6
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id 7B4D91F47D
+	for <unicorn-public@yhbt.net>; Wed,  1 Mar 2023 21:50:38 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=yhbt.net;
+	s=selector1; t=1677707438;
+	bh=LYuITYeQx4/eO473LozpkdGDKOs+oT0DCAc29tjA2qw=;
+	h=From:To:Subject:Date:From;
+	b=HwubzsfO2H9Ro4KLnySND2W37licJFl80PoRJIyA47gDg7FfJhWo12Y3gOHE64ynA
+	 pZBj+PHzz67SBRwS7I+/8pJqzlx4eNyA4In3fdX8mfppc8/vwbHN2pjI2NWfwEqR6+
+	 9twddLTX5zJAwqFMfMltPkqye4J88sntVI0MBfvM=
+From: Eric Wong <bofh@yhbt.net>
+To: unicorn-public@yhbt.net
+Subject: [PATCH] http_server: remove close_sockets_on_exec
+Date: Wed,  1 Mar 2023 21:50:38 +0000
+Message-Id: <20230301215038.2693561-1-bofh@yhbt.net>
+MIME-Version: 1.0
+Content-Transfer-Encoding: 8bit
+List-Id: <unicorn-public.yhbt.net>
+
+This has been irrelevant since Ruby 1.9.0+, actually.
+---
+ lib/unicorn/http_server.rb | 16 ----------------
+ 1 file changed, 16 deletions(-)
+
+diff --git a/lib/unicorn/http_server.rb b/lib/unicorn/http_server.rb
+index 3416808..0ba24d8 100644
+--- a/lib/unicorn/http_server.rb
++++ b/lib/unicorn/http_server.rb
+@@ -446,11 +446,6 @@ def reexec
+       Dir.chdir(START_CTX[:cwd])
+       cmd = [ START_CTX[0] ].concat(START_CTX[:argv])
+ 
+-      # avoid leaking FDs we don't know about, but let before_exec
+-      # unset FD_CLOEXEC, if anything else in the app eventually
+-      # relies on FD inheritence.
+-      close_sockets_on_exec(listener_fds)
+-
+       # exec(command, hash) works in at least 1.9.1+, but will only be
+       # required in 1.9.4/2.0.0 at earliest.
+       cmd << listener_fds
+@@ -472,8 +467,6 @@ def worker_spawn(worker)
+     worker_info = [worker.nr, worker.to_io.fileno, worker.master.fileno]
+     env['UNICORN_WORKER'] = worker_info.join(',')
+ 
+-    close_sockets_on_exec(listener_fds)
+-
+     Process.spawn(env, START_CTX[0], *START_CTX[:argv], listener_fds)
+   end
+ 
+@@ -486,15 +479,6 @@ def listener_sockets
+     listener_fds
+   end
+ 
+-  def close_sockets_on_exec(sockets)
+-    (3..1024).each do |io|
+-      next if sockets.include?(io)
+-      io = IO.for_fd(io) rescue next
+-      io.autoclose = false
+-      io.close_on_exec = true
+-    end
+-  end
+-
+   # forcibly terminate all workers that haven't checked in in timeout seconds.  The timeout is implemented using an unlinked File
+   def murder_lazy_workers
+     next_sleep = @timeout - 1
