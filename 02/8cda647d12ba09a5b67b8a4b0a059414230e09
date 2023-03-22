@@ -1,0 +1,70 @@
+Return-Path: <jean.boussier@shopify.com>
+X-Spam-Checker-Version: SpamAssassin 3.4.6 (2021-04-09) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-3.4 required=3.0 tests=BAYES_00,DKIMWL_WL_HIGH,
+	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,DKIM_VALID_EF,NICE_REPLY_A,
+	RCVD_IN_DNSWL_HI,SPF_HELO_NONE,SPF_PASS shortcircuit=no autolearn=ham
+	autolearn_force=no version=3.4.6
+Received: from mail-wm1-x32f.google.com (mail-wm1-x32f.google.com [IPv6:2a00:1450:4864:20::32f])
+	(using TLSv1.3 with cipher TLS_AES_128_GCM_SHA256 (128/128 bits)
+	 key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
+	(No client certificate requested)
+	by dcvr.yhbt.net (Postfix) with ESMTPS id B24B71F43D
+	for <unicorn-public@yhbt.net>; Wed, 22 Mar 2023 12:53:26 +0000 (UTC)
+Authentication-Results: dcvr.yhbt.net;
+	dkim=pass (1024-bit key; unprotected) header.d=shopify.com header.i=@shopify.com header.a=rsa-sha256 header.s=google header.b=Gj4ktC6x;
+	dkim-atps=neutral
+Received: by mail-wm1-x32f.google.com with SMTP id r19-20020a05600c459300b003eb3e2a5e7bso11433859wmo.0
+        for <unicorn-public@yhbt.net>; Wed, 22 Mar 2023 05:53:26 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=shopify.com; s=google; t=1679489604;
+        h=content-transfer-encoding:in-reply-to:from:content-language:subject
+         :references:cc:to:user-agent:mime-version:date:message-id:from:to:cc
+         :subject:date:message-id:reply-to;
+        bh=v2QmVJ0FX1o+MnM+QkQUjJopFv4OaSU+BVmJOK4tbcE=;
+        b=Gj4ktC6xpLYNvqyia+s/K9VVqxP4dfQJB0uM6oys4NzVXGuTDNfs+3bYQPjy0W4XYL
+         Qs7LViLCLpHNZtD0FgcxxpBlaQH2mEGTgQRWVgq+Tgc2PHsUWN0ZcAQga/iNon8t0q1V
+         VIVooVFJHe74TF9SCIkY8XEMG7W3hLBr/IU5A=
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20210112; t=1679489604;
+        h=content-transfer-encoding:in-reply-to:from:content-language:subject
+         :references:cc:to:user-agent:mime-version:date:message-id
+         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to;
+        bh=v2QmVJ0FX1o+MnM+QkQUjJopFv4OaSU+BVmJOK4tbcE=;
+        b=p10DCTxFzrP4jEAsTHXNKFuL9YW5E+hZ8LztA7PBf/tpvrgeJp4Mz9wILBeDo6s0Mk
+         u4erh/rFXhC/5n486uF+PuD6vRq9jhcW4dnugF4ZnU7cw/6vru12V0iCn76paLoHd4wK
+         HBbQft7WD84oLUDzaEjUIsHI0yiqdz22iiYoAVI479/PrfF3lYrOy7ODI68kR8fimtww
+         nB7YoJ/JN1gEAamxs362sH4PFFaLJ0eHUpw+UxudGbYkAqK5UNnEQ7qSTNdd3KV4pNTs
+         4+eXnIKqvYEc40+jxHPv5uWKkLWEE6WrssjC+JocOTleWhReTkUnTFg1HV3pBdOt4Rxg
+         t48A==
+X-Gm-Message-State: AO0yUKVtUTU57ky6+w3jgUPVJ4+at5aEhhjXtPpDGW2JklrAZHP7Aqau
+	Fiaf/evlTfDFc/Q60zeVlexwjg==
+X-Google-Smtp-Source: AK7set8nPBfpjGKDlu63hHPRnIeZNmZgBHzYIMiW7ws8Vc5oJJF+jFC/qTOTyvwTmSBO7pZ8FZknDA==
+X-Received: by 2002:a05:600c:40c:b0:3eb:4150:a476 with SMTP id q12-20020a05600c040c00b003eb4150a476mr5011804wmb.0.1679489604017;
+        Wed, 22 Mar 2023 05:53:24 -0700 (PDT)
+Received: from [10.125.173.223] ([213.58.148.145])
+        by smtp.gmail.com with ESMTPSA id k14-20020a7bc40e000000b003ee0d191539sm7730888wmi.10.2023.03.22.05.53.23
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Wed, 22 Mar 2023 05:53:23 -0700 (PDT)
+Message-ID: <c2483280-67ef-e481-9ab2-a5f367cf3269@shopify.com>
+Date: Wed, 22 Mar 2023 12:53:22 +0000
+MIME-Version: 1.0
+User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:102.0)
+ Gecko/20100101 Thunderbird/102.8.0
+To: bofh@yhbt.net
+Cc: unicorn-public@yhbt.net
+References: <20230301231205.M669849@dcvr>
+Subject: Re: [PATCH] epollexclusive: avoid Ruby object allocation for buffer
+Content-Language: fr
+From: Jean Boussier <jean.boussier@shopify.com>
+In-Reply-To: <20230301231205.M669849@dcvr>
+Content-Type: text/plain; charset=UTF-8; format=flowed
+Content-Transfer-Encoding: 7bit
+List-Id: <unicorn-public.yhbt.net>
+
+Interesting patch, I wonder if you have considered RB_ALLOCV_N, e.g:
+
+https://patch-diff.githubusercontent.com/raw/Shopify/pitchfork/pull/37.patch
+
+
