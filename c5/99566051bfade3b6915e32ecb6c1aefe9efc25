@@ -1,0 +1,177 @@
+Return-Path: <bofh@yhbt.net>
+X-Spam-Checker-Version: SpamAssassin 3.4.6 (2021-04-09) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,AWL,BAYES_00,
+	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,DKIM_VALID_EF shortcircuit=no
+	autolearn=ham autolearn_force=no version=3.4.6
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id 8107C1F452;
+	Tue, 28 Mar 2023 12:24:37 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=yhbt.net;
+	s=selector1; t=1680006277;
+	bh=W3hetCOXggJaKUOlhmKh8KDwasvP249hbm5nUaCYmtA=;
+	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
+	b=exqnWnBcDBK+fpREGFQBqT2FR2jzvsiGu4oGhuOn53mgdIYKNGgp8/SRtptuV0e22
+	 gmGOdljpSIM9M5Orww1MJljCgRxSHH7NzBOOKavcMDQViKZWw7o7jctp0XEEIloDIE
+	 Bku3Likx6Cmy/2ZpdCOvpBhIatWWvZpSPX680il0=
+Date: Tue, 28 Mar 2023 12:24:37 +0000
+From: Eric Wong <bofh@yhbt.net>
+To: Jean Boussier <jean.boussier@shopify.com>
+Cc: unicorn-public@yhbt.net
+Subject: [PATCH] epollexclusive: use maxevents=1 for epoll_wait
+Message-ID: <20230328122437.M396277@dcvr>
+References: <20230301231205.M669849@dcvr>
+ <c2483280-67ef-e481-9ab2-a5f367cf3269@shopify.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <c2483280-67ef-e481-9ab2-a5f367cf3269@shopify.com>
+List-Id: <unicorn-public.yhbt.net>
+
+Jean Boussier <jean.boussier@shopify.com> wrote:
+> Interesting patch, I wonder if you have considered RB_ALLOCV_N, e.g:
+> 
+> https://patch-diff.githubusercontent.com/raw/Shopify/pitchfork/pull/37.patch
+
+Were you able to benchmark an improvement using alloca?
+I would think it gets lost in the noise.
+
+I don't like alloca in general since it can make the compiler
+over-allocate stack (because default cflags favors speed over
+size).  It also makes static analysis more difficult.
+
+But C Ruby is already infested with alloca, so one more/less
+likely isn't meaningful.  But, maybe I have a better solution
+than either alloca or malloc below.
+
+Been busy dealing with other stuff, but something new just
+occured to me based on something I've abused for over a decade.
+
+Background:
+
+  Outside of unicorn (and COMPLETELY different designs), I've
+  abused epoll_wait with maxevents=1 for over a decade because
+  it gives the most fairness in multi-threaded cases.  epoll is
+  a queue, too, kqueue just got the more appropriate name.
+
+It never occured to me until right now now, but maxevents=1
+combined w/ EPOLLEXCLUSIVE should ALSO improve fairness
+(compared to maxevents >1 + EPOLLEXCLUSIVE) in a multi-process,
+single-threaded environment like unicorn if configured with
+multiple listeners.
+
+Explanation in the commit message and code comments below,
+hopefully it makes sense.
+
+Anybody willing to benchmark the following on a large SMP
+machine?  (I hate consumerism and refuse to have powerful HW)
+
+---------8<--------
+Subject: [PATCH] epollexclusive: use maxevents=1 for epoll_wait
+
+This allows us to avoid both malloc (slow) and alloca
+(unpredictable stack usage) at the cost of needing to make more
+epoll_wait syscalls in a rare case.
+
+In unicorn (and most servers), I expect the most frequent setup
+is to have one active listener serving the majority of the
+connections, so the most frequent epoll_wait return value would
+be 1.
+
+Even with >1 events, any syscall overhead saved by having
+epoll_wait retrieve multiple events is dwarfed by Rack app
+processing overhead.
+
+Worse yet, if a worker retrieves an event sooner than it can
+process it, the kernel (regardless of EPOLLEXCLUSIVE or not) is
+able to enqueue another new event to that worker.  In this
+example where `a' and `b' are both listeners:
+
+  U=userspace, K=kernel
+  K: client hits `a' and `b', enqueues them both (events #1 and #2)
+  U: epoll_wait(maxevents: 2) => [ a, b ]
+  K: enqueues another event for `b' (event #3)
+  U: process_client(a.accept) # this takes a long time
+
+While process_client(a.accept) is happening, `b' can have two
+clients pending on a given worker.  It's actually better to
+leave the first `b' event unretrieved so the second `b'
+event can go to the ep->rdllist of another worker.
+
+The kernel is only capable of enqueuing an item if it hasn't
+been enqueued.  Meaning, it's impossible for epoll_wait to ever
+retrieve `[ b, b ]' in one call.
+---
+ ext/unicorn_http/epollexclusive.h | 31 +++++++++++++------------------
+ 1 file changed, 13 insertions(+), 18 deletions(-)
+
+diff --git a/ext/unicorn_http/epollexclusive.h b/ext/unicorn_http/epollexclusive.h
+index 677e1fe..8f4ea9a 100644
+--- a/ext/unicorn_http/epollexclusive.h
++++ b/ext/unicorn_http/epollexclusive.h
+@@ -64,18 +64,22 @@ static VALUE prep_readers(VALUE cls, VALUE readers)
+ 
+ #if USE_EPOLL
+ struct ep_wait {
+-	struct epoll_event *events;
++	struct epoll_event event;
+ 	rb_io_t *fptr;
+-	int maxevents;
+ 	int timeout_msec;
+ };
+ 
+ static void *do_wait(void *ptr) /* runs w/o GVL */
+ {
+ 	struct ep_wait *epw = ptr;
+-
+-	return (void *)(long)epoll_wait(epw->fptr->fd, epw->events,
+-				epw->maxevents, epw->timeout_msec);
++	/*
++	 * Linux delivers epoll events in the order received, and using
++	 * maxevents=1 ensures we pluck one item off ep->rdllist
++	 * at-a-time (c.f. fs/eventpoll.c in linux.git, it's quite
++	 * easy-to-understand for anybody familiar with Ruby C).
++	 */
++	return (void *)(long)epoll_wait(epw->fptr->fd, &epw->event, 1,
++					epw->timeout_msec);
+ }
+ 
+ /* :nodoc: */
+@@ -84,14 +88,10 @@ static VALUE
+ get_readers(VALUE epio, VALUE ready, VALUE readers, VALUE timeout_msec)
+ {
+ 	struct ep_wait epw;
+-	long i, n;
+-	VALUE buf;
++	long n;
+ 
+ 	Check_Type(ready, T_ARRAY);
+ 	Check_Type(readers, T_ARRAY);
+-	epw.maxevents = RARRAY_LENINT(readers);
+-	buf = rb_str_buf_new(sizeof(struct epoll_event) * epw.maxevents);
+-	epw.events = (struct epoll_event *)RSTRING_PTR(buf);
+ 	epio = rb_io_get_io(epio);
+ 	GetOpenFile(epio, epw.fptr);
+ 
+@@ -99,17 +99,12 @@ get_readers(VALUE epio, VALUE ready, VALUE readers, VALUE timeout_msec)
+ 	n = (long)rb_thread_call_without_gvl(do_wait, &epw, RUBY_UBF_IO, NULL);
+ 	if (n < 0) {
+ 		if (errno != EINTR) rb_sys_fail("epoll_wait");
+-		n = 0;
+-	}
+-	/* Linux delivers events in order received */
+-	for (i = 0; i < n; i++) {
+-		struct epoll_event *ev = &epw.events[i];
+-		VALUE obj = rb_ary_entry(readers, ev->data.u64);
++	} else if (n > 0) { /* maxevents is hardcoded to 1 */
++		VALUE obj = rb_ary_entry(readers, epw.event.data.u64);
+ 
+ 		if (RTEST(obj))
+ 			rb_ary_push(ready, obj);
+-	}
+-	rb_str_resize(buf, 0);
++	} /* n == 0 : timeout */
+ 	return Qfalse;
+ }
+ #endif /* USE_EPOLL */
