@@ -1,0 +1,100 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.6 (2021-04-09) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.2 required=3.0 tests=ALL_TRUSTED,AWL,BAYES_00,
+	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,DKIM_VALID_EF,
+	T_SCC_BODY_TEXT_LINE shortcircuit=no autolearn=ham autolearn_force=no
+	version=3.4.6
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id 5F6BF1F406;
+	Sun,  7 May 2023 23:13:08 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=80x24.org;
+	s=selector1; t=1683501188;
+	bh=zIBztleTds7KizF9HH4n/CR8KjiwcMua2dgo1vTfTRU=;
+	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
+	b=hqjhozZAJDedR/BVIS8X6b8h+HA6xN4RYWjdHylo65c/BwzK7lbBizXkKglocwxJX
+	 0sweLEMelQWJlqayQAgUEqQqC0KtSaNqeG5ZbsrRKpeuoztTQpN4M/J+VBxPLuXqoX
+	 91QTXLqfy9AUvPTqcVMCvJv/oJoZ/0xBUncPZQBg=
+Date: Sun, 7 May 2023 23:13:08 +0000
+From: Eric Wong <e@80x24.org>
+To: subashkc1 <subashkc1@protonmail.com>
+Cc: unicorn-public@yhbt.net
+Subject: Re: unicorn worker being killed issue
+Message-ID: <20230507231308.M295161@dcvr>
+References: <w7BWN8IxeMKEPgZbrFk9i2_stHxvb4D-iE4-mpBKvyeLAZvEWS71ki3dsk4qYfjjqezWKdeNcRe8hGX0v96H8TszyPPNI1ktxN6Jwo61-X8=@protonmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <w7BWN8IxeMKEPgZbrFk9i2_stHxvb4D-iE4-mpBKvyeLAZvEWS71ki3dsk4qYfjjqezWKdeNcRe8hGX0v96H8TszyPPNI1ktxN6Jwo61-X8=@protonmail.com>
+List-Id: <unicorn-public.yhbt.net>
+
+subashkc1 <subashkc1@protonmail.com> wrote:
+> I have a weird issue that I'm having trouble debugging. I've
+> created a sample bare bones rails app where there issue is
+> reproducible https://github.com/subashkc/sidekiq_webui_issue.
+
+That's too big and having https://enterprise.contribsys.com/ as
+a source in your Gemfile means I'm probably not able/allowed
+to inspect those gems.
+
+Some general questions:
+
+* how are you starting unicorn and what is the config file?
+  (mainly, is `preload_app' enabled? and any hooks?)
+
+  `preload_app true' is the most common source of problems if
+  the rest of your application (including all dependencies)
+  isn't equipped to handle fork.
+
+* What are the RACK_ENV / RAILS_ENV?
+
+`unicorn_rails' is actually pointless nowadays, and the plain
+`unicorn' command is highly recommended.
+
+Use a single worker for debugging, especially if you want to
+strace/truss the process.
+
+Fwiw, I haven't touched Rails roughly a decade (and barely at
+that).  My only web apps for the past 15 years or so are on bare
+Rack and meant to be consumed via curl or w3m (nothing involving
+JavaScript or fancy browsers).
+
+Maybe others watching this mailbox can chime in....
+
+> After running the rails app, and load up the sidekiq web UI,
+> if I click on any tabs e.g. busy/queues then the request is
+> served right away with a 200 but it seems there is a 2nd
+> request (can't tell where from) which eventually times out and
+> kills the unicorn worker.
+
+I suspect a 2nd request comes from some JS code.  Check for a
+network debugging tool included with your browser if it has one.
+
+Or use a single unicorn worker, then strace/truss that worker.
+Something like `strace -p $PID_OF_WORKER -f -v -s5000 -o /tmp/dump`
+(assuming Linux)
+
+Are you able to reproduce the issue with JS disabled?
+Preferably just via curl to minimize surprises.
+
+> I originally opened the issue with sidekiq repo but Mike
+> (sidekiq owner) wasn't able to find anything wrong with
+> sidekiq code and he suggested it seemed unicorn was double
+> reading the request and the 2nd one dies after 60s timeout.
+
+Double-reading a request is impossible unless there's something
+very broken in Ruby or your networking stack.  There'd be a
+hundreds of reports about it if that were true if Ruby or
+unicorn were double-reading requests.
+
+Are you going through some firewalls, or caching/scanning
+proxies which might send a request twice?  I've seen that before.
+
+I have seen some folks accidentally enable multiple loggers,
+so it looks like a single request is happening multiple times.
+
+strace is usually my tool for debugging stuff like this; along
+with sprinkling `warn "#{__LINE__} ..."' statements throughout.
+And then perhaps commenting out lots of code and disabling
+as many dependencies as possible.
