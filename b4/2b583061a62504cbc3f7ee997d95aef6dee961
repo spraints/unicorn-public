@@ -1,0 +1,172 @@
+Return-Path: <subashkc1@protonmail.com>
+X-Spam-Checker-Version: SpamAssassin 3.4.6 (2021-04-09) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS62371 185.70.40.0/24
+X-Spam-Status: No, score=-3.1 required=3.0 tests=AWL,BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,DKIM_VALID_AU,DKIM_VALID_EF,FREEMAIL_ENVFROM_END_DIGIT,
+	FREEMAIL_FROM,RCVD_IN_DNSWL_HI,RCVD_IN_MSPIKE_H2,SPF_HELO_PASS,
+	SPF_PASS,T_SCC_BODY_TEXT_LINE shortcircuit=no autolearn=ham
+	autolearn_force=no version=3.4.6
+Received: from mail-40132.protonmail.ch (mail-40132.protonmail.ch [185.70.40.132])
+	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+	 key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
+	(No client certificate requested)
+	by dcvr.yhbt.net (Postfix) with ESMTPS id C98511F406
+	for <unicorn-public@yhbt.net>; Wed, 10 May 2023 21:34:29 +0000 (UTC)
+Authentication-Results: dcvr.yhbt.net;
+	dkim=pass (2048-bit key; secure) header.d=protonmail.com header.i=@protonmail.com header.a=rsa-sha256 header.s=protonmail3 header.b=JjLjxH0B;
+	dkim-atps=neutral
+Date: Wed, 10 May 2023 21:34:09 +0000
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=protonmail.com;
+	s=protonmail3; t=1683754467; x=1684013667;
+	bh=+aWLCjnVwK6TyqkXF5y10OzkJPvhQwGHQ7XGcJMGS9k=;
+	h=Date:To:From:Cc:Subject:Message-ID:In-Reply-To:References:
+	 Feedback-ID:From:To:Cc:Date:Subject:Reply-To:Feedback-ID:
+	 Message-ID:BIMI-Selector;
+	b=JjLjxH0BzbDa/QZx92KYcJH9v3kh9W6GO+l22ji9LXzk1k8HuufI7AKJZZ1ns0Pa0
+	 Brf7o3roPJruD66weO0C+w8WvwRbzMq+gTB11tS57mLUjFak6gw72tsYof3ZIEcR1j
+	 wOxSP1bpPFC7eDx0ihSy9E2F5tBh+/Hncn2S3R6G6zrmUPzrmWz5XA+gUGNlbdeYjW
+	 +7UZZLWHvXmoZJAJtXj5o3ldBMgGl68k80dHpjDMsJY7yLkgMosuXBGbH17/ppG3tU
+	 /+iXt6Yx6BdOskpvTXqBxh7czPbFh8HFcY/PV4M5Wr/b7boD7P4I+0I7KzJ4MbB9lu
+	 G6QrQzuzldj/g==
+To: Eric Wong <e@80x24.org>
+From: subashkc1 <subashkc1@protonmail.com>
+Cc: unicorn-public@yhbt.net
+Subject: Re: unicorn worker being killed issue
+Message-ID: <Duci227PYeBVohB90iG1Hc3x5cS11voaHImp0vHOOJDOxvzcBJbGOlhtNAW5lEmM_lzzMbRKslopgr5EtSXv5NxAdLqvIpw73fMbnTwe_i4=@protonmail.com>
+In-Reply-To: <20230507231308.M295161@dcvr>
+References: <w7BWN8IxeMKEPgZbrFk9i2_stHxvb4D-iE4-mpBKvyeLAZvEWS71ki3dsk4qYfjjqezWKdeNcRe8hGX0v96H8TszyPPNI1ktxN6Jwo61-X8=@protonmail.com> <20230507231308.M295161@dcvr>
+Feedback-ID: 16972922:user:proton
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: quoted-printable
+List-Id: <unicorn-public.yhbt.net>
+
+Hi Eric,
+
+Thanks for you reply, I'll try to answer all questions below
+
+
+
+> subashkc1 subashkc1@protonmail.com wrote:
+>
+> > I have a weird issue that I'm having trouble debugging. I've
+> > created a sample bare bones rails app where there issue is
+> > reproducible https://github.com/subashkc/sidekiq_webui_issue.
+>
+>
+> That's too big and having https://enterprise.contribsys.com/ as
+> a source in your Gemfile means I'm probably not able/allowed
+> to inspect those gems.
+>
+
+I've removed the sidekiq pro form gemfile, it also happens with just the si=
+dekiq gem
+
+> Some general questions:
+>
+> * how are you starting unicorn and what is the config file?
+> (mainly, is `preload_app' enabled? and any hooks?)` preload_app true' is =
+the most common source of problems if
+> the rest of your application (including all dependencies)
+> isn't equipped to handle fork.
+
+unicorn is started just with `bundle exec unicorn` from a Procfile using fo=
+reman, no other config options so its just 1 unicorn worker and its a very =
+bare-bones rails app to reproduce the issue, all I did was add sidekiq gem,=
+ and load up the sidekiq webui to see the issue in action
+>
+> * What are the RACK_ENV / RAILS_ENV?
+>
+
+It is happening locally, so all env are development
+
+> `unicorn_rails' is actually pointless nowadays, and the plain` unicorn' c=
+ommand is highly recommended.
+
+I'm only using the unicorn gem, not touching unicorn_rails at all
+
+>
+> Use a single worker for debugging, especially if you want to
+> strace/truss the process.
+
+Yeah just using 1 unicorn worker with all the default configs, (this repo d=
+oesn't have a unicorn config file so all defaults)
+
+>
+> Fwiw, I haven't touched Rails roughly a decade (and barely at
+> that). My only web apps for the past 15 years or so are on bare
+> Rack and meant to be consumed via curl or w3m (nothing involving
+> JavaScript or fancy browsers).
+>
+> Maybe others watching this mailbox can chime in....
+>
+> > After running the rails app, and load up the sidekiq web UI,
+> > if I click on any tabs e.g. busy/queues then the request is
+> > served right away with a 200 but it seems there is a 2nd
+> > request (can't tell where from) which eventually times out and
+> > kills the unicorn worker.
+>
+>
+> I suspect a 2nd request comes from some JS code. Check for a
+> network debugging tool included with your browser if it has one.
+>
+
+Yeah that's what I can't figure out, I can't see any other requests in the =
+browser network tools
+
+> Or use a single unicorn worker, then strace/truss that worker.
+> Something like `strace -p $PID_OF_WORKER -f -v -s5000 -o /tmp/dump`
+> (assuming Linux)
+
+I did this, but the output was so verbose I couldn't make any sense of it a=
+s I wasn't sure what to look for
+
+>
+> Are you able to reproduce the issue with JS disabled?
+> Preferably just via curl to minimize surprises.
+
+Ok, it doesn't happen if I do the same request using curl, just doing `curl=
+ localhost:8080/sidekiq/busy` and if I do this right after clicking on the =
+tab in the UI, this request doesn't get served right away, it waits until t=
+he request from the UI times out >60s, kills the unicorn worker and then th=
+e curl req is served
+
+>
+> > I originally opened the issue with sidekiq repo but Mike
+> > (sidekiq owner) wasn't able to find anything wrong with
+> > sidekiq code and he suggested it seemed unicorn was double
+> > reading the request and the 2nd one dies after 60s timeout.
+>
+>
+> Double-reading a request is impossible unless there's something
+> very broken in Ruby or your networking stack. There'd be a
+> hundreds of reports about it if that were true if Ruby or
+> unicorn were double-reading requests.
+>
+> Are you going through some firewalls, or caching/scanning
+> proxies which might send a request twice? I've seen that before.
+>
+
+No, this is all happening locally on my dev machine, no firewalls or proxie=
+s involved
+
+> I have seen some folks accidentally enable multiple loggers,
+> so it looks like a single request is happening multiple times.
+>
+
+No, just a very basic rails app with the default logger, haven't enabled or=
+ added anything else
+
+> strace is usually my tool for debugging stuff like this; along
+> with sprinkling `warn "#{LINE} ..."' statements throughout.
+> And then perhaps commenting out lots of code and disabling
+> as many dependencies as possible.
+
+Yeah it is a rails app with just the sidekiq gem, no other dependencies and=
+ no code to disable, haven't added anything.
+
+Let me know if that gives you some hints or if there are other things that =
+I can try or check
+
+Warm Regards
