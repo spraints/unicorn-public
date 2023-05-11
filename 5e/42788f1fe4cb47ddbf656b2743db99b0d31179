@@ -1,0 +1,94 @@
+Return-Path: <mike@perham.net>
+X-Spam-Checker-Version: SpamAssassin 3.4.6 (2021-04-09) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS29838 64.147.123.0/24
+X-Spam-Status: No, score=-3.9 required=3.0 tests=BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,DKIM_VALID_AU,DKIM_VALID_EF,RCVD_IN_DNSWL_LOW,SPF_HELO_PASS,
+	SPF_PASS,T_SCC_BODY_TEXT_LINE shortcircuit=no autolearn=ham
+	autolearn_force=no version=3.4.6
+Received: from wout4-smtp.messagingengine.com (wout4-smtp.messagingengine.com [64.147.123.20])
+	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+	 key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
+	(No client certificate requested)
+	by dcvr.yhbt.net (Postfix) with ESMTPS id 06A821F406
+	for <unicorn-public@yhbt.net>; Thu, 11 May 2023 18:25:45 +0000 (UTC)
+Authentication-Results: dcvr.yhbt.net;
+	dkim=pass (2048-bit key; unprotected) header.d=perham.net header.i=@perham.net header.a=rsa-sha256 header.s=fm2 header.b=Us5El8FG;
+	dkim=pass (2048-bit key; unprotected) header.d=messagingengine.com header.i=@messagingengine.com header.a=rsa-sha256 header.s=fm3 header.b=jruKCDGG;
+	dkim-atps=neutral
+Received: from compute6.internal (compute6.nyi.internal [10.202.2.47])
+	by mailout.west.internal (Postfix) with ESMTP id 2048A320070D
+	for <unicorn-public@yhbt.net>; Thu, 11 May 2023 14:25:43 -0400 (EDT)
+Received: from imap50 ([10.202.2.100])
+  by compute6.internal (MEProxy); Thu, 11 May 2023 14:25:43 -0400
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=perham.net; h=cc
+	:content-type:content-type:date:date:from:from:in-reply-to
+	:in-reply-to:message-id:mime-version:references:reply-to:sender
+	:subject:subject:to:to; s=fm2; t=1683829542; x=1683915942; bh=Vx
+	yFuPtfH+vQKaFf9NNtIueovdFxdMbxLuvLCRypzK4=; b=Us5El8FGsLVCQJRDMl
+	T04+0dBmxc4Ccy08zO1EdHKsY4XsKZNai/YgOsU1lO3ZeR0sguAgU4yAi8RI3rzx
+	TFQanoZTjc9OyXVQzofSuFfYbcBTSwRRqLktaePl8ADieAEtONkSMvtg8PB3amlW
+	uYpsNzfXQml9sMIPnNJcRRVm8SBYl1XYtkYpO//XYH1ctZgyA007s8wHbjKXLZ67
+	MiC273DAGKxLgGx+AK5JGXjCNJV3guyKmVuDDhInGkfKe0lcertq2DA3gJjLMdSt
+	IWWMQHOpdF6eHJxRAJV79O+PsuTtfMlBXzmPk0j0hUgHMtyR+4aUc86GK+qJ31j1
+	pVFQ==
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=
+	messagingengine.com; h=cc:content-type:content-type:date:date
+	:feedback-id:feedback-id:from:from:in-reply-to:in-reply-to
+	:message-id:mime-version:references:reply-to:sender:subject
+	:subject:to:to:x-me-proxy:x-me-proxy:x-me-sender:x-me-sender
+	:x-sasl-enc; s=fm3; t=1683829542; x=1683915942; bh=VxyFuPtfH+vQK
+	aFf9NNtIueovdFxdMbxLuvLCRypzK4=; b=jruKCDGGw4Fd+BBIoEnFdgwFJqd2N
+	C2o1DpMKnOe1BH9ktNBpXMZQjFXbk78voz9LfgClI9KJmfY9GFWNoSF/wCDCfl2F
+	s6wLZQf9SJGvgtjom/Ih/Lm511LsXb6ZEVJtexGLpM4cwzKjfY2HMVQ58EI+Ejpd
+	eILSsHq/vEJqawT+m/N9Ui7EIOITv+cx+pl0taarJwjiChSZ5A+yk2rCnoniZSqI
+	UFNakom6EknJlUX/zXr5/QN0KB/xS8y23Xeh4fn9rMz4RBWJv/3CCm3KvS8HHB7+
+	wrJ8A/Q5PE1QUwUHk16THwYwncQAQPnYJUeA5bZnGDs0HcMhgv4+xkTJQ==
+X-ME-Sender: <xms:JjNdZAdIkmgjUEru7MzWq5mB0mY9qRTp3sZgG_y2L9t4Djzpk68vpA>
+    <xme:JjNdZCMRabN4Kclsk4W2fTtt51bD6ICzHInM9zpElQF_0jIuIPt6sMMj5V5gVKrcZ
+    kiyMV5VcU7MlY9eHSs>
+X-ME-Proxy-Cause: gggruggvucftvghtrhhoucdtuddrgedvhedrfeegkedguddviecutefuodetggdotefrod
+    ftvfcurfhrohhfihhlvgemucfhrghsthforghilhdpqfgfvfdpuffrtefokffrpgfnqfgh
+    necuuegrihhlohhuthemuceftddtnecunecujfgurhepofgfggfkjghffffhvffutgesth
+    dtredtreertdenucfhrhhomhepfdfoihhkvgcurfgvrhhhrghmfdcuoehmihhkvgesphgv
+    rhhhrghmrdhnvghtqeenucggtffrrghtthgvrhhnpefgiefgtedvtdetjeelleegueehke
+    duuedvgffhffehgeffjefgheehvddvgfekffenucffohhmrghinhepghhithhhuhgsrdgt
+    ohhmnecuvehluhhsthgvrhfuihiivgeptdenucfrrghrrghmpehmrghilhhfrhhomhepmh
+    hikhgvsehpvghrhhgrmhdrnhgvth
+X-ME-Proxy: <xmx:JjNdZBgWxubMV49nfL8ZPPUXmR7JXxJO2u9zdcUDA0SXXjWDYoFjmA>
+    <xmx:JjNdZF9kNK3CRBKeK8e5XoSgzTvlN9byYDiJ6Ai1vdS5USDIoVkgIw>
+    <xmx:JjNdZMvaU_cCs5U32mdUeRLQpJjM6A2IndVKM2WQV4lOXmGcX3p8sQ>
+    <xmx:JjNdZK4M66MFgeJjfzStYgqnXx7s-xpgWIzxcoMd9j7Tfd7DG_9-cQ>
+Feedback-ID: ifca94617:Fastmail
+Received: by mailuser.nyi.internal (Postfix, from userid 501)
+	id 7FB6D17000CF; Thu, 11 May 2023 14:25:42 -0400 (EDT)
+X-Mailer: MessagingEngine.com Webmail Interface
+User-Agent: Cyrus-JMAP/3.9.0-alpha0-415-gf2b17fe6c3-fm-20230503.001-gf2b17fe6
+Mime-Version: 1.0
+Message-Id: <b7ef50c1-d7ca-48d4-badf-7d3fe5bb13cd@app.fastmail.com>
+In-Reply-To: <b1234240-9cc1-47ea-ad61-fe64feb14ce4@app.fastmail.com>
+References: <b1234240-9cc1-47ea-ad61-fe64feb14ce4@app.fastmail.com>
+Date: Thu, 11 May 2023 11:25:21 -0700
+From: "Mike Perham" <mike@perham.net>
+To: unicorn-public@yhbt.net
+Subject: Re: thread dump?
+Content-Type: text/plain
+List-Id: <unicorn-public.yhbt.net>
+
+FYI, I got this working with some easy-on-eyes formatting:
+
+after_fork do |server, worker|
+    Signal.trap("INFO") do
+        Thread.list.each do |th|
+            puts("====\n#{th.inspect} #{th.backtrace.join("\n\t")}")
+        end
+    end
+end
+
+On Thu, May 11, 2023, at 07:42, Mike Perham wrote:
+> Hi, is there a way to get a thread dump for a Unicorn process? I have a Unicorn which is hanging[0] and I can't tell where it is stuck. Sidekiq uses the TTIN (Thread INfo) signal, Puma uses the INFO signal[1]. Does unicorn have similar?
+> 
+> [0]: https://github.com/sidekiq/sidekiq/issues/5876#issuecomment-1529919584
+> [1]: https://github.com/puma/puma/pull/1320
+> 
+> Mike
