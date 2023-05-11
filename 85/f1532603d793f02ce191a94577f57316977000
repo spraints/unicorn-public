@@ -1,0 +1,67 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.6 (2021-04-09) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.2 required=3.0 tests=ALL_TRUSTED,AWL,BAYES_00,
+	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,DKIM_VALID_EF,
+	T_SCC_BODY_TEXT_LINE shortcircuit=no autolearn=ham autolearn_force=no
+	version=3.4.6
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id 6F1361F406;
+	Thu, 11 May 2023 19:01:05 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=80x24.org;
+	s=selector1; t=1683831665;
+	bh=Hcj5/85Ondu3RHJDXpDAa+illNmJbXIwIMvgzDk+fRU=;
+	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
+	b=wyI5y3IoBbwId7WYRJ+dj2I61RbHjlGdj1Xf454rpfY1lXi3nY9k+SHc9/DdBlJrE
+	 83OicHgzcXEWHZKHQbizN5XE+sRZdQgtz1r+ouYqdKUFrYJCgNWJljWzTFVV+jvHEq
+	 nX4NPCzZ/4gvkxNnrpzWmXlUbj9tGp//wJTnqmPQ=
+Date: Thu, 11 May 2023 19:01:05 +0000
+From: Eric Wong <e@80x24.org>
+To: Mike Perham <mike@perham.net>
+Cc: unicorn-public@yhbt.net
+Subject: Re: thread dump?
+Message-ID: <20230511190105.M303527@dcvr>
+References: <b1234240-9cc1-47ea-ad61-fe64feb14ce4@app.fastmail.com>
+ <b7ef50c1-d7ca-48d4-badf-7d3fe5bb13cd@app.fastmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <b7ef50c1-d7ca-48d4-badf-7d3fe5bb13cd@app.fastmail.com>
+List-Id: <unicorn-public.yhbt.net>
+
+Mike Perham <mike@perham.net> wrote:
+> On Thu, May 11, 2023, at 07:42, Mike Perham wrote:
+> > Hi, is there a way to get a thread dump for a Unicorn
+> > process? I have a Unicorn which is hanging[0] and I can't
+> > tell where it is stuck. Sidekiq uses the TTIN (Thread INfo)
+> > signal, Puma uses the INFO signal[1]. Does unicorn have
+> > similar?
+
+(top-posting corrected)
+
+Not by default.  I've long recommended adding per-callsite timeouts
+throughout the app + libraries for portability across various
+Rack servers:
+
+  https://yhbt.net/unicorn/Application_Timeouts.html
+
+> > [0]: https://github.com/sidekiq/sidekiq/issues/5876#issuecomment-1529919584
+> > [1]: https://github.com/puma/puma/pull/1320
+> 
+> FYI, I got this working with some easy-on-eyes formatting:
+> 
+> after_fork do |server, worker|
+>     Signal.trap("INFO") do
+
+<snip>
+
+Yes, that works.  Pretty much anything can be setup that way,
+and at this point there's probably many configs that would be
+broken if unicorn started relying on more signals internally.
+
+
+
+note to all: disable HTML and use reply-to-all to ensure archival to
+https://yhbt.net/unicorn-public/ et al. for future readers.
+subscribers: there's a one-click List-Unsubscribe URL in the headers
