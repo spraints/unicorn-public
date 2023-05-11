@@ -1,0 +1,54 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.6 (2021-04-09) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.2 required=3.0 tests=ALL_TRUSTED,AWL,BAYES_00,
+	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,DKIM_VALID_EF,
+	T_SCC_BODY_TEXT_LINE shortcircuit=no autolearn=ham autolearn_force=no
+	version=3.4.6
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id 4A9BB1F406;
+	Thu, 11 May 2023 19:08:38 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=80x24.org;
+	s=selector1; t=1683832118;
+	bh=dG+BqHOinwx8ZyCoblJAyzTypWnukqvEjuNu8UfVMLc=;
+	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
+	b=QZP5ImLV5nHXlp+vYvBYmpWnzeE29WdMKbJqnV5WnJ7ask5dTr9q8ePGtjH17URSj
+	 PUDm6xRrae+y92Fn9DnYc88rDOgJqKbiKNgFaVgdyANdJTqTDcqd7GCoZJhN5GjRT+
+	 ipDPMKpEvGeZLfx/LXW4655gJJnu5FHGUMoq6KtU=
+Date: Thu, 11 May 2023 19:08:38 +0000
+From: Eric Wong <e@80x24.org>
+To: subashkc1 <subashkc1@protonmail.com>
+Cc: unicorn-public@yhbt.net, Mike Perham <mike@perham.net>
+Subject: Re: unicorn worker being killed issue
+Message-ID: <20230511190838.M197223@dcvr>
+References: <w7BWN8IxeMKEPgZbrFk9i2_stHxvb4D-iE4-mpBKvyeLAZvEWS71ki3dsk4qYfjjqezWKdeNcRe8hGX0v96H8TszyPPNI1ktxN6Jwo61-X8=@protonmail.com>
+ <20230507231308.M295161@dcvr>
+ <Duci227PYeBVohB90iG1Hc3x5cS11voaHImp0vHOOJDOxvzcBJbGOlhtNAW5lEmM_lzzMbRKslopgr5EtSXv5NxAdLqvIpw73fMbnTwe_i4=@protonmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <Duci227PYeBVohB90iG1Hc3x5cS11voaHImp0vHOOJDOxvzcBJbGOlhtNAW5lEmM_lzzMbRKslopgr5EtSXv5NxAdLqvIpw73fMbnTwe_i4=@protonmail.com>
+List-Id: <unicorn-public.yhbt.net>
+
+subashkc1 <subashkc1@protonmail.com> wrote:
+> Eric Wong wrote:
+> > Or use a single unicorn worker, then strace/truss that worker.
+> > Something like `strace -p $PID_OF_WORKER -f -v -s5000 -o /tmp/dump`
+> > (assuming Linux)
+> I did this, but the output was so verbose I couldn't make any
+> sense of it as I wasn't sure what to look for
+
++cc Mike Perham since it's sidekiq-related
+
+subashkc1:  Can you show us the lines leading up to the SIGKILL?
+
+Anything starting with the last accept|accept4 syscall up to
+when it says the process is killed should help.
+
+Adding `-t' to enable strace timestamps can also help, thus
+`strace -t -p $PID_OF_WORKER -f -v -s5000 -o /tmp/dump`
+
+
+reminders: disable HTML and reply-to-all to ensure replication + archival
+subscribers: use List-Unsubscribe header for one-click unsubscribe
