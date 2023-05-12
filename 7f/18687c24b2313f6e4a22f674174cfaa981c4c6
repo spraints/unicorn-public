@@ -1,0 +1,109 @@
+Return-Path: <subashkc1@protonmail.com>
+X-Spam-Checker-Version: SpamAssassin 3.4.6 (2021-04-09) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS62371 185.70.43.0/24
+X-Spam-Status: No, score=-3.0 required=3.0 tests=AWL,BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,DKIM_VALID_AU,DKIM_VALID_EF,FREEMAIL_ENVFROM_END_DIGIT,
+	FREEMAIL_FROM,RCVD_IN_MSPIKE_H2,SPF_HELO_PASS,SPF_PASS,
+	T_SCC_BODY_TEXT_LINE shortcircuit=no autolearn=ham autolearn_force=no
+	version=3.4.6
+Received: from mail-4325.protonmail.ch (mail-4325.protonmail.ch [185.70.43.25])
+	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+	 key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
+	(No client certificate requested)
+	by dcvr.yhbt.net (Postfix) with ESMTPS id 70C821F406
+	for <unicorn-public@yhbt.net>; Fri, 12 May 2023 06:41:32 +0000 (UTC)
+Authentication-Results: dcvr.yhbt.net;
+	dkim=pass (2048-bit key; secure) header.d=protonmail.com header.i=@protonmail.com header.a=rsa-sha256 header.s=protonmail3 header.b=q6ZwQUa3;
+	dkim-atps=neutral
+Date: Fri, 12 May 2023 06:41:17 +0000
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=protonmail.com;
+	s=protonmail3; t=1683873690; x=1684132890;
+	bh=l40Qq4XkpdvfvbXEIsmvMTV7xg0eEW2MPg0bdFiBHSk=;
+	h=Date:To:From:Cc:Subject:Message-ID:In-Reply-To:References:
+	 Feedback-ID:From:To:Cc:Date:Subject:Reply-To:Feedback-ID:
+	 Message-ID:BIMI-Selector;
+	b=q6ZwQUa3jLyohW928Sc2ADLMa/SIrOfTHVkFXuw6KxmHiWfhxOMqMKe4KgAKhuP53
+	 CuCEBTIEKDHfp/qU9l2ko+kKPFSmLyb/o2Z0pnpn9Q+Kw6U2L4r+PXAgS8tXyp6Od9
+	 WwP2J4wSp9QCmKl4QqdcLrP0ieyGf7+Aff4f0tnMEAt4Psffdeel1Okm6u52Lb8of3
+	 NB46QPIQ52ovuhPkjEx0uTK15szRADhNlNpaJU9SPy2mggOUr0/Px+sYA2rl16C36r
+	 0/RWx3EmQF1OKcBsMLam2egmjvoFVr8M9M49EV5gJN3/e32NTH8/uOo97UI8/xO4pg
+	 shKeZge2JegFw==
+To: Eric Wong <e@80x24.org>
+From: subashkc1 <subashkc1@protonmail.com>
+Cc: unicorn-public@yhbt.net, Mike Perham <mike@perham.net>
+Subject: Re: unicorn worker being killed issue
+Message-ID: <NKz1jqrQCIvqJ0onbjG-qgrItFUx95UbXKPjkeAIsJUu6NeKC--XIUMXaBAsVj46IxDi5t39GZaCOs6uFK2GnDN68kLNGPOGmNrdmoUpxxQ=@protonmail.com>
+In-Reply-To: <20230511190838.M197223@dcvr>
+References: <w7BWN8IxeMKEPgZbrFk9i2_stHxvb4D-iE4-mpBKvyeLAZvEWS71ki3dsk4qYfjjqezWKdeNcRe8hGX0v96H8TszyPPNI1ktxN6Jwo61-X8=@protonmail.com> <20230507231308.M295161@dcvr> <Duci227PYeBVohB90iG1Hc3x5cS11voaHImp0vHOOJDOxvzcBJbGOlhtNAW5lEmM_lzzMbRKslopgr5EtSXv5NxAdLqvIpw73fMbnTwe_i4=@protonmail.com> <20230511190838.M197223@dcvr>
+Feedback-ID: 16972922:user:proton
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: quoted-printable
+List-Id: <unicorn-public.yhbt.net>
+
+Hi Eric,
+
+Here is the trace from accept4 upto SIGKILL
+
+46585 16:32:39 accept4(11, {sa_family=3DAF_INET, sin_port=3Dhtons(59496), s=
+in_addr=3Dinet_addr("127.0.0.1")}, [128 =3D> 16], SOCK_CLOEXEC) =3D 9
+46585 16:32:39 recvfrom(9, 0x56012fa88ca0, 16384, MSG_DONTWAIT, NULL, NULL)=
+ =3D -1 EAGAIN (Resource temporarily unavailable)
+46585 16:32:39 getpid()                 =3D 46585
+46585 16:32:39 ppoll([{fd=3D9, events=3DPOLLIN}], 1, NULL, NULL, 8 <unfinis=
+hed ...>
+46601 16:33:38 <... ppoll resumed>)     =3D 0 (Timeout)
+46601 16:33:38 getpid()                 =3D 46585
+46601 16:33:38 read(3, 0x7fc1327506a0, 8) =3D -1 EAGAIN (Resource temporari=
+ly unavailable)
+46601 16:33:38 getpid()                 =3D 46585
+46601 16:33:38 sched_yield()            =3D 0
+46601 16:33:38 ppoll([{fd=3D3, events=3DPOLLIN}], 1, {tv_sec=3D60, tv_nsec=
+=3D0}, NULL, 8 <unfinished ...>) =3D ?
+46586 16:33:40 <... futex resumed>)     =3D ?
+46585 16:33:40 <... ppoll resumed> <unfinished ...>) =3D ?
+46601 16:33:40 +++ killed by SIGKILL +++
+46586 16:33:40 +++ killed by SIGKILL +++
+46585 16:33:40 +++ killed by SIGKILL +++
+
+I've uploaded the whole strace dump into codeshare if you need the whole fi=
+le, https://codeshare.io/3AdLy6.
+
+Warm Regards
+
+
+
+Subash K.C., Software Developer | 397 Mt Dandenong Road, Croydon, VIC 3134=
+=C2=A0=C2=A0|=C2=A00405299404
+
+Sent with Proton Mail secure email.
+
+------- Original Message -------
+On Friday, May 12th, 2023 at 05:08, Eric Wong <e@80x24.org> wrote:
+
+
+> subashkc1 subashkc1@protonmail.com wrote:
+>=20
+> > Eric Wong wrote:
+> >=20
+> > > Or use a single unicorn worker, then strace/truss that worker.
+> > > Something like `strace -p $PID_OF_WORKER -f -v -s5000 -o /tmp/dump`
+> > > (assuming Linux)
+> > > I did this, but the output was so verbose I couldn't make any
+> > > sense of it as I wasn't sure what to look for
+>=20
+>=20
+> +cc Mike Perham since it's sidekiq-related
+>=20
+> subashkc1: Can you show us the lines leading up to the SIGKILL?
+>=20
+> Anything starting with the last accept|accept4 syscall up to
+> when it says the process is killed should help.
+>=20
+> Adding `-t' to enable strace timestamps can also help, thus` strace -t -p=
+ $PID_OF_WORKER -f -v -s5000 -o /tmp/dump`
+>=20
+>=20
+> reminders: disable HTML and reply-to-all to ensure replication + archival
+> subscribers: use List-Unsubscribe header for one-click unsubscribe
