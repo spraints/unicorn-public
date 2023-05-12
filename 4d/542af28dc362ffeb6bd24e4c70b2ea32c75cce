@@ -1,0 +1,80 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.6 (2021-04-09) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.2 required=3.0 tests=ALL_TRUSTED,AWL,BAYES_00,
+	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,DKIM_VALID_EF,
+	T_SCC_BODY_TEXT_LINE shortcircuit=no autolearn=ham autolearn_force=no
+	version=3.4.6
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id CBFA31F406;
+	Fri, 12 May 2023 08:05:42 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=80x24.org;
+	s=selector1; t=1683878742;
+	bh=8iNFhOmQR6EfStQxz8ZiiENciUMOs0otgOMfQp7Ejpo=;
+	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
+	b=USuiqyZGcy5LynWv+U4Pz4rxTaVBDHXszjU5UHO1f5qjnGJoOUnIaB3Al75LcviMj
+	 DFSykzkjN296If6FftX/ucWjDCA8Tzrfh/9VTWRKCGUKB8DikyRvCxaH+TCFjnXQQj
+	 tHXnG0HL/Ncg5NN0FEQFhrwC89FQcxMJOCRwa71I=
+Date: Fri, 12 May 2023 08:05:42 +0000
+From: Eric Wong <e@80x24.org>
+To: subashkc1 <subashkc1@protonmail.com>
+Cc: unicorn-public@yhbt.net, Mike Perham <mike@perham.net>
+Subject: Re: unicorn worker being killed issue
+Message-ID: <20230512080542.M758778@dcvr>
+References: <w7BWN8IxeMKEPgZbrFk9i2_stHxvb4D-iE4-mpBKvyeLAZvEWS71ki3dsk4qYfjjqezWKdeNcRe8hGX0v96H8TszyPPNI1ktxN6Jwo61-X8=@protonmail.com>
+ <20230507231308.M295161@dcvr>
+ <Duci227PYeBVohB90iG1Hc3x5cS11voaHImp0vHOOJDOxvzcBJbGOlhtNAW5lEmM_lzzMbRKslopgr5EtSXv5NxAdLqvIpw73fMbnTwe_i4=@protonmail.com>
+ <20230511190838.M197223@dcvr>
+ <NKz1jqrQCIvqJ0onbjG-qgrItFUx95UbXKPjkeAIsJUu6NeKC--XIUMXaBAsVj46IxDi5t39GZaCOs6uFK2GnDN68kLNGPOGmNrdmoUpxxQ=@protonmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <NKz1jqrQCIvqJ0onbjG-qgrItFUx95UbXKPjkeAIsJUu6NeKC--XIUMXaBAsVj46IxDi5t39GZaCOs6uFK2GnDN68kLNGPOGmNrdmoUpxxQ=@protonmail.com>
+List-Id: <unicorn-public.yhbt.net>
+
+subashkc1 <subashkc1@protonmail.com> wrote:
+> Hi Eric,
+> 
+> Here is the trace from accept4 upto SIGKILL
+> 
+> 46585 16:32:39 accept4(11, {sa_family=AF_INET, sin_port=htons(59496), sin_addr=inet_addr("127.0.0.1")}, [128 => 16], SOCK_CLOEXEC) = 9
+> 46585 16:32:39 recvfrom(9, 0x56012fa88ca0, 16384, MSG_DONTWAIT, NULL, NULL) = -1 EAGAIN (Resource temporarily unavailable)
+> 46585 16:32:39 getpid()                 = 46585
+> 46585 16:32:39 ppoll([{fd=9, events=POLLIN}], 1, NULL, NULL, 8 <unfinished ...>
+> 46601 16:33:38 <... ppoll resumed>)     = 0 (Timeout)
+> 46601 16:33:38 getpid()                 = 46585
+> 46601 16:33:38 read(3, 0x7fc1327506a0, 8) = -1 EAGAIN (Resource temporarily unavailable)
+> 46601 16:33:38 getpid()                 = 46585
+> 46601 16:33:38 sched_yield()            = 0
+> 46601 16:33:38 ppoll([{fd=3, events=POLLIN}], 1, {tv_sec=60, tv_nsec=0}, NULL, 8 <unfinished ...>) = ?
+> 46586 16:33:40 <... futex resumed>)     = ?
+> 46585 16:33:40 <... ppoll resumed> <unfinished ...>) = ?
+> 46601 16:33:40 +++ killed by SIGKILL +++
+> 46586 16:33:40 +++ killed by SIGKILL +++
+> 46585 16:33:40 +++ killed by SIGKILL +++
+
+OK, threadid 46485 looks like the worker thread, and
+46601 looks like the Ruby timer thread.
+
+FD=9 is the client socket, so it looks like you have a client
+that's opening a connection and not doing anything so recvfrom()
+fails and ppoll times out.  You'd need to track down why you
+have a client opening a connection like that.
+
+You can use `ss -tp' to dump the TCP ports and processes
+using them.  So you can find the process which pairs with
+the socket accepted to find the culprit client.
+
+In your above process, you'd look for the one which pairs with
+127.0.0.1:59496 (based on what I see in the accept4 line);
+but the port changes every connection.
+
+So something like: `ss -tp | grep 127.0.0.1:59496' should show
+both the unicorn worker and the local client process.
+
+> I've uploaded the whole strace dump into codeshare if you need
+> the whole file, https://codeshare.io/3AdLy6.
+
+It's not viewable to me since it requires JS; but shouldn't be
+needed.  The 16:32:xx => 16:33:xx range was enough.
