@@ -1,0 +1,49 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.6 (2021-04-09) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.2 required=3.0 tests=ALL_TRUSTED,AWL,BAYES_00,
+	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,DKIM_VALID_EF,
+	T_SCC_BODY_TEXT_LINE shortcircuit=no autolearn=ham autolearn_force=no
+	version=3.4.6
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id D26C81F406;
+	Sat, 13 May 2023 00:10:43 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=80x24.org;
+	s=selector1; t=1683936643;
+	bh=NOPQ7Z3J4U5CmYoHLWgE1I1JhCc/AM9CJL3SU7VnCC8=;
+	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
+	b=14VzHBVQ9IpEfrzr2/5hTagJqVPK9w7dM8TZqNfFQ6PXf8DhytsA8oncscansKEf2
+	 DjIcBCsw6JmsFOXAPywZFtHb1zdj9LGQvInfvTIkLOEP7TuhsES5xrKmn2vUoCdIkX
+	 YGu5XWvcKeM3wU6KvkJxmcr6ovBgDctPINpJsn2U=
+Date: Sat, 13 May 2023 00:10:43 +0000
+From: Eric Wong <e@80x24.org>
+To: subashkc1 <subashkc1@protonmail.com>
+Cc: unicorn-public@yhbt.net, Mike Perham <mike@perham.net>
+Subject: Re: unicorn worker being killed issue
+Message-ID: <20230513001043.M728368@dcvr>
+References: <w7BWN8IxeMKEPgZbrFk9i2_stHxvb4D-iE4-mpBKvyeLAZvEWS71ki3dsk4qYfjjqezWKdeNcRe8hGX0v96H8TszyPPNI1ktxN6Jwo61-X8=@protonmail.com>
+ <20230507231308.M295161@dcvr>
+ <Duci227PYeBVohB90iG1Hc3x5cS11voaHImp0vHOOJDOxvzcBJbGOlhtNAW5lEmM_lzzMbRKslopgr5EtSXv5NxAdLqvIpw73fMbnTwe_i4=@protonmail.com>
+ <20230511190838.M197223@dcvr>
+ <NKz1jqrQCIvqJ0onbjG-qgrItFUx95UbXKPjkeAIsJUu6NeKC--XIUMXaBAsVj46IxDi5t39GZaCOs6uFK2GnDN68kLNGPOGmNrdmoUpxxQ=@protonmail.com>
+ <20230512080542.M758778@dcvr>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <20230512080542.M758778@dcvr>
+List-Id: <unicorn-public.yhbt.net>
+
+Eric Wong <e@80x24.org> wrote:
+> FD=9 is the client socket, so it looks like you have a client
+> that's opening a connection and not doing anything so recvfrom()
+> fails and ppoll times out.  You'd need to track down why you
+> have a client opening a connection like that.
+
+Btw, this wouldn't be a problem in production with nginx in
+front of unicorn (which is the only recommended production
+configuration).
+
+nginx acts as a sponge to buffer the entire request (including
+request body) since unicorn was never designed for slow clients,
+malicious or not.
