@@ -1,0 +1,434 @@
+Return-Path: <bounces+22788749-c99e-unicorn-public=yhbt.net@em673.jeremyevans.net>
+X-Spam-Checker-Version: SpamAssassin 3.4.6 (2021-04-09) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS11377 149.72.112.0/20
+X-Spam-Status: No, score=-1.9 required=3.0 tests=BAYES_00,DKIM_SIGNED,
+	DKIM_VALID,DKIM_VALID_AU,DKIM_VALID_EF,RCVD_IN_BL_SPAMCOP_NET,
+	RCVD_IN_MSPIKE_H2,SPF_HELO_NONE,SPF_PASS,T_SCC_BODY_TEXT_LINE
+	shortcircuit=no autolearn=no autolearn_force=no version=3.4.6
+Received: from s.wrqvtbkv.outbound-mail.sendgrid.net (s.wrqvtbkv.outbound-mail.sendgrid.net [149.72.123.24])
+	(using TLSv1.3 with cipher TLS_AES_128_GCM_SHA256 (128/128 bits)
+	 key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
+	(No client certificate requested)
+	by dcvr.yhbt.net (Postfix) with ESMTPS id EC40B1F542
+	for <unicorn-public@yhbt.net>; Thu,  1 Jun 2023 18:54:20 +0000 (UTC)
+Authentication-Results: dcvr.yhbt.net;
+	dkim=pass (2048-bit key; unprotected) header.d=jeremyevans.net header.i=@jeremyevans.net header.a=rsa-sha256 header.s=sg header.b=hlJ0WSnW;
+	dkim-atps=neutral
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=jeremyevans.net;
+	h=from:subject:mime-version:to:content-type:content-transfer-encoding:
+	cc:content-type:from:subject:to;
+	s=sg; bh=mkyByZzQH2UMrEPZW5C5sXNHSL5SXmS2qzz9LAtJTzw=;
+	b=hlJ0WSnWX56mT6CHDbcOSgDKhEu3u/hyNbdHopy670VMA8yAVDl3Da+7TMJIBkCbrBZg
+	6Ezje1OO9A5o+HsKYdi3JXLqMcfaV1QQdkp3qJcpGKp1a8z+euDPPOgoNVO/B60Z3dvUII
+	HVi/leF1vlEg+GS9LR9dB4wSr9rGcJqGMzKt2OtOy2I9Kj/LP9o5Zprm2vsboLhQEwwBsD
+	c9sUAkxUDkbCWI0+J+ItSyttQ7ra+e+TbrNAXlz8+xb7KjZQoC7r24+9Gnx4DKnlmftIfl
+	7yrOCkrMK2BuZn+rQnUB1jzrZoWqJ9Q7xIGlmEvwptsCJnnVIGDiqc+ipPkvptDA==
+Received: by filterdrecv-65f68489c8-k7n6k with SMTP id filterdrecv-65f68489c8-k7n6k-1-6478E95B-4A
+        2023-06-01 18:54:19.909149208 +0000 UTC m=+1883899.934221573
+Received: from battleground.jeremyevans.local (unknown)
+	by geopod-ismtpd-7 (SG) with ESMTP id BD4TBwk4SW6HR07or320KA
+	for <unicorn-public@yhbt.net>; Thu, 01 Jun 2023 18:54:19.700 +0000 (UTC)
+Received: from jeremyevans.local (battleground.jeremyevans.local [10.187.8.1])
+	by battleground.jeremyevans.local (OpenSMTPD) with ESMTPS id e0d796b3 (TLSv1.3:TLS_AES_256_GCM_SHA384:256:NO)
+	for <unicorn-public@yhbt.net>;
+	Thu, 1 Jun 2023 11:54:18 -0700 (PDT)
+Date: Thu, 01 Jun 2023 18:54:19 +0000 (UTC)
+From: Jeremy Evans <code@jeremyevans.net>
+Subject: Rack 3 Compatibility
+Message-ID: <ZHjpWbJOhHZBtYSH@jeremyevans.local>
+MIME-Version: 1.0
+X-SG-EID: 
+ =?us-ascii?Q?OSwR0ZZZ86rpL9pSWSpYa2dVfysM+fWkl55uyDW=2FefVzGAo6b=2FVrsqYnilwfWd?=
+ =?us-ascii?Q?0rZXBTq+cAtCTQRCUNSOViQGzX6LnSio3Pcnrt2?=
+ =?us-ascii?Q?n4F0xvitmWIc3FJpJfr6lijob5h+OCv4ZOH1gNZ?=
+ =?us-ascii?Q?U0mY3qZPaH9qqbTTFZ=2Fk5K9tK9ARUJ+8KreaxRe?=
+ =?us-ascii?Q?ANQdeIBt69WWsLRLXHd6fvkP07narhvMMv4wLcg?=
+ =?us-ascii?Q?nkJaGXH8LkcTWxOjdHgRX6d4MVOf79TN1HLCqn?=
+To: unicorn-public@yhbt.net
+X-Entity-ID: pIPkP5DG+ZXP7TADn70dEw==
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+Content-Transfer-Encoding: 7bit
+List-Id: <unicorn-public.yhbt.net>
+
+This takes Eric's patch from December 25, 2022, and includes all
+necessary test fixes to allow Unicorn tests to pass with both
+Rack 3 and Rack 2 (and probably Rack 1). It includes a test fix for
+newer curl versions and an OpenBSD test fix.
+
+Hopefully this is acceptable and Unicorn 6.2 can be released with Rack 3
+support.  If further fixes are needed, I'm happy to work on them.
+
+Thanks,
+Jeremy
+
+---
+
+From 6ba4e7234af9d6ea3e85e646f798b1fbf6799234 Mon Sep 17 00:00:00 2001
+From: Jeremy Evans <code@jeremyevans.net>
+Date: Thu, 1 Jun 2023 08:55:14 -0700
+Subject: [PATCH] Support Rack 3 and fix tests on Rack 3
+
+Most changes are to the tests to avoid uppercase characters in header
+keys, which are no longer allowed in rack 3 (to allow for O(1) access).
+
+This also changes a few places where an array of headers was used to
+switch to a hash, as a hash is requierd in Rack 3.
+
+Newer versions of curl use a 000 http_code for invalid http codes,
+so switch from "42 -eq" to "500 -ne" in the test, as Rack::Lint will
+always raise a 500 error.
+
+There is one test that fails on OpenBSD when opening a fifo.  This is
+unrelated to unicorn as far as I can see, so skip the remaining part
+of the test in that case on OpenBSD.
+
+Tests still pass on Rack 2, and presumably Rack 1 as well, though
+I didn't test Rack 1.
+
+Co-authored-by: Eric Wong <bofh@yhbt.net>
+---
+ lib/unicorn/http_response.rb     | 19 +++++++++++++------
+ lib/unicorn/http_server.rb       | 21 +++++----------------
+ t/heartbeat-timeout.ru           |  2 +-
+ t/rack-input-tests.ru            |  2 +-
+ t/t0300-no-default-middleware.sh |  2 +-
+ t/t0301.ru                       |  4 ++--
+ t/write-on-close.ru              |  2 +-
+ test/exec/test_exec.rb           | 20 +++++++++++++-------
+ test/unit/test_ccc.rb            |  2 +-
+ test/unit/test_request.rb        |  2 +-
+ test/unit/test_server.rb         |  8 ++++----
+ test/unit/test_signals.rb        | 14 +++++++-------
+ 12 files changed, 50 insertions(+), 48 deletions(-)
+
+diff --git a/lib/unicorn/http_response.rb b/lib/unicorn/http_response.rb
+index b23e521..19469b4 100644
+--- a/lib/unicorn/http_response.rb
++++ b/lib/unicorn/http_response.rb
+@@ -19,6 +19,18 @@ def err_response(code, response_start_sent)
+       "#{code} #{STATUS_CODES[code]}\r\n\r\n"
+   end
+ 
++  def append_header(buf, key, value)
++    case value
++    when Array # Rack 3
++      value.each { |v| buf << "#{key}: #{v}\r\n" }
++    when /\n/ # Rack 2
++      # avoiding blank, key-only cookies with /\n+/
++      value.split(/\n+/).each { |v| buf << "#{key}: #{v}\r\n" }
++    else
++      buf << "#{key}: #{value}\r\n"
++    end
++  end
++
+   # writes the rack_response to socket as an HTTP response
+   def http_response_write(socket, status, headers, body,
+                           req = Unicorn::HttpRequest.new)
+@@ -40,12 +52,7 @@ def http_response_write(socket, status, headers, body,
+           # key in Rack < 1.5
+           hijack = value
+         else
+-          if value =~ /\n/
+-            # avoiding blank, key-only cookies with /\n+/
+-            value.split(/\n+/).each { |v| buf << "#{key}: #{v}\r\n" }
+-          else
+-            buf << "#{key}: #{value}\r\n"
+-          end
++          append_header(buf, key, value)
+         end
+       end
+       socket.write(buf << "\r\n".freeze)
+diff --git a/lib/unicorn/http_server.rb b/lib/unicorn/http_server.rb
+index 3416808..cad515b 100644
+--- a/lib/unicorn/http_server.rb
++++ b/lib/unicorn/http_server.rb
+@@ -589,22 +589,11 @@ def handle_error(client, e)
+   end
+ 
+   def e103_response_write(client, headers)
+-    response = if @request.response_start_sent
+-      "103 Early Hints\r\n"
+-    else
+-      "HTTP/1.1 103 Early Hints\r\n"
+-    end
+-
+-    headers.each_pair do |k, vs|
+-      next if !vs || vs.empty?
+-      values = vs.to_s.split("\n".freeze)
+-      values.each do |v|
+-        response << "#{k}: #{v}\r\n"
+-      end
+-    end
+-    response << "\r\n".freeze
+-    response << "HTTP/1.1 ".freeze if @request.response_start_sent
+-    client.write(response)
++    rss = @request.response_start_sent
++    buf = rss ? "103 Early Hints\r\n" : "HTTP/1.1 103 Early Hints\r\n"
++    headers.each { |key, value| append_header(buf, key, value) }
++    buf << (rss ? "\r\nHTTP/1.1 ".freeze : "\r\n".freeze)
++    client.write(buf)
+   end
+ 
+   def e100_response_write(client, env)
+diff --git a/t/heartbeat-timeout.ru b/t/heartbeat-timeout.ru
+index d9904e8..20a7938 100644
+--- a/t/heartbeat-timeout.ru
++++ b/t/heartbeat-timeout.ru
+@@ -1,5 +1,5 @@
+ use Rack::ContentLength
+-headers = { 'Content-Type' => 'text/plain' }
++headers = { 'content-type' => 'text/plain' }
+ run lambda { |env|
+   case env['PATH_INFO']
+   when "/block-forever"
+diff --git a/t/rack-input-tests.ru b/t/rack-input-tests.ru
+index 8c35630..5459e85 100644
+--- a/t/rack-input-tests.ru
++++ b/t/rack-input-tests.ru
+@@ -16,6 +16,6 @@
+     end while input.read(rand(cap), buf)
+   end
+ 
+-  [ 200, {'Content-Type' => 'text/plain'}, [ digest.hexdigest << "\n" ] ]
++  [ 200, {'content-type' => 'text/plain'}, [ digest.hexdigest << "\n" ] ]
+ end
+ run app
+diff --git a/t/t0300-no-default-middleware.sh b/t/t0300-no-default-middleware.sh
+index 779dc02..00feacc 100644
+--- a/t/t0300-no-default-middleware.sh
++++ b/t/t0300-no-default-middleware.sh
+@@ -9,7 +9,7 @@ t_begin "setup and start" && {
+ }
+ 
+ t_begin "check exit status with Rack::Lint not present" && {
+-	test 42 -eq "$(curl -sf -o/dev/null -w'%{http_code}' http://$listen/)"
++	test 500 -ne "$(curl -sf -o/dev/null -w'%{http_code}' http://$listen/)"
+ }
+ 
+ t_begin "killing succeeds" && {
+diff --git a/t/t0301.ru b/t/t0301.ru
+index 1ae8ea7..ce68213 100644
+--- a/t/t0301.ru
++++ b/t/t0301.ru
+@@ -6,8 +6,8 @@
+         "lint=#{caller.grep(%r{rack/lint\.rb})[0].split(':')[0]}\n"
+   end
+   h = {
+-    'Content-Length' => b.size.to_s,
+-    'Content-Type' => 'text/plain',
++    'content-length' => b.size.to_s,
++    'content-type' => 'text/plain',
+   }
+   [ 200, h, [ b ] ]
+ end)
+diff --git a/t/write-on-close.ru b/t/write-on-close.ru
+index 54a2f2e..725c4d6 100644
+--- a/t/write-on-close.ru
++++ b/t/write-on-close.ru
+@@ -8,4 +8,4 @@ def close
+   end
+ end
+ use Rack::ContentType, "text/plain"
+-run(lambda { |_| [ 200, [%w(Transfer-Encoding chunked)], WriteOnClose.new ] })
++run(lambda { |_| [ 200, { 'transfer-encoding' => 'chunked' }, WriteOnClose.new ] })
+diff --git a/test/exec/test_exec.rb b/test/exec/test_exec.rb
+index aacd917..2929b2e 100644
+--- a/test/exec/test_exec.rb
++++ b/test/exec/test_exec.rb
+@@ -25,20 +25,20 @@ class ExecTest < Test::Unit::TestCase
+ 
+   HI = <<-EOS
+ use Rack::ContentLength
+-run proc { |env| [ 200, { 'Content-Type' => 'text/plain' }, [ "HI\\n" ] ] }
++run proc { |env| [ 200, { 'content-type' => 'text/plain' }, [ "HI\\n" ] ] }
+   EOS
+ 
+   SHOW_RACK_ENV = <<-EOS
+ use Rack::ContentLength
+ run proc { |env|
+-  [ 200, { 'Content-Type' => 'text/plain' }, [ ENV['RACK_ENV'] ] ]
++  [ 200, { 'content-type' => 'text/plain' }, [ ENV['RACK_ENV'] ] ]
+ }
+   EOS
+ 
+   HELLO = <<-EOS
+ class Hello
+   def call(env)
+-    [ 200, { 'Content-Type' => 'text/plain' }, [ "HI\\n" ] ]
++    [ 200, { 'content-type' => 'text/plain' }, [ "HI\\n" ] ]
+   end
+ end
+   EOS
+@@ -62,9 +62,9 @@ def call(env)
+   a = ::File.stat(pwd)
+   b = ::File.stat(Dir.pwd)
+   if (a.ino == b.ino && a.dev == b.dev)
+-    [ 200, { 'Content-Type' => 'text/plain' }, [ pwd ] ]
++    [ 200, { 'content-type' => 'text/plain' }, [ pwd ] ]
+   else
+-    [ 404, { 'Content-Type' => 'text/plain' }, [] ]
++    [ 404, { 'content-type' => 'text/plain' }, [] ]
+   end
+ }
+   EOS
+@@ -255,7 +255,13 @@ def test_working_directory_controls_relative_paths
+ end
+ EOF
+     pid = xfork { redirect_test_io { exec($unicorn_bin, "-c#{tmp.path}") } }
+-    File.open("#{other.path}/fifo", "rb").close
++    begin
++      fifo = File.open("#{other.path}/fifo", "rb")
++    rescue Errno::EINTR
++      # OpenBSD raises Errno::EINTR when opening
++      return if RUBY_PLATFORM =~ /openbsd/
++    end
++    fifo.close
+ 
+     assert ! File.exist?("stderr_log_here")
+     assert ! File.exist?("stdout_log_here")
+@@ -557,7 +563,7 @@ def test_unicorn_config_listen_with_options
+   def test_unicorn_config_per_worker_listen
+     port2 = unused_port
+     pid_spit = 'use Rack::ContentLength;' \
+-      'run proc { |e| [ 200, {"Content-Type"=>"text/plain"}, ["#$$\\n"] ] }'
++      'run proc { |e| [ 200, {"content-type"=>"text/plain"}, ["#$$\\n"] ] }'
+     File.open("config.ru", "wb") { |fp| fp.syswrite(pid_spit) }
+     tmp = Tempfile.new('test.socket')
+     File.unlink(tmp.path)
+diff --git a/test/unit/test_ccc.rb b/test/unit/test_ccc.rb
+index 0dc72e8..f518230 100644
+--- a/test/unit/test_ccc.rb
++++ b/test/unit/test_ccc.rb
+@@ -29,7 +29,7 @@ def test_ccc_tcpi
+         # will wake up when writer closes
+         sleep_pipe[0].read if env['PATH_INFO'] == '/sleep'
+ 
+-        [ 200, [ %w(Content-Length 0),  %w(Content-Type text/plain) ], [] ]
++        [ 200, {'content-length'=>'0', 'content-type'=>'text/plain'}, [] ]
+       end
+       ENV['UNICORN_FD'] = srv.fileno.to_s
+       opts = {
+diff --git a/test/unit/test_request.rb b/test/unit/test_request.rb
+index 6cb0268..7f22b24 100644
+--- a/test/unit/test_request.rb
++++ b/test/unit/test_request.rb
+@@ -22,7 +22,7 @@ def kgio_addr
+   def setup
+     @request = HttpRequest.new
+     @app = lambda do |env|
+-      [ 200, { 'Content-Length' => '0', 'Content-Type' => 'text/plain' }, [] ]
++      [ 200, { 'content-length' => '0', 'content-type' => 'text/plain' }, [] ]
+     end
+     @lint = Rack::Lint.new(@app)
+   end
+diff --git a/test/unit/test_server.rb b/test/unit/test_server.rb
+index bc9a222..98e85ab 100644
+--- a/test/unit/test_server.rb
++++ b/test/unit/test_server.rb
+@@ -16,7 +16,7 @@ class TestHandler
+   def call(env)
+     while env['rack.input'].read(4096)
+     end
+-    [200, { 'Content-Type' => 'text/plain' }, ['hello!\n']]
++    [200, { 'content-type' => 'text/plain' }, ['hello!\n']]
+   rescue Unicorn::ClientShutdown, Unicorn::HttpParserError => e
+     $stderr.syswrite("#{e.class}: #{e.message} #{e.backtrace.empty?}\n")
+     raise e
+@@ -30,7 +30,7 @@ def call(env)
+     env['rack.early_hints'].call(
+       "Link" => "</style.css>; rel=preload; as=style\n</script.js>; rel=preload"
+     )
+-    [200, { 'Content-Type' => 'text/plain' }, ['hello!\n']]
++    [200, { 'content-type' => 'text/plain' }, ['hello!\n']]
+   end
+ end
+ 
+@@ -45,7 +45,7 @@ def call(env)
+ 
+     env["rack.after_reply"] << -> { @called = true }
+ 
+-    [200, { 'Content-Type' => 'text/plain' }, ["after_reply_called: #{@called}"]]
++    [200, { 'content-type' => 'text/plain' }, ["after_reply_called: #{@called}"]]
+   rescue Unicorn::ClientShutdown, Unicorn::HttpParserError => e
+     $stderr.syswrite("#{e.class}: #{e.message} #{e.backtrace.empty?}\n")
+     raise e
+@@ -81,7 +81,7 @@ def test_preload_app_config
+       tmp.sysseek(0)
+       tmp.truncate(0)
+       tmp.syswrite($$)
+-      lambda { |env| [ 200, { 'Content-Type' => 'text/plain' }, [ "#$$\n" ] ] }
++      lambda { |env| [ 200, { 'content-type' => 'text/plain' }, [ "#$$\n" ] ] }
+     }
+     redirect_test_io do
+       @server = HttpServer.new(app, :listeners => [ "127.0.0.1:#@port"] )
+diff --git a/test/unit/test_signals.rb b/test/unit/test_signals.rb
+index 56a7dfc..6c48754 100644
+--- a/test/unit/test_signals.rb
++++ b/test/unit/test_signals.rb
+@@ -47,7 +47,7 @@ def teardown
+ 
+   def test_worker_dies_on_dead_master
+     pid = fork {
+-      app = lambda { |env| [ 200, {'X-Pid' => "#$$" }, [] ] }
++      app = lambda { |env| [ 200, {'x-pid' => "#$$" }, [] ] }
+       opts = @server_opts.merge(:timeout => 3)
+       redirect_test_io { HttpServer.new(app, opts).start.join }
+     }
+@@ -56,7 +56,7 @@ def test_worker_dies_on_dead_master
+     sock.syswrite("GET / HTTP/1.0\r\n\r\n")
+     buf = sock.readpartial(4096)
+     assert_nil sock.close
+-    buf =~ /\bX-Pid: (\d+)\b/ or raise Exception
++    buf =~ /\bx-pid: (\d+)\b/ or raise Exception
+     child = $1.to_i
+     wait_master_ready("test_stderr.#{pid}.log")
+     wait_workers_ready("test_stderr.#{pid}.log", 1)
+@@ -120,7 +120,7 @@ def test_timeout_slow_response
+ 
+   def test_response_write
+     app = lambda { |env|
+-      [ 200, { 'Content-Type' => 'text/plain', 'X-Pid' => Process.pid.to_s },
++      [ 200, { 'content-type' => 'text/plain', 'x-pid' => Process.pid.to_s },
+         Dd.new(@bs, @count) ]
+     }
+     redirect_test_io { @server = HttpServer.new(app, @server_opts).start }
+@@ -130,7 +130,7 @@ def test_response_write
+     buf = ''
+     header_len = pid = nil
+     buf = sock.sysread(16384, buf)
+-    pid = buf[/\r\nX-Pid: (\d+)\r\n/, 1].to_i
++    pid = buf[/\r\nx-pid: (\d+)\r\n/, 1].to_i
+     header_len = buf[/\A(.+?\r\n\r\n)/m, 1].size
+     assert pid > 0, "pid not positive: #{pid.inspect}"
+     read = buf.size
+@@ -158,14 +158,14 @@ def test_request_read
+     app = lambda { |env|
+       while env['rack.input'].read(4096)
+       end
+-      [ 200, {'Content-Type'=>'text/plain', 'X-Pid'=>Process.pid.to_s}, [] ]
++      [ 200, {'content-type'=>'text/plain', 'x-pid'=>Process.pid.to_s}, [] ]
+     }
+     redirect_test_io { @server = HttpServer.new(app, @server_opts).start }
+ 
+     wait_workers_ready("test_stderr.#{$$}.log", 1)
+     sock = tcp_socket('127.0.0.1', @port)
+     sock.syswrite("GET / HTTP/1.0\r\n\r\n")
+-    pid = sock.sysread(4096)[/\r\nX-Pid: (\d+)\r\n/, 1].to_i
++    pid = sock.sysread(4096)[/\r\nx-pid: (\d+)\r\n/, 1].to_i
+     assert_nil sock.close
+ 
+     assert pid > 0, "pid not positive: #{pid.inspect}"
+@@ -182,7 +182,7 @@ def test_request_read
+     redirect_test_io { @server.stop(true) }
+     # can't check for == since pending signals get merged
+     assert size_before < @tmp.stat.size
+-    assert_equal pid, sock.sysread(4096)[/\r\nX-Pid: (\d+)\r\n/, 1].to_i
++    assert_equal pid, sock.sysread(4096)[/\r\nx-pid: (\d+)\r\n/, 1].to_i
+     assert_nil sock.close
+   end
+ end
+-- 
+2.40.0
+
