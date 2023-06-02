@@ -1,0 +1,247 @@
+Return-Path: <bofh@yhbt.net>
+X-Spam-Checker-Version: SpamAssassin 3.4.6 (2021-04-09) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-3.4 required=3.0 tests=ALL_TRUSTED,AWL,BAYES_00,
+	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,DKIM_VALID_EF,NUMERIC_HTTP_ADDR,
+	T_SCC_BODY_TEXT_LINE shortcircuit=no autolearn=ham autolearn_force=no
+	version=3.4.6
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id E63C11F542;
+	Fri,  2 Jun 2023 00:00:27 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=yhbt.net;
+	s=selector1; t=1685664028;
+	bh=Dk3f1uuYIDeLo3nrfKmDawEVSVPxnkLLMPQDdQ4XK3g=;
+	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
+	b=PsQAbaQBWrM7lSIFNXdiUQSHfl/pveSyN0UvnYEhhlpCKG2jhvYtoRZyL6EtHsgND
+	 UmDahTql2tFhaSVQ7Qb5XWhLMkFCaoxVV3alm8aEWfSFtkwM/ZJ4YJpkVK796AVJgP
+	 S0mNub8JPPpUY78xB6Qa/0kv1fQy1PSqIMY5R9Jc=
+Date: Fri, 2 Jun 2023 00:00:27 +0000
+From: Eric Wong <bofh@yhbt.net>
+To: Jeremy Evans <code@jeremyevans.net>
+Cc: unicorn-public@yhbt.net
+Subject: Re: Rack 3 Compatibility
+Message-ID: <20230602000027.M794217@dcvr>
+References: <ZHjpWbJOhHZBtYSH@jeremyevans.local>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <ZHjpWbJOhHZBtYSH@jeremyevans.local>
+List-Id: <unicorn-public.yhbt.net>
+
+Jeremy Evans <code@jeremyevans.net> wrote:
+> This takes Eric's patch from December 25, 2022, and includes all
+> necessary test fixes to allow Unicorn tests to pass with both
+> Rack 3 and Rack 2 (and probably Rack 1). It includes a test fix for
+> newer curl versions and an OpenBSD test fix.
+> 
+> Hopefully this is acceptable and Unicorn 6.2 can be released with Rack 3
+> support.  If further fixes are needed, I'm happy to work on them.
+
+Isn't a chunk replacement needed for Rack 3.1, also?
+I dunno if I missed anything else in Rack 3.x; and don't want to
+make too many releases if we can do 3.0 and 3.1 in one go.
+
+-------8<-------
+Subject: [PATCH] chunk unterminated HTTP/1.1 responses
+
+Rack::Chunked will be gone in Rack 3.1, so provide a
+non-middleware fallback which takes advantage of IO#write
+supporting multiple arguments in Ruby 2.5+.
+
+We still need to support Ruby 2.4, at least, since Rack 3.0
+does.  So a new (GC-unfriendly) Unicorn::WriteSplat module now
+exists for Ruby <= 2.4 users.
+---
+ ext/unicorn_http/unicorn_http.rl | 11 +++++++++++
+ lib/unicorn.rb                   |  4 ++--
+ lib/unicorn/http_response.rb     | 21 ++++++++++++++++++++-
+ lib/unicorn/socket_helper.rb     | 18 ++++++++++++++++--
+ lib/unicorn/write_splat.rb       |  7 +++++++
+ test/unit/test_server.rb         |  2 +-
+ 6 files changed, 57 insertions(+), 6 deletions(-)
+ create mode 100644 lib/unicorn/write_splat.rb
+
+diff --git a/ext/unicorn_http/unicorn_http.rl b/ext/unicorn_http/unicorn_http.rl
+index ba23438..c339024 100644
+--- a/ext/unicorn_http/unicorn_http.rl
++++ b/ext/unicorn_http/unicorn_http.rl
+@@ -28,6 +28,7 @@ void init_unicorn_httpdate(void);
+ #define UH_FL_TO_CLEAR 0x200
+ #define UH_FL_RESSTART 0x400 /* for check_client_connection */
+ #define UH_FL_HIJACK 0x800
++#define UH_FL_RES_CHUNK_OK (1U << 12)
+ 
+ /* all of these flags need to be set for keepalive to be supported */
+ #define UH_FL_KEEPALIVE (UH_FL_KAVERSION | UH_FL_REQEOF | UH_FL_HASHEADER)
+@@ -158,6 +159,7 @@ http_version(struct http_parser *hp, const char *ptr, size_t len)
+   if (CONST_MEM_EQ("HTTP/1.1", ptr, len)) {
+     /* HTTP/1.1 implies keepalive unless "Connection: close" is set */
+     HP_FL_SET(hp, KAVERSION);
++    HP_FL_SET(hp, RES_CHUNK_OK);
+     v = g_http_11;
+   } else if (CONST_MEM_EQ("HTTP/1.0", ptr, len)) {
+     v = g_http_10;
+@@ -801,6 +803,14 @@ static VALUE HttpParser_keepalive(VALUE self)
+   return HP_FL_ALL(hp, KEEPALIVE) ? Qtrue : Qfalse;
+ }
+ 
++/* :nodoc: */
++static VALUE chunkable_response_p(VALUE self)
++{
++  struct http_parser *hp = data_get(self);
++
++  return HP_FL_ALL(hp, RES_CHUNK_OK) ? Qtrue : Qfalse;
++}
++
+ /**
+  * call-seq:
+  *    parser.next? => true or false
+@@ -981,6 +991,7 @@ void Init_unicorn_http(void)
+   rb_define_method(cHttpParser, "content_length", HttpParser_content_length, 0);
+   rb_define_method(cHttpParser, "body_eof?", HttpParser_body_eof, 0);
+   rb_define_method(cHttpParser, "keepalive?", HttpParser_keepalive, 0);
++  rb_define_method(cHttpParser, "chunkable_response?", chunkable_response_p, 0);
+   rb_define_method(cHttpParser, "headers?", HttpParser_has_headers, 0);
+   rb_define_method(cHttpParser, "next?", HttpParser_next, 0);
+   rb_define_method(cHttpParser, "buf", HttpParser_buf, 0);
+diff --git a/lib/unicorn.rb b/lib/unicorn.rb
+index 1a50631..8b1cda7 100644
+--- a/lib/unicorn.rb
++++ b/lib/unicorn.rb
+@@ -75,8 +75,8 @@ def self.builder(ru, op)
+ 
+       # return value, matches rackup defaults based on env
+       # Unicorn does not support persistent connections, but Rainbows!
+-      # and Zbatery both do.  Users accustomed to the Rack::Server default
+-      # middlewares will need ContentLength/Chunked middlewares.
++      # does.  Users accustomed to the Rack::Server default
++      # middlewares will need ContentLength middleware.
+       case ENV["RACK_ENV"]
+       when "development"
+       when "deployment"
+diff --git a/lib/unicorn/http_response.rb b/lib/unicorn/http_response.rb
+index 19469b4..342dd0b 100644
+--- a/lib/unicorn/http_response.rb
++++ b/lib/unicorn/http_response.rb
+@@ -35,11 +35,12 @@ def append_header(buf, key, value)
+   def http_response_write(socket, status, headers, body,
+                           req = Unicorn::HttpRequest.new)
+     hijack = nil
+-
++    do_chunk = false
+     if headers
+       code = status.to_i
+       msg = STATUS_CODES[code]
+       start = req.response_start_sent ? ''.freeze : 'HTTP/1.1 '.freeze
++      term = false
+       buf = "#{start}#{msg ? %Q(#{code} #{msg}) : status}\r\n" \
+             "Date: #{httpdate}\r\n" \
+             "Connection: close\r\n"
+@@ -47,6 +48,12 @@ def http_response_write(socket, status, headers, body,
+         case key
+         when %r{\A(?:Date|Connection)\z}i
+           next
++        when %r{\AContent-Length\z}i
++          append_header(buf, key, value)
++          term = true
++        when %r{\ATransfer-Encoding\z}i
++          append_header(buf, key, value)
++          term = true if /\bchunked\b/i === value # value may be Array :x
+         when "rack.hijack"
+           # This should only be hit under Rack >= 1.5, as this was an illegal
+           # key in Rack < 1.5
+@@ -55,12 +62,24 @@ def http_response_write(socket, status, headers, body,
+           append_header(buf, key, value)
+         end
+       end
++      if !hijack && !term && req.chunkable_response?
++        do_chunk = true
++        buf << "Transfer-Encoding: chunked\r\n".freeze
++      end
+       socket.write(buf << "\r\n".freeze)
+     end
+ 
+     if hijack
+       req.hijacked!
+       hijack.call(socket)
++    elsif do_chunk
++      begin
++        body.each do |b|
++          socket.write("#{b.bytesize.to_s(16)}\r\n", b, "\r\n".freeze)
++        end
++      ensure
++        socket.write("0\r\n\r\n".freeze)
++      end
+     else
+       body.each { |chunk| socket.write(chunk) }
+     end
+diff --git a/lib/unicorn/socket_helper.rb b/lib/unicorn/socket_helper.rb
+index 8a6f6ee..4ae4c85 100644
+--- a/lib/unicorn/socket_helper.rb
++++ b/lib/unicorn/socket_helper.rb
+@@ -15,6 +15,20 @@ def kgio_tryaccept # :nodoc:
+     end
+   end
+ 
++  if IO.instance_method(:write).arity # Ruby <= 2.4
++    require 'unicorn/write_splat'
++    UNIXClient = Class.new(Kgio::Socket) # :nodoc:
++    class UNIXSrv < Kgio::UNIXServer # :nodoc:
++      include Unicorn::WriteSplat
++      def kgio_tryaccept # :nodoc:
++        super(UNIXClient)
++      end
++    end
++    TCPClient.__send__(:include, Unicorn::WriteSplat)
++  else # Ruby 2.5+
++    UNIXSrv = Kgio::UNIXServer
++  end
++
+   module SocketHelper
+ 
+     # internal interface
+@@ -135,7 +149,7 @@ def bind_listen(address = '0.0.0.0:8080', opt = {})
+         end
+         old_umask = File.umask(opt[:umask] || 0)
+         begin
+-          Kgio::UNIXServer.new(address)
++          UNIXSrv.new(address)
+         ensure
+           File.umask(old_umask)
+         end
+@@ -203,7 +217,7 @@ def server_cast(sock)
+         Socket.unpack_sockaddr_in(sock.getsockname)
+         TCPSrv.for_fd(sock.fileno)
+       rescue ArgumentError
+-        Kgio::UNIXServer.for_fd(sock.fileno)
++        UNIXSrv.for_fd(sock.fileno)
+       end
+     end
+ 
+diff --git a/lib/unicorn/write_splat.rb b/lib/unicorn/write_splat.rb
+new file mode 100644
+index 0000000..7e6e363
+--- /dev/null
++++ b/lib/unicorn/write_splat.rb
+@@ -0,0 +1,7 @@
++# -*- encoding: binary -*-
++# compatibility module for Ruby <= 2.4, remove when we go Ruby 2.5+
++module Unicorn::WriteSplat # :nodoc:
++  def write(*arg) # :nodoc:
++    super(arg.join(''))
++  end
++end
+diff --git a/test/unit/test_server.rb b/test/unit/test_server.rb
+index 98e85ab..cea9791 100644
+--- a/test/unit/test_server.rb
++++ b/test/unit/test_server.rb
+@@ -196,7 +196,7 @@ def test_client_shutdown_writes
+     # continue to process our request and never hit EOFError on our sock
+     sock.shutdown(Socket::SHUT_WR)
+     buf = sock.read
+-    assert_equal 'hello!\n', buf.split(/\r\n\r\n/).last
++    assert_match %r{\bhello!\\n\b}, buf.split(/\r\n\r\n/).last
+     next_client = Net::HTTP.get(URI.parse("http://127.0.0.1:#@port/"))
+     assert_equal 'hello!\n', next_client
+     lines = File.readlines("test_stderr.#$$.log")
