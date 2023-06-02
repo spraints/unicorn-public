@@ -1,0 +1,43 @@
+Return-Path: <bofh@yhbt.net>
+X-Spam-Checker-Version: SpamAssassin 3.4.6 (2021-04-09) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,AWL,BAYES_00,
+	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,DKIM_VALID_EF,
+	T_SCC_BODY_TEXT_LINE shortcircuit=no autolearn=ham autolearn_force=no
+	version=3.4.6
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id C6FD71F542;
+	Fri,  2 Jun 2023 00:27:04 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=yhbt.net;
+	s=selector1; t=1685665624;
+	bh=JWzqx/4cI778YdLZJ7idxNiFdTcud4SgRL2SsJNVA2I=;
+	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
+	b=iGt086Wh0WRae8U8nunDSCL/NvjSHaj3sg9ZBj9HVCofX8YZMD9sNcyZKUv43vTxM
+	 0U5bU9cEjDF2Sx+WOUxg59zW2+IdDvNpt8gWado4wrAWcz6TPJffEAAEuaQ0nolAc7
+	 9pZNr6dV/ya3WOZhR3q5qeeAZp+1KPXZk486vaH0=
+Date: Fri, 2 Jun 2023 00:27:04 +0000
+From: Eric Wong <bofh@yhbt.net>
+To: Jeremy Evans <code@jeremyevans.net>
+Cc: unicorn-public@yhbt.net
+Subject: Re: Rack 3 Compatibility
+Message-ID: <20230602002704.M736062@dcvr>
+References: <ZHjpWbJOhHZBtYSH@jeremyevans.local>
+ <20230602000027.M794217@dcvr>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <20230602000027.M794217@dcvr>
+List-Id: <unicorn-public.yhbt.net>
+
+Eric Wong <bofh@yhbt.net> wrote:
+> +++ b/lib/unicorn/socket_helper.rb
+> @@ -15,6 +15,20 @@ def kgio_tryaccept # :nodoc:
+>      end
+>    end
+>  
+> +  if IO.instance_method(:write).arity # Ruby <= 2.4
+
+Erm, that should be:
+
+	if IO.instance_method(:write).arity == 1 # Ruby <= 2.4
