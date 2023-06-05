@@ -1,0 +1,48 @@
+Return-Path: <bofh@yhbt.net>
+X-Spam-Checker-Version: SpamAssassin 3.4.6 (2021-04-09) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,AWL,BAYES_00,
+	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,DKIM_VALID_EF,
+	T_SCC_BODY_TEXT_LINE shortcircuit=no autolearn=ham autolearn_force=no
+	version=3.4.6
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id B66B11F542;
+	Mon,  5 Jun 2023 09:28:23 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=yhbt.net;
+	s=selector1; t=1685957303;
+	bh=fIYEdHrMhyWomYenlNEQi1RMARmcZotxg5Jpp9JJl18=;
+	h=Date:From:To:Subject:References:In-Reply-To:From;
+	b=ZQ1HnW0YB1Elep3qThlYr9Wrap97Mst6XtFLMAGR6ROny+W97xs1iWEn/8Bewsrl4
+	 GLC/Zjs3sruRGi7hDYVJ35u06egUt1DlBAExd00arYFpEG/Ujvo46qSGcyfVFAYFfg
+	 StgfGxMC0KHLySjHl1t9T135XTWROSNJI2Ro6Rw4=
+Date: Mon, 5 Jun 2023 09:28:23 +0000
+From: Eric Wong <bofh@yhbt.net>
+To: unicorn-public@yhbt.net
+Subject: [PATCH 2/1] httpdate: fix build with Ruby 2.7 (at least)
+Message-ID: <20230605092823.M649734@dcvr>
+References: <20230605091535.296006-1-bofh@yhbt.net>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <20230605091535.296006-1-bofh@yhbt.net>
+List-Id: <unicorn-public.yhbt.net>
+
+<time.h> is still required for gmtime_r(3), and not all versions
+of <ruby.h> include <time.h>, already.
+
+Fixes: a6463151bd1db5b9 (httpdate: favor gettimeofday(2) over time(2) for correctness, 2023-06-01)
+---
+ ext/unicorn_http/httpdate.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/ext/unicorn_http/httpdate.c b/ext/unicorn_http/httpdate.c
+index 27a8f51..0faf5da 100644
+--- a/ext/unicorn_http/httpdate.c
++++ b/ext/unicorn_http/httpdate.c
+@@ -1,4 +1,5 @@
+ #include <ruby.h>
++#include <time.h>
+ #include <sys/time.h>
+ #include <stdio.h>
+ 
