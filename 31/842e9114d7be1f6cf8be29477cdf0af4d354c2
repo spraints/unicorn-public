@@ -1,0 +1,4181 @@
+Return-Path: <bofh@yhbt.net>
+X-Spam-Checker-Version: SpamAssassin 3.4.6 (2021-04-09) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,AWL,BAYES_00,
+	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,DKIM_VALID_EF,
+	T_SCC_BODY_TEXT_LINE shortcircuit=no autolearn=ham autolearn_force=no
+	version=3.4.6
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id 80AC81F542
+	for <unicorn-public@yhbt.net>; Mon,  5 Jun 2023 10:32:43 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=yhbt.net;
+	s=selector1; t=1685961163;
+	bh=c1zRvko4j/sFdViSgGppP72iZWIuw2WRNSc3RmJwqvk=;
+	h=Date:From:To:Subject:From;
+	b=Fvc7ghi8tc4EU6rAoZKXFF+R3DGDqvAmB6Vyp+YBp+fD39FJVg0hlsPq8lWPOTWv3
+	 U6U0OY2oVNd0rvAlI/u6IsXWdjpw48/5y6bSvvzFAWbZGNOYIz+HUB3zeeXQmOg2EE
+	 EoHwcgBhPrkU1ri5gG+089Y/bhFrq5cndowAn3SY=
+Date: Mon, 5 Jun 2023 10:32:43 +0000
+From: Eric Wong <bofh@yhbt.net>
+To: unicorn-public@yhbt.net
+Subject: [PATCH 00-23/23] start porting tests to Perl5
+Message-ID: <20230605103243.M433466@dcvr>
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="tMFmNiOc6i75m139"
+Content-Disposition: inline
+List-Id: <unicorn-public.yhbt.net>
+
+
+--tMFmNiOc6i75m139
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+
+Still a lot more work to do, but at least socat is no longer a
+test dependency.  Perl5 is installed on far more systems than
+socat.
+
+Ruby introduces breaking changes every year and I can't trust
+tests to work as they were originally intended, anymore.
+Perl 5 doesn't have perfect backwards compatibility, either; but
+it's the least bad of any widely-installed scripting language.
+
+Note: that 23/23 introduces a subtle bugfix which changes
+behavior for systemd users
+
+Patches are attached to reduce load on SMTP servers.
+Some more patches to come as I deal with Ruby 3.x deprecation
+warnings :<
+
+Eric Wong (23):
+  switch unit/test_response.rb to Perl 5 integration test
+  support rack 3 multi-value headers
+  port t0018-write-on-close.sh to Perl 5
+  port t0000-http-basic.sh to Perl 5
+  port t0002-parser-error.sh to Perl 5
+  t/integration.t: use start_req to simplify test slighly
+  port t0011-active-unix-socket.sh to Perl 5
+  port t0100-rack-input-tests.sh to Perl 5
+  tests: use autodie to simplify error checking
+  port t0019-max_header_len.sh to Perl 5
+  test_exec: drop sd_listen_fds emulation test
+  test_exec: drop test_basic and test_config_ru_alt_path
+  tests: check_stderr consistently in Perl 5 tests
+  tests: consistent tcp_start and unix_start across Perl 5 tests
+  port t9000-preread-input.sh to Perl 5
+  port t/t0116-client_body_buffer_size.sh to Perl 5
+  tests: get rid of sha1sum.rb and rsha1() sh function
+  early_hints supports Rack 3 array headers
+  test_server: drop early_hints test
+  t/integration.t: switch PUT tests to MD5, reuse buffers
+  tests: move test_upload.rb tests to t/integration.t
+  drop redundant IO#close_on_exec=false calls
+  LISTEN_FDS-inherited sockets are immortal across SIGHUP
+
+ GNUmakefile                                |   7 +-
+ lib/unicorn/http_server.rb                 |  12 +-
+ t/README                                   |  21 +-
+ t/active-unix-socket.t                     | 113 +++++++
+ t/bin/content-md5-put                      |  36 ---
+ t/bin/sha1sum.rb                           |  17 --
+ t/{t0116.ru => client_body_buffer_size.ru} |   2 -
+ t/client_body_buffer_size.t                |  82 ++++++
+ t/integration.ru                           | 114 +++++++
+ t/integration.t                            | 326 +++++++++++++++++++++
+ t/lib.perl                                 | 217 ++++++++++++++
+ t/preread_input.ru                         |  21 +-
+ t/rack-input-tests.ru                      |  21 --
+ t/t0000-http-basic.sh                      |  50 ----
+ t/t0002-parser-error.sh                    |  94 ------
+ t/t0011-active-unix-socket.sh              |  79 -----
+ t/t0018-write-on-close.sh                  |  23 --
+ t/t0019-max_header_len.sh                  |  49 ----
+ t/t0100-rack-input-tests.sh                | 124 --------
+ t/t0116-client_body_buffer_size.sh         |  80 -----
+ t/t9000-preread-input.sh                   |  48 ---
+ t/test-lib.sh                              |   4 -
+ t/write-on-close.ru                        |  11 -
+ test/exec/test_exec.rb                     |  57 ----
+ test/unit/test_response.rb                 | 111 -------
+ test/unit/test_server.rb                   |  31 --
+ test/unit/test_upload.rb                   | 301 -------------------
+ 27 files changed, 891 insertions(+), 1160 deletions(-)
+ create mode 100644 t/active-unix-socket.t
+ delete mode 100755 t/bin/content-md5-put
+ delete mode 100755 t/bin/sha1sum.rb
+ rename t/{t0116.ru => client_body_buffer_size.ru} (82%)
+ create mode 100644 t/client_body_buffer_size.t
+ create mode 100644 t/integration.ru
+ create mode 100644 t/integration.t
+ create mode 100644 t/lib.perl
+ delete mode 100644 t/rack-input-tests.ru
+ delete mode 100755 t/t0000-http-basic.sh
+ delete mode 100755 t/t0002-parser-error.sh
+ delete mode 100755 t/t0011-active-unix-socket.sh
+ delete mode 100755 t/t0018-write-on-close.sh
+ delete mode 100755 t/t0019-max_header_len.sh
+ delete mode 100755 t/t0100-rack-input-tests.sh
+ delete mode 100755 t/t0116-client_body_buffer_size.sh
+ delete mode 100755 t/t9000-preread-input.sh
+ delete mode 100644 t/write-on-close.ru
+ delete mode 100644 test/unit/test_response.rb
+ delete mode 100644 test/unit/test_upload.rb
+
+--tMFmNiOc6i75m139
+Content-Type: text/x-diff; charset=utf-8
+Content-Disposition: attachment;
+	filename="0001-switch-unit-test_response.rb-to-Perl-5-integration-t.patch"
+
+From 086e397abc0126556af24df77a976671294df2ee Mon Sep 17 00:00:00 2001
+From: Eric Wong <BOFH@YHBT.net>
+Date: Mon, 5 Jun 2023 10:12:30 +0000
+Subject: [PATCH 01/23] switch unit/test_response.rb to Perl 5 integration test
+
+http_response_write may benefit from API changes for Rack 3
+support.
+
+Since there's no benefit I can see from using a unit test,
+switch to an integration test to avoid having to maintain the
+unit test if our internal http_response_write method changes.
+
+Of course, I can't trust tests written in Ruby since I've had to
+put up with a constant stream of incompatibilities over the past
+two decades :<   Perl is more widely installed than socat[1], and
+nearly all the Perl I wrote 20 years ago still works
+unmodified today.
+
+[1] the rarest dependency of the Bourne shell integration tests
+---
+ GNUmakefile                |   5 +-
+ t/README                   |  24 +++--
+ t/integration.ru           |  38 ++++++++
+ t/integration.t            |  64 +++++++++++++
+ t/lib.perl                 | 189 +++++++++++++++++++++++++++++++++++++
+ test/unit/test_response.rb | 111 ----------------------
+ 6 files changed, 313 insertions(+), 118 deletions(-)
+ create mode 100644 t/integration.ru
+ create mode 100644 t/integration.t
+ create mode 100644 t/lib.perl
+ delete mode 100644 test/unit/test_response.rb
+
+diff --git a/GNUmakefile b/GNUmakefile
+index 0e08ef0..5cca189 100644
+--- a/GNUmakefile
++++ b/GNUmakefile
+@@ -86,7 +86,7 @@ $(tmp_bin)/%: bin/% | $(tmp_bin)
+ bins: $(tmp_bins)
+ 
+ t_log := $(T_log) $(T_n_log)
+-test: $(T) $(T_n)
++test: $(T) $(T_n) test-prove
+ 	@cat $(t_log) | $(MRI) test/aggregate.rb
+ 	@$(RM) $(t_log)
+ 
+@@ -141,6 +141,9 @@ t/random_blob:
+ 
+ test-integration: $(T_sh)
+ 
++test-prove:
++	prove -vw
++
+ check: test-require test test-integration
+ test-all: check
+ 
+diff --git a/t/README b/t/README
+index 14de559..8a5243e 100644
+--- a/t/README
++++ b/t/README
+@@ -5,16 +5,24 @@ TCP ports or Unix domain sockets.  They're all designed to run
+ concurrently with other tests to minimize test time, but tests may be
+ run independently as well.
+ 
+-We write our tests in Bourne shell because that's what we're
+-comfortable writing integration tests with.
++New tests are written in Perl 5 because we need a stable language
++to test real-world behavior and Ruby introduces incompatibilities
++at a far faster rate than Perl 5.  Perl is Ruby's older cousin, so
++it should be easy-to-learn for Rubyists.
++
++Old tests are in Bourne shell, but the socat(1) dependency was probably
++too rare compared to Perl 5.
+ 
+ == Requirements
+ 
+-* {Ruby 2.0.0+}[https://www.ruby-lang.org/en/] (duh!)
++* {Ruby 2.0.0+}[https://www.ruby-lang.org/en/]
++* {Perl 5.14+}[https://www.perl.org/] # your distro should have it
+ * {GNU make}[https://www.gnu.org/software/make/]
++
++The following requirements will eventually be dropped.
++
+ * {socat}[http://www.dest-unreach.org/socat/]
+ * {curl}[https://curl.haxx.se/]
+-* standard UNIX shell utilities (Bourne sh, awk, sed, grep, ...)
+ 
+ We do not use bashisms or any non-portable, non-POSIX constructs
+ in our shell code.  We use the "pipefail" option if available and
+@@ -26,9 +34,13 @@ with {dash}[http://gondor.apana.org.au/~herbert/dash/] and
+ 
+ To run the entire test suite with 8 tests running at once:
+ 
+-  make -j8
++  make -j8 && prove -vw
++
++To run one individual test (Perl5):
++
++  prove -vw t/integration.t
+ 
+-To run one individual test:
++To run one individual test (shell):
+ 
+   make t0000-simple-http.sh
+ 
+diff --git a/t/integration.ru b/t/integration.ru
+new file mode 100644
+index 0000000..6ef873c
+--- /dev/null
++++ b/t/integration.ru
+@@ -0,0 +1,38 @@
++#!ruby
++# Copyright (C) unicorn hackers <unicorn-public@80x24.org>
++# License: GPL-3.0+ <https://www.gnu.org/licenses/gpl-3.0.txt>
++
++# this goes for t/integration.t  We'll try to put as many tests
++# in here as possible to avoid startup overhead of Ruby.
++
++$orig_rack_200 = nil
++def tweak_status_code
++  $orig_rack_200 = Rack::Utils::HTTP_STATUS_CODES[200]
++  Rack::Utils::HTTP_STATUS_CODES[200] = "HI"
++  [ 200, {}, [] ]
++end
++
++def restore_status_code
++  $orig_rack_200 or return [ 500, {}, [] ]
++  Rack::Utils::HTTP_STATUS_CODES[200] = $orig_rack_200
++  [ 200, {}, [] ]
++end
++
++run(lambda do |env|
++  case env['REQUEST_METHOD']
++  when 'GET'
++    case env['PATH_INFO']
++    when '/rack-2-newline-headers'; [ 200, { 'X-R2' => "a\nb\nc" }, [] ]
++    when '/nil-header-value'; [ 200, { 'X-Nil' => nil }, [] ]
++    when '/unknown-status-pass-through'; [ '666 I AM THE BEAST', {}, [] ]
++    end # case PATH_INFO (GET)
++  when 'POST'
++    case env['PATH_INFO']
++    when '/tweak-status-code'; tweak_status_code
++    when '/restore-status-code'; restore_status_code
++    end # case PATH_INFO (POST)
++    # ...
++  when 'PUT'
++    # ...
++  end # case REQUEST_METHOD
++end) # run
+diff --git a/t/integration.t b/t/integration.t
+new file mode 100644
+index 0000000..5569155
+--- /dev/null
++++ b/t/integration.t
+@@ -0,0 +1,64 @@
++#!perl -w
++# Copyright (C) unicorn hackers <unicorn-public@yhbt.net>
++# License: GPL-3.0+ <https://www.gnu.org/licenses/gpl-3.0.txt>
++
++use v5.14; BEGIN { require './t/lib.perl' };
++my $srv = tcp_server();
++my $t0 = time;
++my $ar = unicorn(qw(-E none t/integration.ru), { 3 => $srv });
++
++sub slurp_hdr {
++	my ($c) = @_;
++	local $/ = "\r\n\r\n"; # affects both readline+chomp
++	chomp(my $hdr = readline($c));
++	my ($status, @hdr) = split(/\r\n/, $hdr);
++	diag explain([ $status, \@hdr ]) if $ENV{V};
++	($status, \@hdr);
++}
++
++my ($c, $status, $hdr);
++
++# response header tests
++$c = tcp_connect($srv);
++print $c "GET /rack-2-newline-headers HTTP/1.0\r\n\r\n" or die $!;
++($status, $hdr) = slurp_hdr($c);
++like($status, qr!\AHTTP/1\.[01] 200\b!, 'status line valid');
++my $orig_200_status = $status;
++is_deeply([ grep(/^X-R2: /, @$hdr) ],
++	[ 'X-R2: a', 'X-R2: b', 'X-R2: c' ],
++	'rack 2 LF-delimited headers supported') or diag(explain($hdr));
++
++SKIP: { # Date header check
++	my @d = grep(/^Date: /i, @$hdr);
++	is(scalar(@d), 1, 'got one date header') or diag(explain(\@d));
++	eval { require HTTP::Date } or skip "HTTP::Date missing: $@", 1;
++	$d[0] =~ s/^Date: //i or die 'BUG: did not strip date: prefix';
++	my $t = HTTP::Date::str2time($d[0]);
++	ok($t >= $t0 && $t > 0 && $t <= time, 'valid date') or
++		diag(explain([$t, $!, \@d]));
++};
++
++# cf. <CAO47=rJa=zRcLn_Xm4v2cHPr6c0UswaFC_omYFEH+baSxHOWKQ@mail.gmail.com>
++$c = tcp_connect($srv);
++print $c "GET /nil-header-value HTTP/1.0\r\n\r\n" or die $!;
++($status, $hdr) = slurp_hdr($c);
++is_deeply([grep(/^X-Nil:/, @$hdr)], ['X-Nil: '],
++	'nil header value accepted for broken apps') or diag(explain($hdr));
++
++if ('TODO: ensure Rack::Utils::HTTP_STATUS_CODES is available') {
++	$c = tcp_connect($srv);
++	print $c "POST /tweak-status-code HTTP/1.0\r\n\r\n" or die $!;
++	($status, $hdr) = slurp_hdr($c);
++	like($status, qr!\AHTTP/1\.[01] 200 HI\b!, 'status tweaked');
++
++	$c = tcp_connect($srv);
++	print $c "POST /restore-status-code HTTP/1.0\r\n\r\n" or die $!;
++	($status, $hdr) = slurp_hdr($c);
++	is($status, $orig_200_status, 'original status restored');
++}
++
++
++# ... more stuff here
++undef $ar;
++diag slurp("$tmpdir/err.log") if $ENV{V};
++done_testing;
+diff --git a/t/lib.perl b/t/lib.perl
+new file mode 100644
+index 0000000..dd9c6b7
+--- /dev/null
++++ b/t/lib.perl
+@@ -0,0 +1,189 @@
++#!perl -w
++# Copyright (C) unicorn hackers <unicorn-public@80x24.org>
++# License: GPL-3.0+ <https://www.gnu.org/licenses/gpl-3.0.txt>
++package UnicornTest;
++use v5.14;
++use parent qw(Exporter);
++use Test::More;
++use IO::Socket::INET;
++use POSIX qw(dup2 _exit setpgid :signal_h SEEK_SET F_SETFD);
++use File::Temp 0.19 (); # 0.19 for ->newdir
++our ($tmpdir, $errfh);
++our @EXPORT = qw(unicorn slurp tcp_server tcp_connect unicorn $tmpdir $errfh
++	SEEK_SET);
++
++my ($base) = ($0 =~ m!\b([^/]+)\.[^\.]+\z!);
++$tmpdir = File::Temp->newdir("unicorn-$base-XXXX", TMPDIR => 1);
++open($errfh, '>>', "$tmpdir/err.log") or die "open: $!";
++
++sub tcp_server {
++	my %opt = (
++		ReuseAddr => 1,
++		Proto => 'tcp',
++		Type => SOCK_STREAM,
++		Listen => SOMAXCONN,
++		Blocking => 0,
++		@_,
++	);
++	eval {
++		die 'IPv4-only' if $ENV{TEST_IPV4_ONLY};
++		require IO::Socket::INET6;
++		IO::Socket::INET6->new(%opt, LocalAddr => '[::1]')
++	} || eval {
++		die 'IPv6-only' if $ENV{TEST_IPV6_ONLY};
++		IO::Socket::INET->new(%opt, LocalAddr => '127.0.0.1')
++	} || BAIL_OUT "failed to create TCP server: $! ($@)";
++}
++
++sub tcp_host_port {
++	my ($s) = @_;
++	my ($h, $p) = ($s->sockhost, $s->sockport);
++	my $ipv4 = $s->sockdomain == AF_INET;
++	if (wantarray) {
++		$ipv4 ? ($h, $p) : ("[$h]", $p);
++	} else {
++		$ipv4 ? "$h:$p" : "[$h]:$p";
++	}
++}
++
++sub tcp_connect {
++	my ($dest, %opt) = @_;
++	my $addr = tcp_host_port($dest);
++	my $s = ref($dest)->new(
++		Proto => 'tcp',
++		Type => SOCK_STREAM,
++		PeerAddr => $addr,
++		%opt,
++	) or BAIL_OUT "failed to connect to $addr: $!";
++	$s->autoflush(1);
++	$s;
++}
++
++sub slurp {
++	open my $fh, '<', $_[0] or die "open($_[0]): $!";
++	local $/;
++	<$fh>;
++}
++
++sub spawn {
++	my $env = ref($_[0]) eq 'HASH' ? shift : undef;
++	my $opt = ref($_[-1]) eq 'HASH' ? pop : {};
++	my @cmd = @_;
++	my $old = POSIX::SigSet->new;
++	my $set = POSIX::SigSet->new;
++	$set->fillset or die "sigfillset: $!";
++	sigprocmask(SIG_SETMASK, $set, $old) or die "SIG_SETMASK: $!";
++	pipe(my ($r, $w)) or die "pipe: $!";
++	my $pid = fork // die "fork: $!";
++	if ($pid == 0) {
++		close $r;
++		$SIG{__DIE__} = sub {
++			warn(@_);
++			syswrite($w, my $num = $! + 0);
++			_exit(1);
++		};
++
++		# pretend to be systemd (cf. sd_listen_fds(3))
++		my $cfd;
++		for ($cfd = 0; ($cfd < 3) || defined($opt->{$cfd}); $cfd++) {
++			my $io = $opt->{$cfd} // next;
++			my $pfd = fileno($io) // die "fileno($io): $!";
++			if ($pfd == $cfd) {
++				fcntl($io, F_SETFD, 0) // die "F_SETFD: $!";
++			} else {
++				dup2($pfd, $cfd) // die "dup2($pfd, $cfd): $!";
++			}
++		}
++		if (($cfd - 3) > 0) {
++			$env->{LISTEN_PID} = $$;
++			$env->{LISTEN_FDS} = $cfd - 3;
++		}
++
++		if (defined(my $pgid = $opt->{pgid})) {
++			setpgid(0, $pgid) // die "setpgid(0, $pgid): $!";
++		}
++		$SIG{$_} = 'DEFAULT' for grep(!/^__/, keys %SIG);
++		if (defined(my $cd = $opt->{-C})) {
++			chdir $cd // die "chdir($cd): $!";
++		}
++		$old->delset(POSIX::SIGCHLD) or die "sigdelset CHLD: $!";
++		sigprocmask(SIG_SETMASK, $old) or die "SIG_SETMASK: ~CHLD: $!";
++		@ENV{keys %$env} = values(%$env) if $env;
++		exec { $cmd[0] } @cmd;
++		die "exec @cmd: $!";
++	}
++	close $w;
++	sigprocmask(SIG_SETMASK, $old) or die "SIG_SETMASK(old): $!";
++	if (my $cerrnum = do { local $/, <$r> }) {
++		$! = $cerrnum;
++		die "@cmd PID=$pid died: $!";
++	}
++	$pid;
++}
++
++sub which {
++	my ($file) = @_;
++	return $file if index($file, '/') >= 0;
++	for my $p (split(/:/, $ENV{PATH})) {
++		$p .= "/$file";
++		return $p if -x $p;
++	}
++	undef;
++}
++
++# returns an AutoReap object
++sub unicorn {
++	my %env;
++	if (ref($_[0]) eq 'HASH') {
++		my $e = shift;
++		%env = %$e;
++	}
++	my @args = @_;
++	push(@args, {}) if ref($args[-1]) ne 'HASH';
++	$args[-1]->{2} //= $errfh; # stderr default
++
++	state $ruby = which($ENV{RUBY} // 'ruby');
++	state $lib = File::Spec->rel2abs('lib');
++	state $ver = $ENV{TEST_RUBY_VERSION} // `$ruby -e 'print RUBY_VERSION'`;
++	state $eng = $ENV{TEST_RUBY_ENGINE} // `$ruby -e 'print RUBY_ENGINE'`;
++	state $ext = File::Spec->rel2abs("test/$eng-$ver/ext/unicorn_http");
++	state $exe = File::Spec->rel2abs('bin/unicorn');
++	my $pid = spawn(\%env, $ruby, '-I', $lib, '-I', $ext, $exe, @args);
++	UnicornTest::AutoReap->new($pid);
++}
++
++# automatically kill + reap children when this goes out-of-scope
++package UnicornTest::AutoReap;
++use v5.14;
++
++sub new {
++	my (undef, $pid) = @_;
++	bless { pid => $pid, owner => $$ }, __PACKAGE__
++}
++
++sub kill {
++	my ($self, $sig) = @_;
++	CORE::kill($sig // 'TERM', $self->{pid});
++}
++
++sub join {
++	my ($self, $sig) = @_;
++	my $pid = delete $self->{pid} or return;
++	CORE::kill($sig, $pid) if defined $sig;
++	my $ret = waitpid($pid, 0) // die "waitpid($pid): $!";
++	$ret == $pid or die "BUG: waitpid($pid) != $ret";
++}
++
++sub DESTROY {
++	my ($self) = @_;
++	return if $self->{owner} != $$;
++	$self->join('TERM');
++}
++
++package main; # inject ourselves into the t/*.t script
++UnicornTest->import;
++Test::More->import;
++# try to ensure ->DESTROY fires:
++$SIG{TERM} = sub { exit(15 + 128) };
++$SIG{INT} = sub { exit(2 + 128) };
++1;
+diff --git a/test/unit/test_response.rb b/test/unit/test_response.rb
+deleted file mode 100644
+index fbe433f..0000000
+--- a/test/unit/test_response.rb
++++ /dev/null
+@@ -1,111 +0,0 @@
+-# -*- encoding: binary -*-
+-
+-# Copyright (c) 2005 Zed A. Shaw
+-# You can redistribute it and/or modify it under the same terms as Ruby 1.8 or
+-# the GPLv2+ (GPLv3+ preferred)
+-#
+-# Additional work donated by contributors.  See git history
+-# for more information.
+-
+-require './test/test_helper'
+-require 'time'
+-
+-include Unicorn
+-
+-class ResponseTest < Test::Unit::TestCase
+-  include Unicorn::HttpResponse
+-
+-  def test_httpdate
+-    before = Time.now.to_i - 1
+-    str = httpdate
+-    assert_kind_of(String, str)
+-    middle = Time.parse(str).to_i
+-    after = Time.now.to_i
+-    assert before <= middle
+-    assert middle <= after
+-  end
+-
+-  def test_response_headers
+-    out = StringIO.new
+-    http_response_write(out, 200, {"X-Whatever" => "stuff"}, ["cool"])
+-    assert ! out.closed?
+-
+-    assert out.length > 0, "output didn't have data"
+-  end
+-
+-  # ref: <CAO47=rJa=zRcLn_Xm4v2cHPr6c0UswaFC_omYFEH+baSxHOWKQ@mail.gmail.com>
+-  def test_response_header_broken_nil
+-    out = StringIO.new
+-    http_response_write(out, 200, {"Nil" => nil}, %w(hysterical raisin))
+-    assert ! out.closed?
+-
+-    assert_match %r{^Nil: \r\n}sm, out.string, 'nil accepted'
+-  end
+-
+-  def test_response_string_status
+-    out = StringIO.new
+-    http_response_write(out,'200', {}, [])
+-    assert ! out.closed?
+-    assert out.length > 0, "output didn't have data"
+-  end
+-
+-  def test_response_200
+-    io = StringIO.new
+-    http_response_write(io, 200, {}, [])
+-    assert ! io.closed?
+-    assert io.length > 0, "output didn't have data"
+-  end
+-
+-  def test_response_with_default_reason
+-    code = 400
+-    io = StringIO.new
+-    http_response_write(io, code, {}, [])
+-    assert ! io.closed?
+-    lines = io.string.split(/\r\n/)
+-    assert_match(/.* Bad Request$/, lines.first,
+-                 "wrong default reason phrase")
+-  end
+-
+-  def test_rack_multivalue_headers
+-    out = StringIO.new
+-    http_response_write(out,200, {"X-Whatever" => "stuff\nbleh"}, [])
+-    assert ! out.closed?
+-    assert_match(/^X-Whatever: stuff\r\nX-Whatever: bleh\r\n/, out.string)
+-  end
+-
+-  # Even though Rack explicitly forbids "Status" in the header hash,
+-  # some broken clients still rely on it
+-  def test_status_header_added
+-    out = StringIO.new
+-    http_response_write(out,200, {"X-Whatever" => "stuff"}, [])
+-    assert ! out.closed?
+-  end
+-
+-  def test_unknown_status_pass_through
+-    out = StringIO.new
+-    http_response_write(out,"666 I AM THE BEAST", {}, [] )
+-    assert ! out.closed?
+-    headers = out.string.split(/\r\n\r\n/).first.split(/\r\n/)
+-    assert %r{\AHTTP/\d\.\d 666 I AM THE BEAST\z}.match(headers[0])
+-  end
+-
+-  def test_modified_rack_http_status_codes_late
+-    r, w = IO.pipe
+-    pid = fork do
+-      r.close
+-      # Users may want to globally override the status text associated
+-      # with an HTTP status code in their app.
+-      Rack::Utils::HTTP_STATUS_CODES[200] = "HI"
+-      http_response_write(w, 200, {}, [])
+-      w.close
+-    end
+-    w.close
+-    assert_equal "HTTP/1.1 200 HI\r\n", r.gets
+-    r.read # just drain the pipe
+-    pid, status = Process.waitpid2(pid)
+-    assert status.success?, status.inspect
+-  ensure
+-    r.close
+-    w.close unless w.closed?
+-  end
+-end
+
+--tMFmNiOc6i75m139
+Content-Type: text/x-diff; charset=utf-8
+Content-Disposition: attachment;
+	filename="0002-support-rack-3-multi-value-headers.patch"
+
+From ea0559c700fa029044464de4bd572662c10b7273 Mon Sep 17 00:00:00 2001
+From: Eric Wong <BOFH@YHBT.net>
+Date: Mon, 5 Jun 2023 10:12:31 +0000
+Subject: [PATCH 02/23] support rack 3 multi-value headers
+
+The first step in adding Rack 3 support.  Rack supports
+multi-value headers via array rather than newlines.
+
+Tested-by: Martin Posthumus <martin.posthumus@gmail.com>
+Link: https://yhbt.net/unicorn-public/7c851d8a-bc57-7df8-3240-2f5ab831c47c@gmail.com/
+---
+ t/integration.ru | 1 +
+ t/integration.t  | 9 +++++++++
+ 2 files changed, 10 insertions(+)
+
+diff --git a/t/integration.ru b/t/integration.ru
+index 6ef873c..5183217 100644
+--- a/t/integration.ru
++++ b/t/integration.ru
+@@ -23,6 +23,7 @@ def restore_status_code
+   when 'GET'
+     case env['PATH_INFO']
+     when '/rack-2-newline-headers'; [ 200, { 'X-R2' => "a\nb\nc" }, [] ]
++    when '/rack-3-array-headers'; [ 200, { 'x-r3' => %w(a b c) }, [] ]
+     when '/nil-header-value'; [ 200, { 'X-Nil' => nil }, [] ]
+     when '/unknown-status-pass-through'; [ '666 I AM THE BEAST', {}, [] ]
+     end # case PATH_INFO (GET)
+diff --git a/t/integration.t b/t/integration.t
+index 5569155..e876c71 100644
+--- a/t/integration.t
++++ b/t/integration.t
+@@ -38,6 +38,15 @@ SKIP: { # Date header check
+ 		diag(explain([$t, $!, \@d]));
+ };
+ 
++
++$c = tcp_connect($srv);
++print $c "GET /rack-3-array-headers HTTP/1.0\r\n\r\n" or die $!;
++($status, $hdr) = slurp_hdr($c);
++is_deeply([ grep(/^x-r3: /, @$hdr) ],
++	[ 'x-r3: a', 'x-r3: b', 'x-r3: c' ],
++	'rack 3 array headers supported') or diag(explain($hdr));
++
++
+ # cf. <CAO47=rJa=zRcLn_Xm4v2cHPr6c0UswaFC_omYFEH+baSxHOWKQ@mail.gmail.com>
+ $c = tcp_connect($srv);
+ print $c "GET /nil-header-value HTTP/1.0\r\n\r\n" or die $!;
+
+--tMFmNiOc6i75m139
+Content-Type: text/x-diff; charset=utf-8
+Content-Disposition: attachment;
+	filename="0003-port-t0018-write-on-close.sh-to-Perl-5.patch"
+
+From 295a6c616f8840bc04617a377c04c3422aeebddc Mon Sep 17 00:00:00 2001
+From: Eric Wong <BOFH@YHBT.net>
+Date: Mon, 5 Jun 2023 10:12:32 +0000
+Subject: [PATCH 03/23] port t0018-write-on-close.sh to Perl 5
+
+This doesn't require restarting, so it's a perfect candidate.
+---
+ t/integration.ru          | 15 +++++++++++++++
+ t/integration.t           | 14 +++++++++++++-
+ t/lib.perl                |  2 +-
+ t/t0018-write-on-close.sh | 23 -----------------------
+ t/write-on-close.ru       | 11 -----------
+ 5 files changed, 29 insertions(+), 36 deletions(-)
+ delete mode 100755 t/t0018-write-on-close.sh
+ delete mode 100644 t/write-on-close.ru
+
+diff --git a/t/integration.ru b/t/integration.ru
+index 5183217..12f5d48 100644
+--- a/t/integration.ru
++++ b/t/integration.ru
+@@ -18,6 +18,20 @@ def restore_status_code
+   [ 200, {}, [] ]
+ end
+ 
++class WriteOnClose
++  def each(&block)
++    @callback = block
++  end
++
++  def close
++    @callback.call "7\r\nGoodbye\r\n0\r\n\r\n"
++  end
++end
++
++def write_on_close
++  [ 200, { 'transfer-encoding' => 'chunked' }, WriteOnClose.new ]
++end
++
+ run(lambda do |env|
+   case env['REQUEST_METHOD']
+   when 'GET'
+@@ -26,6 +40,7 @@ def restore_status_code
+     when '/rack-3-array-headers'; [ 200, { 'x-r3' => %w(a b c) }, [] ]
+     when '/nil-header-value'; [ 200, { 'X-Nil' => nil }, [] ]
+     when '/unknown-status-pass-through'; [ '666 I AM THE BEAST', {}, [] ]
++    when '/write_on_close'; write_on_close
+     end # case PATH_INFO (GET)
+   when 'POST'
+     case env['PATH_INFO']
+diff --git a/t/integration.t b/t/integration.t
+index e876c71..3ab5c90 100644
+--- a/t/integration.t
++++ b/t/integration.t
+@@ -4,6 +4,7 @@
+ 
+ use v5.14; BEGIN { require './t/lib.perl' };
+ my $srv = tcp_server();
++my $host_port = tcp_host_port($srv);
+ my $t0 = time;
+ my $ar = unicorn(qw(-E none t/integration.ru), { 3 => $srv });
+ 
+@@ -66,8 +67,19 @@ if ('TODO: ensure Rack::Utils::HTTP_STATUS_CODES is available') {
+ 	is($status, $orig_200_status, 'original status restored');
+ }
+ 
++SKIP: {
++	eval { require HTTP::Tiny } or skip "HTTP::Tiny missing: $@", 1;
++	my $ht = HTTP::Tiny->new;
++	my $res = $ht->get("http://$host_port/write_on_close");
++	is($res->{content}, 'Goodbye', 'write-on-close body read');
++}
+ 
+ # ... more stuff here
+ undef $ar;
+-diag slurp("$tmpdir/err.log") if $ENV{V};
++my @log = slurp("$tmpdir/err.log");
++diag("@log") if $ENV{V};
++my @err = grep(!/NameError.*Unicorn::Waiter/, grep(/error/i, @log));
++is_deeply(\@err, [], 'no unexpected errors in stderr');
++is_deeply([grep(/SIGKILL/, @log)], [], 'no SIGKILL in stderr');
++
+ done_testing;
+diff --git a/t/lib.perl b/t/lib.perl
+index dd9c6b7..12deaf8 100644
+--- a/t/lib.perl
++++ b/t/lib.perl
+@@ -10,7 +10,7 @@ use POSIX qw(dup2 _exit setpgid :signal_h SEEK_SET F_SETFD);
+ use File::Temp 0.19 (); # 0.19 for ->newdir
+ our ($tmpdir, $errfh);
+ our @EXPORT = qw(unicorn slurp tcp_server tcp_connect unicorn $tmpdir $errfh
+-	SEEK_SET);
++	SEEK_SET tcp_host_port);
+ 
+ my ($base) = ($0 =~ m!\b([^/]+)\.[^\.]+\z!);
+ $tmpdir = File::Temp->newdir("unicorn-$base-XXXX", TMPDIR => 1);
+diff --git a/t/t0018-write-on-close.sh b/t/t0018-write-on-close.sh
+deleted file mode 100755
+index 3afefea..0000000
+--- a/t/t0018-write-on-close.sh
++++ /dev/null
+@@ -1,23 +0,0 @@
+-#!/bin/sh
+-. ./test-lib.sh
+-t_plan 4 "write-on-close tests for funky response-bodies"
+-
+-t_begin "setup and start" && {
+-	unicorn_setup
+-	unicorn -D -c $unicorn_config write-on-close.ru
+-	unicorn_wait_start
+-}
+-
+-t_begin "write-on-close response body succeeds" && {
+-	test xGoodbye = x"$(curl -sSf http://$listen/)"
+-}
+-
+-t_begin "killing succeeds" && {
+-	kill $unicorn_pid
+-}
+-
+-t_begin "check stderr" && {
+-	check_stderr
+-}
+-
+-t_done
+diff --git a/t/write-on-close.ru b/t/write-on-close.ru
+deleted file mode 100644
+index 725c4d6..0000000
+--- a/t/write-on-close.ru
++++ /dev/null
+@@ -1,11 +0,0 @@
+-class WriteOnClose
+-  def each(&block)
+-    @callback = block
+-  end
+-
+-  def close
+-    @callback.call "7\r\nGoodbye\r\n0\r\n\r\n"
+-  end
+-end
+-use Rack::ContentType, "text/plain"
+-run(lambda { |_| [ 200, { 'transfer-encoding' => 'chunked' }, WriteOnClose.new ] })
+
+--tMFmNiOc6i75m139
+Content-Type: text/x-diff; charset=utf-8
+Content-Disposition: attachment;
+	filename="0004-port-t0000-http-basic.sh-to-Perl-5.patch"
+
+From 1bb4362cee167ac7aeec910d3f52419e391f1e61 Mon Sep 17 00:00:00 2001
+From: Eric Wong <BOFH@YHBT.net>
+Date: Mon, 5 Jun 2023 10:12:33 +0000
+Subject: [PATCH 04/23] port t0000-http-basic.sh to Perl 5
+
+One more socat dependency down...
+---
+ t/integration.ru      | 16 ++++++++++++++
+ t/integration.t       | 11 ++++++++++
+ t/t0000-http-basic.sh | 50 -------------------------------------------
+ 3 files changed, 27 insertions(+), 50 deletions(-)
+ delete mode 100755 t/t0000-http-basic.sh
+
+diff --git a/t/integration.ru b/t/integration.ru
+index 12f5d48..c0bef99 100644
+--- a/t/integration.ru
++++ b/t/integration.ru
+@@ -32,6 +32,21 @@ def write_on_close
+   [ 200, { 'transfer-encoding' => 'chunked' }, WriteOnClose.new ]
+ end
+ 
++def env_dump(env)
++  require 'json'
++  h = {}
++  env.each do |k,v|
++    case v
++    when String, Integer, true, false; h[k] = v
++    else
++      case k
++      when 'rack.version', 'rack.after_reply'; h[k] = v
++      end
++    end
++  end
++  h.to_json
++end
++
+ run(lambda do |env|
+   case env['REQUEST_METHOD']
+   when 'GET'
+@@ -40,6 +55,7 @@ def write_on_close
+     when '/rack-3-array-headers'; [ 200, { 'x-r3' => %w(a b c) }, [] ]
+     when '/nil-header-value'; [ 200, { 'X-Nil' => nil }, [] ]
+     when '/unknown-status-pass-through'; [ '666 I AM THE BEAST', {}, [] ]
++    when '/env_dump'; [ 200, {}, [ env_dump(env) ] ]
+     when '/write_on_close'; write_on_close
+     end # case PATH_INFO (GET)
+   when 'POST'
+diff --git a/t/integration.t b/t/integration.t
+index 3ab5c90..ee22e7e 100644
+--- a/t/integration.t
++++ b/t/integration.t
+@@ -47,6 +47,17 @@ is_deeply([ grep(/^x-r3: /, @$hdr) ],
+ 	[ 'x-r3: a', 'x-r3: b', 'x-r3: c' ],
+ 	'rack 3 array headers supported') or diag(explain($hdr));
+ 
++SKIP: {
++	eval { require JSON::PP } or skip "JSON::PP missing: $@", 1;
++	$c = tcp_connect($srv);
++	print $c "GET /env_dump\r\n" or die $!;
++	my $json = do { local $/; readline($c) };
++	unlike($json, qr/^Connection: /smi, 'no connection header for 0.9');
++	unlike($json, qr!\AHTTP/!s, 'no HTTP/1.x prefix for 0.9');
++	my $env = JSON::PP->new->decode($json);
++	is(ref($env), 'HASH', 'JSON decoded body to hashref');
++	is($env->{SERVER_PROTOCOL}, 'HTTP/0.9', 'SERVER_PROTOCOL is 0.9');
++}
+ 
+ # cf. <CAO47=rJa=zRcLn_Xm4v2cHPr6c0UswaFC_omYFEH+baSxHOWKQ@mail.gmail.com>
+ $c = tcp_connect($srv);
+diff --git a/t/t0000-http-basic.sh b/t/t0000-http-basic.sh
+deleted file mode 100755
+index 8ab58ac..0000000
+--- a/t/t0000-http-basic.sh
++++ /dev/null
+@@ -1,50 +0,0 @@
+-#!/bin/sh
+-. ./test-lib.sh
+-t_plan 8 "simple HTTP connection tests"
+-
+-t_begin "setup and start" && {
+-	unicorn_setup
+-	unicorn -D -c $unicorn_config env.ru
+-	unicorn_wait_start
+-}
+-
+-t_begin "single request" && {
+-	curl -sSfv http://$listen/
+-}
+-
+-t_begin "check stderr has no errors" && {
+-	check_stderr
+-}
+-
+-t_begin "HTTP/0.9 request should not return headers" && {
+-	(
+-		printf 'GET /\r\n'
+-		cat $fifo > $tmp &
+-		wait
+-		echo ok > $ok
+-	) | socat - TCP:$listen > $fifo
+-}
+-
+-t_begin "env.inspect should've put everything on one line" && {
+-	test 1 -eq $(count_lines < $tmp)
+-}
+-
+-t_begin "no headers in output" && {
+-	if grep ^Connection: $tmp
+-	then
+-		die "Connection header found in $tmp"
+-	elif grep ^HTTP/ $tmp
+-	then
+-		die "HTTP/ found in $tmp"
+-	fi
+-}
+-
+-t_begin "killing succeeds" && {
+-	kill $unicorn_pid
+-}
+-
+-t_begin "check stderr has no errors" && {
+-	check_stderr
+-}
+-
+-t_done
+
+--tMFmNiOc6i75m139
+Content-Type: text/x-diff; charset=utf-8
+Content-Disposition: attachment;
+	filename="0005-port-t0002-parser-error.sh-to-Perl-5.patch"
+
+From 2eb7b1662c291ab535ee5dabf5d96194ca6483d4 Mon Sep 17 00:00:00 2001
+From: Eric Wong <BOFH@YHBT.net>
+Date: Mon, 5 Jun 2023 10:12:34 +0000
+Subject: [PATCH 05/23] port t0002-parser-error.sh to Perl 5
+
+Another socat dependency down...
+---
+ t/integration.t         | 33 +++++++++++++++
+ t/lib.perl              |  9 +++-
+ t/t0002-parser-error.sh | 94 -----------------------------------------
+ 3 files changed, 41 insertions(+), 95 deletions(-)
+ delete mode 100755 t/t0002-parser-error.sh
+
+diff --git a/t/integration.t b/t/integration.t
+index ee22e7e..503b7eb 100644
+--- a/t/integration.t
++++ b/t/integration.t
+@@ -85,6 +85,39 @@ SKIP: {
+ 	is($res->{content}, 'Goodbye', 'write-on-close body read');
+ }
+ 
++if ('bad requests') {
++	$c = start_req($srv, 'GET /env_dump HTTP/1/1');
++	($status, $hdr) = slurp_hdr($c);
++	like($status, qr!\AHTTP/1\.[01] 400 \b!, 'got 400 on bad request');
++
++	$c = tcp_connect($srv);
++	print $c 'GET /' or die $!;
++	my $buf = join('', (0..9), 'ab');
++	for (0..1023) { print $c $buf or die $! }
++	print $c " HTTP/1.0\r\n\r\n" or die $!;
++	($status, $hdr) = slurp_hdr($c);
++	like($status, qr!\AHTTP/1\.[01] 414 \b!,
++		'414 on REQUEST_PATH > (12 * 1024)');
++
++	$c = tcp_connect($srv);
++	print $c 'GET /hello-world?a' or die $!;
++	$buf = join('', (0..9));
++	for (0..1023) { print $c $buf or die $! }
++	print $c " HTTP/1.0\r\n\r\n" or die $!;
++	($status, $hdr) = slurp_hdr($c);
++	like($status, qr!\AHTTP/1\.[01] 414 \b!,
++		'414 on QUERY_STRING > (10 * 1024)');
++
++	$c = tcp_connect($srv);
++	print $c 'GET /hello-world#a' or die $!;
++	$buf = join('', (0..9), 'a'..'f');
++	for (0..63) { print $c $buf or die $! }
++	print $c " HTTP/1.0\r\n\r\n" or die $!;
++	($status, $hdr) = slurp_hdr($c);
++	like($status, qr!\AHTTP/1\.[01] 414 \b!, '414 on FRAGMENT > (1024)');
++}
++
++
+ # ... more stuff here
+ undef $ar;
+ my @log = slurp("$tmpdir/err.log");
+diff --git a/t/lib.perl b/t/lib.perl
+index 12deaf8..7d712b5 100644
+--- a/t/lib.perl
++++ b/t/lib.perl
+@@ -10,7 +10,7 @@ use POSIX qw(dup2 _exit setpgid :signal_h SEEK_SET F_SETFD);
+ use File::Temp 0.19 (); # 0.19 for ->newdir
+ our ($tmpdir, $errfh);
+ our @EXPORT = qw(unicorn slurp tcp_server tcp_connect unicorn $tmpdir $errfh
+-	SEEK_SET tcp_host_port);
++	SEEK_SET tcp_host_port start_req);
+ 
+ my ($base) = ($0 =~ m!\b([^/]+)\.[^\.]+\z!);
+ $tmpdir = File::Temp->newdir("unicorn-$base-XXXX", TMPDIR => 1);
+@@ -59,6 +59,13 @@ sub tcp_connect {
+ 	$s;
+ }
+ 
++sub start_req {
++	my ($srv, @req) = @_;
++	my $c = tcp_connect($srv);
++	print $c @req, "\r\n\r\n" or die "print: $!";
++	$c;
++}
++
+ sub slurp {
+ 	open my $fh, '<', $_[0] or die "open($_[0]): $!";
+ 	local $/;
+diff --git a/t/t0002-parser-error.sh b/t/t0002-parser-error.sh
+deleted file mode 100755
+index 9dc1cd2..0000000
+--- a/t/t0002-parser-error.sh
++++ /dev/null
+@@ -1,94 +0,0 @@
+-#!/bin/sh
+-. ./test-lib.sh
+-t_plan 11 "parser error test"
+-
+-t_begin "setup and startup" && {
+-	unicorn_setup
+-	unicorn -D env.ru -c $unicorn_config
+-	unicorn_wait_start
+-}
+-
+-t_begin "send a bad request" && {
+-	(
+-		printf 'GET / HTTP/1/1\r\nHost: example.com\r\n\r\n'
+-		cat $fifo > $tmp &
+-		wait
+-		echo ok > $ok
+-	) | socat - TCP:$listen > $fifo
+-	test xok = x$(cat $ok)
+-}
+-
+-dbgcat tmp
+-
+-t_begin "response should be a 400" && {
+-	grep -F 'HTTP/1.1 400 Bad Request' $tmp
+-}
+-
+-t_begin "send a huge Request URI (REQUEST_PATH > (12 * 1024))" && {
+-	rm -f $tmp
+-	cat $fifo > $tmp &
+-	(
+-		set -e
+-		trap 'echo ok > $ok' EXIT
+-		printf 'GET /'
+-		for i in $(awk </dev/null 'BEGIN{for(i=0;i<1024;i++) print i}')
+-		do
+-			printf '0123456789ab'
+-		done
+-		printf ' HTTP/1.1\r\nHost: example.com\r\n\r\n'
+-	) | socat - TCP:$listen > $fifo || :
+-	test xok = x$(cat $ok)
+-	wait
+-}
+-
+-t_begin "response should be a 414 (REQUEST_PATH)" && {
+-	grep -F 'HTTP/1.1 414 ' $tmp
+-}
+-
+-t_begin "send a huge Request URI (QUERY_STRING > (10 * 1024))" && {
+-	rm -f $tmp
+-	cat $fifo > $tmp &
+-	(
+-		set -e
+-		trap 'echo ok > $ok' EXIT
+-		printf 'GET /hello-world?a'
+-		for i in $(awk </dev/null 'BEGIN{for(i=0;i<1024;i++) print i}')
+-		do
+-			printf '0123456789'
+-		done
+-		printf ' HTTP/1.1\r\nHost: example.com\r\n\r\n'
+-	) | socat - TCP:$listen > $fifo || :
+-	test xok = x$(cat $ok)
+-	wait
+-}
+-
+-t_begin "response should be a 414 (QUERY_STRING)" && {
+-	grep -F 'HTTP/1.1 414 ' $tmp
+-}
+-
+-t_begin "send a huge Request URI (FRAGMENT > 1024)" && {
+-	rm -f $tmp
+-	cat $fifo > $tmp &
+-	(
+-		set -e
+-		trap 'echo ok > $ok' EXIT
+-		printf 'GET /hello-world#a'
+-		for i in $(awk </dev/null 'BEGIN{for(i=0;i<64;i++) print i}')
+-		do
+-			printf '0123456789abcdef'
+-		done
+-		printf ' HTTP/1.1\r\nHost: example.com\r\n\r\n'
+-	) | socat - TCP:$listen > $fifo || :
+-	test xok = x$(cat $ok)
+-	wait
+-}
+-
+-t_begin "response should be a 414 (FRAGMENT)" && {
+-	grep -F 'HTTP/1.1 414 ' $tmp
+-}
+-
+-t_begin "server stderr should be clean" && check_stderr
+-
+-t_begin "term signal sent" && kill $unicorn_pid
+-
+-t_done
+
+--tMFmNiOc6i75m139
+Content-Type: text/x-diff; charset=utf-8
+Content-Disposition: attachment;
+	filename="0006-t-integration.t-use-start_req-to-simplify-test-sligh.patch"
+
+From 0bb06cc0c8c4f5b76514858067bbb2871dda0d6e Mon Sep 17 00:00:00 2001
+From: Eric Wong <BOFH@YHBT.net>
+Date: Mon, 5 Jun 2023 10:12:35 +0000
+Subject: [PATCH 06/23] t/integration.t: use start_req to simplify test slighly
+
+Less code is usually better.
+---
+ t/integration.t | 18 ++++++------------
+ 1 file changed, 6 insertions(+), 12 deletions(-)
+
+diff --git a/t/integration.t b/t/integration.t
+index 503b7eb..b7ba1fb 100644
+--- a/t/integration.t
++++ b/t/integration.t
+@@ -20,8 +20,7 @@ sub slurp_hdr {
+ my ($c, $status, $hdr);
+ 
+ # response header tests
+-$c = tcp_connect($srv);
+-print $c "GET /rack-2-newline-headers HTTP/1.0\r\n\r\n" or die $!;
++$c = start_req($srv, 'GET /rack-2-newline-headers HTTP/1.0');
+ ($status, $hdr) = slurp_hdr($c);
+ like($status, qr!\AHTTP/1\.[01] 200\b!, 'status line valid');
+ my $orig_200_status = $status;
+@@ -40,8 +39,7 @@ SKIP: { # Date header check
+ };
+ 
+ 
+-$c = tcp_connect($srv);
+-print $c "GET /rack-3-array-headers HTTP/1.0\r\n\r\n" or die $!;
++$c = start_req($srv, 'GET /rack-3-array-headers HTTP/1.0');
+ ($status, $hdr) = slurp_hdr($c);
+ is_deeply([ grep(/^x-r3: /, @$hdr) ],
+ 	[ 'x-r3: a', 'x-r3: b', 'x-r3: c' ],
+@@ -49,8 +47,7 @@ is_deeply([ grep(/^x-r3: /, @$hdr) ],
+ 
+ SKIP: {
+ 	eval { require JSON::PP } or skip "JSON::PP missing: $@", 1;
+-	$c = tcp_connect($srv);
+-	print $c "GET /env_dump\r\n" or die $!;
++	my $c = start_req($srv, 'GET /env_dump');
+ 	my $json = do { local $/; readline($c) };
+ 	unlike($json, qr/^Connection: /smi, 'no connection header for 0.9');
+ 	unlike($json, qr!\AHTTP/!s, 'no HTTP/1.x prefix for 0.9');
+@@ -60,20 +57,17 @@ SKIP: {
+ }
+ 
+ # cf. <CAO47=rJa=zRcLn_Xm4v2cHPr6c0UswaFC_omYFEH+baSxHOWKQ@mail.gmail.com>
+-$c = tcp_connect($srv);
+-print $c "GET /nil-header-value HTTP/1.0\r\n\r\n" or die $!;
++$c = start_req($srv, 'GET /nil-header-value HTTP/1.0');
+ ($status, $hdr) = slurp_hdr($c);
+ is_deeply([grep(/^X-Nil:/, @$hdr)], ['X-Nil: '],
+ 	'nil header value accepted for broken apps') or diag(explain($hdr));
+ 
+ if ('TODO: ensure Rack::Utils::HTTP_STATUS_CODES is available') {
+-	$c = tcp_connect($srv);
+-	print $c "POST /tweak-status-code HTTP/1.0\r\n\r\n" or die $!;
++	$c = start_req($srv, 'POST /tweak-status-code HTTP/1.0');
+ 	($status, $hdr) = slurp_hdr($c);
+ 	like($status, qr!\AHTTP/1\.[01] 200 HI\b!, 'status tweaked');
+ 
+-	$c = tcp_connect($srv);
+-	print $c "POST /restore-status-code HTTP/1.0\r\n\r\n" or die $!;
++	$c = start_req($srv, 'POST /restore-status-code HTTP/1.0');
+ 	($status, $hdr) = slurp_hdr($c);
+ 	is($status, $orig_200_status, 'original status restored');
+ }
+
+--tMFmNiOc6i75m139
+Content-Type: text/x-diff; charset=utf-8
+Content-Disposition: attachment;
+	filename="0007-port-t0011-active-unix-socket.sh-to-Perl-5.patch"
+
+From 10c83beaca58df8b92d8228e798559069cd89beb Mon Sep 17 00:00:00 2001
+From: Eric Wong <BOFH@YHBT.net>
+Date: Mon, 5 Jun 2023 10:12:36 +0000
+Subject: [PATCH 07/23] port t0011-active-unix-socket.sh to Perl 5
+
+Another socat dependency down...  I've also started turning
+FD_CLOEXEC off on a pipe as a mechanism to detect daemonized
+process death in tests.
+---
+ t/active-unix-socket.t        | 117 ++++++++++++++++++++++++++++++++++
+ t/integration.ru              |   1 +
+ t/t0011-active-unix-socket.sh |  79 -----------------------
+ 3 files changed, 118 insertions(+), 79 deletions(-)
+ create mode 100644 t/active-unix-socket.t
+ delete mode 100755 t/t0011-active-unix-socket.sh
+
+diff --git a/t/active-unix-socket.t b/t/active-unix-socket.t
+new file mode 100644
+index 0000000..6b5c218
+--- /dev/null
++++ b/t/active-unix-socket.t
+@@ -0,0 +1,117 @@
++#!perl -w
++# Copyright (C) unicorn hackers <unicorn-public@yhbt.net>
++# License: GPL-3.0+ <https://www.gnu.org/licenses/gpl-3.0.txt>
++
++use v5.14; BEGIN { require './t/lib.perl' };
++use IO::Socket::UNIX;
++my %to_kill;
++END { kill('TERM', values(%to_kill)) if keys %to_kill }
++my $u1 = "$tmpdir/u1.sock";
++my $u2 = "$tmpdir/u2.sock";
++my $unix_req = sub {
++	my $s = IO::Socket::UNIX->new(Peer => shift, Type => SOCK_STREAM);
++	print $s @_, "\r\n\r\n" or die $!;
++	$s;
++};
++{
++	use autodie;
++	open my $fh, '>', "$tmpdir/u1.conf.rb";
++	print $fh <<EOM;
++pid "$tmpdir/u.pid"
++listen "$u1"
++stderr_path "$tmpdir/err1.log"
++EOM
++	close $fh;
++
++	open $fh, '>', "$tmpdir/u2.conf.rb";
++	print $fh <<EOM;
++pid "$tmpdir/u.pid"
++listen "$u2"
++stderr_path "$tmpdir/err2.log"
++EOM
++	close $fh;
++
++	open $fh, '>', "$tmpdir/u3.conf.rb";
++	print $fh <<EOM;
++pid "$tmpdir/u3.pid"
++listen "$u1"
++stderr_path "$tmpdir/err3.log"
++EOM
++	close $fh;
++}
++
++my @uarg = qw(-D -E none t/integration.ru);
++
++# this pipe will be used to notify us when all daemons die:
++pipe(my ($p0, $p1)) or die "pipe: $!";
++fcntl($p1, POSIX::F_SETFD, 0) or die "fcntl: $!"; # clear FD_CLOEXEC
++
++# start the first instance
++unicorn('-c', "$tmpdir/u1.conf.rb", @uarg)->join;
++is($?, 0, 'daemonized 1st process');
++chomp($to_kill{u1} = slurp("$tmpdir/u.pid"));
++like($to_kill{u1}, qr/\A\d+\z/s, 'read pid file');
++
++chomp(my $worker_pid = readline($unix_req->($u1, 'GET /pid')));
++like($worker_pid, qr/\A\d+\z/s, 'captured worker pid');
++ok(kill(0, $worker_pid), 'worker is kill-able');
++
++
++# 2nd process conflicts on PID
++unicorn('-c', "$tmpdir/u2.conf.rb", @uarg)->join;
++isnt($?, 0, 'conflicting PID file fails to start');
++
++chomp(my $pidf = slurp("$tmpdir/u.pid"));
++is($pidf, $to_kill{u1}, 'pid file contents unchanged after start failure');
++
++chomp(my $pid2 = readline($unix_req->($u1, 'GET /pid')));
++is($worker_pid, $pid2, 'worker PID unchanged');
++
++
++# 3rd process conflicts on socket
++unicorn('-c', "$tmpdir/u3.conf.rb", @uarg)->join;
++isnt($?, 0, 'conflicting UNIX socket fails to start');
++
++chomp($pid2 = readline($unix_req->($u1, 'GET /pid')));
++is($worker_pid, $pid2, 'worker PID still unchanged');
++
++chomp($pidf = slurp("$tmpdir/u.pid"));
++is($pidf, $to_kill{u1}, 'pid file contents unchanged after 2nd start failure');
++
++{ # teardown initial process via SIGKILL
++	ok(kill('KILL', delete $to_kill{u1}), 'SIGKILL initial daemon');
++	close $p1;
++	vec(my $rvec = '', fileno($p0), 1) = 1;
++	is(select($rvec, undef, undef, 5), 1, 'timeout for pipe HUP');
++	is(my $undef = <$p0>, undef, 'process closed pipe writer at exit');
++	ok(-f "$tmpdir/u.pid", 'pid file stayed after SIGKILL');
++	ok(-S $u1, 'socket stayed after SIGKILL');
++	is(IO::Socket::UNIX->new(Peer => $u1, Type => SOCK_STREAM), undef,
++		'fail to connect to u1');
++	ok(!kill(0, $worker_pid), 'worker gone after parent dies');
++}
++
++# restart the first instance
++{
++	pipe(($p0, $p1)) or die "pipe: $!";
++	fcntl($p1, POSIX::F_SETFD, 0) or die "fcntl: $!"; # clear FD_CLOEXEC
++	unicorn('-c', "$tmpdir/u1.conf.rb", @uarg)->join;
++	is($?, 0, 'daemonized 1st process');
++	chomp($to_kill{u1} = slurp("$tmpdir/u.pid"));
++	like($to_kill{u1}, qr/\A\d+\z/s, 'read pid file');
++
++	chomp($pid2 = readline($unix_req->($u1, 'GET /pid')));
++	like($pid2, qr/\A\d+\z/, 'worker running');
++
++	ok(kill('TERM', delete $to_kill{u1}), 'SIGTERM restarted daemon');
++	close $p1;
++	vec(my $rvec = '', fileno($p0), 1) = 1;
++	is(select($rvec, undef, undef, 5), 1, 'timeout for pipe HUP');
++	is(my $undef = <$p0>, undef, 'process closed pipe writer at exit');
++	ok(!-f "$tmpdir/u.pid", 'pid file gone after SIGTERM');
++	ok(-S $u1, 'socket stays after SIGTERM');
++}
++
++my @log = slurp("$tmpdir/err.log");
++diag("@log") if $ENV{V};
++done_testing;
+diff --git a/t/integration.ru b/t/integration.ru
+index c0bef99..21f5449 100644
+--- a/t/integration.ru
++++ b/t/integration.ru
+@@ -57,6 +57,7 @@ def env_dump(env)
+     when '/unknown-status-pass-through'; [ '666 I AM THE BEAST', {}, [] ]
+     when '/env_dump'; [ 200, {}, [ env_dump(env) ] ]
+     when '/write_on_close'; write_on_close
++    when '/pid'; [ 200, {}, [ "#$$\n" ] ]
+     end # case PATH_INFO (GET)
+   when 'POST'
+     case env['PATH_INFO']
+diff --git a/t/t0011-active-unix-socket.sh b/t/t0011-active-unix-socket.sh
+deleted file mode 100755
+index fae0b6c..0000000
+--- a/t/t0011-active-unix-socket.sh
++++ /dev/null
+@@ -1,79 +0,0 @@
+-#!/bin/sh
+-. ./test-lib.sh
+-t_plan 11 "existing UNIX domain socket check"
+-
+-read_pid_unix () {
+-	x=$(printf 'GET / HTTP/1.0\r\n\r\n' | \
+-	    socat - UNIX:$unix_socket | \
+-	    tail -1)
+-	test -n "$x"
+-	y="$(expr "$x" : '\([0-9][0-9]*\)')"
+-	test x"$x" = x"$y"
+-	test -n "$y"
+-	echo "$y"
+-}
+-
+-t_begin "setup and start" && {
+-	rtmpfiles unix_socket unix_config
+-	rm -f $unix_socket
+-	unicorn_setup
+-	grep -v ^listen < $unicorn_config > $unix_config
+-	echo "listen '$unix_socket'" >> $unix_config
+-	unicorn -D -c $unix_config pid.ru
+-	unicorn_wait_start
+-	orig_master_pid=$unicorn_pid
+-}
+-
+-t_begin "get pid of worker" && {
+-	worker_pid=$(read_pid_unix)
+-	t_info "worker_pid=$worker_pid"
+-}
+-
+-t_begin "fails to start with existing pid file" && {
+-	rm -f $ok
+-	unicorn -D -c $unix_config pid.ru || echo ok > $ok
+-	test x"$(cat $ok)" = xok
+-}
+-
+-t_begin "worker pid unchanged" && {
+-	test x"$(read_pid_unix)" = x$worker_pid
+-	> $r_err
+-}
+-
+-t_begin "fails to start with listening UNIX domain socket bound" && {
+-	rm $ok $pid
+-	unicorn -D -c $unix_config pid.ru || echo ok > $ok
+-	test x"$(cat $ok)" = xok
+-	> $r_err
+-}
+-
+-t_begin "worker pid unchanged (again)" && {
+-	test x"$(read_pid_unix)" = x$worker_pid
+-}
+-
+-t_begin "nuking the existing Unicorn succeeds" && {
+-	kill -9 $unicorn_pid
+-	while kill -0 $unicorn_pid
+-	do
+-		sleep 1
+-	done
+-	check_stderr
+-}
+-
+-t_begin "succeeds in starting with leftover UNIX domain socket bound" && {
+-	test -S $unix_socket
+-	unicorn -D -c $unix_config pid.ru
+-	unicorn_wait_start
+-}
+-
+-t_begin "worker pid changed" && {
+-	test x"$(read_pid_unix)" != x$worker_pid
+-}
+-
+-t_begin "killing succeeds" && {
+-	kill $unicorn_pid
+-}
+-
+-t_begin "no errors" && check_stderr
+-
+-t_done
+
+--tMFmNiOc6i75m139
+Content-Type: text/x-diff; charset=utf-8
+Content-Disposition: attachment;
+	filename="0008-port-t0100-rack-input-tests.sh-to-Perl-5.patch"
+
+From b4ed148186295f2d5c8448eab7f2b201615d1e4e Mon Sep 17 00:00:00 2001
+From: Eric Wong <BOFH@YHBT.net>
+Date: Mon, 5 Jun 2023 10:12:37 +0000
+Subject: [PATCH 08/23] port t0100-rack-input-tests.sh to Perl 5
+
+Yet another socat dependency gone \o/
+---
+ t/bin/content-md5-put       |  36 -----------
+ t/integration.ru            |  27 +++++++-
+ t/integration.t             |  97 +++++++++++++++++++++++++++-
+ t/lib.perl                  |   3 +-
+ t/rack-input-tests.ru       |  21 ------
+ t/t0100-rack-input-tests.sh | 124 ------------------------------------
+ 6 files changed, 124 insertions(+), 184 deletions(-)
+ delete mode 100755 t/bin/content-md5-put
+ delete mode 100644 t/rack-input-tests.ru
+ delete mode 100755 t/t0100-rack-input-tests.sh
+
+diff --git a/t/bin/content-md5-put b/t/bin/content-md5-put
+deleted file mode 100755
+index 01da0bb..0000000
+--- a/t/bin/content-md5-put
++++ /dev/null
+@@ -1,36 +0,0 @@
+-#!/usr/bin/env ruby
+-# -*- encoding: binary -*-
+-# simple chunked HTTP PUT request generator (and just that),
+-# it reads stdin and writes to stdout so socat can write to a
+-# UNIX or TCP socket (or to another filter or file) along with
+-# a Content-MD5 trailer.
+-require 'digest/md5'
+-$stdout.sync = $stderr.sync = true
+-$stdout.binmode
+-$stdin.binmode
+-
+-bs = ENV['bs'] ? ENV['bs'].to_i : 4096
+-
+-if ARGV.grep("--no-headers").empty?
+-  $stdout.write(
+-      "PUT / HTTP/1.1\r\n" \
+-      "Host: example.com\r\n" \
+-      "Transfer-Encoding: chunked\r\n" \
+-      "Trailer: Content-MD5\r\n" \
+-      "\r\n"
+-    )
+-end
+-
+-digest = Digest::MD5.new
+-if buf = $stdin.readpartial(bs)
+-  begin
+-    digest.update(buf)
+-    $stdout.write("%x\r\n" % [ buf.size ])
+-    $stdout.write(buf)
+-    $stdout.write("\r\n")
+-  end while $stdin.read(bs, buf)
+-end
+-
+-digest = [ digest.digest ].pack('m').strip
+-$stdout.write("0\r\n")
+-$stdout.write("Content-MD5: #{digest}\r\n\r\n")
+diff --git a/t/integration.ru b/t/integration.ru
+index 21f5449..98528f6 100644
+--- a/t/integration.ru
++++ b/t/integration.ru
+@@ -47,6 +47,29 @@ def env_dump(env)
+   h.to_json
+ end
+ 
++def rack_input_tests(env)
++  return [ 100, {}, [] ] if /\A100-continue\z/i =~ env['HTTP_EXPECT']
++  cap = 16384
++  require 'digest/sha1'
++  digest = Digest::SHA1.new
++  input = env['rack.input']
++  case env['PATH_INFO']
++  when '/rack_input/size_first'; input.size
++  when '/rack_input/rewind_first'; input.rewind
++  when '/rack_input'; # OK
++  else
++    abort "bad path: #{env['PATH_INFO']}"
++  end
++  if buf = input.read(rand(cap))
++    begin
++      raise "#{buf.size} > #{cap}" if buf.size > cap
++      digest.update(buf)
++    end while input.read(rand(cap), buf)
++  end
++  [ 200, {'content-length' => '40', 'content-type' => 'text/plain'},
++    [ digest.hexdigest ] ]
++end
++
+ run(lambda do |env|
+   case env['REQUEST_METHOD']
+   when 'GET'
+@@ -66,6 +89,8 @@ def env_dump(env)
+     end # case PATH_INFO (POST)
+     # ...
+   when 'PUT'
+-    # ...
++    case env['PATH_INFO']
++    when %r{\A/rack_input}; rack_input_tests(env)
++    end
+   end # case REQUEST_METHOD
+ end) # run
+diff --git a/t/integration.t b/t/integration.t
+index b7ba1fb..8cef561 100644
+--- a/t/integration.t
++++ b/t/integration.t
+@@ -1,13 +1,16 @@
+ #!perl -w
+ # Copyright (C) unicorn hackers <unicorn-public@yhbt.net>
+ # License: GPL-3.0+ <https://www.gnu.org/licenses/gpl-3.0.txt>
++# this is the main integration test for things which don't require
++# restarting or signals
+ 
+ use v5.14; BEGIN { require './t/lib.perl' };
+ my $srv = tcp_server();
+ my $host_port = tcp_host_port($srv);
+ my $t0 = time;
+ my $ar = unicorn(qw(-E none t/integration.ru), { 3 => $srv });
+-
++my $curl = which('curl');
++END { diag slurp("$tmpdir/err.log") if $tmpdir };
+ sub slurp_hdr {
+ 	my ($c) = @_;
+ 	local $/ = "\r\n\r\n"; # affects both readline+chomp
+@@ -17,6 +20,48 @@ sub slurp_hdr {
+ 	($status, \@hdr);
+ }
+ 
++my %PUT = (
++	chunked_md5 => sub {
++		my ($in, $out, $path, %opt) = @_;
++		my $bs = $opt{bs} // 16384;
++		require Digest::MD5;
++		my $dig = Digest::MD5->new;
++		print $out <<EOM;
++PUT $path HTTP/1.1\r
++Transfer-Encoding: chunked\r
++Trailer: Content-MD5\r
++\r
++EOM
++		my ($buf, $r);
++		while (1) {
++			$r = read($in, $buf, $bs) // die "read: $!";
++			last if $r == 0;
++			printf $out "%x\r\n", length($buf);
++			print $out $buf, "\r\n";
++			$dig->add($buf);
++		}
++		print $out "0\r\nContent-MD5: ", $dig->b64digest, "\r\n\r\n";
++	},
++	identity => sub {
++		my ($in, $out, $path, %opt) = @_;
++		my $bs = $opt{bs} // 16384;
++		my $clen = $opt{-s} // -s $in;
++		print $out <<EOM;
++PUT $path HTTP/1.0\r
++Content-Length: $clen\r
++\r
++EOM
++		my ($buf, $r, $len);
++		while ($clen) {
++			$len = $clen > $bs ? $bs : $clen;
++			$r = read($in, $buf, $len) // die "read: $!";
++			die 'premature EOF' if $r == 0;
++			print $out $buf;
++			$clen -= $r;
++		}
++	},
++);
++
+ my ($c, $status, $hdr);
+ 
+ # response header tests
+@@ -111,6 +156,55 @@ if ('bad requests') {
+ 	like($status, qr!\AHTTP/1\.[01] 414 \b!, '414 on FRAGMENT > (1024)');
+ }
+ 
++# input tests
++my ($blob_size, $blob_hash);
++SKIP: {
++	open(my $rh, '<', 't/random_blob') or
++		skip "t/random_blob not generated $!", 1;
++	$blob_size = -s $rh;
++	require Digest::SHA;
++	$blob_hash = Digest::SHA->new(1)->addfile($rh)->hexdigest;
++
++	my $ck_hash = sub {
++		my ($sub, $path, %opt) = @_;
++		seek($rh, 0, SEEK_SET) // die "seek: $!";
++		$c = tcp_connect($srv);
++		$c->autoflush(0);
++		$PUT{$sub}->($rh, $c, $path, %opt);
++		$c->flush or die "flush: $!";
++		($status, $hdr) = slurp_hdr($c);
++		is(readline($c), $blob_hash, "$sub $path");
++	};
++	$ck_hash->('identity', '/rack_input', -s => $blob_size);
++	$ck_hash->('chunked_md5', '/rack_input');
++	$ck_hash->('identity', '/rack_input/size_first', -s => $blob_size);
++	$ck_hash->('identity', '/rack_input/rewind_first', -s => $blob_size);
++	$ck_hash->('chunked_md5', '/rack_input/size_first');
++	$ck_hash->('chunked_md5', '/rack_input/rewind_first');
++
++
++	$curl // skip 'no curl found in PATH', 1;
++
++	my ($copt, $cout);
++	my $url = "http://$host_port/rack_input";
++	my $do_curl = sub {
++		my (@arg) = @_;
++		pipe(my $cout, $copt->{1}) or die "pipe: $!";
++		open $copt->{2}, '>', "$tmpdir/curl.err" or die $!;
++		my $cpid = spawn($curl, '-sSf', @arg, $url, $copt);
++		close(delete $copt->{1}) or die "close: $!";
++		is(readline($cout), $blob_hash, "curl @arg response");
++		is(waitpid($cpid, 0), $cpid, "curl @arg exited");
++		is($?, 0, "no error from curl @arg");
++		is(slurp("$tmpdir/curl.err"), '', "no stderr from curl @arg");
++	};
++
++	$do_curl->(qw(-T t/random_blob));
++
++	seek($rh, 0, SEEK_SET) // die "seek: $!";
++	$copt->{0} = $rh;
++	$do_curl->('-T-');
++}
+ 
+ # ... more stuff here
+ undef $ar;
+@@ -120,4 +214,5 @@ my @err = grep(!/NameError.*Unicorn::Waiter/, grep(/error/i, @log));
+ is_deeply(\@err, [], 'no unexpected errors in stderr');
+ is_deeply([grep(/SIGKILL/, @log)], [], 'no SIGKILL in stderr');
+ 
++undef $tmpdir;
+ done_testing;
+diff --git a/t/lib.perl b/t/lib.perl
+index 7d712b5..ae9f197 100644
+--- a/t/lib.perl
++++ b/t/lib.perl
+@@ -10,7 +10,7 @@ use POSIX qw(dup2 _exit setpgid :signal_h SEEK_SET F_SETFD);
+ use File::Temp 0.19 (); # 0.19 for ->newdir
+ our ($tmpdir, $errfh);
+ our @EXPORT = qw(unicorn slurp tcp_server tcp_connect unicorn $tmpdir $errfh
+-	SEEK_SET tcp_host_port start_req);
++	SEEK_SET tcp_host_port start_req which spawn);
+ 
+ my ($base) = ($0 =~ m!\b([^/]+)\.[^\.]+\z!);
+ $tmpdir = File::Temp->newdir("unicorn-$base-XXXX", TMPDIR => 1);
+@@ -193,4 +193,5 @@ Test::More->import;
+ # try to ensure ->DESTROY fires:
+ $SIG{TERM} = sub { exit(15 + 128) };
+ $SIG{INT} = sub { exit(2 + 128) };
++$SIG{PIPE} = sub { exit(13 + 128) };
+ 1;
+diff --git a/t/rack-input-tests.ru b/t/rack-input-tests.ru
+deleted file mode 100644
+index 5459e85..0000000
+--- a/t/rack-input-tests.ru
++++ /dev/null
+@@ -1,21 +0,0 @@
+-# SHA1 checksum generator
+-require 'digest/sha1'
+-use Rack::ContentLength
+-cap = 16384
+-app = lambda do |env|
+-  /\A100-continue\z/i =~ env['HTTP_EXPECT'] and
+-    return [ 100, {}, [] ]
+-  digest = Digest::SHA1.new
+-  input = env['rack.input']
+-  input.size if env["PATH_INFO"] == "/size_first"
+-  input.rewind if env["PATH_INFO"] == "/rewind_first"
+-  if buf = input.read(rand(cap))
+-    begin
+-      raise "#{buf.size} > #{cap}" if buf.size > cap
+-      digest.update(buf)
+-    end while input.read(rand(cap), buf)
+-  end
+-
+-  [ 200, {'content-type' => 'text/plain'}, [ digest.hexdigest << "\n" ] ]
+-end
+-run app
+diff --git a/t/t0100-rack-input-tests.sh b/t/t0100-rack-input-tests.sh
+deleted file mode 100755
+index ee7a437..0000000
+--- a/t/t0100-rack-input-tests.sh
++++ /dev/null
+@@ -1,124 +0,0 @@
+-#!/bin/sh
+-. ./test-lib.sh
+-test -r random_blob || die "random_blob required, run with 'make $0'"
+-
+-t_plan 10 "rack.input read tests"
+-
+-t_begin "setup and startup" && {
+-	rtmpfiles curl_out curl_err
+-	unicorn_setup
+-	unicorn -E none -D rack-input-tests.ru -c $unicorn_config
+-	blob_sha1=$(rsha1 < random_blob)
+-	blob_size=$(count_bytes < random_blob)
+-	t_info "blob_sha1=$blob_sha1"
+-	unicorn_wait_start
+-}
+-
+-t_begin "corked identity request" && {
+-	rm -f $tmp
+-	(
+-		cat $fifo > $tmp &
+-		printf 'PUT / HTTP/1.0\r\n'
+-		printf 'Content-Length: %d\r\n\r\n' $blob_size
+-		cat random_blob
+-		wait
+-		echo ok > $ok
+-	) | ( sleep 1 && socat - TCP4:$listen > $fifo )
+-	test 1 -eq $(grep $blob_sha1 $tmp |count_lines)
+-	test x"$(cat $ok)" = xok
+-}
+-
+-t_begin "corked chunked request" && {
+-	rm -f $tmp
+-	(
+-		cat $fifo > $tmp &
+-		content-md5-put < random_blob
+-		wait
+-		echo ok > $ok
+-	) | ( sleep 1 && socat - TCP4:$listen > $fifo )
+-	test 1 -eq $(grep $blob_sha1 $tmp |count_lines)
+-	test x"$(cat $ok)" = xok
+-}
+-
+-t_begin "corked identity request (input#size first)" && {
+-	rm -f $tmp
+-	(
+-		cat $fifo > $tmp &
+-		printf 'PUT /size_first HTTP/1.0\r\n'
+-		printf 'Content-Length: %d\r\n\r\n' $blob_size
+-		cat random_blob
+-		wait
+-		echo ok > $ok
+-	) | ( sleep 1 && socat - TCP4:$listen > $fifo )
+-	test 1 -eq $(grep $blob_sha1 $tmp |count_lines)
+-	test x"$(cat $ok)" = xok
+-}
+-
+-t_begin "corked identity request (input#rewind first)" && {
+-	rm -f $tmp
+-	(
+-		cat $fifo > $tmp &
+-		printf 'PUT /rewind_first HTTP/1.0\r\n'
+-		printf 'Content-Length: %d\r\n\r\n' $blob_size
+-		cat random_blob
+-		wait
+-		echo ok > $ok
+-	) | ( sleep 1 && socat - TCP4:$listen > $fifo )
+-	test 1 -eq $(grep $blob_sha1 $tmp |count_lines)
+-	test x"$(cat $ok)" = xok
+-}
+-
+-t_begin "corked chunked request (input#size first)" && {
+-	rm -f $tmp
+-	(
+-		cat $fifo > $tmp &
+-		printf 'PUT /size_first HTTP/1.1\r\n'
+-		printf 'Host: example.com\r\n'
+-		printf 'Transfer-Encoding: chunked\r\n'
+-		printf 'Trailer: Content-MD5\r\n'
+-		printf '\r\n'
+-		content-md5-put --no-headers < random_blob
+-		wait
+-		echo ok > $ok
+-	) | ( sleep 1 && socat - TCP4:$listen > $fifo )
+-	test 1 -eq $(grep $blob_sha1 $tmp |count_lines)
+-	test 1 -eq $(grep $blob_sha1 $tmp |count_lines)
+-	test x"$(cat $ok)" = xok
+-}
+-
+-t_begin "corked chunked request (input#rewind first)" && {
+-	rm -f $tmp
+-	(
+-		cat $fifo > $tmp &
+-		printf 'PUT /rewind_first HTTP/1.1\r\n'
+-		printf 'Host: example.com\r\n'
+-		printf 'Transfer-Encoding: chunked\r\n'
+-		printf 'Trailer: Content-MD5\r\n'
+-		printf '\r\n'
+-		content-md5-put --no-headers < random_blob
+-		wait
+-		echo ok > $ok
+-	) | ( sleep 1 && socat - TCP4:$listen > $fifo )
+-	test 1 -eq $(grep $blob_sha1 $tmp |count_lines)
+-	test x"$(cat $ok)" = xok
+-}
+-
+-t_begin "regular request" && {
+-	curl -sSf -T random_blob http://$listen/ > $curl_out 2> $curl_err
+-        test x$blob_sha1 = x$(cat $curl_out)
+-        test ! -s $curl_err
+-}
+-
+-t_begin "chunked request" && {
+-	curl -sSf -T- < random_blob http://$listen/ > $curl_out 2> $curl_err
+-        test x$blob_sha1 = x$(cat $curl_out)
+-        test ! -s $curl_err
+-}
+-
+-dbgcat r_err
+-
+-t_begin "shutdown" && {
+-	kill $unicorn_pid
+-}
+-
+-t_done
+
+--tMFmNiOc6i75m139
+Content-Type: text/x-diff; charset=utf-8
+Content-Disposition: attachment;
+	filename="0009-tests-use-autodie-to-simplify-error-checking.patch"
+
+From 3a1d015a3859b639d8e4463e9436a49f4f0f720e Mon Sep 17 00:00:00 2001
+From: Eric Wong <BOFH@YHBT.net>
+Date: Mon, 5 Jun 2023 10:12:38 +0000
+Subject: [PATCH 09/23] tests: use autodie to simplify error checking
+
+autodie is bundled with Perl 5.10+ and simplifies error
+checking in most cases.  Some subroutines aren't perfectly
+translatable and their call sites had to be tweaked, but
+most of them are.
+---
+ t/active-unix-socket.t | 13 +++++++------
+ t/integration.t        | 37 +++++++++++++++++++------------------
+ t/lib.perl             | 30 +++++++++++++++---------------
+ 3 files changed, 41 insertions(+), 39 deletions(-)
+
+diff --git a/t/active-unix-socket.t b/t/active-unix-socket.t
+index 6b5c218..1241904 100644
+--- a/t/active-unix-socket.t
++++ b/t/active-unix-socket.t
+@@ -4,17 +4,18 @@
+ 
+ use v5.14; BEGIN { require './t/lib.perl' };
+ use IO::Socket::UNIX;
++use autodie;
++no autodie 'kill';
+ my %to_kill;
+ END { kill('TERM', values(%to_kill)) if keys %to_kill }
+ my $u1 = "$tmpdir/u1.sock";
+ my $u2 = "$tmpdir/u2.sock";
+ my $unix_req = sub {
+ 	my $s = IO::Socket::UNIX->new(Peer => shift, Type => SOCK_STREAM);
+-	print $s @_, "\r\n\r\n" or die $!;
++	print $s @_, "\r\n\r\n";
+ 	$s;
+ };
+ {
+-	use autodie;
+ 	open my $fh, '>', "$tmpdir/u1.conf.rb";
+ 	print $fh <<EOM;
+ pid "$tmpdir/u.pid"
+@@ -43,8 +44,8 @@ EOM
+ my @uarg = qw(-D -E none t/integration.ru);
+ 
+ # this pipe will be used to notify us when all daemons die:
+-pipe(my ($p0, $p1)) or die "pipe: $!";
+-fcntl($p1, POSIX::F_SETFD, 0) or die "fcntl: $!"; # clear FD_CLOEXEC
++pipe(my $p0, my $p1);
++fcntl($p1, POSIX::F_SETFD, 0);
+ 
+ # start the first instance
+ unicorn('-c', "$tmpdir/u1.conf.rb", @uarg)->join;
+@@ -93,8 +94,8 @@ is($pidf, $to_kill{u1}, 'pid file contents unchanged after 2nd start failure');
+ 
+ # restart the first instance
+ {
+-	pipe(($p0, $p1)) or die "pipe: $!";
+-	fcntl($p1, POSIX::F_SETFD, 0) or die "fcntl: $!"; # clear FD_CLOEXEC
++	pipe($p0, $p1);
++	fcntl($p1, POSIX::F_SETFD, 0);
+ 	unicorn('-c', "$tmpdir/u1.conf.rb", @uarg)->join;
+ 	is($?, 0, 'daemonized 1st process');
+ 	chomp($to_kill{u1} = slurp("$tmpdir/u.pid"));
+diff --git a/t/integration.t b/t/integration.t
+index 8cef561..af17d51 100644
+--- a/t/integration.t
++++ b/t/integration.t
+@@ -5,6 +5,7 @@
+ # restarting or signals
+ 
+ use v5.14; BEGIN { require './t/lib.perl' };
++use autodie;
+ my $srv = tcp_server();
+ my $host_port = tcp_host_port($srv);
+ my $t0 = time;
+@@ -34,7 +35,7 @@ Trailer: Content-MD5\r
+ EOM
+ 		my ($buf, $r);
+ 		while (1) {
+-			$r = read($in, $buf, $bs) // die "read: $!";
++			$r = read($in, $buf, $bs);
+ 			last if $r == 0;
+ 			printf $out "%x\r\n", length($buf);
+ 			print $out $buf, "\r\n";
+@@ -54,7 +55,7 @@ EOM
+ 		my ($buf, $r, $len);
+ 		while ($clen) {
+ 			$len = $clen > $bs ? $bs : $clen;
+-			$r = read($in, $buf, $len) // die "read: $!";
++			$r = read($in, $buf, $len);
+ 			die 'premature EOF' if $r == 0;
+ 			print $out $buf;
+ 			$clen -= $r;
+@@ -130,28 +131,28 @@ if ('bad requests') {
+ 	like($status, qr!\AHTTP/1\.[01] 400 \b!, 'got 400 on bad request');
+ 
+ 	$c = tcp_connect($srv);
+-	print $c 'GET /' or die $!;
++	print $c 'GET /';
+ 	my $buf = join('', (0..9), 'ab');
+-	for (0..1023) { print $c $buf or die $! }
+-	print $c " HTTP/1.0\r\n\r\n" or die $!;
++	for (0..1023) { print $c $buf }
++	print $c " HTTP/1.0\r\n\r\n";
+ 	($status, $hdr) = slurp_hdr($c);
+ 	like($status, qr!\AHTTP/1\.[01] 414 \b!,
+ 		'414 on REQUEST_PATH > (12 * 1024)');
+ 
+ 	$c = tcp_connect($srv);
+-	print $c 'GET /hello-world?a' or die $!;
++	print $c 'GET /hello-world?a';
+ 	$buf = join('', (0..9));
+-	for (0..1023) { print $c $buf or die $! }
+-	print $c " HTTP/1.0\r\n\r\n" or die $!;
++	for (0..1023) { print $c $buf }
++	print $c " HTTP/1.0\r\n\r\n";
+ 	($status, $hdr) = slurp_hdr($c);
+ 	like($status, qr!\AHTTP/1\.[01] 414 \b!,
+ 		'414 on QUERY_STRING > (10 * 1024)');
+ 
+ 	$c = tcp_connect($srv);
+-	print $c 'GET /hello-world#a' or die $!;
++	print $c 'GET /hello-world#a';
+ 	$buf = join('', (0..9), 'a'..'f');
+-	for (0..63) { print $c $buf or die $! }
+-	print $c " HTTP/1.0\r\n\r\n" or die $!;
++	for (0..63) { print $c $buf }
++	print $c " HTTP/1.0\r\n\r\n";
+ 	($status, $hdr) = slurp_hdr($c);
+ 	like($status, qr!\AHTTP/1\.[01] 414 \b!, '414 on FRAGMENT > (1024)');
+ }
+@@ -159,7 +160,7 @@ if ('bad requests') {
+ # input tests
+ my ($blob_size, $blob_hash);
+ SKIP: {
+-	open(my $rh, '<', 't/random_blob') or
++	CORE::open(my $rh, '<', 't/random_blob') or
+ 		skip "t/random_blob not generated $!", 1;
+ 	$blob_size = -s $rh;
+ 	require Digest::SHA;
+@@ -167,11 +168,11 @@ SKIP: {
+ 
+ 	my $ck_hash = sub {
+ 		my ($sub, $path, %opt) = @_;
+-		seek($rh, 0, SEEK_SET) // die "seek: $!";
++		seek($rh, 0, SEEK_SET);
+ 		$c = tcp_connect($srv);
+ 		$c->autoflush(0);
+ 		$PUT{$sub}->($rh, $c, $path, %opt);
+-		$c->flush or die "flush: $!";
++		$c->flush or die $!;
+ 		($status, $hdr) = slurp_hdr($c);
+ 		is(readline($c), $blob_hash, "$sub $path");
+ 	};
+@@ -189,10 +190,10 @@ SKIP: {
+ 	my $url = "http://$host_port/rack_input";
+ 	my $do_curl = sub {
+ 		my (@arg) = @_;
+-		pipe(my $cout, $copt->{1}) or die "pipe: $!";
+-		open $copt->{2}, '>', "$tmpdir/curl.err" or die $!;
++		pipe(my $cout, $copt->{1});
++		open $copt->{2}, '>', "$tmpdir/curl.err";
+ 		my $cpid = spawn($curl, '-sSf', @arg, $url, $copt);
+-		close(delete $copt->{1}) or die "close: $!";
++		close(delete $copt->{1});
+ 		is(readline($cout), $blob_hash, "curl @arg response");
+ 		is(waitpid($cpid, 0), $cpid, "curl @arg exited");
+ 		is($?, 0, "no error from curl @arg");
+@@ -201,7 +202,7 @@ SKIP: {
+ 
+ 	$do_curl->(qw(-T t/random_blob));
+ 
+-	seek($rh, 0, SEEK_SET) // die "seek: $!";
++	seek($rh, 0, SEEK_SET);
+ 	$copt->{0} = $rh;
+ 	$do_curl->('-T-');
+ }
+diff --git a/t/lib.perl b/t/lib.perl
+index ae9f197..49632cf 100644
+--- a/t/lib.perl
++++ b/t/lib.perl
+@@ -4,6 +4,7 @@
+ package UnicornTest;
+ use v5.14;
+ use parent qw(Exporter);
++use autodie;
+ use Test::More;
+ use IO::Socket::INET;
+ use POSIX qw(dup2 _exit setpgid :signal_h SEEK_SET F_SETFD);
+@@ -14,7 +15,7 @@ our @EXPORT = qw(unicorn slurp tcp_server tcp_connect unicorn $tmpdir $errfh
+ 
+ my ($base) = ($0 =~ m!\b([^/]+)\.[^\.]+\z!);
+ $tmpdir = File::Temp->newdir("unicorn-$base-XXXX", TMPDIR => 1);
+-open($errfh, '>>', "$tmpdir/err.log") or die "open: $!";
++open($errfh, '>>', "$tmpdir/err.log");
+ 
+ sub tcp_server {
+ 	my %opt = (
+@@ -62,14 +63,14 @@ sub tcp_connect {
+ sub start_req {
+ 	my ($srv, @req) = @_;
+ 	my $c = tcp_connect($srv);
+-	print $c @req, "\r\n\r\n" or die "print: $!";
++	print $c @req, "\r\n\r\n";
+ 	$c;
+ }
+ 
+ sub slurp {
+-	open my $fh, '<', $_[0] or die "open($_[0]): $!";
++	open my $fh, '<', $_[0];
+ 	local $/;
+-	<$fh>;
++	readline($fh);
+ }
+ 
+ sub spawn {
+@@ -80,8 +81,8 @@ sub spawn {
+ 	my $set = POSIX::SigSet->new;
+ 	$set->fillset or die "sigfillset: $!";
+ 	sigprocmask(SIG_SETMASK, $set, $old) or die "SIG_SETMASK: $!";
+-	pipe(my ($r, $w)) or die "pipe: $!";
+-	my $pid = fork // die "fork: $!";
++	pipe(my $r, my $w);
++	my $pid = fork;
+ 	if ($pid == 0) {
+ 		close $r;
+ 		$SIG{__DIE__} = sub {
+@@ -94,9 +95,9 @@ sub spawn {
+ 		my $cfd;
+ 		for ($cfd = 0; ($cfd < 3) || defined($opt->{$cfd}); $cfd++) {
+ 			my $io = $opt->{$cfd} // next;
+-			my $pfd = fileno($io) // die "fileno($io): $!";
++			my $pfd = fileno($io);
+ 			if ($pfd == $cfd) {
+-				fcntl($io, F_SETFD, 0) // die "F_SETFD: $!";
++				fcntl($io, F_SETFD, 0);
+ 			} else {
+ 				dup2($pfd, $cfd) // die "dup2($pfd, $cfd): $!";
+ 			}
+@@ -110,9 +111,7 @@ sub spawn {
+ 			setpgid(0, $pgid) // die "setpgid(0, $pgid): $!";
+ 		}
+ 		$SIG{$_} = 'DEFAULT' for grep(!/^__/, keys %SIG);
+-		if (defined(my $cd = $opt->{-C})) {
+-			chdir $cd // die "chdir($cd): $!";
+-		}
++		if (defined(my $cd = $opt->{-C})) { chdir $cd }
+ 		$old->delset(POSIX::SIGCHLD) or die "sigdelset CHLD: $!";
+ 		sigprocmask(SIG_SETMASK, $old) or die "SIG_SETMASK: ~CHLD: $!";
+ 		@ENV{keys %$env} = values(%$env) if $env;
+@@ -162,22 +161,23 @@ sub unicorn {
+ # automatically kill + reap children when this goes out-of-scope
+ package UnicornTest::AutoReap;
+ use v5.14;
++use autodie;
+ 
+ sub new {
+ 	my (undef, $pid) = @_;
+ 	bless { pid => $pid, owner => $$ }, __PACKAGE__
+ }
+ 
+-sub kill {
++sub do_kill {
+ 	my ($self, $sig) = @_;
+-	CORE::kill($sig // 'TERM', $self->{pid});
++	kill($sig // 'TERM', $self->{pid});
+ }
+ 
+ sub join {
+ 	my ($self, $sig) = @_;
+ 	my $pid = delete $self->{pid} or return;
+-	CORE::kill($sig, $pid) if defined $sig;
+-	my $ret = waitpid($pid, 0) // die "waitpid($pid): $!";
++	kill($sig, $pid) if defined $sig;
++	my $ret = waitpid($pid, 0);
+ 	$ret == $pid or die "BUG: waitpid($pid) != $ret";
+ }
+ 
+
+--tMFmNiOc6i75m139
+Content-Type: text/x-diff; charset=utf-8
+Content-Disposition: attachment;
+	filename="0010-port-t0019-max_header_len.sh-to-Perl-5.patch"
+
+From 43c7d73b8b9e6995b5a986b10a8623395e89a538 Mon Sep 17 00:00:00 2001
+From: Eric Wong <BOFH@YHBT.net>
+Date: Mon, 5 Jun 2023 10:12:39 +0000
+Subject: [PATCH 10/23] port t0019-max_header_len.sh to Perl 5
+
+This was the final socat requirement for integration tests.
+I think curl will remain an optional dependency for tests
+since it's probably the most widely-installed HTTP client.
+---
+ GNUmakefile               |  2 +-
+ t/README                  |  7 +-----
+ t/integration.ru          |  1 +
+ t/integration.t           | 43 +++++++++++++++++++++++++++++++---
+ t/t0019-max_header_len.sh | 49 ---------------------------------------
+ 5 files changed, 43 insertions(+), 59 deletions(-)
+ delete mode 100755 t/t0019-max_header_len.sh
+
+diff --git a/GNUmakefile b/GNUmakefile
+index 5cca189..eab9082 100644
+--- a/GNUmakefile
++++ b/GNUmakefile
+@@ -125,7 +125,7 @@ $(T_sh): dep $(test_prereq) t/random_blob t/trash/.gitignore
+ t/trash/.gitignore : | t/trash
+ 	echo '*' >$@
+ 
+-dependencies := socat curl
++dependencies := curl
+ deps := $(addprefix t/.dep+,$(dependencies))
+ $(deps): dep_bin = $(lastword $(subst +, ,$@))
+ $(deps):
+diff --git a/t/README b/t/README
+index 8a5243e..d09c715 100644
+--- a/t/README
++++ b/t/README
+@@ -10,18 +10,13 @@ to test real-world behavior and Ruby introduces incompatibilities
+ at a far faster rate than Perl 5.  Perl is Ruby's older cousin, so
+ it should be easy-to-learn for Rubyists.
+ 
+-Old tests are in Bourne shell, but the socat(1) dependency was probably
+-too rare compared to Perl 5.
++Old tests are in Bourne shell and slowly being ported to Perl 5.
+ 
+ == Requirements
+ 
+ * {Ruby 2.0.0+}[https://www.ruby-lang.org/en/]
+ * {Perl 5.14+}[https://www.perl.org/] # your distro should have it
+ * {GNU make}[https://www.gnu.org/software/make/]
+-
+-The following requirements will eventually be dropped.
+-
+-* {socat}[http://www.dest-unreach.org/socat/]
+ * {curl}[https://curl.haxx.se/]
+ 
+ We do not use bashisms or any non-portable, non-POSIX constructs
+diff --git a/t/integration.ru b/t/integration.ru
+index 98528f6..edc408c 100644
+--- a/t/integration.ru
++++ b/t/integration.ru
+@@ -81,6 +81,7 @@ def rack_input_tests(env)
+     when '/env_dump'; [ 200, {}, [ env_dump(env) ] ]
+     when '/write_on_close'; write_on_close
+     when '/pid'; [ 200, {}, [ "#$$\n" ] ]
++    else '/'; [ 200, {}, [ env_dump(env) ] ]
+     end # case PATH_INFO (GET)
+   when 'POST'
+     case env['PATH_INFO']
+diff --git a/t/integration.t b/t/integration.t
+index af17d51..c687655 100644
+--- a/t/integration.t
++++ b/t/integration.t
+@@ -1,15 +1,19 @@
+ #!perl -w
+ # Copyright (C) unicorn hackers <unicorn-public@yhbt.net>
+ # License: GPL-3.0+ <https://www.gnu.org/licenses/gpl-3.0.txt>
+-# this is the main integration test for things which don't require
+-# restarting or signals
++
++# This is the main integration test for fast-ish things to minimize
++# Ruby startup time penalties.
+ 
+ use v5.14; BEGIN { require './t/lib.perl' };
+ use autodie;
+ my $srv = tcp_server();
+ my $host_port = tcp_host_port($srv);
+ my $t0 = time;
+-my $ar = unicorn(qw(-E none t/integration.ru), { 3 => $srv });
++my $conf = "$tmpdir/u.conf.rb";
++open my $conf_fh, '>', $conf;
++$conf_fh->autoflush(1);
++my $ar = unicorn(qw(-E none t/integration.ru -c), $conf, { 3 => $srv });
+ my $curl = which('curl');
+ END { diag slurp("$tmpdir/err.log") if $tmpdir };
+ sub slurp_hdr {
+@@ -207,7 +211,40 @@ SKIP: {
+ 	$do_curl->('-T-');
+ }
+ 
++
+ # ... more stuff here
++
++# SIGHUP-able stuff goes here
++
++if ('max_header_len internal API') {
++	undef $c;
++	my $req = 'GET / HTTP/1.0';
++	my $len = length($req."\r\n\r\n");
++	my $fifo = "$tmpdir/fifo";
++	POSIX::mkfifo($fifo, 0600) or die "mkfifo: $!";
++	print $conf_fh <<EOM;
++Unicorn::HttpParser.max_header_len = $len
++listen "$host_port" # TODO: remove this requirement for SIGHUP
++after_fork { |_,_| File.open('$fifo', 'w') { |fp| fp.write "pid=#\$\$" } }
++EOM
++	$ar->do_kill('HUP');
++	open my $fifo_fh, '<', $fifo;
++	my $wpid = readline($fifo_fh);
++	like($wpid, qr/\Apid=\d+\z/a , 'new worker ready');
++	close $fifo_fh;
++	$wpid =~ s/\Apid=// or die;
++	ok(CORE::kill(0, $wpid), 'worker PID retrieved');
++
++	$c = start_req($srv, $req);
++	($status, $hdr) = slurp_hdr($c);
++	like($status, qr!\AHTTP/1\.[01] 200\b!, 'minimal request succeeds');
++
++	$c = start_req($srv, 'GET /xxxxxx HTTP/1.0');
++	($status, $hdr) = slurp_hdr($c);
++	like($status, qr!\AHTTP/1\.[01] 413\b!, 'big request fails');
++}
++
++
+ undef $ar;
+ my @log = slurp("$tmpdir/err.log");
+ diag("@log") if $ENV{V};
+diff --git a/t/t0019-max_header_len.sh b/t/t0019-max_header_len.sh
+deleted file mode 100755
+index 6a355b4..0000000
+--- a/t/t0019-max_header_len.sh
++++ /dev/null
+@@ -1,49 +0,0 @@
+-#!/bin/sh
+-. ./test-lib.sh
+-t_plan 5 "max_header_len setting (only intended for Rainbows!)"
+-
+-t_begin "setup and start" && {
+-	unicorn_setup
+-	req='GET / HTTP/1.0\r\n\r\n'
+-	len=$(printf "$req" | count_bytes)
+-	echo Unicorn::HttpParser.max_header_len = $len >> $unicorn_config
+-	unicorn -D -c $unicorn_config env.ru
+-	unicorn_wait_start
+-}
+-
+-t_begin "minimal request succeeds" && {
+-	rm -f $tmp
+-	(
+-		cat $fifo > $tmp &
+-		printf "$req"
+-		wait
+-		echo ok > $ok
+-	) | socat - TCP:$listen > $fifo
+-	test xok = x$(cat $ok)
+-
+-	fgrep "HTTP/1.1 200 OK" $tmp
+-}
+-
+-t_begin "big request fails" && {
+-	rm -f $tmp
+-	(
+-		cat $fifo > $tmp &
+-		printf 'GET /xxxxxx HTTP/1.0\r\n\r\n'
+-		wait
+-		echo ok > $ok
+-	) | socat - TCP:$listen > $fifo
+-	test xok = x$(cat $ok)
+-	fgrep "HTTP/1.1 413" $tmp
+-}
+-
+-dbgcat tmp
+-
+-t_begin "killing succeeds" && {
+-	kill $unicorn_pid
+-}
+-
+-t_begin "check stderr" && {
+-	check_stderr
+-}
+-
+-t_done
+
+--tMFmNiOc6i75m139
+Content-Type: text/x-diff; charset=utf-8
+Content-Disposition: attachment;
+	filename="0011-test_exec-drop-sd_listen_fds-emulation-test.patch"
+
+From 5d828a4ef7683345bcf2ff659442fed0a6fb7a97 Mon Sep 17 00:00:00 2001
+From: Eric Wong <BOFH@YHBT.net>
+Date: Mon, 5 Jun 2023 10:12:40 +0000
+Subject: [PATCH 11/23] test_exec: drop sd_listen_fds emulation test
+
+The Perl 5 tests already rely on this implicitly, and there was
+never a point when Perl 5 couldn't emulate systemd behavior.
+---
+ test/exec/test_exec.rb | 33 ---------------------------------
+ 1 file changed, 33 deletions(-)
+
+diff --git a/test/exec/test_exec.rb b/test/exec/test_exec.rb
+index 2929b2e..1d3a0fd 100644
+--- a/test/exec/test_exec.rb
++++ b/test/exec/test_exec.rb
+@@ -97,39 +97,6 @@ def teardown
+     end
+   end
+ 
+-  def test_sd_listen_fds_emulation
+-    # [ruby-core:69895] [Bug #11336] fixed by r51576
+-    return if RUBY_VERSION.to_f < 2.3
+-
+-    File.open("config.ru", "wb") { |fp| fp.write(HI) }
+-    sock = TCPServer.new(@addr, @port)
+-
+-    [ %W(-l #@addr:#@port), nil ].each do |l|
+-      sock.setsockopt(:SOL_SOCKET, :SO_KEEPALIVE, 0)
+-
+-      pid = xfork do
+-        redirect_test_io do
+-          # pretend to be systemd
+-          ENV['LISTEN_PID'] = "#$$"
+-          ENV['LISTEN_FDS'] = '1'
+-
+-          # 3 = SD_LISTEN_FDS_START
+-          args = [ $unicorn_bin ]
+-          args.concat(l) if l
+-          args << { 3 => sock }
+-          exec(*args)
+-        end
+-      end
+-      res = hit(["http://#@addr:#@port/"])
+-      assert_equal [ "HI\n" ], res
+-      assert_shutdown(pid)
+-      assert sock.getsockopt(:SOL_SOCKET, :SO_KEEPALIVE).bool,
+-                  'unicorn should always set SO_KEEPALIVE on inherited sockets'
+-    end
+-  ensure
+-    sock.close if sock
+-  end
+-
+   def test_inherit_listener_unspecified
+     File.open("config.ru", "wb") { |fp| fp.write(HI) }
+     sock = TCPServer.new(@addr, @port)
+
+--tMFmNiOc6i75m139
+Content-Type: text/x-diff; charset=utf-8
+Content-Disposition: attachment;
+	filename="0012-test_exec-drop-test_basic-and-test_config_ru_alt_pat.patch"
+
+From 548593c6b3d52a4bebd52542ad9c423ed2b7252d Mon Sep 17 00:00:00 2001
+From: Eric Wong <BOFH@YHBT.net>
+Date: Mon, 5 Jun 2023 10:12:41 +0000
+Subject: [PATCH 12/23] test_exec: drop test_basic and test_config_ru_alt_path
+
+We already have coverage for these basic things elsewhere.
+---
+ test/exec/test_exec.rb | 24 ------------------------
+ 1 file changed, 24 deletions(-)
+
+diff --git a/test/exec/test_exec.rb b/test/exec/test_exec.rb
+index 1d3a0fd..55f828e 100644
+--- a/test/exec/test_exec.rb
++++ b/test/exec/test_exec.rb
+@@ -265,16 +265,6 @@ def test_exit_signals
+     end
+   end
+ 
+-  def test_basic
+-    File.open("config.ru", "wb") { |fp| fp.syswrite(HI) }
+-    pid = fork do
+-      redirect_test_io { exec($unicorn_bin, "-l", "#{@addr}:#{@port}") }
+-    end
+-    results = retry_hit(["http://#{@addr}:#{@port}/"])
+-    assert_equal String, results[0].class
+-    assert_shutdown(pid)
+-  end
+-
+   def test_rack_env_unset
+     File.open("config.ru", "wb") { |fp| fp.syswrite(SHOW_RACK_ENV) }
+     pid = fork { redirect_test_io { exec($unicorn_bin, "-l#@addr:#@port") } }
+@@ -638,20 +628,6 @@ def test_read_embedded_cli_switches
+     assert_shutdown(pid)
+   end
+ 
+-  def test_config_ru_alt_path
+-    config_path = "#{@tmpdir}/foo.ru"
+-    File.open(config_path, "wb") { |fp| fp.syswrite(HI) }
+-    pid = fork do
+-      redirect_test_io do
+-        Dir.chdir("/")
+-        exec($unicorn_bin, "-l#{@addr}:#{@port}", config_path)
+-      end
+-    end
+-    results = retry_hit(["http://#{@addr}:#{@port}/"])
+-    assert_equal String, results[0].class
+-    assert_shutdown(pid)
+-  end
+-
+   def test_load_module
+     libdir = "#{@tmpdir}/lib"
+     FileUtils.mkpath([ libdir ])
+
+--tMFmNiOc6i75m139
+Content-Type: text/x-diff; charset=utf-8
+Content-Disposition: attachment;
+	filename="0013-tests-check_stderr-consistently-in-Perl-5-tests.patch"
+
+From cd7ee67fc8ebadec9bdd913d49ed3f214596ea47 Mon Sep 17 00:00:00 2001
+From: Eric Wong <BOFH@YHBT.net>
+Date: Mon, 5 Jun 2023 10:12:42 +0000
+Subject: [PATCH 13/23] tests: check_stderr consistently in Perl 5 tests
+
+The Bourne shell tests did, so lets not let stuff sneak past us.
+---
+ t/active-unix-socket.t |  5 ++---
+ t/integration.t        |  7 ++-----
+ t/lib.perl             | 10 +++++++++-
+ 3 files changed, 13 insertions(+), 9 deletions(-)
+
+diff --git a/t/active-unix-socket.t b/t/active-unix-socket.t
+index 1241904..c132dc2 100644
+--- a/t/active-unix-socket.t
++++ b/t/active-unix-socket.t
+@@ -20,7 +20,7 @@ my $unix_req = sub {
+ 	print $fh <<EOM;
+ pid "$tmpdir/u.pid"
+ listen "$u1"
+-stderr_path "$tmpdir/err1.log"
++stderr_path "$tmpdir/err.log"
+ EOM
+ 	close $fh;
+ 
+@@ -113,6 +113,5 @@ is($pidf, $to_kill{u1}, 'pid file contents unchanged after 2nd start failure');
+ 	ok(-S $u1, 'socket stays after SIGTERM');
+ }
+ 
+-my @log = slurp("$tmpdir/err.log");
+-diag("@log") if $ENV{V};
++check_stderr;
+ done_testing;
+diff --git a/t/integration.t b/t/integration.t
+index c687655..939dc24 100644
+--- a/t/integration.t
++++ b/t/integration.t
+@@ -246,11 +246,8 @@ EOM
+ 
+ 
+ undef $ar;
+-my @log = slurp("$tmpdir/err.log");
+-diag("@log") if $ENV{V};
+-my @err = grep(!/NameError.*Unicorn::Waiter/, grep(/error/i, @log));
+-is_deeply(\@err, [], 'no unexpected errors in stderr');
+-is_deeply([grep(/SIGKILL/, @log)], [], 'no SIGKILL in stderr');
++
++check_stderr;
+ 
+ undef $tmpdir;
+ done_testing;
+diff --git a/t/lib.perl b/t/lib.perl
+index 49632cf..315ef2d 100644
+--- a/t/lib.perl
++++ b/t/lib.perl
+@@ -11,12 +11,20 @@ use POSIX qw(dup2 _exit setpgid :signal_h SEEK_SET F_SETFD);
+ use File::Temp 0.19 (); # 0.19 for ->newdir
+ our ($tmpdir, $errfh);
+ our @EXPORT = qw(unicorn slurp tcp_server tcp_connect unicorn $tmpdir $errfh
+-	SEEK_SET tcp_host_port start_req which spawn);
++	SEEK_SET tcp_host_port start_req which spawn check_stderr);
+ 
+ my ($base) = ($0 =~ m!\b([^/]+)\.[^\.]+\z!);
+ $tmpdir = File::Temp->newdir("unicorn-$base-XXXX", TMPDIR => 1);
+ open($errfh, '>>', "$tmpdir/err.log");
+ 
++sub check_stderr () {
++	my @log = slurp("$tmpdir/err.log");
++	diag("@log") if $ENV{V};
++	my @err = grep(!/NameError.*Unicorn::Waiter/, grep(/error/i, @log));
++	is_deeply(\@err, [], 'no unexpected errors in stderr');
++	is_deeply([grep(/SIGKILL/, @log)], [], 'no SIGKILL in stderr');
++}
++
+ sub tcp_server {
+ 	my %opt = (
+ 		ReuseAddr => 1,
+
+--tMFmNiOc6i75m139
+Content-Type: text/x-diff; charset=utf-8
+Content-Disposition: attachment;
+	filename="0014-tests-consistent-tcp_start-and-unix_start-across-Per.patch"
+
+From 0dcd8bd569813a175ad43837db3ab07019a95b99 Mon Sep 17 00:00:00 2001
+From: Eric Wong <BOFH@YHBT.net>
+Date: Mon, 5 Jun 2023 10:12:43 +0000
+Subject: [PATCH 14/23] tests: consistent tcp_start and unix_start across Perl
+ 5 tests
+
+I'll be using Unix sockets more in tests since there's no
+risk of system-wide conflicts with TCP port allocation.
+Furthermore, curl supports `--unix-socket' nowadays; so
+there's little reason to rely on TCP sockets and the conflicts
+they bring in tests.
+---
+ t/active-unix-socket.t | 13 ++++---------
+ t/integration.t        | 28 ++++++++++++++--------------
+ t/lib.perl             | 30 ++++++++++++++++--------------
+ 3 files changed, 34 insertions(+), 37 deletions(-)
+
+diff --git a/t/active-unix-socket.t b/t/active-unix-socket.t
+index c132dc2..8723137 100644
+--- a/t/active-unix-socket.t
++++ b/t/active-unix-socket.t
+@@ -10,11 +10,6 @@ my %to_kill;
+ END { kill('TERM', values(%to_kill)) if keys %to_kill }
+ my $u1 = "$tmpdir/u1.sock";
+ my $u2 = "$tmpdir/u2.sock";
+-my $unix_req = sub {
+-	my $s = IO::Socket::UNIX->new(Peer => shift, Type => SOCK_STREAM);
+-	print $s @_, "\r\n\r\n";
+-	$s;
+-};
+ {
+ 	open my $fh, '>', "$tmpdir/u1.conf.rb";
+ 	print $fh <<EOM;
+@@ -53,7 +48,7 @@ is($?, 0, 'daemonized 1st process');
+ chomp($to_kill{u1} = slurp("$tmpdir/u.pid"));
+ like($to_kill{u1}, qr/\A\d+\z/s, 'read pid file');
+ 
+-chomp(my $worker_pid = readline($unix_req->($u1, 'GET /pid')));
++chomp(my $worker_pid = readline(unix_start($u1, 'GET /pid')));
+ like($worker_pid, qr/\A\d+\z/s, 'captured worker pid');
+ ok(kill(0, $worker_pid), 'worker is kill-able');
+ 
+@@ -65,7 +60,7 @@ isnt($?, 0, 'conflicting PID file fails to start');
+ chomp(my $pidf = slurp("$tmpdir/u.pid"));
+ is($pidf, $to_kill{u1}, 'pid file contents unchanged after start failure');
+ 
+-chomp(my $pid2 = readline($unix_req->($u1, 'GET /pid')));
++chomp(my $pid2 = readline(unix_start($u1, 'GET /pid')));
+ is($worker_pid, $pid2, 'worker PID unchanged');
+ 
+ 
+@@ -73,7 +68,7 @@ is($worker_pid, $pid2, 'worker PID unchanged');
+ unicorn('-c', "$tmpdir/u3.conf.rb", @uarg)->join;
+ isnt($?, 0, 'conflicting UNIX socket fails to start');
+ 
+-chomp($pid2 = readline($unix_req->($u1, 'GET /pid')));
++chomp($pid2 = readline(unix_start($u1, 'GET /pid')));
+ is($worker_pid, $pid2, 'worker PID still unchanged');
+ 
+ chomp($pidf = slurp("$tmpdir/u.pid"));
+@@ -101,7 +96,7 @@ is($pidf, $to_kill{u1}, 'pid file contents unchanged after 2nd start failure');
+ 	chomp($to_kill{u1} = slurp("$tmpdir/u.pid"));
+ 	like($to_kill{u1}, qr/\A\d+\z/s, 'read pid file');
+ 
+-	chomp($pid2 = readline($unix_req->($u1, 'GET /pid')));
++	chomp($pid2 = readline(unix_start($u1, 'GET /pid')));
+ 	like($pid2, qr/\A\d+\z/, 'worker running');
+ 
+ 	ok(kill('TERM', delete $to_kill{u1}), 'SIGTERM restarted daemon');
+diff --git a/t/integration.t b/t/integration.t
+index 939dc24..b33e3c3 100644
+--- a/t/integration.t
++++ b/t/integration.t
+@@ -70,7 +70,7 @@ EOM
+ my ($c, $status, $hdr);
+ 
+ # response header tests
+-$c = start_req($srv, 'GET /rack-2-newline-headers HTTP/1.0');
++$c = tcp_start($srv, 'GET /rack-2-newline-headers HTTP/1.0');
+ ($status, $hdr) = slurp_hdr($c);
+ like($status, qr!\AHTTP/1\.[01] 200\b!, 'status line valid');
+ my $orig_200_status = $status;
+@@ -89,7 +89,7 @@ SKIP: { # Date header check
+ };
+ 
+ 
+-$c = start_req($srv, 'GET /rack-3-array-headers HTTP/1.0');
++$c = tcp_start($srv, 'GET /rack-3-array-headers HTTP/1.0');
+ ($status, $hdr) = slurp_hdr($c);
+ is_deeply([ grep(/^x-r3: /, @$hdr) ],
+ 	[ 'x-r3: a', 'x-r3: b', 'x-r3: c' ],
+@@ -97,7 +97,7 @@ is_deeply([ grep(/^x-r3: /, @$hdr) ],
+ 
+ SKIP: {
+ 	eval { require JSON::PP } or skip "JSON::PP missing: $@", 1;
+-	my $c = start_req($srv, 'GET /env_dump');
++	my $c = tcp_start($srv, 'GET /env_dump');
+ 	my $json = do { local $/; readline($c) };
+ 	unlike($json, qr/^Connection: /smi, 'no connection header for 0.9');
+ 	unlike($json, qr!\AHTTP/!s, 'no HTTP/1.x prefix for 0.9');
+@@ -107,17 +107,17 @@ SKIP: {
+ }
+ 
+ # cf. <CAO47=rJa=zRcLn_Xm4v2cHPr6c0UswaFC_omYFEH+baSxHOWKQ@mail.gmail.com>
+-$c = start_req($srv, 'GET /nil-header-value HTTP/1.0');
++$c = tcp_start($srv, 'GET /nil-header-value HTTP/1.0');
+ ($status, $hdr) = slurp_hdr($c);
+ is_deeply([grep(/^X-Nil:/, @$hdr)], ['X-Nil: '],
+ 	'nil header value accepted for broken apps') or diag(explain($hdr));
+ 
+ if ('TODO: ensure Rack::Utils::HTTP_STATUS_CODES is available') {
+-	$c = start_req($srv, 'POST /tweak-status-code HTTP/1.0');
++	$c = tcp_start($srv, 'POST /tweak-status-code HTTP/1.0');
+ 	($status, $hdr) = slurp_hdr($c);
+ 	like($status, qr!\AHTTP/1\.[01] 200 HI\b!, 'status tweaked');
+ 
+-	$c = start_req($srv, 'POST /restore-status-code HTTP/1.0');
++	$c = tcp_start($srv, 'POST /restore-status-code HTTP/1.0');
+ 	($status, $hdr) = slurp_hdr($c);
+ 	is($status, $orig_200_status, 'original status restored');
+ }
+@@ -130,12 +130,12 @@ SKIP: {
+ }
+ 
+ if ('bad requests') {
+-	$c = start_req($srv, 'GET /env_dump HTTP/1/1');
++	$c = tcp_start($srv, 'GET /env_dump HTTP/1/1');
+ 	($status, $hdr) = slurp_hdr($c);
+ 	like($status, qr!\AHTTP/1\.[01] 400 \b!, 'got 400 on bad request');
+ 
+-	$c = tcp_connect($srv);
+-	print $c 'GET /';
++	$c = tcp_start($srv);
++	print $c 'GET /';;
+ 	my $buf = join('', (0..9), 'ab');
+ 	for (0..1023) { print $c $buf }
+ 	print $c " HTTP/1.0\r\n\r\n";
+@@ -143,7 +143,7 @@ if ('bad requests') {
+ 	like($status, qr!\AHTTP/1\.[01] 414 \b!,
+ 		'414 on REQUEST_PATH > (12 * 1024)');
+ 
+-	$c = tcp_connect($srv);
++	$c = tcp_start($srv);
+ 	print $c 'GET /hello-world?a';
+ 	$buf = join('', (0..9));
+ 	for (0..1023) { print $c $buf }
+@@ -152,7 +152,7 @@ if ('bad requests') {
+ 	like($status, qr!\AHTTP/1\.[01] 414 \b!,
+ 		'414 on QUERY_STRING > (10 * 1024)');
+ 
+-	$c = tcp_connect($srv);
++	$c = tcp_start($srv);
+ 	print $c 'GET /hello-world#a';
+ 	$buf = join('', (0..9), 'a'..'f');
+ 	for (0..63) { print $c $buf }
+@@ -173,7 +173,7 @@ SKIP: {
+ 	my $ck_hash = sub {
+ 		my ($sub, $path, %opt) = @_;
+ 		seek($rh, 0, SEEK_SET);
+-		$c = tcp_connect($srv);
++		$c = tcp_start($srv);
+ 		$c->autoflush(0);
+ 		$PUT{$sub}->($rh, $c, $path, %opt);
+ 		$c->flush or die $!;
+@@ -235,11 +235,11 @@ EOM
+ 	$wpid =~ s/\Apid=// or die;
+ 	ok(CORE::kill(0, $wpid), 'worker PID retrieved');
+ 
+-	$c = start_req($srv, $req);
++	$c = tcp_start($srv, $req);
+ 	($status, $hdr) = slurp_hdr($c);
+ 	like($status, qr!\AHTTP/1\.[01] 200\b!, 'minimal request succeeds');
+ 
+-	$c = start_req($srv, 'GET /xxxxxx HTTP/1.0');
++	$c = tcp_start($srv, 'GET /xxxxxx HTTP/1.0');
+ 	($status, $hdr) = slurp_hdr($c);
+ 	like($status, qr!\AHTTP/1\.[01] 413\b!, 'big request fails');
+ }
+diff --git a/t/lib.perl b/t/lib.perl
+index 315ef2d..1d6e78d 100644
+--- a/t/lib.perl
++++ b/t/lib.perl
+@@ -10,8 +10,8 @@ use IO::Socket::INET;
+ use POSIX qw(dup2 _exit setpgid :signal_h SEEK_SET F_SETFD);
+ use File::Temp 0.19 (); # 0.19 for ->newdir
+ our ($tmpdir, $errfh);
+-our @EXPORT = qw(unicorn slurp tcp_server tcp_connect unicorn $tmpdir $errfh
+-	SEEK_SET tcp_host_port start_req which spawn check_stderr);
++our @EXPORT = qw(unicorn slurp tcp_server tcp_start unicorn $tmpdir $errfh
++	SEEK_SET tcp_host_port which spawn check_stderr unix_start);
+ 
+ my ($base) = ($0 =~ m!\b([^/]+)\.[^\.]+\z!);
+ $tmpdir = File::Temp->newdir("unicorn-$base-XXXX", TMPDIR => 1);
+@@ -55,26 +55,28 @@ sub tcp_host_port {
+ 	}
+ }
+ 
+-sub tcp_connect {
+-	my ($dest, %opt) = @_;
+-	my $addr = tcp_host_port($dest);
+-	my $s = ref($dest)->new(
++sub unix_start ($@) {
++	my ($dst, @req) = @_;
++	my $s = IO::Socket::UNIX->new(Peer => $dst, Type => SOCK_STREAM) or
++		BAIL_OUT "unix connect $dst: $!";
++	$s->autoflush(1);
++	print $s @req, "\r\n\r\n" if @req;
++	$s;
++}
++
++sub tcp_start ($@) {
++	my ($dst, @req) = @_;
++	my $addr = tcp_host_port($dst);
++	my $s = ref($dst)->new(
+ 		Proto => 'tcp',
+ 		Type => SOCK_STREAM,
+ 		PeerAddr => $addr,
+-		%opt,
+ 	) or BAIL_OUT "failed to connect to $addr: $!";
+ 	$s->autoflush(1);
++	print $s @req, "\r\n\r\n" if @req;
+ 	$s;
+ }
+ 
+-sub start_req {
+-	my ($srv, @req) = @_;
+-	my $c = tcp_connect($srv);
+-	print $c @req, "\r\n\r\n";
+-	$c;
+-}
+-
+ sub slurp {
+ 	open my $fh, '<', $_[0];
+ 	local $/;
+
+--tMFmNiOc6i75m139
+Content-Type: text/x-diff; charset=utf-8
+Content-Disposition: attachment;
+	filename="0015-port-t9000-preread-input.sh-to-Perl-5.patch"
+
+From 1b8840d8d13491eecd2fa92e06f73c65eadd33ba Mon Sep 17 00:00:00 2001
+From: Eric Wong <BOFH@YHBT.net>
+Date: Mon, 5 Jun 2023 10:12:44 +0000
+Subject: [PATCH 15/23] port t9000-preread-input.sh to Perl 5
+
+Stuffing it into t/integration.t for now so we can save on
+startup costs.
+---
+ t/integration.t          | 32 ++++++++++++++++++++++++---
+ t/lib.perl               |  2 +-
+ t/preread_input.ru       |  4 +---
+ t/t9000-preread-input.sh | 48 ----------------------------------------
+ 4 files changed, 31 insertions(+), 55 deletions(-)
+ delete mode 100755 t/t9000-preread-input.sh
+
+diff --git a/t/integration.t b/t/integration.t
+index b33e3c3..f5afd5d 100644
+--- a/t/integration.t
++++ b/t/integration.t
+@@ -7,8 +7,8 @@
+ 
+ use v5.14; BEGIN { require './t/lib.perl' };
+ use autodie;
+-my $srv = tcp_server();
+-my $host_port = tcp_host_port($srv);
++our $srv = tcp_server();
++our $host_port = tcp_host_port($srv);
+ my $t0 = time;
+ my $conf = "$tmpdir/u.conf.rb";
+ open my $conf_fh, '>', $conf;
+@@ -209,8 +209,34 @@ SKIP: {
+ 	seek($rh, 0, SEEK_SET);
+ 	$copt->{0} = $rh;
+ 	$do_curl->('-T-');
+-}
+ 
++	diag 'testing Unicorn::PrereadInput...';
++	local $srv = tcp_server();
++	local $host_port = tcp_host_port($srv);
++	check_stderr;
++	truncate($errfh, 0);
++
++	my $pri = unicorn(qw(-E none t/preread_input.ru), { 3 => $srv });
++	$url = "http://$host_port/";
++
++	$do_curl->(qw(-T t/random_blob));
++	seek($rh, 0, SEEK_SET);
++	$copt->{0} = $rh;
++	$do_curl->('-T-');
++
++	my @pr_err = slurp("$tmpdir/err.log");
++	is(scalar(grep(/app dispatch:/, @pr_err)), 2, 'app dispatched twice');
++
++	# abort a chunked request by blocking curl on a FIFO:
++	$c = tcp_start($srv, "PUT / HTTP/1.1\r\nTransfer-Encoding: chunked");
++	close $c;
++	@pr_err = slurp("$tmpdir/err.log");
++	is(scalar(grep(/app dispatch:/, @pr_err)), 2,
++			'app did not dispatch on aborted request');
++	undef $pri;
++	check_stderr;
++	diag 'Unicorn::PrereadInput middleware tests done';
++}
+ 
+ # ... more stuff here
+ 
+diff --git a/t/lib.perl b/t/lib.perl
+index 1d6e78d..b6148cf 100644
+--- a/t/lib.perl
++++ b/t/lib.perl
+@@ -79,7 +79,7 @@ sub tcp_start ($@) {
+ 
+ sub slurp {
+ 	open my $fh, '<', $_[0];
+-	local $/;
++	local $/ if !wantarray;
+ 	readline($fh);
+ }
+ 
+diff --git a/t/preread_input.ru b/t/preread_input.ru
+index 79685c4..f0a1748 100644
+--- a/t/preread_input.ru
++++ b/t/preread_input.ru
+@@ -1,8 +1,6 @@
+ #\-E none
+ require 'digest/sha1'
+ require 'unicorn/preread_input'
+-use Rack::ContentLength
+-use Rack::ContentType, "text/plain"
+ use Unicorn::PrereadInput
+ nr = 0
+ run lambda { |env|
+@@ -13,5 +11,5 @@
+     dig.update(buf)
+   end
+ 
+-  [ 200, {}, [ "#{dig.hexdigest}\n" ] ]
++  [ 200, {}, [ dig.hexdigest ] ]
+ }
+diff --git a/t/t9000-preread-input.sh b/t/t9000-preread-input.sh
+deleted file mode 100755
+index d6c73ab..0000000
+--- a/t/t9000-preread-input.sh
++++ /dev/null
+@@ -1,48 +0,0 @@
+-#!/bin/sh
+-. ./test-lib.sh
+-t_plan 9 "PrereadInput middleware tests"
+-
+-t_begin "setup and start" && {
+-	random_blob_sha1=$(rsha1 < random_blob)
+-	unicorn_setup
+-	unicorn  -D -c $unicorn_config preread_input.ru
+-	unicorn_wait_start
+-}
+-
+-t_begin "single identity request" && {
+-	curl -sSf -T random_blob http://$listen/ > $tmp
+-}
+-
+-t_begin "sha1 matches" && {
+-	test x"$(cat $tmp)" = x"$random_blob_sha1"
+-}
+-
+-t_begin "single chunked request" && {
+-	curl -sSf -T- < random_blob http://$listen/ > $tmp
+-}
+-
+-t_begin "sha1 matches" && {
+-	test x"$(cat $tmp)" = x"$random_blob_sha1"
+-}
+-
+-t_begin "app only dispatched twice" && {
+-	test 2 -eq "$(grep 'app dispatch:' < $r_err | count_lines )"
+-}
+-
+-t_begin "aborted chunked request" && {
+-	rm -f $tmp
+-	curl -sSf -T- < $fifo http://$listen/ > $tmp &
+-	curl_pid=$!
+-	kill -9 $curl_pid
+-	wait
+-}
+-
+-t_begin "app only dispatched twice" && {
+-	test 2 -eq "$(grep 'app dispatch:' < $r_err | count_lines )"
+-}
+-
+-t_begin "killing succeeds" && {
+-	kill -QUIT $unicorn_pid
+-}
+-
+-t_done
+
+--tMFmNiOc6i75m139
+Content-Type: text/x-diff; charset=utf-8
+Content-Disposition: attachment;
+	filename="0016-port-t-t0116-client_body_buffer_size.sh-to-Perl-5.patch"
+
+From e9593301044f305d4a0e074f77eea35015ca0ec4 Mon Sep 17 00:00:00 2001
+From: Eric Wong <BOFH@YHBT.net>
+Date: Mon, 5 Jun 2023 10:12:45 +0000
+Subject: [PATCH 16/23] port t/t0116-client_body_buffer_size.sh to Perl 5
+
+While I'm fine with depending on curl for certain things,
+there's no need for it here since unicorn has had lazy
+rack.input for over a decade, at this point.
+---
+ t/active-unix-socket.t                     |  1 +
+ t/{t0116.ru => client_body_buffer_size.ru} |  2 -
+ t/client_body_buffer_size.t                | 83 ++++++++++++++++++++++
+ t/integration.t                            | 10 ---
+ t/lib.perl                                 | 12 +++-
+ t/t0116-client_body_buffer_size.sh         | 80 ---------------------
+ 6 files changed, 95 insertions(+), 93 deletions(-)
+ rename t/{t0116.ru => client_body_buffer_size.ru} (82%)
+ create mode 100644 t/client_body_buffer_size.t
+ delete mode 100755 t/t0116-client_body_buffer_size.sh
+
+diff --git a/t/active-unix-socket.t b/t/active-unix-socket.t
+index 8723137..4e11837 100644
+--- a/t/active-unix-socket.t
++++ b/t/active-unix-socket.t
+@@ -109,4 +109,5 @@ is($pidf, $to_kill{u1}, 'pid file contents unchanged after 2nd start failure');
+ }
+ 
+ check_stderr;
++undef $tmpdir;
+ done_testing;
+diff --git a/t/t0116.ru b/t/client_body_buffer_size.ru
+similarity index 82%
+rename from t/t0116.ru
+rename to t/client_body_buffer_size.ru
+index fab5fce..44161a5 100644
+--- a/t/t0116.ru
++++ b/t/client_body_buffer_size.ru
+@@ -1,6 +1,4 @@
+ #\ -E none
+-use Rack::ContentLength
+-use Rack::ContentType, 'text/plain'
+ app = lambda do |env|
+   input = env['rack.input']
+   case env["PATH_INFO"]
+diff --git a/t/client_body_buffer_size.t b/t/client_body_buffer_size.t
+new file mode 100644
+index 0000000..b1a99f3
+--- /dev/null
++++ b/t/client_body_buffer_size.t
+@@ -0,0 +1,83 @@
++#!perl -w
++# Copyright (C) unicorn hackers <unicorn-public@yhbt.net>
++# License: GPL-3.0+ <https://www.gnu.org/licenses/gpl-3.0.txt>
++
++use v5.14; BEGIN { require './t/lib.perl' };
++use autodie;
++my $uconf = "$tmpdir/u.conf.rb";
++
++open my $conf_fh, '>', $uconf;
++$conf_fh->autoflush(1);
++print $conf_fh <<EOM;
++client_body_buffer_size 0
++EOM
++my $srv = tcp_server();
++my $host_port = tcp_host_port($srv);
++my @uarg = (qw(-E none t/client_body_buffer_size.ru -c), $uconf);
++my $ar = unicorn(@uarg, { 3 => $srv });
++my ($c, $status, $hdr);
++my $mem_class = 'StringIO';
++my $fs_class = 'Unicorn::TmpIO';
++
++$c = tcp_start($srv, "PUT /input_class HTTP/1.0\r\nContent-Length: 0");
++($status, $hdr) = slurp_hdr($c);
++like($status, qr!\AHTTP/1\.[01] 200\b!, 'status line valid');
++is(readline($c), $mem_class, 'zero-byte file is StringIO');
++
++$c = tcp_start($srv, "PUT /tmp_class HTTP/1.0\r\nContent-Length: 1");
++print $c '.';
++($status, $hdr) = slurp_hdr($c);
++like($status, qr!\AHTTP/1\.[01] 200\b!, 'status line valid');
++is(readline($c), $fs_class, '1 byte file is filesystem-backed');
++
++
++my $fifo = "$tmpdir/fifo";
++POSIX::mkfifo($fifo, 0600) or die "mkfifo: $!";
++seek($conf_fh, 0, SEEK_SET);
++truncate($conf_fh, 0);
++print $conf_fh <<EOM;
++listen "$host_port" # TODO: remove this requirement for SIGHUP
++after_fork { |_,_| File.open('$fifo', 'w') { |fp| fp.write "pid=#\$\$" } }
++EOM
++$ar->do_kill('HUP');
++open my $fifo_fh, '<', $fifo;
++like(my $wpid = readline($fifo_fh), qr/\Apid=\d+\z/a ,
++	'reloaded w/ default client_body_buffer_size');
++
++
++$c = tcp_start($srv, "PUT /tmp_class HTTP/1.0\r\nContent-Length: 1");
++($status, $hdr) = slurp_hdr($c);
++like($status, qr!\AHTTP/1\.[01] 200\b!, 'status line valid');
++is(readline($c), $mem_class, 'class for a 1 byte file is memory-backed');
++
++
++my $one_meg = 1024 ** 2;
++$c = tcp_start($srv, "PUT /tmp_class HTTP/1.0\r\nContent-Length: $one_meg");
++($status, $hdr) = slurp_hdr($c);
++like($status, qr!\AHTTP/1\.[01] 200\b!, 'status line valid');
++is(readline($c), $fs_class, '1 megabyte file is FS-backed');
++
++# reload with bigger client_body_buffer_size
++say $conf_fh "client_body_buffer_size $one_meg";
++$ar->do_kill('HUP');
++open $fifo_fh, '<', $fifo;
++like($wpid = readline($fifo_fh), qr/\Apid=\d+\z/a ,
++	'reloaded w/ bigger client_body_buffer_size');
++
++
++$c = tcp_start($srv, "PUT /tmp_class HTTP/1.0\r\nContent-Length: $one_meg");
++($status, $hdr) = slurp_hdr($c);
++like($status, qr!\AHTTP/1\.[01] 200\b!, 'status line valid');
++is(readline($c), $mem_class, '1 megabyte file is now memory-backed');
++
++my $too_big = $one_meg + 1;
++$c = tcp_start($srv, "PUT /tmp_class HTTP/1.0\r\nContent-Length: $too_big");
++($status, $hdr) = slurp_hdr($c);
++like($status, qr!\AHTTP/1\.[01] 200\b!, 'status line valid');
++is(readline($c), $fs_class, '1 megabyte + 1 byte file is FS-backed');
++
++
++undef $ar;
++check_stderr;
++undef $tmpdir;
++done_testing;
+diff --git a/t/integration.t b/t/integration.t
+index f5afd5d..855c260 100644
+--- a/t/integration.t
++++ b/t/integration.t
+@@ -15,16 +15,6 @@ open my $conf_fh, '>', $conf;
+ $conf_fh->autoflush(1);
+ my $ar = unicorn(qw(-E none t/integration.ru -c), $conf, { 3 => $srv });
+ my $curl = which('curl');
+-END { diag slurp("$tmpdir/err.log") if $tmpdir };
+-sub slurp_hdr {
+-	my ($c) = @_;
+-	local $/ = "\r\n\r\n"; # affects both readline+chomp
+-	chomp(my $hdr = readline($c));
+-	my ($status, @hdr) = split(/\r\n/, $hdr);
+-	diag explain([ $status, \@hdr ]) if $ENV{V};
+-	($status, \@hdr);
+-}
+-
+ my %PUT = (
+ 	chunked_md5 => sub {
+ 		my ($in, $out, $path, %opt) = @_;
+diff --git a/t/lib.perl b/t/lib.perl
+index b6148cf..2685c3b 100644
+--- a/t/lib.perl
++++ b/t/lib.perl
+@@ -11,11 +11,12 @@ use POSIX qw(dup2 _exit setpgid :signal_h SEEK_SET F_SETFD);
+ use File::Temp 0.19 (); # 0.19 for ->newdir
+ our ($tmpdir, $errfh);
+ our @EXPORT = qw(unicorn slurp tcp_server tcp_start unicorn $tmpdir $errfh
+-	SEEK_SET tcp_host_port which spawn check_stderr unix_start);
++	SEEK_SET tcp_host_port which spawn check_stderr unix_start slurp_hdr);
+ 
+ my ($base) = ($0 =~ m!\b([^/]+)\.[^\.]+\z!);
+ $tmpdir = File::Temp->newdir("unicorn-$base-XXXX", TMPDIR => 1);
+ open($errfh, '>>', "$tmpdir/err.log");
++END { diag slurp("$tmpdir/err.log") if $tmpdir };
+ 
+ sub check_stderr () {
+ 	my @log = slurp("$tmpdir/err.log");
+@@ -25,6 +26,15 @@ sub check_stderr () {
+ 	is_deeply([grep(/SIGKILL/, @log)], [], 'no SIGKILL in stderr');
+ }
+ 
++sub slurp_hdr {
++	my ($c) = @_;
++	local $/ = "\r\n\r\n"; # affects both readline+chomp
++	chomp(my $hdr = readline($c));
++	my ($status, @hdr) = split(/\r\n/, $hdr);
++	diag explain([ $status, \@hdr ]) if $ENV{V};
++	($status, \@hdr);
++}
++
+ sub tcp_server {
+ 	my %opt = (
+ 		ReuseAddr => 1,
+diff --git a/t/t0116-client_body_buffer_size.sh b/t/t0116-client_body_buffer_size.sh
+deleted file mode 100755
+index c9e17c7..0000000
+--- a/t/t0116-client_body_buffer_size.sh
++++ /dev/null
+@@ -1,80 +0,0 @@
+-#!/bin/sh
+-. ./test-lib.sh
+-t_plan 12 "client_body_buffer_size settings"
+-
+-t_begin "setup and start" && {
+-	unicorn_setup
+-	rtmpfiles unicorn_config_tmp one_meg
+-	dd if=/dev/zero bs=1M count=1 of=$one_meg
+-	cat >> $unicorn_config <<EOF
+-after_fork do |server, worker|
+-  File.open("$fifo", "wb") { |fp| fp.syswrite "START" }
+-end
+-EOF
+-	cat $unicorn_config > $unicorn_config_tmp
+-	echo client_body_buffer_size 0 >> $unicorn_config
+-	unicorn -D -c $unicorn_config t0116.ru
+-	unicorn_wait_start
+-	fs_class=Unicorn::TmpIO
+-	mem_class=StringIO
+-
+-	test x"$(cat $fifo)" = xSTART
+-}
+-
+-t_begin "class for a zero-byte file should be StringIO" && {
+-	> $tmp
+-	test xStringIO = x"$(curl -T $tmp -sSf http://$listen/input_class)"
+-}
+-
+-t_begin "class for a 1 byte file should be filesystem-backed" && {
+-	echo > $tmp
+-	test x$fs_class = x"$(curl -T $tmp -sSf http://$listen/tmp_class)"
+-}
+-
+-t_begin "reload with default client_body_buffer_size" && {
+-	mv $unicorn_config_tmp $unicorn_config
+-	kill -HUP $unicorn_pid
+-	test x"$(cat $fifo)" = xSTART
+-}
+-
+-t_begin "class for a 1 byte file should be memory-backed" && {
+-	echo > $tmp
+-	test x$mem_class = x"$(curl -T $tmp -sSf http://$listen/tmp_class)"
+-}
+-
+-t_begin "class for a random blob file should be filesystem-backed" && {
+-	resp="$(curl -T random_blob -sSf http://$listen/tmp_class)"
+-	test x$fs_class = x"$resp"
+-}
+-
+-t_begin "one megabyte file should be filesystem-backed" && {
+-	resp="$(curl -T $one_meg -sSf http://$listen/tmp_class)"
+-	test x$fs_class = x"$resp"
+-}
+-
+-t_begin "reload with a big client_body_buffer_size" && {
+-	echo "client_body_buffer_size(1024 * 1024)" >> $unicorn_config
+-	kill -HUP $unicorn_pid
+-	test x"$(cat $fifo)" = xSTART
+-}
+-
+-t_begin "one megabyte file should be memory-backed" && {
+-	resp="$(curl -T $one_meg -sSf http://$listen/tmp_class)"
+-	test x$mem_class = x"$resp"
+-}
+-
+-t_begin "one megabyte + 1 byte file should be filesystem-backed" && {
+-	echo >> $one_meg
+-	resp="$(curl -T $one_meg -sSf http://$listen/tmp_class)"
+-	test x$fs_class = x"$resp"
+-}
+-
+-t_begin "killing succeeds" && {
+-	kill $unicorn_pid
+-}
+-
+-t_begin "check stderr" && {
+-	check_stderr
+-}
+-
+-t_done
+
+--tMFmNiOc6i75m139
+Content-Type: text/x-diff; charset=utf-8
+Content-Disposition: attachment;
+	filename="0017-tests-get-rid-of-sha1sum.rb-and-rsha1-sh-function.patch"
+
+From b47912160f2336dde3901e588cc23fb2c2f8d9dc Mon Sep 17 00:00:00 2001
+From: Eric Wong <BOFH@YHBT.net>
+Date: Mon, 5 Jun 2023 10:12:46 +0000
+Subject: [PATCH 17/23] tests: get rid of sha1sum.rb and rsha1() sh function
+
+These are no longer needed since Perl has long included
+Digest::SHA
+---
+ t/bin/sha1sum.rb | 17 -----------------
+ t/test-lib.sh    |  4 ----
+ 2 files changed, 21 deletions(-)
+ delete mode 100755 t/bin/sha1sum.rb
+
+diff --git a/t/bin/sha1sum.rb b/t/bin/sha1sum.rb
+deleted file mode 100755
+index 53d68ce..0000000
+--- a/t/bin/sha1sum.rb
++++ /dev/null
+@@ -1,17 +0,0 @@
+-#!/usr/bin/env ruby
+-# -*- encoding: binary -*-
+-# Reads from stdin and outputs the SHA1 hex digest of the input
+-
+-require 'digest/sha1'
+-$stdout.sync = $stderr.sync = true
+-$stdout.binmode
+-$stdin.binmode
+-bs = 16384
+-digest = Digest::SHA1.new
+-if buf = $stdin.read(bs)
+-  begin
+-    digest.update(buf)
+-  end while $stdin.read(bs, buf)
+-end
+-
+-$stdout.syswrite("#{digest.hexdigest}\n")
+diff --git a/t/test-lib.sh b/t/test-lib.sh
+index e70d0c6..8613144 100644
+--- a/t/test-lib.sh
++++ b/t/test-lib.sh
+@@ -123,7 +123,3 @@ unicorn_wait_start () {
+ 	# no need to play tricks with FIFOs since we got "ready_pipe" now
+ 	unicorn_pid=$(cat $pid)
+ }
+-
+-rsha1 () {
+-	sha1sum.rb
+-}
+
+--tMFmNiOc6i75m139
+Content-Type: text/x-diff; charset=utf-8
+Content-Disposition: attachment;
+	filename="0018-early_hints-supports-Rack-3-array-headers.patch"
+
+From 6ad9f4b54ee16ffecea7e16b710552b45db33a16 Mon Sep 17 00:00:00 2001
+From: Eric Wong <BOFH@YHBT.net>
+Date: Mon, 5 Jun 2023 10:12:47 +0000
+Subject: [PATCH 18/23] early_hints supports Rack 3 array headers
+
+We can hoist out append_headers into a new method and use it in
+both e103_response_write and http_response_write.
+
+t/integration.t now tests early_hints with both possible
+values of check_client_connection.
+---
+ t/integration.ru |  7 +++++++
+ t/integration.t  | 47 ++++++++++++++++++++++++++++++++++++++++++-----
+ 2 files changed, 49 insertions(+), 5 deletions(-)
+
+diff --git a/t/integration.ru b/t/integration.ru
+index edc408c..dab384d 100644
+--- a/t/integration.ru
++++ b/t/integration.ru
+@@ -5,6 +5,11 @@
+ # this goes for t/integration.t  We'll try to put as many tests
+ # in here as possible to avoid startup overhead of Ruby.
+ 
++def early_hints(env, val)
++  env['rack.early_hints'].call('link' => val) # val may be ary or string
++  [ 200, {}, [ val.class.to_s ] ]
++end
++
+ $orig_rack_200 = nil
+ def tweak_status_code
+   $orig_rack_200 = Rack::Utils::HTTP_STATUS_CODES[200]
+@@ -81,6 +86,8 @@ def rack_input_tests(env)
+     when '/env_dump'; [ 200, {}, [ env_dump(env) ] ]
+     when '/write_on_close'; write_on_close
+     when '/pid'; [ 200, {}, [ "#$$\n" ] ]
++    when '/early_hints_rack2'; early_hints(env, "r\n2")
++    when '/early_hints_rack3'; early_hints(env, %w(r 3))
+     else '/'; [ 200, {}, [ env_dump(env) ] ]
+     end # case PATH_INFO (GET)
+   when 'POST'
+diff --git a/t/integration.t b/t/integration.t
+index 855c260..8433497 100644
+--- a/t/integration.t
++++ b/t/integration.t
+@@ -13,8 +13,16 @@ my $t0 = time;
+ my $conf = "$tmpdir/u.conf.rb";
+ open my $conf_fh, '>', $conf;
+ $conf_fh->autoflush(1);
++my $u1 = "$tmpdir/u1";
++print $conf_fh <<EOM;
++early_hints true
++listen "$u1"
++listen "$host_port" # TODO: remove this requirement for SIGHUP
++EOM
+ my $ar = unicorn(qw(-E none t/integration.ru -c), $conf, { 3 => $srv });
+ my $curl = which('curl');
++my $fifo = "$tmpdir/fifo";
++POSIX::mkfifo($fifo, 0600) or die "mkfifo: $!";
+ my %PUT = (
+ 	chunked_md5 => sub {
+ 		my ($in, $out, $path, %opt) = @_;
+@@ -102,6 +110,26 @@ $c = tcp_start($srv, 'GET /nil-header-value HTTP/1.0');
+ is_deeply([grep(/^X-Nil:/, @$hdr)], ['X-Nil: '],
+ 	'nil header value accepted for broken apps') or diag(explain($hdr));
+ 
++my $ck_early_hints = sub {
++	my ($note) = @_;
++	$c = unix_start($u1, 'GET /early_hints_rack2 HTTP/1.0');
++	($status, $hdr) = slurp_hdr($c);
++	like($status, qr!\AHTTP/1\.[01] 103\b!, 'got 103 for rack 2 value');
++	is_deeply(['link: r', 'link: 2'], $hdr, 'rack 2 hints match '.$note);
++	($status, $hdr) = slurp_hdr($c);
++	like($status, qr!\AHTTP/1\.[01] 200\b!, 'got 200 afterwards');
++	is(readline($c), 'String', 'early hints used a String for rack 2');
++
++	$c = unix_start($u1, 'GET /early_hints_rack3 HTTP/1.0');
++	($status, $hdr) = slurp_hdr($c);
++	like($status, qr!\AHTTP/1\.[01] 103\b!, 'got 103 for rack 3');
++	is_deeply(['link: r', 'link: 3'], $hdr, 'rack 3 hints match '.$note);
++	($status, $hdr) = slurp_hdr($c);
++	like($status, qr!\AHTTP/1\.[01] 200\b!, 'got 200 afterwards');
++	is(readline($c), 'Array', 'early hints used a String for rack 3');
++};
++$ck_early_hints->('ccc off'); # we'll retest later
++
+ if ('TODO: ensure Rack::Utils::HTTP_STATUS_CODES is available') {
+ 	$c = tcp_start($srv, 'POST /tweak-status-code HTTP/1.0');
+ 	($status, $hdr) = slurp_hdr($c);
+@@ -154,6 +182,7 @@ if ('bad requests') {
+ # input tests
+ my ($blob_size, $blob_hash);
+ SKIP: {
++	skip 'SKIP_EXPENSIVE on', 1 if $ENV{SKIP_EXPENSIVE};
+ 	CORE::open(my $rh, '<', 't/random_blob') or
+ 		skip "t/random_blob not generated $!", 1;
+ 	$blob_size = -s $rh;
+@@ -232,16 +261,24 @@ SKIP: {
+ 
+ # SIGHUP-able stuff goes here
+ 
++if ('check_client_connection') {
++	print $conf_fh <<EOM; # appending to existing
++check_client_connection true
++after_fork { |_,_| File.open('$fifo', 'w') { |fp| fp.write "pid=#\$\$" } }
++EOM
++	$ar->do_kill('HUP');
++	open my $fifo_fh, '<', $fifo;
++	my $wpid = readline($fifo_fh);
++	like($wpid, qr/\Apid=\d+\z/a , 'new worker ready');
++	$ck_early_hints->('ccc on');
++}
++
+ if ('max_header_len internal API') {
+ 	undef $c;
+ 	my $req = 'GET / HTTP/1.0';
+ 	my $len = length($req."\r\n\r\n");
+-	my $fifo = "$tmpdir/fifo";
+-	POSIX::mkfifo($fifo, 0600) or die "mkfifo: $!";
+-	print $conf_fh <<EOM;
++	print $conf_fh <<EOM; # appending to existing
+ Unicorn::HttpParser.max_header_len = $len
+-listen "$host_port" # TODO: remove this requirement for SIGHUP
+-after_fork { |_,_| File.open('$fifo', 'w') { |fp| fp.write "pid=#\$\$" } }
+ EOM
+ 	$ar->do_kill('HUP');
+ 	open my $fifo_fh, '<', $fifo;
+
+--tMFmNiOc6i75m139
+Content-Type: text/x-diff; charset=utf-8
+Content-Disposition: attachment;
+	filename="0019-test_server-drop-early_hints-test.patch"
+
+From 3e6bc9fb589fd88469349a38a77704c3333623e0 Mon Sep 17 00:00:00 2001
+From: Eric Wong <BOFH@YHBT.net>
+Date: Mon, 5 Jun 2023 10:12:48 +0000
+Subject: [PATCH 19/23] test_server: drop early_hints test
+
+t/integration.t already is more complete in that it tests
+both Rack 2 and 3 along with both possible values of
+check_client_connection.
+---
+ test/unit/test_server.rb | 31 -------------------------------
+ 1 file changed, 31 deletions(-)
+
+diff --git a/test/unit/test_server.rb b/test/unit/test_server.rb
+index fe98fcc..0a710d1 100644
+--- a/test/unit/test_server.rb
++++ b/test/unit/test_server.rb
+@@ -23,17 +23,6 @@ def call(env)
+   end
+ end
+ 
+-class TestEarlyHintsHandler
+-  def call(env)
+-    while env['rack.input'].read(4096)
+-    end
+-    env['rack.early_hints'].call(
+-      "Link" => "</style.css>; rel=preload; as=style\n</script.js>; rel=preload"
+-    )
+-    [200, { 'content-type' => 'text/plain' }, ['hello!\n']]
+-  end
+-end
+-
+ class TestRackAfterReply
+   def initialize
+     @called = false
+@@ -112,26 +101,6 @@ def test_preload_app_config
+     tmp.close!
+   end
+ 
+-  def test_early_hints
+-    teardown
+-    redirect_test_io do
+-      @server = HttpServer.new(TestEarlyHintsHandler.new,
+-                               :listeners => [ "127.0.0.1:#@port"],
+-                               :early_hints => true)
+-      @server.start
+-    end
+-
+-    sock = tcp_socket('127.0.0.1', @port)
+-    sock.syswrite("GET / HTTP/1.0\r\n\r\n")
+-
+-    responses = sock.read(4096)
+-    assert_match %r{\AHTTP/1.[01] 103\b}, responses
+-    assert_match %r{^Link: </style\.css>}, responses
+-    assert_match %r{^Link: </script\.js>}, responses
+-
+-    assert_match %r{^HTTP/1.[01] 200\b}, responses
+-  end
+-
+   def test_after_reply
+     teardown
+ 
+
+--tMFmNiOc6i75m139
+Content-Type: text/x-diff; charset=utf-8
+Content-Disposition: attachment;
+	filename="0020-t-integration.t-switch-PUT-tests-to-MD5-reuse-buffer.patch"
+
+From cb826915cdd1881cbcfc1fb4e645d26244dfda71 Mon Sep 17 00:00:00 2001
+From: Eric Wong <BOFH@YHBT.net>
+Date: Mon, 5 Jun 2023 10:12:49 +0000
+Subject: [PATCH 20/23] t/integration.t: switch PUT tests to MD5, reuse buffers
+
+MD5 is faster, and these tests aren't meant to be secure,
+they're just for checking for data corruption.
+Furthermore, Content-MD5 is a supported HTTP trailer and
+we can verify that here to obsolete other tests.
+
+Furthermore, we can reuse buffers on env['rack.input'].read
+calls to avoid malloc(3) and GC overhead.
+
+Combined, these give roughly a 3% speedup for t/integration.t
+on my system.
+---
+ t/integration.ru   | 20 +++++++++++++++-----
+ t/integration.t    |  5 ++---
+ t/preread_input.ru | 17 ++++++++++++-----
+ 3 files changed, 29 insertions(+), 13 deletions(-)
+
+diff --git a/t/integration.ru b/t/integration.ru
+index dab384d..086126a 100644
+--- a/t/integration.ru
++++ b/t/integration.ru
+@@ -55,8 +55,8 @@ def env_dump(env)
+ def rack_input_tests(env)
+   return [ 100, {}, [] ] if /\A100-continue\z/i =~ env['HTTP_EXPECT']
+   cap = 16384
+-  require 'digest/sha1'
+-  digest = Digest::SHA1.new
++  require 'digest/md5'
++  dig = Digest::MD5.new
+   input = env['rack.input']
+   case env['PATH_INFO']
+   when '/rack_input/size_first'; input.size
+@@ -68,11 +68,21 @@ def rack_input_tests(env)
+   if buf = input.read(rand(cap))
+     begin
+       raise "#{buf.size} > #{cap}" if buf.size > cap
+-      digest.update(buf)
++      dig.update(buf)
+     end while input.read(rand(cap), buf)
++    buf.clear # remove this call if Ruby ever gets escape analysis
+   end
+-  [ 200, {'content-length' => '40', 'content-type' => 'text/plain'},
+-    [ digest.hexdigest ] ]
++  h = { 'content-type' => 'text/plain' }
++  if env['HTTP_TRAILER'] =~ /\bContent-MD5\b/i
++    cmd5_b64 = env['HTTP_CONTENT_MD5'] or return [500, {}, ['No Content-MD5']]
++    cmd5_bin = cmd5_b64.unpack('m')[0]
++    if cmd5_bin != dig.digest
++      h['content-length'] = cmd5_b64.size.to_s
++      return [ 500, h, [ cmd5_b64 ] ]
++    end
++  end
++  h['content-length'] = '32'
++  [ 200, h, [ dig.hexdigest ] ]
+ end
+ 
+ run(lambda do |env|
+diff --git a/t/integration.t b/t/integration.t
+index 8433497..38a9675 100644
+--- a/t/integration.t
++++ b/t/integration.t
+@@ -27,7 +27,6 @@ my %PUT = (
+ 	chunked_md5 => sub {
+ 		my ($in, $out, $path, %opt) = @_;
+ 		my $bs = $opt{bs} // 16384;
+-		require Digest::MD5;
+ 		my $dig = Digest::MD5->new;
+ 		print $out <<EOM;
+ PUT $path HTTP/1.1\r
+@@ -186,8 +185,8 @@ SKIP: {
+ 	CORE::open(my $rh, '<', 't/random_blob') or
+ 		skip "t/random_blob not generated $!", 1;
+ 	$blob_size = -s $rh;
+-	require Digest::SHA;
+-	$blob_hash = Digest::SHA->new(1)->addfile($rh)->hexdigest;
++	require Digest::MD5;
++	$blob_hash = Digest::MD5->new->addfile($rh)->hexdigest;
+ 
+ 	my $ck_hash = sub {
+ 		my ($sub, $path, %opt) = @_;
+diff --git a/t/preread_input.ru b/t/preread_input.ru
+index f0a1748..18af221 100644
+--- a/t/preread_input.ru
++++ b/t/preread_input.ru
+@@ -1,15 +1,22 @@
+ #\-E none
+-require 'digest/sha1'
++require 'digest/md5'
+ require 'unicorn/preread_input'
+ use Unicorn::PrereadInput
+ nr = 0
+ run lambda { |env|
+   $stderr.write "app dispatch: #{nr += 1}\n"
+   input = env["rack.input"]
+-  dig = Digest::SHA1.new
+-  while buf = input.read(16384)
+-    dig.update(buf)
++  dig = Digest::MD5.new
++  if buf = input.read(16384)
++    begin
++      dig.update(buf)
++    end while input.read(16384, buf)
++    buf.clear # remove this call if Ruby ever gets escape analysis
++  end
++  if env['HTTP_TRAILER'] =~ /\bContent-MD5\b/i
++    cmd5_b64 = env['HTTP_CONTENT_MD5'] or return [500, {}, ['No Content-MD5']]
++    cmd5_bin = cmd5_b64.unpack('m')[0]
++    return [500, {}, [ cmd5_b64 ] ] if cmd5_bin != dig.digest
+   end
+-
+   [ 200, {}, [ dig.hexdigest ] ]
+ }
+
+--tMFmNiOc6i75m139
+Content-Type: text/x-diff; charset=utf-8
+Content-Disposition: attachment;
+	filename="0021-tests-move-test_upload.rb-tests-to-t-integration.t.patch"
+
+From 181e4b5b6339fc5e9c3ad7d3690b736f6bd038aa Mon Sep 17 00:00:00 2001
+From: Eric Wong <BOFH@YHBT.net>
+Date: Mon, 5 Jun 2023 10:12:50 +0000
+Subject: [PATCH 21/23] tests: move test_upload.rb tests to t/integration.t
+
+The overread tests are ported over, and checksumming alone
+is enough to guard against data corruption.
+
+Randomizing the size of `read' calls on the client side will
+shake out any boundary bugs on the server side.
+---
+ t/integration.t          |  32 ++++-
+ test/unit/test_upload.rb | 301 ---------------------------------------
+ 2 files changed, 27 insertions(+), 306 deletions(-)
+ delete mode 100644 test/unit/test_upload.rb
+
+diff --git a/t/integration.t b/t/integration.t
+index 38a9675..a568758 100644
+--- a/t/integration.t
++++ b/t/integration.t
+@@ -26,7 +26,6 @@ POSIX::mkfifo($fifo, 0600) or die "mkfifo: $!";
+ my %PUT = (
+ 	chunked_md5 => sub {
+ 		my ($in, $out, $path, %opt) = @_;
+-		my $bs = $opt{bs} // 16384;
+ 		my $dig = Digest::MD5->new;
+ 		print $out <<EOM;
+ PUT $path HTTP/1.1\r
+@@ -36,7 +35,7 @@ Trailer: Content-MD5\r
+ EOM
+ 		my ($buf, $r);
+ 		while (1) {
+-			$r = read($in, $buf, $bs);
++			$r = read($in, $buf, 999 + int(rand(0xffff)));
+ 			last if $r == 0;
+ 			printf $out "%x\r\n", length($buf);
+ 			print $out $buf, "\r\n";
+@@ -46,15 +45,15 @@ EOM
+ 	},
+ 	identity => sub {
+ 		my ($in, $out, $path, %opt) = @_;
+-		my $bs = $opt{bs} // 16384;
+ 		my $clen = $opt{-s} // -s $in;
+ 		print $out <<EOM;
+ PUT $path HTTP/1.0\r
+ Content-Length: $clen\r
+ \r
+ EOM
+-		my ($buf, $r, $len);
++		my ($buf, $r, $len, $bs);
+ 		while ($clen) {
++			$bs = 999 + int(rand(0xffff));
+ 			$len = $clen > $bs ? $bs : $clen;
+ 			$r = read($in, $buf, $len);
+ 			die 'premature EOF' if $r == 0;
+@@ -192,8 +191,10 @@ SKIP: {
+ 		my ($sub, $path, %opt) = @_;
+ 		seek($rh, 0, SEEK_SET);
+ 		$c = tcp_start($srv);
+-		$c->autoflush(0);
++		$c->autoflush($opt{sync} // 0);
+ 		$PUT{$sub}->($rh, $c, $path, %opt);
++		defined($opt{overwrite}) and
++			print { $c } ('x' x $opt{overwrite});
+ 		$c->flush or die $!;
+ 		($status, $hdr) = slurp_hdr($c);
+ 		is(readline($c), $blob_hash, "$sub $path");
+@@ -205,6 +206,27 @@ SKIP: {
+ 	$ck_hash->('chunked_md5', '/rack_input/size_first');
+ 	$ck_hash->('chunked_md5', '/rack_input/rewind_first');
+ 
++	$ck_hash->('identity', '/rack_input', -s => $blob_size, sync => 1);
++	$ck_hash->('chunked_md5', '/rack_input', sync => 1);
++
++	# ensure small overwrites don't get checksummed
++	$ck_hash->('identity', '/rack_input', -s => $blob_size,
++			overwrite => 1); # one extra byte
++
++	# excessive overwrite truncated
++	$c = tcp_start($srv);
++	$c->autoflush(0);
++	print $c "PUT /rack_input HTTP/1.0\r\nContent-Length: 1\r\n\r\n";
++	if (1) {
++		local $SIG{PIPE} = 'IGNORE';
++		my $buf = "\0" x 8192;
++		my $n = 0;
++		my $end = time + 5;
++		$! = 0;
++		while (print $c $buf and time < $end) { ++$n }
++		ok($!, 'overwrite truncated') or diag "n=$n err=$! ".time;
++	}
++	undef $c;
+ 
+ 	$curl // skip 'no curl found in PATH', 1;
+ 
+diff --git a/test/unit/test_upload.rb b/test/unit/test_upload.rb
+deleted file mode 100644
+index 76e6c1c..0000000
+--- a/test/unit/test_upload.rb
++++ /dev/null
+@@ -1,301 +0,0 @@
+-# -*- encoding: binary -*-
+-
+-# Copyright (c) 2009 Eric Wong
+-require './test/test_helper'
+-require 'digest/md5'
+-
+-include Unicorn
+-
+-class UploadTest < Test::Unit::TestCase
+-
+-  def setup
+-    @addr = ENV['UNICORN_TEST_ADDR'] || '127.0.0.1'
+-    @port = unused_port
+-    @hdr = {'Content-Type' => 'text/plain', 'Content-Length' => '0'}
+-    @bs = 4096
+-    @count = 256
+-    @server = nil
+-
+-    # we want random binary data to test 1.9 encoding-aware IO craziness
+-    @random = File.open('/dev/urandom','rb')
+-    @sha1 = Digest::SHA1.new
+-    @sha1_app = lambda do |env|
+-      input = env['rack.input']
+-      resp = {}
+-
+-      @sha1.reset
+-      while buf = input.read(@bs)
+-        @sha1.update(buf)
+-      end
+-      resp[:sha1] = @sha1.hexdigest
+-
+-      # rewind and read again
+-      input.rewind
+-      @sha1.reset
+-      while buf = input.read(@bs)
+-        @sha1.update(buf)
+-      end
+-
+-      if resp[:sha1] == @sha1.hexdigest
+-        resp[:sysread_read_byte_match] = true
+-      end
+-
+-      if expect_size = env['HTTP_X_EXPECT_SIZE']
+-        if expect_size.to_i == input.size
+-          resp[:expect_size_match] = true
+-        end
+-      end
+-      resp[:size] = input.size
+-      resp[:content_md5] = env['HTTP_CONTENT_MD5']
+-
+-      [ 200, @hdr.merge({'X-Resp' => resp.inspect}), [] ]
+-    end
+-  end
+-
+-  def teardown
+-    redirect_test_io { @server.stop(false) } if @server
+-    @random.close
+-    reset_sig_handlers
+-  end
+-
+-  def test_put
+-    start_server(@sha1_app)
+-    sock = tcp_socket(@addr, @port)
+-    sock.syswrite("PUT / HTTP/1.0\r\nContent-Length: #{length}\r\n\r\n")
+-    @count.times do |i|
+-      buf = @random.sysread(@bs)
+-      @sha1.update(buf)
+-      sock.syswrite(buf)
+-    end
+-    read = sock.read.split(/\r\n/)
+-    assert_equal "HTTP/1.1 200 OK", read[0]
+-    resp = eval(read.grep(/^X-Resp: /).first.sub!(/X-Resp: /, ''))
+-    assert_equal length, resp[:size]
+-    assert_equal @sha1.hexdigest, resp[:sha1]
+-  end
+-
+-  def test_put_content_md5
+-    md5 = Digest::MD5.new
+-    start_server(@sha1_app)
+-    sock = tcp_socket(@addr, @port)
+-    sock.syswrite("PUT / HTTP/1.0\r\nTransfer-Encoding: chunked\r\n" \
+-                  "Trailer: Content-MD5\r\n\r\n")
+-    @count.times do |i|
+-      buf = @random.sysread(@bs)
+-      @sha1.update(buf)
+-      md5.update(buf)
+-      sock.syswrite("#{'%x' % buf.size}\r\n")
+-      sock.syswrite(buf << "\r\n")
+-    end
+-    sock.syswrite("0\r\n")
+-
+-    content_md5 = [ md5.digest! ].pack('m').strip.freeze
+-    sock.syswrite("Content-MD5: #{content_md5}\r\n\r\n")
+-    read = sock.read.split(/\r\n/)
+-    assert_equal "HTTP/1.1 200 OK", read[0]
+-    resp = eval(read.grep(/^X-Resp: /).first.sub!(/X-Resp: /, ''))
+-    assert_equal length, resp[:size]
+-    assert_equal @sha1.hexdigest, resp[:sha1]
+-    assert_equal content_md5, resp[:content_md5]
+-  end
+-
+-  def test_put_trickle_small
+-    @count, @bs = 2, 128
+-    start_server(@sha1_app)
+-    assert_equal 256, length
+-    sock = tcp_socket(@addr, @port)
+-    hdr = "PUT / HTTP/1.0\r\nContent-Length: #{length}\r\n\r\n"
+-    @count.times do
+-      buf = @random.sysread(@bs)
+-      @sha1.update(buf)
+-      hdr << buf
+-      sock.syswrite(hdr)
+-      hdr = ''
+-      sleep 0.6
+-    end
+-    read = sock.read.split(/\r\n/)
+-    assert_equal "HTTP/1.1 200 OK", read[0]
+-    resp = eval(read.grep(/^X-Resp: /).first.sub!(/X-Resp: /, ''))
+-    assert_equal length, resp[:size]
+-    assert_equal @sha1.hexdigest, resp[:sha1]
+-  end
+-
+-  def test_put_keepalive_truncates_small_overwrite
+-    start_server(@sha1_app)
+-    sock = tcp_socket(@addr, @port)
+-    to_upload = length + 1
+-    sock.syswrite("PUT / HTTP/1.0\r\nContent-Length: #{to_upload}\r\n\r\n")
+-    @count.times do
+-      buf = @random.sysread(@bs)
+-      @sha1.update(buf)
+-      sock.syswrite(buf)
+-    end
+-    sock.syswrite('12345') # write 4 bytes more than we expected
+-    @sha1.update('1')
+-
+-    buf = sock.readpartial(4096)
+-    while buf !~ /\r\n\r\n/
+-      buf << sock.readpartial(4096)
+-    end
+-    read = buf.split(/\r\n/)
+-    assert_equal "HTTP/1.1 200 OK", read[0]
+-    resp = eval(read.grep(/^X-Resp: /).first.sub!(/X-Resp: /, ''))
+-    assert_equal to_upload, resp[:size]
+-    assert_equal @sha1.hexdigest, resp[:sha1]
+-  end
+-
+-  def test_put_excessive_overwrite_closed
+-    tmp = Tempfile.new('overwrite_check')
+-    tmp.sync = true
+-    start_server(lambda { |env|
+-      nr = 0
+-      while buf = env['rack.input'].read(65536)
+-        nr += buf.size
+-      end
+-      tmp.write(nr.to_s)
+-      [ 200, @hdr, [] ]
+-    })
+-    sock = tcp_socket(@addr, @port)
+-    buf = ' ' * @bs
+-    sock.syswrite("PUT / HTTP/1.0\r\nContent-Length: #{length}\r\n\r\n")
+-
+-    @count.times { sock.syswrite(buf) }
+-    assert_raise(Errno::ECONNRESET, Errno::EPIPE) do
+-      ::Unicorn::Const::CHUNK_SIZE.times { sock.syswrite(buf) }
+-    end
+-    sock.gets
+-    tmp.rewind
+-    assert_equal length, tmp.read.to_i
+-  end
+-
+-  # Despite reading numerous articles and inspecting the 1.9.1-p0 C
+-  # source, Eric Wong will never trust that we're always handling
+-  # encoding-aware IO objects correctly.  Thus this test uses shell
+-  # utilities that should always operate on files/sockets on a
+-  # byte-level.
+-  def test_uncomfortable_with_onenine_encodings
+-    # POSIX doesn't require all of these to be present on a system
+-    which('curl') or return
+-    which('sha1sum') or return
+-    which('dd') or return
+-
+-    start_server(@sha1_app)
+-
+-    tmp = Tempfile.new('dd_dest')
+-    assert(system("dd", "if=#{@random.path}", "of=#{tmp.path}",
+-                        "bs=#{@bs}", "count=#{@count}"),
+-           "dd #@random to #{tmp}")
+-    sha1_re = %r!\b([a-f0-9]{40})\b!
+-    sha1_out = `sha1sum #{tmp.path}`
+-    assert $?.success?, 'sha1sum ran OK'
+-
+-    assert_match(sha1_re, sha1_out)
+-    sha1 = sha1_re.match(sha1_out)[1]
+-    resp = `curl -isSfN -T#{tmp.path} http://#@addr:#@port/`
+-    assert $?.success?, 'curl ran OK'
+-    assert_match(%r!\b#{sha1}\b!, resp)
+-    assert_match(/sysread_read_byte_match/, resp)
+-
+-    # small StringIO path
+-    assert(system("dd", "if=#{@random.path}", "of=#{tmp.path}",
+-                        "bs=1024", "count=1"),
+-           "dd #@random to #{tmp}")
+-    sha1_re = %r!\b([a-f0-9]{40})\b!
+-    sha1_out = `sha1sum #{tmp.path}`
+-    assert $?.success?, 'sha1sum ran OK'
+-
+-    assert_match(sha1_re, sha1_out)
+-    sha1 = sha1_re.match(sha1_out)[1]
+-    resp = `curl -isSfN -T#{tmp.path} http://#@addr:#@port/`
+-    assert $?.success?, 'curl ran OK'
+-    assert_match(%r!\b#{sha1}\b!, resp)
+-    assert_match(/sysread_read_byte_match/, resp)
+-  end
+-
+-  def test_chunked_upload_via_curl
+-    # POSIX doesn't require all of these to be present on a system
+-    which('curl') or return
+-    which('sha1sum') or return
+-    which('dd') or return
+-
+-    start_server(@sha1_app)
+-
+-    tmp = Tempfile.new('dd_dest')
+-    assert(system("dd", "if=#{@random.path}", "of=#{tmp.path}",
+-                        "bs=#{@bs}", "count=#{@count}"),
+-           "dd #@random to #{tmp}")
+-    sha1_re = %r!\b([a-f0-9]{40})\b!
+-    sha1_out = `sha1sum #{tmp.path}`
+-    assert $?.success?, 'sha1sum ran OK'
+-
+-    assert_match(sha1_re, sha1_out)
+-    sha1 = sha1_re.match(sha1_out)[1]
+-    cmd = "curl -H 'X-Expect-Size: #{tmp.size}' --tcp-nodelay \
+-           -isSf --no-buffer -T- " \
+-          "http://#@addr:#@port/"
+-    resp = Tempfile.new('resp')
+-    resp.sync = true
+-
+-    rd, wr = IO.pipe.each do |io|
+-      io.sync = io.close_on_exec = true
+-    end
+-    pid = spawn(*cmd, { 0 => rd, 1 => resp })
+-    rd.close
+-
+-    tmp.rewind
+-    @count.times { |i|
+-      wr.write(tmp.read(@bs))
+-      sleep(rand / 10) if 0 == i % 8
+-    }
+-    wr.close
+-    pid, status = Process.waitpid2(pid)
+-
+-    resp.rewind
+-    resp = resp.read
+-    assert status.success?, 'curl ran OK'
+-    assert_match(%r!\b#{sha1}\b!, resp)
+-    assert_match(/sysread_read_byte_match/, resp)
+-    assert_match(/expect_size_match/, resp)
+-  end
+-
+-  def test_curl_chunked_small
+-    # POSIX doesn't require all of these to be present on a system
+-    which('curl') or return
+-    which('sha1sum') or return
+-    which('dd') or return
+-
+-    start_server(@sha1_app)
+-
+-    tmp = Tempfile.new('dd_dest')
+-    # small StringIO path
+-    assert(system("dd", "if=#{@random.path}", "of=#{tmp.path}",
+-                        "bs=1024", "count=1"),
+-           "dd #@random to #{tmp}")
+-    sha1_re = %r!\b([a-f0-9]{40})\b!
+-    sha1_out = `sha1sum #{tmp.path}`
+-    assert $?.success?, 'sha1sum ran OK'
+-
+-    assert_match(sha1_re, sha1_out)
+-    sha1 = sha1_re.match(sha1_out)[1]
+-    resp = `curl -H 'X-Expect-Size: #{tmp.size}' --tcp-nodelay \
+-            -isSf --no-buffer -T- http://#@addr:#@port/ < #{tmp.path}`
+-    assert $?.success?, 'curl ran OK'
+-    assert_match(%r!\b#{sha1}\b!, resp)
+-    assert_match(/sysread_read_byte_match/, resp)
+-    assert_match(/expect_size_match/, resp)
+-  end
+-
+-  private
+-
+-  def length
+-    @bs * @count
+-  end
+-
+-  def start_server(app)
+-    redirect_test_io do
+-      @server = HttpServer.new(app, :listeners => [ "#{@addr}:#{@port}" ] )
+-      @server.start
+-    end
+-  end
+-
+-end
+
+--tMFmNiOc6i75m139
+Content-Type: text/x-diff; charset=utf-8
+Content-Disposition: attachment;
+	filename="0022-drop-redundant-IO-close_on_exec-false-calls.patch"
+
+From 841b9e756beb1aa00d0f89097a808adcbbf45397 Mon Sep 17 00:00:00 2001
+From: Eric Wong <BOFH@YHBT.net>
+Date: Mon, 5 Jun 2023 10:12:51 +0000
+Subject: [PATCH 22/23] drop redundant IO#close_on_exec=false calls
+
+Passing the `{ FD => IO }' mapping to #spawn or #exec already
+ensures Ruby will clear FD_CLOEXEC on these FDs before execve(2).
+---
+ lib/unicorn/http_server.rb | 5 +----
+ 1 file changed, 1 insertion(+), 4 deletions(-)
+
+diff --git a/lib/unicorn/http_server.rb b/lib/unicorn/http_server.rb
+index 348e745..dd92b38 100644
+--- a/lib/unicorn/http_server.rb
++++ b/lib/unicorn/http_server.rb
+@@ -472,10 +472,7 @@ def worker_spawn(worker)
+ 
+   def listener_sockets
+     listener_fds = {}
+-    LISTENERS.each do |sock|
+-      sock.close_on_exec = false
+-      listener_fds[sock.fileno] = sock
+-    end
++    LISTENERS.each { |sock| listener_fds[sock.fileno] = sock }
+     listener_fds
+   end
+ 
+
+--tMFmNiOc6i75m139
+Content-Type: text/x-diff; charset=utf-8
+Content-Disposition: attachment;
+	filename="0023-LISTEN_FDS-inherited-sockets-are-immortal-across-SIG.patch"
+
+From 6ff8785c9277c5978e6dc01cb1b3da25d6bae2db Mon Sep 17 00:00:00 2001
+From: Eric Wong <BOFH@YHBT.net>
+Date: Mon, 5 Jun 2023 10:12:52 +0000
+Subject: [PATCH 23/23] LISTEN_FDS-inherited sockets are immortal across SIGHUP
+
+When using systemd-style socket activation, consider the
+inherited socket immortal and do not drop it on SIGHUP.
+This means configs w/o any `listen' directives at all can
+continue to work after SIGHUP.
+
+I only noticed this while writing some tests in Perl 5 and
+the test suite is two lines shorter to test this feature :>
+---
+ lib/unicorn/http_server.rb  | 7 ++++++-
+ t/client_body_buffer_size.t | 1 -
+ t/integration.t             | 1 -
+ 3 files changed, 6 insertions(+), 3 deletions(-)
+
+diff --git a/lib/unicorn/http_server.rb b/lib/unicorn/http_server.rb
+index dd92b38..f1b4a54 100644
+--- a/lib/unicorn/http_server.rb
++++ b/lib/unicorn/http_server.rb
+@@ -77,6 +77,7 @@ def initialize(app, options = {})
+     options[:use_defaults] = true
+     self.config = Unicorn::Configurator.new(options)
+     self.listener_opts = {}
++    @immortal = [] # immortal inherited sockets from systemd
+ 
+     # We use @self_pipe differently in the master and worker processes:
+     #
+@@ -158,6 +159,7 @@ def listeners=(listeners)
+     end
+     set_names = listener_names(listeners)
+     dead_names.concat(cur_names - set_names).uniq!
++    dead_names -= @immortal.map { |io| sock_name(io) }
+ 
+     LISTENERS.delete_if do |io|
+       if dead_names.include?(sock_name(io))
+@@ -807,17 +809,20 @@ def inherit_listeners!
+     # inherit sockets from parents, they need to be plain Socket objects
+     # before they become Kgio::UNIXServer or Kgio::TCPServer
+     inherited = ENV['UNICORN_FD'].to_s.split(',')
++    immortal = []
+ 
+     # emulate sd_listen_fds() for systemd
+     sd_pid, sd_fds = ENV.values_at('LISTEN_PID', 'LISTEN_FDS')
+     if sd_pid.to_i == $$ # n.b. $$ can never be zero
+       # 3 = SD_LISTEN_FDS_START
+-      inherited.concat((3...(3 + sd_fds.to_i)).to_a)
++      immortal = (3...(3 + sd_fds.to_i)).to_a
++      inherited.concat(immortal)
+     end
+     # to ease debugging, we will not unset LISTEN_PID and LISTEN_FDS
+ 
+     inherited.map! do |fd|
+       io = Socket.for_fd(fd.to_i)
++      @immortal << io if immortal.include?(fd)
+       io.autoclose = false
+       io = server_cast(io)
+       set_server_sockopt(io, listener_opts[sock_name(io)])
+diff --git a/t/client_body_buffer_size.t b/t/client_body_buffer_size.t
+index b1a99f3..3067f28 100644
+--- a/t/client_body_buffer_size.t
++++ b/t/client_body_buffer_size.t
+@@ -36,7 +36,6 @@ POSIX::mkfifo($fifo, 0600) or die "mkfifo: $!";
+ seek($conf_fh, 0, SEEK_SET);
+ truncate($conf_fh, 0);
+ print $conf_fh <<EOM;
+-listen "$host_port" # TODO: remove this requirement for SIGHUP
+ after_fork { |_,_| File.open('$fifo', 'w') { |fp| fp.write "pid=#\$\$" } }
+ EOM
+ $ar->do_kill('HUP');
+diff --git a/t/integration.t b/t/integration.t
+index a568758..bb2ab51 100644
+--- a/t/integration.t
++++ b/t/integration.t
+@@ -17,7 +17,6 @@ my $u1 = "$tmpdir/u1";
+ print $conf_fh <<EOM;
+ early_hints true
+ listen "$u1"
+-listen "$host_port" # TODO: remove this requirement for SIGHUP
+ EOM
+ my $ar = unicorn(qw(-E none t/integration.ru -c), $conf, { 3 => $srv });
+ my $curl = which('curl');
+
+--tMFmNiOc6i75m139--
