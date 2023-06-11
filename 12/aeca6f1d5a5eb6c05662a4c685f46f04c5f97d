@@ -1,0 +1,137 @@
+Return-Path: <BOFH@YHBT.net>
+X-Spam-Checker-Version: SpamAssassin 3.4.6 (2021-04-09) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,AWL,BAYES_00,
+	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,DKIM_VALID_EF,
+	T_SCC_BODY_TEXT_LINE shortcircuit=no autolearn=ham autolearn_force=no
+	version=3.4.6
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id 9E75D1F542
+	for <unicorn-public@yhbt.net>; Sun, 11 Jun 2023 22:41:21 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=yhbt.net;
+	s=selector1; t=1686523281;
+	bh=CxoXR7twLsW6vQIYXNPzB4R2Cq+t3d08w/iXuZLkwSo=;
+	h=From:To:Subject:Date:From;
+	b=s8RNExZGMsOYfpvUJIHZooKIITTyXaBjrVBvGyE+xAdEDeOflVLpj4ywKLKmfGoUh
+	 73lfV/oqQ8XSNVyMG5a8qmSA32bWCLbZsa6MBKSEv6C3wbIYH8kFM8lUn4hxa2RdSQ
+	 vQgU4IhgmV8Ac2RCKsGIHciUKtHH3Gn+0VO+gIxo=
+From: Eric Wong <BOFH@YHBT.net>
+To: unicorn-public@yhbt.net
+Subject: [PATCH] epollexclusive: handle future rb_io_t deprecation
+Date: Sun, 11 Jun 2023 22:41:21 +0000
+Message-Id: <20230611224121.386181-1-BOFH@YHBT.net>
+MIME-Version: 1.0
+Content-Transfer-Encoding: 8bit
+List-Id: <unicorn-public.yhbt.net>
+
+From: Eric Wong <bofh@yhbt.net>
+
+It looks like Ruby 3.3+ will hide rb_io_t internals and
+get rid of the venerable `GetOpenFile' macro in favor of
+`rb_io_descriptor'.  `rb_io_descriptor' has been public
+API since Ruby 3.1 and should be safe to use, and
+is necessary for `raindrops' (a dependency of ours):
+
+  https://yhbt.net/raindrops-public/20230609104805.39022-1-samuel.williams@oriontransfer.co.nz/
+  https://bugs.ruby-lang.org/issues/19057#note-17
+
+We'll also avoid an unnecessary call to `rb_io_get_io' in
+`get_readers' since `epio' (aka `self') can only be of
+the Unicorn::Waiter IO subclass.  However, we must still use
+`rb_io_get_io' when handling non-self args in `prep_readers'.
+---
+ Note: I've only tested this patch on 2.7 atm, ENOSPC.
+
+ ext/unicorn_http/epollexclusive.h | 27 ++++++++++++++++++---------
+ ext/unicorn_http/extconf.rb       |  4 +++-
+ 2 files changed, 21 insertions(+), 10 deletions(-)
+
+diff --git a/ext/unicorn_http/epollexclusive.h b/ext/unicorn_http/epollexclusive.h
+index 8f4ea9a0..c74a7799 100644
+--- a/ext/unicorn_http/epollexclusive.h
++++ b/ext/unicorn_http/epollexclusive.h
+@@ -22,6 +22,18 @@
+ #endif
+ 
+ #if USE_EPOLL
++#if defined(HAVE_RB_IO_DESCRIPTOR) /* Ruby 3.1+ */
++#	define my_fileno(io) rb_io_descriptor(io)
++#else /* Ruby <3.1 */
++static int my_fileno(VALUE io)
++{
++	rb_io_t *fptr;
++	GetOpenFile(io, fptr);
++	rb_io_check_closed(fptr);
++	return fptr->fd;
++}
++#endif /* Ruby <3.1 */
++
+ /*
+  * :nodoc:
+  * returns IO object if EPOLLEXCLUSIVE works and arms readers
+@@ -38,9 +50,8 @@ static VALUE prep_readers(VALUE cls, VALUE readers)
+ 
+ 	Check_Type(readers, T_ARRAY);
+ 	for (i = 0; i < RARRAY_LEN(readers); i++) {
+-		int rc;
++		int rc, fd;
+ 		struct epoll_event e;
+-		rb_io_t *fptr;
+ 		VALUE io = rb_ary_entry(readers, i);
+ 
+ 		e.data.u64 = i; /* the reason readers shouldn't change */
+@@ -53,9 +64,8 @@ static VALUE prep_readers(VALUE cls, VALUE readers)
+ 		 * cycles on maintaining level-triggering.
+ 		 */
+ 		e.events = EPOLLEXCLUSIVE | EPOLLIN;
+-		io = rb_io_get_io(io);
+-		GetOpenFile(io, fptr);
+-		rc = epoll_ctl(epfd, EPOLL_CTL_ADD, fptr->fd, &e);
++		fd = my_fileno(rb_io_get_io(io));
++		rc = epoll_ctl(epfd, EPOLL_CTL_ADD, fd, &e);
+ 		if (rc < 0) rb_sys_fail("epoll_ctl");
+ 	}
+ 	return epio;
+@@ -65,7 +75,7 @@ static VALUE prep_readers(VALUE cls, VALUE readers)
+ #if USE_EPOLL
+ struct ep_wait {
+ 	struct epoll_event event;
+-	rb_io_t *fptr;
++	int epfd;
+ 	int timeout_msec;
+ };
+ 
+@@ -78,7 +88,7 @@ static void *do_wait(void *ptr) /* runs w/o GVL */
+ 	 * at-a-time (c.f. fs/eventpoll.c in linux.git, it's quite
+ 	 * easy-to-understand for anybody familiar with Ruby C).
+ 	 */
+-	return (void *)(long)epoll_wait(epw->fptr->fd, &epw->event, 1,
++	return (void *)(long)epoll_wait(epw->epfd, &epw->event, 1,
+ 					epw->timeout_msec);
+ }
+ 
+@@ -92,9 +102,8 @@ get_readers(VALUE epio, VALUE ready, VALUE readers, VALUE timeout_msec)
+ 
+ 	Check_Type(ready, T_ARRAY);
+ 	Check_Type(readers, T_ARRAY);
+-	epio = rb_io_get_io(epio);
+-	GetOpenFile(epio, epw.fptr);
+ 
++	epw.epfd = my_fileno(epio);
+ 	epw.timeout_msec = NUM2INT(timeout_msec);
+ 	n = (long)rb_thread_call_without_gvl(do_wait, &epw, RUBY_UBF_IO, NULL);
+ 	if (n < 0) {
+diff --git a/ext/unicorn_http/extconf.rb b/ext/unicorn_http/extconf.rb
+index 80d00e56..11099cd0 100644
+--- a/ext/unicorn_http/extconf.rb
++++ b/ext/unicorn_http/extconf.rb
+@@ -33,5 +33,7 @@
+   message("no, needs Ruby 2.6+\n")
+ end
+ 
+-have_func('epoll_create1', %w(sys/epoll.h))
++if have_func('epoll_create1', %w(sys/epoll.h))
++  have_func('rb_io_descriptor') # Ruby 3.1+
++end
+ create_makefile("unicorn_http")
