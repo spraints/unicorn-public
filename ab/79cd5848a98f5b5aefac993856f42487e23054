@@ -1,0 +1,309 @@
+Return-Path: <BOFH@yhbt.net>
+X-Spam-Checker-Version: SpamAssassin 3.4.6 (2021-04-09) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,AWL,BAYES_00,
+	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,DKIM_VALID_EF,
+	T_SCC_BODY_TEXT_LINE shortcircuit=no autolearn=ham autolearn_force=no
+	version=3.4.6
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id 1066A1F542;
+	Sun, 11 Jun 2023 22:58:39 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=yhbt.net;
+	s=selector1; t=1686524319;
+	bh=B3b7tWY2QpOMTz1Lhmw2AXM9dgmLTbczPwLrUyDWMGQ=;
+	h=Date:From:To:Subject:References:In-Reply-To:From;
+	b=d6T0jXYweBmb2RBV8KXMdiYCggb55REiMag03Nh5KF67gL2ByvfLHZklDVQ1//zuC
+	 cgF2kOPIy+BoOcfeyU+CVWY3g0jBwrQQF+YjLD+4j4HMK1u8J1qGb5UYnkszKXBRS9
+	 C+RgRNAQ/BEewiPusR1UnOuxgPH2jtkBlozMCWNk=
+Date: Sun, 11 Jun 2023 22:58:38 +0000
+From: Eric Wong <BOFH@yhbt.net>
+To: unicorn-public@yhbt.net
+Subject: [PATCH 1-4/4] various test fixes
+Message-ID: <20230611225838.M968572@dcvr>
+References: <20230611225644.M1749@dcvr>
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="CdOm2FJog9+o+y7E"
+Content-Disposition: inline
+In-Reply-To: <20230611225644.M1749@dcvr>
+List-Id: <unicorn-public.yhbt.net>
+
+
+--CdOm2FJog9+o+y7E
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+
+> Attached patches to reduce SMTP
+
+Oops :x
+
+--CdOm2FJog9+o+y7E
+Content-Type: text/x-diff; charset=utf-8
+Content-Disposition: attachment;
+	filename="0001-t-lib.perl-ignore-errors-from-accept_filter-on-FreeB.patch"
+
+From 8271bafb85f75b927f0ea15ec73fc0b1e714665e Mon Sep 17 00:00:00 2001
+From: EW <bofh@yhbt.net>
+Date: Tue, 6 Jun 2023 10:09:24 +0000
+Subject: [PATCH 1/4] t/lib.perl: FreeBSD: ignore accf_* messages
+
+Testers may not have accf_http loaded nor the permissions
+to run `kldload accf_http', thus we must ignore these messages.
+---
+ t/lib.perl | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/t/lib.perl b/t/lib.perl
+index 2685c3b4..fe3404ba 100644
+--- a/t/lib.perl
++++ b/t/lib.perl
+@@ -22,6 +22,8 @@ sub check_stderr () {
+ 	my @log = slurp("$tmpdir/err.log");
+ 	diag("@log") if $ENV{V};
+ 	my @err = grep(!/NameError.*Unicorn::Waiter/, grep(/error/i, @log));
++	@err = grep(!/failed to set accept_filter=/, @err);
++	@err = grep(!/perhaps accf_.*? needs to be loaded/, @err);
+ 	is_deeply(\@err, [], 'no unexpected errors in stderr');
+ 	is_deeply([grep(/SIGKILL/, @log)], [], 'no SIGKILL in stderr');
+ }
+
+--CdOm2FJog9+o+y7E
+Content-Type: text/x-diff; charset=utf-8
+Content-Disposition: attachment;
+	filename="0002-t-active-unix-socket-sleep-for-init-8-to-reap-worker.patch"
+
+From a29364769d59e7bc0c67ad045af25f349ae913e8 Mon Sep 17 00:00:00 2001
+From: EW <bofh@yhbt.net>
+Date: Tue, 6 Jun 2023 10:09:25 +0000
+Subject: [PATCH 2/4] t/active-unix-socket: sleep for init(8) to reap worker
+
+Unfortunately, we need a sleep loop here since kill(2) succeeds
+on zombies and init(8) doesn't reap the worker soon enough on
+a FreeBSD VM.
+---
+ t/active-unix-socket.t | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/t/active-unix-socket.t b/t/active-unix-socket.t
+index 4e11837a..4dcc8dc6 100644
+--- a/t/active-unix-socket.t
++++ b/t/active-unix-socket.t
+@@ -84,6 +84,10 @@ is($pidf, $to_kill{u1}, 'pid file contents unchanged after 2nd start failure');
+ 	ok(-S $u1, 'socket stayed after SIGKILL');
+ 	is(IO::Socket::UNIX->new(Peer => $u1, Type => SOCK_STREAM), undef,
+ 		'fail to connect to u1');
++	for (1..50) { # wait for init process to reap worker
++		kill(0, $worker_pid) or last;
++		select(undef, undef, undef, 0.011);
++	}
+ 	ok(!kill(0, $worker_pid), 'worker gone after parent dies');
+ }
+ 
+
+--CdOm2FJog9+o+y7E
+Content-Type: text/x-diff; charset=utf-8
+Content-Disposition: attachment;
+	filename="0003-tests-handle-assignment-deprecation.patch"
+
+From b988e0779814a73876a4a06df0a90a3f85fb08c8 Mon Sep 17 00:00:00 2001
+From: Eric Wong <bofh@yhbt.net>
+Date: Tue, 6 Jun 2023 11:02:29 +0000
+Subject: [PATCH 3/4] tests: handle $/ assignment deprecation
+
+...by testing less.  `env["rack.input"].gets' users are out-of-luck
+if they want anything other than "\n" or `nil', I suppose...
+
+`$/' is non-thread-local and thus non-thread-safe, which doesn't
+affect unicorn itself, but Ruby deprecates it for
+single-threaded code, too, unfortunately.
+
+Rack::Lint doesn't allow separator arguments for #gets, either,
+so we can't support that, either...
+---
+ test/unit/test_stream_input.rb | 25 ++++++++++++++++---------
+ test/unit/test_tee_input.rb    | 19 +++++++++----------
+ 2 files changed, 25 insertions(+), 19 deletions(-)
+
+diff --git a/test/unit/test_stream_input.rb b/test/unit/test_stream_input.rb
+index 1a07ec3a..2a14135b 100644
+--- a/test/unit/test_stream_input.rb
++++ b/test/unit/test_stream_input.rb
+@@ -6,7 +6,8 @@
+ 
+ class TestStreamInput < Test::Unit::TestCase
+   def setup
+-    @rs = $/
++    @rs = "\n"
++    $/ == "\n" or abort %q{test broken if \$/ != "\\n"}
+     @env = {}
+     @rd, @wr = Kgio::UNIXSocket.pair
+     @rd.sync = @wr.sync = true
+@@ -15,7 +16,6 @@ def setup
+ 
+   def teardown
+     return if $$ != @start_pid
+-    $/ = @rs
+     @rd.close rescue nil
+     @wr.close rescue nil
+     Process.waitall
+@@ -54,11 +54,18 @@ def test_gets_multiline
+   end
+ 
+   def test_gets_empty_rs
+-    $/ = nil
+     r = init_request("a\nb\n\n")
+     si = Unicorn::StreamInput.new(@rd, r)
+-    assert_equal "a\nb\n\n", si.gets
+-    assert_nil si.gets
++    pid = fork do # to avoid $/ warning (hopefully)
++      $/ = nil
++      @rd.close
++      @wr.write(si.gets)
++      @wr.close
++    end
++    @wr.close
++    assert_equal "a\nb\n\n", @rd.read
++    pid, status = Process.waitpid2(pid)
++    assert_predicate status, :success?
+   end
+ 
+   def test_read_with_equal_len
+@@ -90,21 +97,21 @@ def test_big_body_multi
+   end
+ 
+   def test_gets_long
+-    r = init_request("hello", 5 + (4096 * 4 * 3) + "#$/foo#$/".size)
++    r = init_request("hello", 5 + (4096 * 4 * 3) + "#{@rs}foo#{@rs}".size)
+     si = Unicorn::StreamInput.new(@rd, r)
+     status = line = nil
+     pid = fork {
+       @rd.close
+       3.times { @wr.write("ffff" * 4096) }
+-      @wr.write "#$/foo#$/"
++      @wr.write "#{@rs}foo#{@rs}"
+       @wr.close
+     }
+     @wr.close
+     line = si.gets
+     assert_equal(4096 * 4 * 3 + 5 + $/.size, line.size)
+-    assert_equal("hello" << ("ffff" * 4096 * 3) << "#$/", line)
++    assert_equal("hello" << ("ffff" * 4096 * 3) << "#{@rs}", line)
+     line = si.gets
+-    assert_equal "foo#$/", line
++    assert_equal "foo#{@rs}", line
+     assert_nil si.gets
+     pid, status = Process.waitpid2(pid)
+     assert status.success?
+diff --git a/test/unit/test_tee_input.rb b/test/unit/test_tee_input.rb
+index 4647e661..6f5bc8a7 100644
+--- a/test/unit/test_tee_input.rb
++++ b/test/unit/test_tee_input.rb
+@@ -9,17 +9,16 @@ class TeeInput < Unicorn::TeeInput
+ end
+ 
+ class TestTeeInput < Test::Unit::TestCase
+-
+   def setup
+-    @rs = $/
+     @rd, @wr = Kgio::UNIXSocket.pair
+     @rd.sync = @wr.sync = true
+     @start_pid = $$
++    @rs = "\n"
++    $/ == "\n" or abort %q{test broken if \$/ != "\\n"}
+   end
+ 
+   def teardown
+     return if $$ != @start_pid
+-    $/ = @rs
+     @rd.close rescue nil
+     @wr.close rescue nil
+     begin
+@@ -37,38 +36,38 @@ def check_tempfiles
+   end
+ 
+   def test_gets_long
+-    r = init_request("hello", 5 + (4096 * 4 * 3) + "#$/foo#$/".size)
++    r = init_request("hello", 5 + (4096 * 4 * 3) + "#{@rs}foo#{@rs}".size)
+     ti = TeeInput.new(@rd, r)
+     status = line = nil
+     pid = fork {
+       @rd.close
+       3.times { @wr.write("ffff" * 4096) }
+-      @wr.write "#$/foo#$/"
++      @wr.write "#{@rs}foo#{@rs}"
+       @wr.close
+     }
+     @wr.close
+     line = ti.gets
+     assert_equal(4096 * 4 * 3 + 5 + $/.size, line.size)
+-    assert_equal("hello" << ("ffff" * 4096 * 3) << "#$/", line)
++    assert_equal("hello" << ("ffff" * 4096 * 3) << "#{@rs}", line)
+     line = ti.gets
+-    assert_equal "foo#$/", line
++    assert_equal "foo#{@rs}", line
+     assert_nil ti.gets
+     pid, status = Process.waitpid2(pid)
+     assert status.success?
+   end
+ 
+   def test_gets_short
+-    r = init_request("hello", 5 + "#$/foo".size)
++    r = init_request("hello", 5 + "#{@rs}foo".size)
+     ti = TeeInput.new(@rd, r)
+     status = line = nil
+     pid = fork {
+       @rd.close
+-      @wr.write "#$/foo"
++      @wr.write "#{@rs}foo"
+       @wr.close
+     }
+     @wr.close
+     line = ti.gets
+-    assert_equal("hello#$/", line)
++    assert_equal("hello#{@rs}", line)
+     line = ti.gets
+     assert_equal "foo", line
+     assert_nil ti.gets
+
+--CdOm2FJog9+o+y7E
+Content-Type: text/x-diff; charset=utf-8
+Content-Disposition: attachment;
+	filename="0004-tests-ensure-t-random_blob-exists-before-Perl-tests.patch"
+
+From 42028bf5b0327f7e8816ef294d215ae6bb085fc6 Mon Sep 17 00:00:00 2001
+From: Eric Wong <bofh@yhbt.net>
+Date: Tue, 6 Jun 2023 11:44:29 +0000
+Subject: [PATCH 4/4] tests: ensure t/random_blob exists before Perl tests
+
+Allow overriding `PROVE=' while we're at it, too; since
+development installations of Perl5 may name it `prove5.$MINOR'
+or similar.
+---
+ GNUmakefile | 5 +++--
+ 1 file changed, 3 insertions(+), 2 deletions(-)
+
+diff --git a/GNUmakefile b/GNUmakefile
+index eab90829..70e7e108 100644
+--- a/GNUmakefile
++++ b/GNUmakefile
+@@ -11,6 +11,7 @@ RSYNC = rsync
+ OLDDOC = olddoc
+ RDOC = rdoc
+ INSTALL = install
++PROVE = prove
+ 
+ GIT-VERSION-FILE: .FORCE-GIT-VERSION-FILE
+ 	@./GIT-VERSION-GEN
+@@ -141,8 +142,8 @@ t/random_blob:
+ 
+ test-integration: $(T_sh)
+ 
+-test-prove:
+-	prove -vw
++test-prove: t/random_blob
++	$(PROVE) -vw
+ 
+ check: test-require test test-integration
+ test-all: check
+
+--CdOm2FJog9+o+y7E--
