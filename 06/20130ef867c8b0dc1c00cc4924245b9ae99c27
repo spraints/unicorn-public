@@ -1,0 +1,55 @@
+Return-Path: <bofh@yhbt.net>
+X-Spam-Checker-Version: SpamAssassin 3.4.6 (2021-04-09) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,AWL,BAYES_00,
+	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,DKIM_VALID_EF,
+	T_SCC_BODY_TEXT_LINE shortcircuit=no autolearn=ham autolearn_force=no
+	version=3.4.6
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id CC7E31F542
+	for <unicorn-public@yhbt.net>; Tue, 20 Jun 2023 10:46:47 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=yhbt.net;
+	s=selector1; t=1687258007;
+	bh=sHlyoflUilfcRnWHDFa9OvwC0su+jDwm1A4fWKxxfGk=;
+	h=From:To:Subject:Date:From;
+	b=O2cuU1Sb8pJOaPGj63OfBrPLkJquUCjIi42o2Um3nIEFYntx6ubu7EM04YF0XizRM
+	 Jb90LGbpLKo3PJl05mOtOyeyXk9+hT2pJ2Gpcq7OD9ooUzLskDoDF2rc9rVunLIhvt
+	 8kPIZ4TYz35Lyn+H7u8Uv2euUKKBezW0p0kcj480=
+From: EW <bofh@yhbt.net>
+To: unicorn-public@yhbt.net
+Subject: [PATCH] unicorn_http_common.rl: use only ASCII spaces for compatibility
+Date: Tue, 20 Jun 2023 10:46:20 +0000
+Message-Id: <20230620104620.54277-1-bofh@yhbt.net>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+List-Id: <unicorn-public.yhbt.net>
+
+Ragel 6.10 on FreeBSD 12.4 amd64 complains and fails on this, yet the same
+Ragel version on Debian 11.x i386 and amd64 never has.  I suspect this can
+fix compatibility on s390x, arm64, armel, and armhf Debian builds:
+
+https://buildd.debian.org/status/fetch.php?pkg=unicorn&arch=s390x&ver=6.1.0-1&stamp=1687156375&file=log
+https://buildd.debian.org/status/fetch.php?pkg=unicorn&arch=arm64&ver=6.1.0-1&stamp=1687156478&file=log
+https://buildd.debian.org/status/fetch.php?pkg=unicorn&arch=armel&ver=6.1.0-1&stamp=1687156619&file=log
+https://buildd.debian.org/status/fetch.php?pkg=unicorn&arch=armhf&ver=6.1.0-1&stamp=1687156807&file=log
+
+Fixes: d5fbbf547203061b (Add some tolerance (RFC2616 sec. 19.3), 2016-10-20)
+---
+ ext/unicorn_http/unicorn_http_common.rl | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/ext/unicorn_http/unicorn_http_common.rl b/ext/unicorn_http/unicorn_http_common.rl
+index 0988b54..507e570 100644
+--- a/ext/unicorn_http/unicorn_http_common.rl
++++ b/ext/unicorn_http/unicorn_http_common.rl
+@@ -4,7 +4,7 @@
+ 
+ #### HTTP PROTOCOL GRAMMAR
+ # line endings
+-  CRLF = ("\r\n" | "\n");
++  CRLF = ("\r\n" | "\n");
+ 
+ # character types
+   CTL = (cntrl | 127);
