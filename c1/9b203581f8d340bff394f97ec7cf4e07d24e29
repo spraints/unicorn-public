@@ -1,0 +1,307 @@
+Return-Path: <bofh@yhbt.net>
+X-Spam-Checker-Version: SpamAssassin 3.4.6 (2021-04-09) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.1 required=3.0 tests=ALL_TRUSTED,AWL,BAYES_00,
+	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,DKIM_VALID_EF,
+	T_SCC_BODY_TEXT_LINE shortcircuit=no autolearn=ham autolearn_force=no
+	version=3.4.6
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id 2BD201F542
+	for <unicorn-public@yhbt.net>; Tue, 20 Jun 2023 12:28:47 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=yhbt.net;
+	s=selector1; t=1687264127;
+	bh=I5kaE4Z0sq3my4S77RvE3YQSgQjMKxvfw4Ehng6BGsg=;
+	h=From:To:Subject:Date:From;
+	b=isx0tM8ucNDpKiuzdQkHfwe8qyzYgnMNTeC12pr/b6Df+YvznrE4A/AbZ9VL0xBvP
+	 QwuofAeoEdUC0HnDEIHPGk75L9tYze6l6P26P2yWMqaVgB5uF1TStGbVHBWZwOT2BP
+	 1YRsHgdKAdNpqfEvz6dBa0UH3oTcwBttFUQ/cuxM=
+From: EW <bofh@yhbt.net>
+To: unicorn-public@yhbt.net
+Subject: [PATCH] add chunk_response config directive for compatibility
+Date: Tue, 20 Jun 2023 12:28:19 +0000
+Message-Id: <20230620122819.61604-1-bofh@yhbt.net>
+MIME-Version: 1.0
+Content-Transfer-Encoding: 8bit
+List-Id: <unicorn-public.yhbt.net>
+
+Since Rack::Chunked is gone in Rack 3.1+ and no longer loaded by
+default, we've learned to chunk HTTP/1.1 responses w/o
+Content-Length to allow clients to detect truncated responses.
+
+Unfortunately, there exist broken HTTP clients which advertise
+"HTTP/1.1" in the request but cannot parse chunked responses.
+Thus, we must continue to send unchunked responses as we have in
+prior releases if that's what clients expect.  That is, chunked
+responses are opt-in unless RACK_ENV is "deployment" or
+"development".
+
+It doesn't matter if clients are in the wrong: they've worked
+this way for 14 years and we must do everything in our power to
+avoid breaking existing expectations on upgrades.
+
+I hate adding config directives, but breaking changes are even
+worse since users upgrading unicorn often have no easy way to
+to fix broken clients even if they're on the same LAN.
+---
+  Of course, if users upgrading to unicorn could fix everything;
+  they wouldn't need unicorn at all :P
+  unicorn was created to support broken code and now exists to
+  perpetuate broken code into eternity.
+
+ Documentation/unicorn.1      |  1 +
+ lib/unicorn.rb               |  2 +
+ lib/unicorn/configurator.rb  | 17 ++++++-
+ lib/unicorn/http_response.rb |  2 +-
+ lib/unicorn/http_server.rb   |  3 +-
+ t/integration.ru             |  7 +++
+ t/integration.t              | 88 +++++++++++++++++++++++++++++++++---
+ 7 files changed, 110 insertions(+), 10 deletions(-)
+
+diff --git a/Documentation/unicorn.1 b/Documentation/unicorn.1
+index b2c5e70..502f44a 100644
+--- a/Documentation/unicorn.1
++++ b/Documentation/unicorn.1
+@@ -69,6 +69,7 @@ options.
+ Disables loading middleware implied by RACK_ENV.  This bypasses the
+ configuration documented in the RACK ENVIRONMENT section, but still
+ allows RACK_ENV to be used for application/framework\-specific purposes.
++This also affects the "chunk_response" config file directive in unicorn 7.0+
+ .RS
+ .RE
+ .SH RACKUP COMPATIBILITY OPTIONS
+diff --git a/lib/unicorn.rb b/lib/unicorn.rb
+index b817b77..e7b2806 100644
+--- a/lib/unicorn.rb
++++ b/lib/unicorn.rb
+@@ -78,7 +78,9 @@ def self.builder(ru, op)
+       # middlewares will need ContentLength middleware.
+       case ENV["RACK_ENV"]
+       when "development"
++        server.chunk_response = true if server.chunk_response.nil?
+       when "deployment"
++        server.chunk_response = true if server.chunk_response.nil?
+         middleware.delete(:ShowExceptions)
+         middleware.delete(:Lint)
+       else
+diff --git a/lib/unicorn/configurator.rb b/lib/unicorn/configurator.rb
+index ecdf03e..bbc0448 100644
+--- a/lib/unicorn/configurator.rb
++++ b/lib/unicorn/configurator.rb
+@@ -59,6 +59,7 @@ class Unicorn::Configurator
+     :check_client_connection => false,
+     :rewindable_input => true,
+     :client_body_buffer_size => Unicorn::Const::MAX_BODY,
++    :chunk_response => nil,
+   }
+   #:startdoc:
+ 
+@@ -129,6 +130,19 @@ def [](key) # :nodoc:
+     set[key]
+   end
+ 
++  # Whether or not to chunk eligible HTTP/1.1 responses.  This is
++  # necessary for Rack 3.1+ users where the Rack::Chunked middleware
++  # no longer exists.
++  # Default: +true+ if +default_middleware+ is +true+ AND
++  # RACK_ENV is either +development+ or +deployment+.
++  # It is +false+ otherwise to support broken clients advertising
++  # HTTP/1.1 but lacking the ability to parse chunked responses.
++  # +chunk_response+ only exists since unicorn 7.0+ (the first release
++  # with Rack 3.x support).
++  def chunk_response(bool)
++    set_bool(:chunk_response, bool)
++  end
++
+   # sets object to the +obj+ Logger-like object.  The new Logger-like
+   # object must respond to the following methods:
+   # * debug
+@@ -270,7 +284,8 @@ def worker_processes(nr)
+   end
+ 
+   # sets whether to add default middleware in the development and
+-  # deployment RACK_ENVs.
++  # deployment RACK_ENVs.  This also affects the +chunk_response+
++  # directive in unicorn 7.0+
+   #
+   # default_middleware is only available in unicorn 5.5.0+
+   def default_middleware(bool)
+diff --git a/lib/unicorn/http_response.rb b/lib/unicorn/http_response.rb
+index 0ed0ae3..c73efe9 100644
+--- a/lib/unicorn/http_response.rb
++++ b/lib/unicorn/http_response.rb
+@@ -68,7 +68,7 @@ def http_response_write(socket, status, headers, body,
+           append_header(buf, key, value)
+         end
+       end
+-      if !hijack && !term && req.chunkable_response?
++      if !hijack && !term && req.chunkable_response? && @chunk_response
+         do_chunk = true
+         buf << "Transfer-Encoding: chunked\r\n".freeze
+       end
+diff --git a/lib/unicorn/http_server.rb b/lib/unicorn/http_server.rb
+index f1b4a54..93d7141 100644
+--- a/lib/unicorn/http_server.rb
++++ b/lib/unicorn/http_server.rb
+@@ -15,7 +15,7 @@ class Unicorn::HttpServer
+                 :before_fork, :after_fork, :before_exec,
+                 :listener_opts, :preload_app,
+                 :orig_app, :config, :ready_pipe, :user,
+-                :default_middleware, :early_hints
++                :default_middleware, :early_hints, :chunk_response
+   attr_writer   :after_worker_exit, :after_worker_ready, :worker_exec
+ 
+   attr_reader :pid, :logger
+@@ -69,6 +69,7 @@ class Unicorn::HttpServer
+   # incoming requests on the socket.
+   def initialize(app, options = {})
+     @app = app
++    @chunk_response = nil
+     @reexec_pid = 0
+     @default_middleware = true
+     options = options.dup
+diff --git a/t/integration.ru b/t/integration.ru
+index 086126a..d8a8178 100644
+--- a/t/integration.ru
++++ b/t/integration.ru
+@@ -85,6 +85,12 @@ def rack_input_tests(env)
+   [ 200, h, [ dig.hexdigest ] ]
+ end
+ 
++class NoArray
++  def each
++    yield "HI\n"
++  end
++end
++
+ run(lambda do |env|
+   case env['REQUEST_METHOD']
+   when 'GET'
+@@ -98,6 +104,7 @@ def rack_input_tests(env)
+     when '/pid'; [ 200, {}, [ "#$$\n" ] ]
+     when '/early_hints_rack2'; early_hints(env, "r\n2")
+     when '/early_hints_rack3'; early_hints(env, %w(r 3))
++    when '/no-ary'; [ 200, {}, NoArray.new ]
+     else '/'; [ 200, {}, [ env_dump(env) ] ]
+     end # case PATH_INFO (GET)
+   when 'POST'
+diff --git a/t/integration.t b/t/integration.t
+index bb2ab51..115a761 100644
+--- a/t/integration.t
++++ b/t/integration.t
+@@ -22,6 +22,13 @@ my $ar = unicorn(qw(-E none t/integration.ru -c), $conf, { 3 => $srv });
+ my $curl = which('curl');
+ my $fifo = "$tmpdir/fifo";
+ POSIX::mkfifo($fifo, 0600) or die "mkfifo: $!";
++my $wait_fifo = sub {
++	open my $fifo_fh, '<', $fifo;
++	my $wpid = readline($fifo_fh);
++	like($wpid, qr/\Apid=\d+\z/a , 'new worker ready');
++	$wpid;
++};
++
+ my %PUT = (
+ 	chunked_md5 => sub {
+ 		my ($in, $out, $path, %opt) = @_;
+@@ -176,6 +183,78 @@ if ('bad requests') {
+ 	like($status, qr!\AHTTP/1\.[01] 414 \b!, '414 on FRAGMENT > (1024)');
+ }
+ 
++my $tmp = { 3 => tcp_server() };
++my $no_ary = "GET /no-ary HTTP/1.1\r\nHost: example.com\r\n\r\n";
++if (diag('chunk_response is off by default w/ RACK_ENV=none') || 1) {
++	print { $c = tcp_start($srv) } $no_ary;
++	($status, $hdr) = slurp_hdr($c);
++	unlike("@$hdr", qr/Transfer-Encoding/i,
++		'no Transfer-Encoding for RACK_ENV=none despite HTTP/1.1');
++	local $/;
++	is(readline($c), "HI\n", 'unchunked body response');
++}
++
++# pretend we have Rack::Chunked for RACK_ENV=(deployment|development)
++for my $rack_env (qw(deployment development)) {
++	my $cfg = "$tmpdir/nochunk.conf.rb";
++	open my $fh, '>', $cfg;
++	my $u = unicorn('-E', $rack_env, qw(t/integration.ru -c), $cfg, $tmp);
++	$c = tcp_start($tmp->{3});
++	print $c $no_ary;
++	($status, $hdr) = slurp_hdr($c);
++	like("@$hdr", qr/Transfer-Encoding/i,
++		"Transfer-Encoding set by default for RACK_ENV=$rack_env");
++	is(do { local $/; readline($c) },
++		"3\r\nHI\n\r\n0\r\n\r\n", 'chunked body response');
++
++	print $fh <<EOM;
++chunk_response false
++after_fork { |_,_| File.open('$fifo', 'w') { |fp| fp.write "pid=#\$\$" } }
++EOM
++	close $fh;
++	$u->do_kill('HUP');
++	$wait_fifo->();
++	$c = tcp_start($tmp->{3});
++	print $c $no_ary;
++	($status, $hdr) = slurp_hdr($c);
++	unlike("@$hdr", qr/Transfer-Encoding/i,
++			"RACK_ENV=$rack_env w/o chunk_response");
++	is(do { local $/; readline($c) },
++		"HI\n", 'unchunked body response');
++}
++
++if (diag('chunk_response true w/ RACK_ENV=none') || 1) {
++	my $cfg = "$tmpdir/chunk.conf.rb";
++	open my $fh, '>', $cfg;
++	print $fh "chunk_response true\n";
++	close $fh;
++	my $u = unicorn(qw(-E none t/integration.ru -c), $cfg, $tmp);
++	$c = tcp_start($tmp->{3});
++	print $c $no_ary;
++	($status, $hdr) = slurp_hdr($c);
++	like("@$hdr", qr/Transfer-Encoding/i,
++		"Transfer-Encoding set by chunk_response false");
++	is(do { local $/; readline($c) },
++		"3\r\nHI\n\r\n0\r\n\r\n", 'chunked body response');
++
++	# reset to default:
++	open $fh, '>', $cfg;
++	print $fh <<EOM;
++after_fork { |_,_| File.open('$fifo', 'w') { |fp| fp.write "pid=#\$\$" } }
++EOM
++	close $fh;
++	$u->do_kill('HUP');
++	$wait_fifo->();
++
++	$c = tcp_start($tmp->{3});
++	print $c $no_ary;
++	($status, $hdr) = slurp_hdr($c);
++	unlike("@$hdr", qr/Transfer-Encoding/i,
++			'chunk_response false after HUP reset');
++	is(do { local $/; readline($c) },
++		"HI\n", 'unchunked body response after HUP reset');
++}
++
+ # input tests
+ my ($blob_size, $blob_hash);
+ SKIP: {
+@@ -287,9 +366,7 @@ check_client_connection true
+ after_fork { |_,_| File.open('$fifo', 'w') { |fp| fp.write "pid=#\$\$" } }
+ EOM
+ 	$ar->do_kill('HUP');
+-	open my $fifo_fh, '<', $fifo;
+-	my $wpid = readline($fifo_fh);
+-	like($wpid, qr/\Apid=\d+\z/a , 'new worker ready');
++	$wait_fifo->();
+ 	$ck_early_hints->('ccc on');
+ }
+ 
+@@ -301,10 +378,7 @@ if ('max_header_len internal API') {
+ Unicorn::HttpParser.max_header_len = $len
+ EOM
+ 	$ar->do_kill('HUP');
+-	open my $fifo_fh, '<', $fifo;
+-	my $wpid = readline($fifo_fh);
+-	like($wpid, qr/\Apid=\d+\z/a , 'new worker ready');
+-	close $fifo_fh;
++	my $wpid = $wait_fifo->();
+ 	$wpid =~ s/\Apid=// or die;
+ 	ok(CORE::kill(0, $wpid), 'worker PID retrieved');
+ 
