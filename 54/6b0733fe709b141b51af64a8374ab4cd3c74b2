@@ -1,0 +1,1038 @@
+Return-Path: <bofh@yhbt.net>
+X-Spam-Checker-Version: SpamAssassin 3.4.6 (2021-04-09) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.1 required=3.0 tests=ALL_TRUSTED,AWL,BAYES_00,
+	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,DKIM_VALID_EF shortcircuit=no
+	autolearn=ham autolearn_force=no version=3.4.6
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id 4A34A1F55F
+	for <unicorn-public@yhbt.net>; Tue,  5 Sep 2023 09:44:20 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=yhbt.net;
+	s=selector1; t=1693907060;
+	bh=7ZLX+T0Xvf5FqK+rSd/hgRbj0aCj6dzf1+/+kHzM31A=;
+	h=Date:From:To:Subject:From;
+	b=dBp9XXBSNAgEmHlZ1lrukQspV7B9UTe1cLP7i+873351qjBMZ0u8urL6KOxBAZFxq
+	 WH76TUO57cRHzic5I/SgRsQXs8Rke1vVt1OF+xdVRUUALzVjK4gyxTWS0LrZvqLBtl
+	 93xyxnnJAgNjWft6M2gy3LH+h9lYa3VlfHuVoHl0=
+Date: Tue, 5 Sep 2023 09:44:20 +0000
+From: Eric Wong <bofh@yhbt.net>
+To: unicorn-public@yhbt.net
+Subject: [RFC 0-3/3] depend on Ruby 2.5+, eliminate kgio
+Message-ID: <20230905094420.M199613@dcvr>
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="TfTytm8Aq9EevqWN"
+Content-Disposition: inline
+List-Id: <unicorn-public.yhbt.net>
+
+
+--TfTytm8Aq9EevqWN
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+
+Explanation (and bulk of the work is in patch 2/3).
+
+I wrote patch 1/3 over 4 years ago since it was simple and
+didn't rely on "newer" Ruby 2.3 features.  Patch 2/3 completes
+the change and actually depends on 2.5+; while patch 3/3 updates
+the gemspec, docs and dependencies for Ruby 2.5+.
+
+I haven't actually used Ruby 2.5 in a while, but I'm still on
+Ruby 2.7 since that's what I have in Debian bullseye
+(oldstable).
+
+Patch 2/3 could use an extra set of eyes since it's fairly big,
+but passes all tests.
+
+Note: I can't benchmark anything since I have limited (shared)
+hardware
+
+Eric Wong (3):
+  remove kgio from all read(2) and write(2) wrappers
+  kill off remaining kgio uses
+  update dependency to Ruby 2.5+
+
+ HACKING                         |  2 +-
+ README                          |  2 +-
+ lib/unicorn.rb                  |  3 +-
+ lib/unicorn/http_request.rb     | 18 ++++-----
+ lib/unicorn/http_server.rb      | 38 +++++++----------
+ lib/unicorn/oob_gc.rb           |  4 +-
+ lib/unicorn/socket_helper.rb    | 50 +++--------------------
+ lib/unicorn/stream_input.rb     | 20 +++++----
+ lib/unicorn/worker.rb           | 10 ++---
+ lib/unicorn/write_splat.rb      |  7 ----
+ t/README                        |  2 +-
+ t/oob_gc.ru                     |  3 --
+ t/oob_gc_path.ru                |  3 --
+ test/unit/test_request.rb       | 47 ++++++++-------------
+ test/unit/test_socket_helper.rb | 72 +++++++--------------------------
+ test/unit/test_stream_input.rb  |  2 +-
+ test/unit/test_tee_input.rb     |  2 +-
+ unicorn.gemspec                 |  5 +--
+ 18 files changed, 87 insertions(+), 203 deletions(-)
+ delete mode 100644 lib/unicorn/write_splat.rb
+
+--TfTytm8Aq9EevqWN
+Content-Type: text/x-diff; charset=utf-8
+Content-Disposition: attachment;
+	filename="0001-remove-kgio-from-all-read-2-and-write-2-wrappers.patch"
+
+From 36ba7f971c571031101c0b718724bdcb06dd7e03 Mon Sep 17 00:00:00 2001
+From: Eric Wong <e@80x24.org>
+Date: Sun, 26 May 2019 22:15:44 +0000
+Subject: [RFC 1/3] remove kgio from all read(2) and write(2) wrappers
+
+It's fairly easy given unicorn was designed with synchronous I/O
+in mind.  The overhead of backtraces from EOFError on
+readpartial should be rare given our requirement to only accept
+requests from fast, reliable clients on LAN (e.g. nginx or
+yet-another-horribly-named-server).
+---
+ lib/unicorn/http_request.rb |  4 ++--
+ lib/unicorn/http_server.rb  |  8 +++++---
+ lib/unicorn/stream_input.rb | 20 ++++++++++++--------
+ lib/unicorn/worker.rb       |  4 ++--
+ 4 files changed, 21 insertions(+), 15 deletions(-)
+
+diff --git a/lib/unicorn/http_request.rb b/lib/unicorn/http_request.rb
+index e3ad592..8bca60a 100644
+--- a/lib/unicorn/http_request.rb
++++ b/lib/unicorn/http_request.rb
+@@ -74,11 +74,11 @@ def read(socket)
+     e['REMOTE_ADDR'] = socket.kgio_addr
+ 
+     # short circuit the common case with small GET requests first
+-    socket.kgio_read!(16384, buf)
++    socket.readpartial(16384, buf)
+     if parse.nil?
+       # Parser is not done, queue up more data to read and continue parsing
+       # an Exception thrown from the parser will throw us out of the loop
+-      false until add_parse(socket.kgio_read!(16384))
++      false until add_parse(socket.readpartial(16384))
+     end
+ 
+     check_client_connection(socket) if @@check_client_connection
+diff --git a/lib/unicorn/http_server.rb b/lib/unicorn/http_server.rb
+index f1b4a54..2f1eb1b 100644
+--- a/lib/unicorn/http_server.rb
++++ b/lib/unicorn/http_server.rb
+@@ -389,12 +389,13 @@ def master_sleep(sec)
+     # the Ruby itself and not require a separate malloc (on 32-bit MRI 1.9+).
+     # Most reads are only one byte here and uncommon, so it's not worth a
+     # persistent buffer, either:
+-    @self_pipe[0].kgio_tryread(11)
++    @self_pipe[0].read_nonblock(11, exception: false)
+   end
+ 
+   def awaken_master
+     return if $$ != @master_pid
+-    @self_pipe[1].kgio_trywrite('.') # wakeup master process from select
++    # wakeup master process from select
++    @self_pipe[1].write_nonblock('.', exception: false)
+   end
+ 
+   # reaps all unreaped workers
+@@ -565,7 +566,8 @@ def handle_error(client, e)
+       500
+     end
+     if code
+-      client.kgio_trywrite(err_response(code, @request.response_start_sent))
++      code = err_response(code, @request.response_start_sent)
++      client.write_nonblock(code, exception: false)
+     end
+     client.close
+   rescue
+diff --git a/lib/unicorn/stream_input.rb b/lib/unicorn/stream_input.rb
+index 41d28a0..9246f73 100644
+--- a/lib/unicorn/stream_input.rb
++++ b/lib/unicorn/stream_input.rb
+@@ -49,8 +49,7 @@ def read(length = nil, rv = '')
+         to_read = length - @rbuf.size
+         rv.replace(@rbuf.slice!(0, @rbuf.size))
+         until to_read == 0 || eof? || (rv.size > 0 && @chunked)
+-          @socket.kgio_read(to_read, @buf) or eof!
+-          filter_body(@rbuf, @buf)
++          filter_body(@rbuf, @socket.readpartial(to_read, @buf))
+           rv << @rbuf
+           to_read -= @rbuf.size
+         end
+@@ -61,6 +60,8 @@ def read(length = nil, rv = '')
+       read_all(rv)
+     end
+     rv
++  rescue EOFError
++    return eof!
+   end
+ 
+   # :call-seq:
+@@ -83,9 +84,10 @@ def gets
+     begin
+       @rbuf.sub!(re, '') and return $1
+       return @rbuf.empty? ? nil : @rbuf.slice!(0, @rbuf.size) if eof?
+-      @socket.kgio_read(@@io_chunk_size, @buf) or eof!
+-      filter_body(once = '', @buf)
++      filter_body(once = '', @socket.readpartial(@@io_chunk_size, @buf))
+       @rbuf << once
++    rescue EOFError
++      return eof!
+     end while true
+   end
+ 
+@@ -107,14 +109,15 @@ def each
+   def eof?
+     if @parser.body_eof?
+       while @chunked && ! @parser.parse
+-        once = @socket.kgio_read(@@io_chunk_size) or eof!
+-        @buf << once
++        @buf << @socket.readpartial(@@io_chunk_size)
+       end
+       @socket = nil
+       true
+     else
+       false
+     end
++  rescue EOFError
++    return eof!
+   end
+ 
+   def filter_body(dst, src)
+@@ -127,10 +130,11 @@ def read_all(dst)
+     dst.replace(@rbuf)
+     @socket or return
+     until eof?
+-      @socket.kgio_read(@@io_chunk_size, @buf) or eof!
+-      filter_body(@rbuf, @buf)
++      filter_body(@rbuf, @socket.readpartial(@@io_chunk_size, @buf))
+       dst << @rbuf
+     end
++  rescue EOFError
++    return eof!
+   ensure
+     @rbuf.clear
+   end
+diff --git a/lib/unicorn/worker.rb b/lib/unicorn/worker.rb
+index 5ddf379..ad5814c 100644
+--- a/lib/unicorn/worker.rb
++++ b/lib/unicorn/worker.rb
+@@ -65,7 +65,7 @@ def soft_kill(sig) # :nodoc:
+     end
+     # writing and reading 4 bytes on a pipe is atomic on all POSIX platforms
+     # Do not care in the odd case the buffer is full, here.
+-    @master.kgio_trywrite([signum].pack('l'))
++    @master.write_nonblock([signum].pack('l'), exception: false)
+   rescue Errno::EPIPE
+     # worker will be reaped soon
+   end
+@@ -73,7 +73,7 @@ def soft_kill(sig) # :nodoc:
+   # this only runs when the Rack app.call is not running
+   # act like a listener
+   def kgio_tryaccept # :nodoc:
+-    case buf = @to_io.kgio_tryread(4)
++    case buf = @to_io.read_nonblock(4, exception: false)
+     when String
+       # unpack the buffer and trigger the signal handler
+       signum = buf.unpack('l')
+
+--TfTytm8Aq9EevqWN
+Content-Type: text/x-diff; charset=utf-8
+Content-Disposition: attachment;
+	filename="0002-kill-off-remaining-kgio-uses.patch"
+
+From 03ec6e69fc6219a40aa8db368abe53017cd164e3 Mon Sep 17 00:00:00 2001
+From: Eric Wong <bofh@yhbt.net>
+Date: Tue, 5 Sep 2023 06:43:20 +0000
+Subject: [RFC 2/3] kill off remaining kgio uses
+
+kgio is an extra download and shared object which costs users
+bandwidth, disk space, startup time and memory.  Ruby 2.3+
+provides `Socket#accept_nonblock(exception: false)' support
+in addition to `exception: false' support in IO#*_nonblock
+methods from Ruby 2.1.
+
+We no longer distinguish between TCPServer and UNIXServer as
+separate classes internally; instead favoring the `Socket' class
+of Ruby for both.  This allows us to use `Socket#accept_nonblock'
+and get a populated `Addrinfo' object off accept4(2)/accept(2)
+without resorting to a getpeername(2) syscall (kgio avoided
+getpeername(2) in the same way).
+
+The downside is there's more Ruby-level argument passing and
+stack usage on our end with HttpRequest#read_headers (formerly
+HttpRequest#read).  I chose this tradeoff since advancements in
+Ruby itself can theoretically mitigate the cost of argument
+passing, while syscalls are a high fixed cost given modern CPU
+vulnerability mitigations.
+
+Note: no benchmarks have been run since I don't have a suitable
+system.
+---
+ lib/unicorn.rb                  |  3 +-
+ lib/unicorn/http_request.rb     | 14 +++----
+ lib/unicorn/http_server.rb      | 30 +++++---------
+ lib/unicorn/oob_gc.rb           |  4 +-
+ lib/unicorn/socket_helper.rb    | 50 +++--------------------
+ lib/unicorn/worker.rb           |  6 +--
+ t/oob_gc.ru                     |  3 --
+ t/oob_gc_path.ru                |  3 --
+ test/unit/test_request.rb       | 47 ++++++++-------------
+ test/unit/test_socket_helper.rb | 72 +++++++--------------------------
+ test/unit/test_stream_input.rb  |  2 +-
+ test/unit/test_tee_input.rb     |  2 +-
+ unicorn.gemspec                 |  1 -
+ 13 files changed, 61 insertions(+), 176 deletions(-)
+
+diff --git a/lib/unicorn.rb b/lib/unicorn.rb
+index b817b77..564cb30 100644
+--- a/lib/unicorn.rb
++++ b/lib/unicorn.rb
+@@ -1,7 +1,6 @@
+ # -*- encoding: binary -*-
+ require 'etc'
+ require 'stringio'
+-require 'kgio'
+ require 'raindrops'
+ require 'io/wait'
+ 
+@@ -112,7 +111,7 @@ def self.log_error(logger, prefix, exc)
+   F_SETPIPE_SZ = 1031 if RUBY_PLATFORM =~ /linux/
+ 
+   def self.pipe # :nodoc:
+-    Kgio::Pipe.new.each do |io|
++    IO.pipe.each do |io|
+       # shrink pipes to minimize impact on /proc/sys/fs/pipe-user-pages-soft
+       # limits.
+       if defined?(F_SETPIPE_SZ)
+diff --git a/lib/unicorn/http_request.rb b/lib/unicorn/http_request.rb
+index 8bca60a..ab3bd6e 100644
+--- a/lib/unicorn/http_request.rb
++++ b/lib/unicorn/http_request.rb
+@@ -61,7 +61,7 @@ def self.check_client_connection=(bool)
+   # returns an environment hash suitable for Rack if successful
+   # This does minimal exception trapping and it is up to the caller
+   # to handle any socket errors (e.g. user aborted upload).
+-  def read(socket)
++  def read_headers(socket, ai)
+     e = env
+ 
+     # From https://www.ietf.org/rfc/rfc3875:
+@@ -71,7 +71,7 @@ def read(socket)
+     #  identify the client for the immediate request to the server;
+     #  that client may be a proxy, gateway, or other intermediary
+     #  acting on behalf of the actual source client."
+-    e['REMOTE_ADDR'] = socket.kgio_addr
++    e['REMOTE_ADDR'] = ai.unix? ? '127.0.0.1' : ai.ip_address
+ 
+     # short circuit the common case with small GET requests first
+     socket.readpartial(16384, buf)
+@@ -81,7 +81,7 @@ def read(socket)
+       false until add_parse(socket.readpartial(16384))
+     end
+ 
+-    check_client_connection(socket) if @@check_client_connection
++    check_client_connection(socket, ai) if @@check_client_connection
+ 
+     e['rack.input'] = 0 == content_length ?
+                       NULL_IO : @@input_class.new(socket, self)
+@@ -107,8 +107,8 @@ def hijacked?
+   if Raindrops.const_defined?(:TCP_Info)
+     TCPI = Raindrops::TCP_Info.allocate
+ 
+-    def check_client_connection(socket) # :nodoc:
+-      if Unicorn::TCPClient === socket
++    def check_client_connection(socket, ai) # :nodoc:
++      if ai.ip?
+         # Raindrops::TCP_Info#get!, #state (reads struct tcp_info#tcpi_state)
+         raise Errno::EPIPE, "client closed connection".freeze,
+               EMPTY_ARRAY if closed_state?(TCPI.get!(socket).state)
+@@ -152,8 +152,8 @@ def closed_state?(state) # :nodoc:
+     # Ruby 2.2+ can show struct tcp_info as a string Socket::Option#inspect.
+     # Not that efficient, but probably still better than doing unnecessary
+     # work after a client gives up.
+-    def check_client_connection(socket) # :nodoc:
+-      if Unicorn::TCPClient === socket && @@tcpi_inspect_ok
++    def check_client_connection(socket, ai) # :nodoc:
++      if @@tcpi_inspect_ok && ai.ip?
+         opt = socket.getsockopt(Socket::IPPROTO_TCP, Socket::TCP_INFO).inspect
+         if opt =~ /\bstate=(\S+)/
+           raise Errno::EPIPE, "client closed connection".freeze,
+diff --git a/lib/unicorn/http_server.rb b/lib/unicorn/http_server.rb
+index 2f1eb1b..ed5bbf1 100644
+--- a/lib/unicorn/http_server.rb
++++ b/lib/unicorn/http_server.rb
+@@ -111,9 +111,7 @@ def initialize(app, options = {})
+ 
+     @worker_data = if worker_data = ENV['UNICORN_WORKER']
+       worker_data = worker_data.split(',').map!(&:to_i)
+-      worker_data[1] = worker_data.slice!(1..2).map do |i|
+-        Kgio::Pipe.for_fd(i)
+-      end
++      worker_data[1] = worker_data.slice!(1..2).map { |i| IO.for_fd(i) }
+       worker_data
+     end
+   end
+@@ -243,10 +241,6 @@ def listen(address, opt = {}.merge(listener_opts[address] || {}))
+     tries = opt[:tries] || 5
+     begin
+       io = bind_listen(address, opt)
+-      unless Kgio::TCPServer === io || Kgio::UNIXServer === io
+-        io.autoclose = false
+-        io = server_cast(io)
+-      end
+       logger.info "listening on addr=#{sock_name(io)} fd=#{io.fileno}"
+       LISTENERS << io
+       io
+@@ -594,9 +588,9 @@ def e100_response_write(client, env)
+ 
+   # once a client is accepted, it is processed in its entirety here
+   # in 3 easy steps: read request, call app, write app response
+-  def process_client(client)
++  def process_client(client, ai)
+     @request = Unicorn::HttpRequest.new
+-    env = @request.read(client)
++    env = @request.read_headers(client, ai)
+ 
+     if early_hints
+       env["rack.early_hints"] = lambda do |headers|
+@@ -708,10 +702,9 @@ def worker_loop(worker)
+       reopen = reopen_worker_logs(worker.nr) if reopen
+       worker.tick = time_now.to_i
+       while sock = ready.shift
+-        # Unicorn::Worker#kgio_tryaccept is not like accept(2) at all,
+-        # but that will return false
+-        if client = sock.kgio_tryaccept
+-          process_client(client)
++        client_ai = sock.accept_nonblock(exception: false)
++        if client_ai != :wait_readable
++          process_client(*client_ai)
+           worker.tick = time_now.to_i
+         end
+         break if reopen
+@@ -809,7 +802,6 @@ def redirect_io(io, path)
+ 
+   def inherit_listeners!
+     # inherit sockets from parents, they need to be plain Socket objects
+-    # before they become Kgio::UNIXServer or Kgio::TCPServer
+     inherited = ENV['UNICORN_FD'].to_s.split(',')
+     immortal = []
+ 
+@@ -825,8 +817,6 @@ def inherit_listeners!
+     inherited.map! do |fd|
+       io = Socket.for_fd(fd.to_i)
+       @immortal << io if immortal.include?(fd)
+-      io.autoclose = false
+-      io = server_cast(io)
+       set_server_sockopt(io, listener_opts[sock_name(io)])
+       logger.info "inherited addr=#{sock_name(io)} fd=#{io.fileno}"
+       io
+@@ -835,11 +825,9 @@ def inherit_listeners!
+     config_listeners = config[:listeners].dup
+     LISTENERS.replace(inherited)
+ 
+-    # we start out with generic Socket objects that get cast to either
+-    # Kgio::TCPServer or Kgio::UNIXServer objects; but since the Socket
+-    # objects share the same OS-level file descriptor as the higher-level
+-    # *Server objects; we need to prevent Socket objects from being
+-    # garbage-collected
++    # we only use generic Socket objects for aggregate Socket#accept_nonblock
++    # return value [ Socket, Addrinfo ].  This allows us to avoid having to
++    # make getpeername(2) syscalls later on to fill in env['REMOTE_ADDR']
+     config_listeners -= listener_names
+     if config_listeners.empty? && LISTENERS.empty?
+       config_listeners << Unicorn::Const::DEFAULT_LISTEN
+diff --git a/lib/unicorn/oob_gc.rb b/lib/unicorn/oob_gc.rb
+index 91a8e51..db9f2cb 100644
+--- a/lib/unicorn/oob_gc.rb
++++ b/lib/unicorn/oob_gc.rb
+@@ -65,8 +65,8 @@ def self.new(app, interval = 5, path = %r{\A/})
+   end
+ 
+   #:stopdoc:
+-  def process_client(client)
+-    super(client) # Unicorn::HttpServer#process_client
++  def process_client(*args)
++    super(*args) # Unicorn::HttpServer#process_client
+     env = instance_variable_get(:@request).env
+     if OOBGC_PATH =~ env['PATH_INFO'] && ((@@nr -= 1) <= 0)
+       @@nr = OOBGC_INTERVAL
+diff --git a/lib/unicorn/socket_helper.rb b/lib/unicorn/socket_helper.rb
+index c2ba75e..06ec2b2 100644
+--- a/lib/unicorn/socket_helper.rb
++++ b/lib/unicorn/socket_helper.rb
+@@ -3,32 +3,6 @@
+ require 'socket'
+ 
+ module Unicorn
+-
+-  # Instead of using a generic Kgio::Socket for everything,
+-  # tag TCP sockets so we can use TCP_INFO under Linux without
+-  # incurring extra syscalls for Unix domain sockets.
+-  # TODO: remove these when we remove kgio
+-  TCPClient = Class.new(Kgio::Socket) # :nodoc:
+-  class TCPSrv < Kgio::TCPServer # :nodoc:
+-    def kgio_tryaccept # :nodoc:
+-      super(TCPClient)
+-    end
+-  end
+-
+-  if IO.instance_method(:write).arity == 1 # Ruby <= 2.4
+-    require 'unicorn/write_splat'
+-    UNIXClient = Class.new(Kgio::Socket) # :nodoc:
+-    class UNIXSrv < Kgio::UNIXServer # :nodoc:
+-      include Unicorn::WriteSplat
+-      def kgio_tryaccept # :nodoc:
+-        super(UNIXClient)
+-      end
+-    end
+-    TCPClient.__send__(:include, Unicorn::WriteSplat)
+-  else # Ruby 2.5+
+-    UNIXSrv = Kgio::UNIXServer
+-  end
+-
+   module SocketHelper
+ 
+     # internal interface
+@@ -105,7 +79,7 @@ def set_tcp_sockopt(sock, opt)
+     def set_server_sockopt(sock, opt)
+       opt = DEFAULTS.merge(opt || {})
+ 
+-      TCPSocket === sock and set_tcp_sockopt(sock, opt)
++      set_tcp_sockopt(sock, opt) if sock.local_address.ip?
+ 
+       rcvbuf, sndbuf = opt.values_at(:rcvbuf, :sndbuf)
+       if rcvbuf || sndbuf
+@@ -149,7 +123,9 @@ def bind_listen(address = '0.0.0.0:8080', opt = {})
+         end
+         old_umask = File.umask(opt[:umask] || 0)
+         begin
+-          UNIXSrv.new(address)
++          s = Socket.new(:UNIX, :STREAM)
++          s.bind(Socket.sockaddr_un(address))
++          s
+         ensure
+           File.umask(old_umask)
+         end
+@@ -177,8 +153,7 @@ def new_tcp_server(addr, port, opt)
+         sock.setsockopt(:SOL_SOCKET, :SO_REUSEPORT, 1)
+       end
+       sock.bind(Socket.pack_sockaddr_in(port, addr))
+-      sock.autoclose = false
+-      TCPSrv.for_fd(sock.fileno)
++      sock
+     end
+ 
+     # returns rfc2732-style (e.g. "[::1]:666") addresses for IPv6
+@@ -194,10 +169,6 @@ def tcp_name(sock)
+     def sock_name(sock)
+       case sock
+       when String then sock
+-      when UNIXServer
+-        Socket.unpack_sockaddr_un(sock.getsockname)
+-      when TCPServer
+-        tcp_name(sock)
+       when Socket
+         begin
+           tcp_name(sock)
+@@ -210,16 +181,5 @@ def sock_name(sock)
+     end
+ 
+     module_function :sock_name
+-
+-    # casts a given Socket to be a TCPServer or UNIXServer
+-    def server_cast(sock)
+-      begin
+-        Socket.unpack_sockaddr_in(sock.getsockname)
+-        TCPSrv.for_fd(sock.fileno)
+-      rescue ArgumentError
+-        UNIXSrv.for_fd(sock.fileno)
+-      end
+-    end
+-
+   end # module SocketHelper
+ end # module Unicorn
+diff --git a/lib/unicorn/worker.rb b/lib/unicorn/worker.rb
+index ad5814c..4af31be 100644
+--- a/lib/unicorn/worker.rb
++++ b/lib/unicorn/worker.rb
+@@ -71,8 +71,8 @@ def soft_kill(sig) # :nodoc:
+   end
+ 
+   # this only runs when the Rack app.call is not running
+-  # act like a listener
+-  def kgio_tryaccept # :nodoc:
++  # act like Socket#accept_nonblock(exception: false)
++  def accept_nonblock(*_unused) # :nodoc:
+     case buf = @to_io.read_nonblock(4, exception: false)
+     when String
+       # unpack the buffer and trigger the signal handler
+@@ -82,7 +82,7 @@ def kgio_tryaccept # :nodoc:
+     when nil # EOF: master died, but we are at a safe place to exit
+       fake_sig(:QUIT)
+     when :wait_readable # keep waiting
+-      return false
++      return :wait_readable
+     end while true # loop, as multiple signals may be sent
+   end
+ 
+diff --git a/t/oob_gc.ru b/t/oob_gc.ru
+index c253540..224cb06 100644
+--- a/t/oob_gc.ru
++++ b/t/oob_gc.ru
+@@ -7,9 +7,6 @@
+ 
+ # Mock GC.start
+ def GC.start
+-  ObjectSpace.each_object(Kgio::Socket) do |x|
+-    x.closed? or abort "not closed #{x}"
+-  end
+   $gc_started = true
+ end
+ run lambda { |env|
+diff --git a/t/oob_gc_path.ru b/t/oob_gc_path.ru
+index af8e3b9..7f40601 100644
+--- a/t/oob_gc_path.ru
++++ b/t/oob_gc_path.ru
+@@ -7,9 +7,6 @@
+ 
+ # Mock GC.start
+ def GC.start
+-  ObjectSpace.each_object(Kgio::Socket) do |x|
+-    x.closed? or abort "not closed #{x}"
+-  end
+   $gc_started = true
+ end
+ run lambda { |env|
+diff --git a/test/unit/test_request.rb b/test/unit/test_request.rb
+index 7f22b24..53ae944 100644
+--- a/test/unit/test_request.rb
++++ b/test/unit/test_request.rb
+@@ -10,14 +10,9 @@
+ 
+ class RequestTest < Test::Unit::TestCase
+ 
+-  class MockRequest < StringIO
+-    alias_method :readpartial, :sysread
+-    alias_method :kgio_read!, :sysread
+-    alias_method :read_nonblock, :sysread
+-    def kgio_addr
+-      '127.0.0.1'
+-    end
+-  end
++  MockRequest = Class.new(StringIO)
++
++  AI = Addrinfo.new(Socket.sockaddr_un('/unicorn/sucks'))
+ 
+   def setup
+     @request = HttpRequest.new
+@@ -30,7 +25,7 @@ def setup
+   def test_options
+     client = MockRequest.new("OPTIONS * HTTP/1.1\r\n" \
+                              "Host: foo\r\n\r\n")
+-    env = @request.read(client)
++    env = @request.read_headers(client, AI)
+     assert_equal '', env['REQUEST_PATH']
+     assert_equal '', env['PATH_INFO']
+     assert_equal '*', env['REQUEST_URI']
+@@ -40,7 +35,7 @@ def test_options
+   def test_absolute_uri_with_query
+     client = MockRequest.new("GET http://e:3/x?y=z HTTP/1.1\r\n" \
+                              "Host: foo\r\n\r\n")
+-    env = @request.read(client)
++    env = @request.read_headers(client, AI)
+     assert_equal '/x', env['REQUEST_PATH']
+     assert_equal '/x', env['PATH_INFO']
+     assert_equal 'y=z', env['QUERY_STRING']
+@@ -50,7 +45,7 @@ def test_absolute_uri_with_query
+   def test_absolute_uri_with_fragment
+     client = MockRequest.new("GET http://e:3/x#frag HTTP/1.1\r\n" \
+                              "Host: foo\r\n\r\n")
+-    env = @request.read(client)
++    env = @request.read_headers(client, AI)
+     assert_equal '/x', env['REQUEST_PATH']
+     assert_equal '/x', env['PATH_INFO']
+     assert_equal '', env['QUERY_STRING']
+@@ -61,7 +56,7 @@ def test_absolute_uri_with_fragment
+   def test_absolute_uri_with_query_and_fragment
+     client = MockRequest.new("GET http://e:3/x?a=b#frag HTTP/1.1\r\n" \
+                              "Host: foo\r\n\r\n")
+-    env = @request.read(client)
++    env = @request.read_headers(client, AI)
+     assert_equal '/x', env['REQUEST_PATH']
+     assert_equal '/x', env['PATH_INFO']
+     assert_equal 'a=b', env['QUERY_STRING']
+@@ -73,7 +68,7 @@ def test_absolute_uri_unsupported_schemes
+     %w(ssh+http://e/ ftp://e/x http+ssh://e/x).each do |abs_uri|
+       client = MockRequest.new("GET #{abs_uri} HTTP/1.1\r\n" \
+                                "Host: foo\r\n\r\n")
+-      assert_raises(HttpParserError) { @request.read(client) }
++      assert_raises(HttpParserError) { @request.read_headers(client, AI) }
+     end
+   end
+ 
+@@ -81,7 +76,7 @@ def test_x_forwarded_proto_https
+     client = MockRequest.new("GET / HTTP/1.1\r\n" \
+                              "X-Forwarded-Proto: https\r\n" \
+                              "Host: foo\r\n\r\n")
+-    env = @request.read(client)
++    env = @request.read_headers(client, AI)
+     assert_equal "https", env['rack.url_scheme']
+     assert_kind_of Array, @lint.call(env)
+   end
+@@ -90,7 +85,7 @@ def test_x_forwarded_proto_http
+     client = MockRequest.new("GET / HTTP/1.1\r\n" \
+                              "X-Forwarded-Proto: http\r\n" \
+                              "Host: foo\r\n\r\n")
+-    env = @request.read(client)
++    env = @request.read_headers(client, AI)
+     assert_equal "http", env['rack.url_scheme']
+     assert_kind_of Array, @lint.call(env)
+   end
+@@ -99,14 +94,14 @@ def test_x_forwarded_proto_invalid
+     client = MockRequest.new("GET / HTTP/1.1\r\n" \
+                              "X-Forwarded-Proto: ftp\r\n" \
+                              "Host: foo\r\n\r\n")
+-    env = @request.read(client)
++    env = @request.read_headers(client, AI)
+     assert_equal "http", env['rack.url_scheme']
+     assert_kind_of Array, @lint.call(env)
+   end
+ 
+   def test_rack_lint_get
+     client = MockRequest.new("GET / HTTP/1.1\r\nHost: foo\r\n\r\n")
+-    env = @request.read(client)
++    env = @request.read_headers(client, AI)
+     assert_equal "http", env['rack.url_scheme']
+     assert_equal '127.0.0.1', env['REMOTE_ADDR']
+     assert_kind_of Array, @lint.call(env)
+@@ -114,7 +109,7 @@ def test_rack_lint_get
+ 
+   def test_no_content_stringio
+     client = MockRequest.new("GET / HTTP/1.1\r\nHost: foo\r\n\r\n")
+-    env = @request.read(client)
++    env = @request.read_headers(client, AI)
+     assert_equal StringIO, env['rack.input'].class
+   end
+ 
+@@ -122,7 +117,7 @@ def test_zero_content_stringio
+     client = MockRequest.new("PUT / HTTP/1.1\r\n" \
+                              "Content-Length: 0\r\n" \
+                              "Host: foo\r\n\r\n")
+-    env = @request.read(client)
++    env = @request.read_headers(client, AI)
+     assert_equal StringIO, env['rack.input'].class
+   end
+ 
+@@ -130,7 +125,7 @@ def test_real_content_not_stringio
+     client = MockRequest.new("PUT / HTTP/1.1\r\n" \
+                              "Content-Length: 1\r\n" \
+                              "Host: foo\r\n\r\n")
+-    env = @request.read(client)
++    env = @request.read_headers(client, AI)
+     assert_equal Unicorn::TeeInput, env['rack.input'].class
+   end
+ 
+@@ -141,7 +136,7 @@ def test_rack_lint_put
+       "Content-Length: 5\r\n" \
+       "\r\n" \
+       "abcde")
+-    env = @request.read(client)
++    env = @request.read_headers(client, AI)
+     assert ! env.include?(:http_body)
+     assert_kind_of Array, @lint.call(env)
+   end
+@@ -152,14 +147,6 @@ def test_rack_lint_big_put
+     buf = (' ' * bs).freeze
+     length = bs * count
+     client = Tempfile.new('big_put')
+-    def client.kgio_addr; '127.0.0.1'; end
+-    def client.kgio_read(*args)
+-      readpartial(*args)
+-    rescue EOFError
+-    end
+-    def client.kgio_read!(*args)
+-      readpartial(*args)
+-    end
+     client.syswrite(
+       "PUT / HTTP/1.1\r\n" \
+       "Host: foo\r\n" \
+@@ -167,7 +154,7 @@ def client.kgio_read!(*args)
+       "\r\n")
+     count.times { assert_equal bs, client.syswrite(buf) }
+     assert_equal 0, client.sysseek(0)
+-    env = @request.read(client)
++    env = @request.read_headers(client, AI)
+     assert ! env.include?(:http_body)
+     assert_equal length, env['rack.input'].size
+     count.times {
+diff --git a/test/unit/test_socket_helper.rb b/test/unit/test_socket_helper.rb
+index 62d5a3a..a446f06 100644
+--- a/test/unit/test_socket_helper.rb
++++ b/test/unit/test_socket_helper.rb
+@@ -24,7 +24,8 @@ def test_bind_listen_tcp
+     port = unused_port @test_addr
+     @tcp_listener_name = "#@test_addr:#{port}"
+     @tcp_listener = bind_listen(@tcp_listener_name)
+-    assert TCPServer === @tcp_listener
++    assert Socket === @tcp_listener
++    assert @tcp_listener.local_address.ip?
+     assert_equal @tcp_listener_name, sock_name(@tcp_listener)
+   end
+ 
+@@ -38,10 +39,10 @@ def test_bind_listen_options
+       { :backlog => 16, :rcvbuf => 4096, :sndbuf => 4096 }
+     ].each do |opts|
+       tcp_listener = bind_listen(tcp_listener_name, opts)
+-      assert TCPServer === tcp_listener
++      assert tcp_listener.local_address.ip?
+       tcp_listener.close
+       unix_listener = bind_listen(unix_listener_name, opts)
+-      assert UNIXServer === unix_listener
++      assert unix_listener.local_address.unix?
+       unix_listener.close
+     end
+   end
+@@ -52,11 +53,13 @@ def test_bind_listen_unix
+     @unix_listener_path = tmp.path
+     File.unlink(@unix_listener_path)
+     @unix_listener = bind_listen(@unix_listener_path)
+-    assert UNIXServer === @unix_listener
++    assert Socket === @unix_listener
++    assert @unix_listener.local_address.unix?
+     assert_equal @unix_listener_path, sock_name(@unix_listener)
+     assert File.readable?(@unix_listener_path), "not readable"
+     assert File.writable?(@unix_listener_path), "not writable"
+     assert_equal 0777, File.umask
++    assert_equal @unix_listener, bind_listen(@unix_listener)
+   ensure
+     File.umask(old_umask)
+   end
+@@ -67,7 +70,6 @@ def test_bind_listen_unix_umask
+     @unix_listener_path = tmp.path
+     File.unlink(@unix_listener_path)
+     @unix_listener = bind_listen(@unix_listener_path, :umask => 077)
+-    assert UNIXServer === @unix_listener
+     assert_equal @unix_listener_path, sock_name(@unix_listener)
+     assert_equal 0140700, File.stat(@unix_listener_path).mode
+     assert_equal 0777, File.umask
+@@ -75,28 +77,6 @@ def test_bind_listen_unix_umask
+     File.umask(old_umask)
+   end
+ 
+-  def test_bind_listen_unix_idempotent
+-    test_bind_listen_unix
+-    a = bind_listen(@unix_listener)
+-    assert_equal a.fileno, @unix_listener.fileno
+-    unix_server = server_cast(@unix_listener)
+-    assert UNIXServer === unix_server
+-    a = bind_listen(unix_server)
+-    assert_equal a.fileno, unix_server.fileno
+-    assert_equal a.fileno, @unix_listener.fileno
+-  end
+-
+-  def test_bind_listen_tcp_idempotent
+-    test_bind_listen_tcp
+-    a = bind_listen(@tcp_listener)
+-    assert_equal a.fileno, @tcp_listener.fileno
+-    tcp_server = server_cast(@tcp_listener)
+-    assert TCPServer === tcp_server
+-    a = bind_listen(tcp_server)
+-    assert_equal a.fileno, tcp_server.fileno
+-    assert_equal a.fileno, @tcp_listener.fileno
+-  end
+-
+   def test_bind_listen_unix_rebind
+     test_bind_listen_unix
+     new_listener = nil
+@@ -107,14 +87,18 @@ def test_bind_listen_unix_rebind
+     File.unlink(@unix_listener_path)
+     new_listener = bind_listen(@unix_listener_path)
+ 
+-    assert UNIXServer === new_listener
+     assert new_listener.fileno != @unix_listener.fileno
+     assert_equal sock_name(new_listener), sock_name(@unix_listener)
+     assert_equal @unix_listener_path, sock_name(new_listener)
+     pid = fork do
+-      client = server_cast(new_listener).accept
+-      client.syswrite('abcde')
+-      exit 0
++      begin
++        client, _ = new_listener.accept
++        client.syswrite('abcde')
++        exit 0
++      rescue => e
++        warn "#{e.message} (#{e.class})"
++        exit 1
++      end
+     end
+     s = unix_socket(@unix_listener_path)
+     IO.select([s])
+@@ -123,32 +107,6 @@ def test_bind_listen_unix_rebind
+     assert status.success?
+   end
+ 
+-  def test_server_cast
+-    test_bind_listen_unix
+-    test_bind_listen_tcp
+-    unix_listener_socket = Socket.for_fd(@unix_listener.fileno)
+-    assert Socket === unix_listener_socket
+-    @unix_server = server_cast(unix_listener_socket)
+-    assert_equal @unix_listener.fileno, @unix_server.fileno
+-    assert UNIXServer === @unix_server
+-    assert_equal(@unix_server.path, @unix_listener.path,
+-                 "##{@unix_server.path} != #{@unix_listener.path}")
+-    assert File.socket?(@unix_server.path)
+-    assert_equal @unix_listener_path, sock_name(@unix_server)
+-
+-    tcp_listener_socket = Socket.for_fd(@tcp_listener.fileno)
+-    assert Socket === tcp_listener_socket
+-    @tcp_server = server_cast(tcp_listener_socket)
+-    assert_equal @tcp_listener.fileno, @tcp_server.fileno
+-    assert TCPServer === @tcp_server
+-    assert_equal @tcp_listener_name, sock_name(@tcp_server)
+-  end
+-
+-  def test_sock_name
+-    test_server_cast
+-    sock_name(@unix_server)
+-  end
+-
+   def test_tcp_defer_accept_default
+     return unless defined?(TCP_DEFER_ACCEPT)
+     port = unused_port @test_addr
+diff --git a/test/unit/test_stream_input.rb b/test/unit/test_stream_input.rb
+index 2a14135..7986ca7 100644
+--- a/test/unit/test_stream_input.rb
++++ b/test/unit/test_stream_input.rb
+@@ -9,7 +9,7 @@ def setup
+     @rs = "\n"
+     $/ == "\n" or abort %q{test broken if \$/ != "\\n"}
+     @env = {}
+-    @rd, @wr = Kgio::UNIXSocket.pair
++    @rd, @wr = UNIXSocket.pair
+     @rd.sync = @wr.sync = true
+     @start_pid = $$
+   end
+diff --git a/test/unit/test_tee_input.rb b/test/unit/test_tee_input.rb
+index 6f5bc8a..607ce87 100644
+--- a/test/unit/test_tee_input.rb
++++ b/test/unit/test_tee_input.rb
+@@ -10,7 +10,7 @@ class TeeInput < Unicorn::TeeInput
+ 
+ class TestTeeInput < Test::Unit::TestCase
+   def setup
+-    @rd, @wr = Kgio::UNIXSocket.pair
++    @rd, @wr = UNIXSocket.pair
+     @rd.sync = @wr.sync = true
+     @start_pid = $$
+     @rs = "\n"
+diff --git a/unicorn.gemspec b/unicorn.gemspec
+index 7bb1154..85183d9 100644
+--- a/unicorn.gemspec
++++ b/unicorn.gemspec
+@@ -36,7 +36,6 @@
+   # won't have descriptive text, only the numeric status.
+   s.add_development_dependency(%q<rack>)
+ 
+-  s.add_dependency(%q<kgio>, '~> 2.6')
+   s.add_dependency(%q<raindrops>, '~> 0.7')
+ 
+   s.add_development_dependency('test-unit', '~> 3.0')
+
+--TfTytm8Aq9EevqWN
+Content-Type: text/x-diff; charset=utf-8
+Content-Disposition: attachment;
+	filename="0003-update-dependency-to-Ruby-2.5.patch"
+
+From c67ebf96edc8ca691dfc556d4813fed242fe77ca Mon Sep 17 00:00:00 2001
+From: Eric Wong <bofh@yhbt.net>
+Date: Tue, 5 Sep 2023 09:14:11 +0000
+Subject: [RFC 3/3] update dependency to Ruby 2.5+
+
+We actually need Ruby 2.3+ for `accept_nonblock(exception: false)';
+and (AFAIK) we can't easily use a subclass of `Socket' while using
+Socket#accept_nonblock to inject WriteSplat support for
+`IO#write(*multi_args)'
+
+So just depend on Ruby 2.5+ since all my Ruby is already on the
+already-ancient Ruby 2.7+ anyways.
+---
+ HACKING                    | 2 +-
+ README                     | 2 +-
+ lib/unicorn/write_splat.rb | 7 -------
+ t/README                   | 2 +-
+ unicorn.gemspec            | 4 ++--
+ 5 files changed, 5 insertions(+), 12 deletions(-)
+ delete mode 100644 lib/unicorn/write_splat.rb
+
+diff --git a/HACKING b/HACKING
+index 020209e..5aca83e 100644
+--- a/HACKING
++++ b/HACKING
+@@ -60,7 +60,7 @@ becomes unavailable.
+ 
+ === Ruby/C Compatibility
+ 
+-We target C Ruby 2.0 and later.  We need the Ruby
++We target C Ruby 2.5 and later.  We need the Ruby
+ implementation to support fork, exec, pipe, UNIX signals, access to
+ integer file descriptors and ability to use unlinked files.
+ 
+diff --git a/README b/README
+index 5411003..7e29daf 100644
+--- a/README
++++ b/README
+@@ -12,7 +12,7 @@ both the the request and response in between unicorn and slow clients.
+   cut out everything that is better supported by the operating system,
+   {nginx}[https://nginx.org/] or {Rack}[https://rack.github.io/].
+ 
+-* Compatible with Ruby 2.0.0 and later.
++* Compatible with Ruby 2.5 and later.
+ 
+ * Process management: unicorn will reap and restart workers that
+   die from broken apps.  There is no need to manage multiple processes
+diff --git a/lib/unicorn/write_splat.rb b/lib/unicorn/write_splat.rb
+deleted file mode 100644
+index 7e6e363..0000000
+--- a/lib/unicorn/write_splat.rb
++++ /dev/null
+@@ -1,7 +0,0 @@
+-# -*- encoding: binary -*-
+-# compatibility module for Ruby <= 2.4, remove when we go Ruby 2.5+
+-module Unicorn::WriteSplat # :nodoc:
+-  def write(*arg) # :nodoc:
+-    super(arg.join(''))
+-  end
+-end
+diff --git a/t/README b/t/README
+index d09c715..7bd093d 100644
+--- a/t/README
++++ b/t/README
+@@ -14,7 +14,7 @@ Old tests are in Bourne shell and slowly being ported to Perl 5.
+ 
+ == Requirements
+ 
+-* {Ruby 2.0.0+}[https://www.ruby-lang.org/en/]
++* {Ruby 2.5.0+}[https://www.ruby-lang.org/en/]
+ * {Perl 5.14+}[https://www.perl.org/] # your distro should have it
+ * {GNU make}[https://www.gnu.org/software/make/]
+ * {curl}[https://curl.haxx.se/]
+diff --git a/unicorn.gemspec b/unicorn.gemspec
+index 85183d9..e7e3ef7 100644
+--- a/unicorn.gemspec
++++ b/unicorn.gemspec
+@@ -25,11 +25,11 @@
+   s.homepage = 'https://yhbt.net/unicorn/'
+   s.test_files = test_files
+ 
+-  # 2.0.0 is the minimum supported version. We don't specify
++  # 2.5.0 is the minimum supported version. We don't specify
+   # a maximum version to make it easier to test pre-releases,
+   # but we do warn users if they install unicorn on an untested
+   # version in extconf.rb
+-  s.required_ruby_version = ">= 2.0.0"
++  s.required_ruby_version = ">= 2.5.0"
+ 
+   # We do not have a hard dependency on rack, it's possible to load
+   # things which respond to #call.  HTTP status lines in responses
+
+--TfTytm8Aq9EevqWN--
