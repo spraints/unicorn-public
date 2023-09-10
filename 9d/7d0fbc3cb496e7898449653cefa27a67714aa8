@@ -1,0 +1,1633 @@
+Return-Path: <BOFH@yhbt.net>
+X-Spam-Checker-Version: SpamAssassin 3.4.6 (2021-04-09) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-3.4 required=3.0 tests=ALL_TRUSTED,AWL,BAYES_00,
+	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,DKIM_VALID_EF,NUMERIC_HTTP_ADDR
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.6
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id B0BBD1F55F
+	for <unicorn-public@yhbt.net>; Sun, 10 Sep 2023 20:08:31 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=yhbt.net;
+	s=selector1; t=1694376511;
+	bh=La9yUvGcHNb0UrVDZ+c+LMkr2Kw31U9TVupoQ8BVbCE=;
+	h=Date:From:To:Subject:From;
+	b=L7bqAQO5AiiysINediOJCRt7WaSN/D32goXUNB+gDI3uxaAOvKi9jhyMRN/KowAzb
+	 KV3d2DlHtitHL2wCNx7JHc6Y0uoWkM+cbgNIymn8kXIQBgGCiKX67CD1vJbslniXhF
+	 7CWfos06koo4c+QvJOHt87IeaiRsYAv6ye6nK2PE=
+Date: Sun, 10 Sep 2023 20:08:31 +0000
+From: Eric Wong <BOFH@yhbt.net>
+To: unicorn-public@yhbt.net
+Subject: [PATCH 00..11/11] more tests to Perl 5..
+Message-ID: <20230910200831.M622358@dcvr>
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="+zf1CENaCnVfmhrU"
+Content-Disposition: inline
+List-Id: <unicorn-public.yhbt.net>
+
+
+--+zf1CENaCnVfmhrU
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+
+Hopefully this is less maintenance down the line since Ruby
+introduces incompatibilities at a higher rate than Perl.
+I don't fully trust Perl, either, but far more Ruby code gets
+broken by new releases.
+
+More to come at some point...
+
+Note: attached patches are generated with --irreversible-delete
+to save bandwidth.
+
+Eric Wong (11):
+  tests: port some bad config tests to Perl 5
+  tests: port working_directory tests to Perl 5
+  tests: port t/heartbeat-timeout to Perl 5
+  tests: port reopen logs test over to Perl 5
+  tests: rewrite SIGWINCH && SIGTTIN test in Perl 5
+  tests: introduce `do_req' helper sub
+  tests: use more common variable names between tests
+  tests: use Time::HiRes `sleep' and `time' everywhere
+  tests: fold SO_KEEPALIVE check to Perl 5 integration
+  tests: move broken app test to Perl 5 integration test
+  tests: fold early shutdown() tests into t/integration.t
+
+ t/active-unix-socket.t                    |  4 +-
+ t/client_body_buffer_size.t               |  6 +-
+ t/heartbeat-timeout.ru                    |  2 +-
+ t/heartbeat-timeout.t                     | 62 +++++++++++++++
+ t/integration.ru                          |  1 +
+ t/integration.t                           | 82 +++++++++++++-------
+ t/lib.perl                                | 51 ++++++++++--
+ t/reload-bad-config.t                     | 54 +++++++++++++
+ t/{t0006.ru => reopen-logs.ru}            |  0
+ t/reopen-logs.t                           | 39 ++++++++++
+ t/t0001-reload-bad-config.sh              | 53 -------------
+ t/t0002-config-conflict.sh                | 49 ------------
+ t/t0003-working_directory.sh              | 51 ------------
+ t/t0004-heartbeat-timeout.sh              | 69 -----------------
+ t/t0004-working_directory_broken.sh       | 24 ------
+ t/t0005-working_directory_app.rb.sh       | 40 ----------
+ t/t0006-reopen-logs.sh                    | 83 --------------------
+ t/t0007-working_directory_no_embed_cli.sh | 44 -----------
+ t/t0009-winch_ttin.sh                     | 59 --------------
+ t/winch_ttin.t                            | 67 ++++++++++++++++
+ t/working_directory.t                     | 94 +++++++++++++++++++++++
+ test/exec/test_exec.rb                    | 23 +-----
+ test/unit/test_server.rb                  | 67 ----------------
+ 23 files changed, 424 insertions(+), 600 deletions(-)
+ create mode 100644 t/heartbeat-timeout.t
+ create mode 100644 t/reload-bad-config.t
+ rename t/{t0006.ru => reopen-logs.ru} (100%)
+ create mode 100644 t/reopen-logs.t
+ delete mode 100755 t/t0001-reload-bad-config.sh
+ delete mode 100755 t/t0002-config-conflict.sh
+ delete mode 100755 t/t0003-working_directory.sh
+ delete mode 100755 t/t0004-heartbeat-timeout.sh
+ delete mode 100755 t/t0004-working_directory_broken.sh
+ delete mode 100755 t/t0005-working_directory_app.rb.sh
+ delete mode 100755 t/t0006-reopen-logs.sh
+ delete mode 100755 t/t0007-working_directory_no_embed_cli.sh
+ delete mode 100755 t/t0009-winch_ttin.sh
+ create mode 100644 t/winch_ttin.t
+ create mode 100644 t/working_directory.t
+
+--+zf1CENaCnVfmhrU
+Content-Type: text/x-diff; charset=utf-8
+Content-Disposition: attachment;
+	filename="0001-tests-port-some-bad-config-tests-to-Perl-5.patch"
+
+From f43c28ea10ca8d520b55f2fbb20710dd66fc4fb5 Mon Sep 17 00:00:00 2001
+From: Eric Wong <BOFH@YHBT.net>
+Date: Thu, 7 Sep 2023 22:55:09 +0000
+Subject: [PATCH 01/11] tests: port some bad config tests to Perl 5
+
+We can fold some tests into one test to save on Perl startup
+time (but Ruby startup time is a lost cause).
+---
+ t/lib.perl                   | 12 ++++----
+ t/reload-bad-config.t        | 58 ++++++++++++++++++++++++++++++++++++
+ t/t0001-reload-bad-config.sh | 53 --------------------------------
+ t/t0002-config-conflict.sh   | 49 ------------------------------
+ 4 files changed, 65 insertions(+), 107 deletions(-)
+ create mode 100644 t/reload-bad-config.t
+ delete mode 100755 t/t0001-reload-bad-config.sh
+ delete mode 100755 t/t0002-config-conflict.sh
+
+diff --git a/t/lib.perl b/t/lib.perl
+index fe3404ba..7de9e426 100644
+--- a/t/lib.perl
++++ b/t/lib.perl
+@@ -9,17 +9,19 @@ use Test::More;
+ use IO::Socket::INET;
+ use POSIX qw(dup2 _exit setpgid :signal_h SEEK_SET F_SETFD);
+ use File::Temp 0.19 (); # 0.19 for ->newdir
+-our ($tmpdir, $errfh);
+-our @EXPORT = qw(unicorn slurp tcp_server tcp_start unicorn $tmpdir $errfh
++our ($tmpdir, $errfh, $err_log);
++our @EXPORT = qw(unicorn slurp tcp_server tcp_start unicorn
++	$tmpdir $errfh $err_log
+ 	SEEK_SET tcp_host_port which spawn check_stderr unix_start slurp_hdr);
+ 
+ my ($base) = ($0 =~ m!\b([^/]+)\.[^\.]+\z!);
+ $tmpdir = File::Temp->newdir("unicorn-$base-XXXX", TMPDIR => 1);
+-open($errfh, '>>', "$tmpdir/err.log");
+-END { diag slurp("$tmpdir/err.log") if $tmpdir };
++$err_log = "$tmpdir/err.log";
++open($errfh, '>>', $err_log);
++END { diag slurp($err_log) if $tmpdir };
+ 
+ sub check_stderr () {
+-	my @log = slurp("$tmpdir/err.log");
++	my @log = slurp($err_log);
+ 	diag("@log") if $ENV{V};
+ 	my @err = grep(!/NameError.*Unicorn::Waiter/, grep(/error/i, @log));
+ 	@err = grep(!/failed to set accept_filter=/, @err);
+diff --git a/t/reload-bad-config.t b/t/reload-bad-config.t
+new file mode 100644
+index 00000000..c7055c7e
+--- /dev/null
++++ b/t/reload-bad-config.t
+@@ -0,0 +1,58 @@
++#!perl -w
++# Copyright (C) unicorn hackers <unicorn-public@yhbt.net>
++# License: GPL-3.0+ <https://www.gnu.org/licenses/gpl-3.0.txt>
++use v5.14; BEGIN { require './t/lib.perl' };
++use autodie;
++my $srv = tcp_server();
++my $host_port = tcp_host_port($srv);
++my $ru = "$tmpdir/config.ru";
++my $u_conf = "$tmpdir/u.conf.rb";
++
++open my $fh, '>', $ru;
++print $fh <<'EOM';
++use Rack::ContentLength
++use Rack::ContentType, 'text/plain'
++config = ru = "hello world\n" # check for config variable conflicts, too
++run lambda { |env| [ 200, {}, [ ru.to_s ] ] }
++EOM
++close $fh;
++
++open $fh, '>', $u_conf;
++print $fh <<EOM;
++preload_app true
++stderr_path "$err_log"
++EOM
++close $fh;
++
++my $ar = unicorn(qw(-E none -c), $u_conf, $ru, { 3 => $srv });
++my $c = tcp_start($srv, 'GET / HTTP/1.0');
++my ($status, $hdr) = slurp_hdr($c);
++my $bdy = do { local $/; <$c> };
++like($status, qr!\AHTTP/1\.[01] 200\b!, 'status line valid at start');
++is($bdy, "hello world\n", 'body matches expected');
++
++open $fh, '>>', $ru;
++say $fh '....this better be a syntax error in any version of ruby...';
++close $fh;
++
++$ar->do_kill('HUP'); # reload
++my @l;
++for (1..1000) {
++	@l = grep(/(?:done|error) reloading/, slurp($err_log)) and
++		last;
++	select undef, undef, undef, 0.011;
++}
++diag slurp($err_log) if $ENV{V};
++ok(grep(/error reloading/, @l), 'got error reloading');
++open $fh, '>', $err_log;
++close $fh;
++
++$c = tcp_start($srv, 'GET / HTTP/1.0');
++($status, $hdr) = slurp_hdr($c);
++$bdy = do { local $/; <$c> };
++like($status, qr!\AHTTP/1\.[01] 200\b!, 'status line valid afte reload');
++is($bdy, "hello world\n", 'body matches expected after reload');
++
++check_stderr;
++undef $tmpdir; # quiet t/lib.perl END{}
++done_testing;
+diff --git a/t/t0001-reload-bad-config.sh b/t/t0001-reload-bad-config.sh
+deleted file mode 100755
+index 55bb3555..00000000
+diff --git a/t/t0002-config-conflict.sh b/t/t0002-config-conflict.sh
+deleted file mode 100755
+index d7b2181a..00000000
+
+--+zf1CENaCnVfmhrU
+Content-Type: text/x-diff; charset=utf-8
+Content-Disposition: attachment;
+	filename="0002-tests-port-working_directory-tests-to-Perl-5.patch"
+
+From d4514174ee7eadea89003f380acacf32d52acd9d Mon Sep 17 00:00:00 2001
+From: Eric Wong <BOFH@YHBT.net>
+Date: Thu, 7 Sep 2023 23:18:16 +0000
+Subject: [PATCH 02/11] tests: port working_directory tests to Perl 5
+
+We can fold a bunch of them into one test to save startup
+time, inodes, and FS activity.
+---
+ t/t0003-working_directory.sh              |  51 ---------
+ t/t0004-working_directory_broken.sh       |  24 -----
+ t/t0005-working_directory_app.rb.sh       |  40 -------
+ t/t0007-working_directory_no_embed_cli.sh |  44 --------
+ t/working_directory.t                     | 122 ++++++++++++++++++++++
+ 5 files changed, 122 insertions(+), 159 deletions(-)
+ delete mode 100755 t/t0003-working_directory.sh
+ delete mode 100755 t/t0004-working_directory_broken.sh
+ delete mode 100755 t/t0005-working_directory_app.rb.sh
+ delete mode 100755 t/t0007-working_directory_no_embed_cli.sh
+ create mode 100644 t/working_directory.t
+
+diff --git a/t/t0003-working_directory.sh b/t/t0003-working_directory.sh
+deleted file mode 100755
+index 79988d8b..00000000
+diff --git a/t/t0004-working_directory_broken.sh b/t/t0004-working_directory_broken.sh
+deleted file mode 100755
+index ca9d3825..00000000
+diff --git a/t/t0005-working_directory_app.rb.sh b/t/t0005-working_directory_app.rb.sh
+deleted file mode 100755
+index 0fbab4fc..00000000
+diff --git a/t/t0007-working_directory_no_embed_cli.sh b/t/t0007-working_directory_no_embed_cli.sh
+deleted file mode 100755
+index 77d67072..00000000
+diff --git a/t/working_directory.t b/t/working_directory.t
+new file mode 100644
+index 00000000..e7ff43a5
+--- /dev/null
++++ b/t/working_directory.t
+@@ -0,0 +1,122 @@
++#!perl -w
++# Copyright (C) unicorn hackers <unicorn-public@yhbt.net>
++# License: GPL-3.0+ <https://www.gnu.org/licenses/gpl-3.0.txt>
++use v5.14; BEGIN { require './t/lib.perl' };
++use autodie;
++mkdir "$tmpdir/alt";
++my $u_sock = "$tmpdir/u.sock";
++my $ru = "$tmpdir/alt/config.ru";
++my $u_conf = "$tmpdir/u.conf.rb";
++open my $fh, '>', $u_conf;
++print $fh <<EOM;
++pid "$tmpdir/pid"
++preload_app true
++stderr_path "$err_log"
++working_directory "$tmpdir/alt" # the whole point of this test
++before_fork { |_,_| \$master_ppid = Process.ppid }
++EOM
++close $fh;
++
++my $common_ru = <<'EOM';
++use Rack::ContentLength
++use Rack::ContentType, 'text/plain'
++run lambda { |env| [ 200, {}, [ "#{$master_ppid}\n" ] ] }
++EOM
++
++open $fh, '>', $ru;
++print $fh <<EOM;
++#\\--daemonize --listen $u_sock
++$common_ru
++EOM
++close $fh;
++
++my $pid;
++my $stop_daemon = sub {
++	my ($is_END) = @_;
++	kill('TERM', $pid);
++	my $tries = 1000;
++	while (CORE::kill(0, $pid) && --$tries) {
++		select undef, undef, undef, 0.01;
++	}
++	if ($is_END && CORE::kill(0, $pid)) {
++		CORE::kill('KILL', $pid);
++		die "daemonized PID=$pid did not die";
++	} else {
++		ok(!CORE::kill(0, $pid), 'daemonized unicorn gone');
++		undef $pid;
++	}
++};
++
++END { $stop_daemon->(1) if defined $pid };
++
++unicorn('-c', $u_conf)->join; # will daemonize
++chomp($pid = slurp("$tmpdir/pid"));
++
++my $c = unix_start($u_sock, 'GET / HTTP/1.0');
++my ($status, $hdr) = slurp_hdr($c);
++chomp(my $bdy = do { local $/; <$c> });
++is($bdy, 1, 'got expected $master_ppid');
++
++$stop_daemon->();
++check_stderr;
++
++if ('test without CLI switches in config.ru') {
++	truncate $err_log, 0;
++	open $fh, '>', $ru;
++	print $fh $common_ru;
++	close $fh;
++
++	unicorn('-D', '-l', $u_sock, '-c', $u_conf)->join; # will daemonize
++	chomp($pid = slurp("$tmpdir/pid"));
++
++	$c = unix_start($u_sock, 'GET / HTTP/1.0');
++	($status, $hdr) = slurp_hdr($c);
++	chomp($bdy = do { local $/; <$c> });
++	is($bdy, 1, 'got expected $master_ppid');
++
++	$stop_daemon->();
++	check_stderr;
++}
++
++if ('ensures broken working_directory (missing config.ru) is OK') {
++	truncate $err_log, 0;
++	unlink $ru;
++
++	my $auto_reap = unicorn('-c', $u_conf);
++	$auto_reap->join;
++	isnt($?, 0, 'exited with error due to missing config.ru');
++
++	like(slurp($err_log), qr/rackup file \Q(config.ru)\E not readable/,
++		'noted unreadability of config.ru in stderr');
++}
++
++if ('fooapp.rb (not config.ru) works with working_directory') {
++	truncate $err_log, 0;
++	my $fooapp = "$tmpdir/alt/fooapp.rb";
++	open $fh, '>', $fooapp;
++	print $fh <<EOM;
++class Fooapp
++  def self.call(env)
++    b = "dir=#{Dir.pwd}"
++    h = { 'content-type' => 'text/plain', 'content-length' => b.bytesize.to_s }
++    [ 200, h, [ b ] ]
++  end
++end
++EOM
++	close $fh;
++	my $srv = tcp_server;
++	my $auto_reap = unicorn(qw(-c), $u_conf, qw(-I. fooapp.rb),
++				{ -C => '/', 3 => $srv });
++	$c = tcp_start($srv, 'GET / HTTP/1.0');
++	($status, $hdr) = slurp_hdr($c);
++	chomp($bdy = do { local $/; <$c> });
++	is($bdy, "dir=$tmpdir/alt",
++		'fooapp.rb (w/o config.ru) w/ working_directory');
++	close $c;
++	$auto_reap->join('TERM');
++	is($?, 0, 'fooapp.rb process exited');
++	check_stderr;
++}
++
++undef $tmpdir;
++done_testing;
+
+--+zf1CENaCnVfmhrU
+Content-Type: text/x-diff; charset=utf-8
+Content-Disposition: attachment;
+	filename="0003-tests-port-t-heartbeat-timeout-to-Perl-5.patch"
+
+From d67284a692683bca59effd9c0670bd5dd47e4fa3 Mon Sep 17 00:00:00 2001
+From: Eric Wong <BOFH@YHBT.net>
+Date: Thu, 7 Sep 2023 23:53:58 +0000
+Subject: [PATCH 03/11] tests: port t/heartbeat-timeout to Perl 5
+
+I absolutely detest and regret adding this feature,
+but I'm hell bent on supporting it until the end of days
+because we don't break compatibility.
+---
+ t/heartbeat-timeout.ru       |  2 +-
+ t/heartbeat-timeout.t        | 69 ++++++++++++++++++++++++++++++++++++
+ t/t0004-heartbeat-timeout.sh | 69 ------------------------------------
+ 3 files changed, 70 insertions(+), 70 deletions(-)
+ create mode 100644 t/heartbeat-timeout.t
+ delete mode 100755 t/t0004-heartbeat-timeout.sh
+
+diff --git a/t/heartbeat-timeout.ru b/t/heartbeat-timeout.ru
+index 20a79380..3eeb5d64 100644
+--- a/t/heartbeat-timeout.ru
++++ b/t/heartbeat-timeout.ru
+@@ -7,6 +7,6 @@
+     sleep # in case STOP signal is not received in time
+     [ 500, headers, [ "Should never get here\n" ] ]
+   else
+-    [ 200, headers, [ "#$$\n" ] ]
++    [ 200, headers, [ "#$$" ] ]
+   end
+ }
+diff --git a/t/heartbeat-timeout.t b/t/heartbeat-timeout.t
+new file mode 100644
+index 00000000..1fcf21a2
+--- /dev/null
++++ b/t/heartbeat-timeout.t
+@@ -0,0 +1,69 @@
++#!perl -w
++# Copyright (C) unicorn hackers <unicorn-public@yhbt.net>
++# License: GPL-3.0+ <https://www.gnu.org/licenses/gpl-3.0.txt>
++use v5.14; BEGIN { require './t/lib.perl' };
++use autodie;
++use Time::HiRes qw(clock_gettime CLOCK_MONOTONIC);
++mkdir "$tmpdir/alt";
++my $srv = tcp_server();
++my $u_conf = "$tmpdir/u.conf.rb";
++open my $fh, '>', $u_conf;
++print $fh <<EOM;
++pid "$tmpdir/pid"
++preload_app true
++stderr_path "$err_log"
++timeout 3 # WORST FEATURE EVER
++EOM
++close $fh;
++
++my $ar = unicorn(qw(-E none t/heartbeat-timeout.ru -c), $u_conf, { 3 => $srv });
++
++my $c = tcp_start($srv, 'GET /pid HTTP/1.0');
++my ($status, $hdr) = slurp_hdr($c);
++like($status, qr!\AHTTP/1\.[01] 200\b!, 'PID request succeeds');
++my $wpid = do { local $/; <$c> };
++like($wpid, qr/\A[0-9]+\z/, 'worker is running');
++
++my $t0 = clock_gettime(CLOCK_MONOTONIC);
++$c = tcp_start($srv, 'GET /block-forever HTTP/1.0');
++vec(my $rvec = '', fileno($c), 1) = 1;
++is(select($rvec, undef, undef, 6), 1, 'got readiness');
++$c->blocking(0);
++is(sysread($c, my $buf, 128), 0, 'got EOF response');
++my $elapsed = clock_gettime(CLOCK_MONOTONIC) - $t0;
++ok($elapsed > 3, 'timeout took >3s');
++
++my @timeout_err = slurp($err_log);
++truncate($err_log, 0);
++is(grep(/timeout \(\d+s > 3s\), killing/, @timeout_err), 1,
++    'noted timeout error') or diag explain(\@timeout_err);
++
++# did it respawn?
++$c = tcp_start($srv, 'GET /pid HTTP/1.0');
++($status, $hdr) = slurp_hdr($c);
++like($status, qr!\AHTTP/1\.[01] 200\b!, 'PID request succeeds');
++my $new_pid = do { local $/; <$c> };
++isnt($new_pid, $wpid, 'spawned new worker');
++
++diag 'SIGSTOP for 4 seconds...';
++$ar->do_kill('STOP');
++sleep 4;
++$ar->do_kill('CONT');
++for my $i (1..2) {
++	$c = tcp_start($srv, 'GET /pid HTTP/1.0');
++	($status, $hdr) = slurp_hdr($c);
++	like($status, qr!\AHTTP/1\.[01] 200\b!,
++		"PID request succeeds #$i after STOP+CONT");
++	my $spid = do { local $/; <$c> };
++	is($new_pid, $spid, "worker pid unchanged after STOP+CONT #$i");
++	if ($i == 1) {
++		diag 'sleeping 2s to ensure timeout is not delayed';
++		sleep 2;
++	}
++}
++
++$ar->join('TERM');
++check_stderr;
++undef $tmpdir;
++
++done_testing;
+diff --git a/t/t0004-heartbeat-timeout.sh b/t/t0004-heartbeat-timeout.sh
+deleted file mode 100755
+index 29652837..00000000
+
+--+zf1CENaCnVfmhrU
+Content-Type: text/x-diff; charset=utf-8
+Content-Disposition: attachment;
+	filename="0004-tests-port-reopen-logs-test-over-to-Perl-5.patch"
+
+From 1607ac966f604ec4cf383025c4c3ee296f638fff Mon Sep 17 00:00:00 2001
+From: Eric Wong <BOFH@YHBT.net>
+Date: Sun, 10 Sep 2023 07:13:11 +0000
+Subject: [PATCH 04/11] tests: port reopen logs test over to Perl 5
+
+Being able to do subsecond sleeps is one welcome advantage
+over POSIX (not GNU) sleep(1) in portable Bourne sh.
+---
+ t/{t0006.ru => reopen-logs.ru} |  0
+ t/reopen-logs.t                | 43 ++++++++++++++++++
+ t/t0006-reopen-logs.sh         | 83 ----------------------------------
+ 3 files changed, 43 insertions(+), 83 deletions(-)
+ rename t/{t0006.ru => reopen-logs.ru} (100%)
+ create mode 100644 t/reopen-logs.t
+ delete mode 100755 t/t0006-reopen-logs.sh
+
+diff --git a/t/t0006.ru b/t/reopen-logs.ru
+similarity index 100%
+rename from t/t0006.ru
+rename to t/reopen-logs.ru
+diff --git a/t/reopen-logs.t b/t/reopen-logs.t
+new file mode 100644
+index 00000000..e1bf524c
+--- /dev/null
++++ b/t/reopen-logs.t
+@@ -0,0 +1,43 @@
++#!perl -w
++# Copyright (C) unicorn hackers <unicorn-public@yhbt.net>
++# License: GPL-3.0+ <https://www.gnu.org/licenses/gpl-3.0.txt>
++use v5.14; BEGIN { require './t/lib.perl' };
++use autodie;
++my $srv = tcp_server();
++my $u_conf = "$tmpdir/u.conf.rb";
++my $out_log = "$tmpdir/out.log";
++open my $fh, '>', $u_conf;
++print $fh <<EOM;
++stderr_path "$err_log"
++stdout_path "$out_log"
++EOM
++close $fh;
++
++my $auto_reap = unicorn('-c', $u_conf, 't/reopen-logs.ru', { 3 => $srv } );
++my $c = tcp_start($srv, 'GET / HTTP/1.0');
++my ($status, $hdr) = slurp_hdr($c);
++my $bdy = do { local $/; <$c> };
++is($bdy, "true\n", 'logs opened');
++
++rename($err_log, "$err_log.rot");
++rename($out_log, "$out_log.rot");
++
++$auto_reap->do_kill('USR1');
++
++my $tries = 1000;
++while (!-f $err_log && --$tries) { select undef, undef, undef, 0.01 };
++while (!-f $out_log && --$tries) { select undef, undef, undef, 0.01 };
++
++ok(-f $out_log, 'stdout_path recreated after USR1');
++ok(-f $err_log, 'stderr_path recreated after USR1');
++
++$c = tcp_start($srv, 'GET / HTTP/1.0');
++($status, $hdr) = slurp_hdr($c);
++$bdy = do { local $/; <$c> };
++is($bdy, "true\n", 'logs reopened with sync==true');
++
++$auto_reap->join('QUIT');
++is($?, 0, 'no error on exit');
++check_stderr;
++undef $tmpdir;
++done_testing;
+diff --git a/t/t0006-reopen-logs.sh b/t/t0006-reopen-logs.sh
+deleted file mode 100755
+index a6e7a17c..00000000
+
+--+zf1CENaCnVfmhrU
+Content-Type: text/x-diff; charset=utf-8
+Content-Disposition: attachment;
+	filename="0005-tests-rewrite-SIGWINCH-SIGTTIN-test-in-Perl-5.patch"
+
+From 86aea575c331a3b5242db1c14a848928a37ff9e3 Mon Sep 17 00:00:00 2001
+From: Eric Wong <BOFH@YHBT.net>
+Date: Sun, 10 Sep 2023 08:27:04 +0000
+Subject: [PATCH 05/11] tests: rewrite SIGWINCH && SIGTTIN test in Perl 5
+
+No need to deal with full second sleeps, here.
+---
+ t/t0009-winch_ttin.sh | 59 -----------------------------------
+ t/winch_ttin.t        | 72 +++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 72 insertions(+), 59 deletions(-)
+ delete mode 100755 t/t0009-winch_ttin.sh
+ create mode 100644 t/winch_ttin.t
+
+diff --git a/t/t0009-winch_ttin.sh b/t/t0009-winch_ttin.sh
+deleted file mode 100755
+index 6e56e30c..00000000
+diff --git a/t/winch_ttin.t b/t/winch_ttin.t
+new file mode 100644
+index 00000000..1a198778
+--- /dev/null
++++ b/t/winch_ttin.t
+@@ -0,0 +1,72 @@
++#!perl -w
++# Copyright (C) unicorn hackers <unicorn-public@yhbt.net>
++# License: GPL-3.0+ <https://www.gnu.org/licenses/gpl-3.0.txt>
++use v5.14; BEGIN { require './t/lib.perl' };
++use autodie;
++use POSIX qw(mkfifo);
++my $u_conf = "$tmpdir/u.conf.rb";
++my $u_sock = "$tmpdir/u.sock";
++my $fifo = "$tmpdir/fifo";
++mkfifo($fifo, 0666) or die "mkfifo($fifo): $!";
++
++open my $fh, '>', $u_conf;
++print $fh <<EOM;
++pid "$tmpdir/pid"
++listen "$u_sock"
++stderr_path "$err_log"
++after_fork do |server, worker|
++  # test script will block while reading from $fifo,
++  File.open("$fifo", "wb") { |fp| fp.syswrite worker.nr.to_s }
++end
++EOM
++close $fh;
++
++unicorn('-D', '-c', $u_conf, 't/integration.ru')->join;
++is($?, 0, 'daemonized properly');
++open $fh, '<', "$tmpdir/pid";
++chomp(my $pid = <$fh>);
++ok(kill(0, $pid), 'daemonized PID works');
++my $quit = sub { kill('QUIT', $pid) if $pid; $pid = undef };
++END { $quit->() };
++
++open $fh, '<', $fifo;
++my $worker_nr = <$fh>;
++close $fh;
++is($worker_nr, '0', 'initial worker spawned');
++
++my $c = unix_start($u_sock, 'GET /pid HTTP/1.0');
++my ($status, $hdr) = slurp_hdr($c);
++like($status, qr/ 200\b/, 'got 200 response');
++my $worker_pid = do { local $/; <$c> };
++like($worker_pid, qr/\A[0-9]+\n\z/s, 'PID in response');
++chomp $worker_pid;
++ok(kill(0, $worker_pid), 'worker_pid is valid');
++
++ok(kill('WINCH', $pid), 'SIGWINCH can be sent');
++
++my $tries = 1000;
++while (CORE::kill(0, $worker_pid) && --$tries) {
++	select undef, undef, undef, 0.01;
++}
++ok(!CORE::kill(0, $worker_pid), 'worker not running');
++
++ok(kill('TTIN', $pid), 'SIGTTIN to restart worker');
++
++open $fh, '<', $fifo;
++$worker_nr = <$fh>;
++close $fh;
++is($worker_nr, '0', 'worker restarted');
++
++$c = unix_start($u_sock, 'GET /pid HTTP/1.0');
++($status, $hdr) = slurp_hdr($c);
++like($status, qr/ 200\b/, 'got 200 response');
++chomp(my $new_worker_pid = do { local $/; <$c> });
++like($new_worker_pid, qr/\A[0-9]+\z/, 'got new worker PID');
++ok(kill(0, $new_worker_pid), 'got a valid worker PID');
++isnt($worker_pid, $new_worker_pid, 'worker PID changed');
++
++$quit->();
++
++check_stderr;
++undef $tmpdir;
++done_testing;
+
+--+zf1CENaCnVfmhrU
+Content-Type: text/x-diff; charset=utf-8
+Content-Disposition: attachment;
+	filename="0006-tests-introduce-do_req-helper-sub.patch"
+
+From 29885f0d95aaa8e1d1f6cf3b791d9f08338a511e Mon Sep 17 00:00:00 2001
+From: Eric Wong <BOFH@YHBT.net>
+Date: Sun, 10 Sep 2023 09:15:16 +0000
+Subject: [PATCH 06/11] tests: introduce `do_req' helper sub
+
+While early tests required fine-grained control in trickling
+requests, many of our later tests can use a short one-liner
+w/o having to spawn curl.
+---
+ t/heartbeat-timeout.t | 12 +++---------
+ t/integration.t       | 33 +++++++++++++--------------------
+ t/lib.perl            | 16 +++++++++++++++-
+ t/reload-bad-config.t |  8 ++------
+ t/reopen-logs.t       |  8 ++------
+ t/winch_ttin.t        | 11 ++++-------
+ t/working_directory.t | 17 +++++------------
+ 7 files changed, 44 insertions(+), 61 deletions(-)
+
+diff --git a/t/heartbeat-timeout.t b/t/heartbeat-timeout.t
+index 1fcf21a2..ce1f7e16 100644
+--- a/t/heartbeat-timeout.t
++++ b/t/heartbeat-timeout.t
+@@ -18,10 +18,8 @@ close $fh;
+ 
+ my $ar = unicorn(qw(-E none t/heartbeat-timeout.ru -c), $u_conf, { 3 => $srv });
+ 
+-my $c = tcp_start($srv, 'GET /pid HTTP/1.0');
+-my ($status, $hdr) = slurp_hdr($c);
++my ($status, $hdr, $wpid) = do_req($srv, 'GET /pid HTTP/1.0');
+ like($status, qr!\AHTTP/1\.[01] 200\b!, 'PID request succeeds');
+-my $wpid = do { local $/; <$c> };
+ like($wpid, qr/\A[0-9]+\z/, 'worker is running');
+ 
+ my $t0 = clock_gettime(CLOCK_MONOTONIC);
+@@ -39,10 +37,8 @@ is(grep(/timeout \(\d+s > 3s\), killing/, @timeout_err), 1,
+     'noted timeout error') or diag explain(\@timeout_err);
+ 
+ # did it respawn?
+-$c = tcp_start($srv, 'GET /pid HTTP/1.0');
+-($status, $hdr) = slurp_hdr($c);
++($status, $hdr, my $new_pid) = do_req($srv, 'GET /pid HTTP/1.0');
+ like($status, qr!\AHTTP/1\.[01] 200\b!, 'PID request succeeds');
+-my $new_pid = do { local $/; <$c> };
+ isnt($new_pid, $wpid, 'spawned new worker');
+ 
+ diag 'SIGSTOP for 4 seconds...';
+@@ -50,11 +46,9 @@ $ar->do_kill('STOP');
+ sleep 4;
+ $ar->do_kill('CONT');
+ for my $i (1..2) {
+-	$c = tcp_start($srv, 'GET /pid HTTP/1.0');
+-	($status, $hdr) = slurp_hdr($c);
++	($status, $hdr, my $spid) = do_req($srv, 'GET /pid HTTP/1.0');
+ 	like($status, qr!\AHTTP/1\.[01] 200\b!,
+ 		"PID request succeeds #$i after STOP+CONT");
+-	my $spid = do { local $/; <$c> };
+ 	is($new_pid, $spid, "worker pid unchanged after STOP+CONT #$i");
+ 	if ($i == 1) {
+ 		diag 'sleeping 2s to ensure timeout is not delayed';
+diff --git a/t/integration.t b/t/integration.t
+index bb2ab51b..13b07467 100644
+--- a/t/integration.t
++++ b/t/integration.t
+@@ -62,11 +62,10 @@ EOM
+ 	},
+ );
+ 
+-my ($c, $status, $hdr);
++my ($c, $status, $hdr, $bdy);
+ 
+ # response header tests
+-$c = tcp_start($srv, 'GET /rack-2-newline-headers HTTP/1.0');
+-($status, $hdr) = slurp_hdr($c);
++($status, $hdr) = do_req($srv, 'GET /rack-2-newline-headers HTTP/1.0');
+ like($status, qr!\AHTTP/1\.[01] 200\b!, 'status line valid');
+ my $orig_200_status = $status;
+ is_deeply([ grep(/^X-R2: /, @$hdr) ],
+@@ -84,16 +83,16 @@ SKIP: { # Date header check
+ };
+ 
+ 
+-$c = tcp_start($srv, 'GET /rack-3-array-headers HTTP/1.0');
+-($status, $hdr) = slurp_hdr($c);
++($status, $hdr) = do_req($srv, 'GET /rack-3-array-headers HTTP/1.0');
+ is_deeply([ grep(/^x-r3: /, @$hdr) ],
+ 	[ 'x-r3: a', 'x-r3: b', 'x-r3: c' ],
+ 	'rack 3 array headers supported') or diag(explain($hdr));
+ 
+ SKIP: {
+ 	eval { require JSON::PP } or skip "JSON::PP missing: $@", 1;
+-	my $c = tcp_start($srv, 'GET /env_dump');
+-	my $json = do { local $/; readline($c) };
++	($status, $hdr, my $json) = do_req $srv, 'GET /env_dump';
++	is($status, undef, 'no status for HTTP/0.9');
++	is($hdr, undef, 'no header for HTTP/0.9');
+ 	unlike($json, qr/^Connection: /smi, 'no connection header for 0.9');
+ 	unlike($json, qr!\AHTTP/!s, 'no HTTP/1.x prefix for 0.9');
+ 	my $env = JSON::PP->new->decode($json);
+@@ -102,8 +101,7 @@ SKIP: {
+ }
+ 
+ # cf. <CAO47=rJa=zRcLn_Xm4v2cHPr6c0UswaFC_omYFEH+baSxHOWKQ@mail.gmail.com>
+-$c = tcp_start($srv, 'GET /nil-header-value HTTP/1.0');
+-($status, $hdr) = slurp_hdr($c);
++($status, $hdr) = do_req($srv, 'GET /nil-header-value HTTP/1.0');
+ is_deeply([grep(/^X-Nil:/, @$hdr)], ['X-Nil: '],
+ 	'nil header value accepted for broken apps') or diag(explain($hdr));
+ 
+@@ -128,12 +126,10 @@ my $ck_early_hints = sub {
+ $ck_early_hints->('ccc off'); # we'll retest later
+ 
+ if ('TODO: ensure Rack::Utils::HTTP_STATUS_CODES is available') {
+-	$c = tcp_start($srv, 'POST /tweak-status-code HTTP/1.0');
+-	($status, $hdr) = slurp_hdr($c);
++	($status, $hdr) = do_req $srv, 'POST /tweak-status-code HTTP/1.0';
+ 	like($status, qr!\AHTTP/1\.[01] 200 HI\b!, 'status tweaked');
+ 
+-	$c = tcp_start($srv, 'POST /restore-status-code HTTP/1.0');
+-	($status, $hdr) = slurp_hdr($c);
++	($status, $hdr) = do_req $srv, 'POST /restore-status-code HTTP/1.0';
+ 	is($status, $orig_200_status, 'original status restored');
+ }
+ 
+@@ -145,12 +141,11 @@ SKIP: {
+ }
+ 
+ if ('bad requests') {
+-	$c = tcp_start($srv, 'GET /env_dump HTTP/1/1');
+-	($status, $hdr) = slurp_hdr($c);
++	($status, $hdr) = do_req $srv, 'GET /env_dump HTTP/1/1';
+ 	like($status, qr!\AHTTP/1\.[01] 400 \b!, 'got 400 on bad request');
+ 
+ 	$c = tcp_start($srv);
+-	print $c 'GET /';;
++	print $c 'GET /';
+ 	my $buf = join('', (0..9), 'ab');
+ 	for (0..1023) { print $c $buf }
+ 	print $c " HTTP/1.0\r\n\r\n";
+@@ -308,12 +303,10 @@ EOM
+ 	$wpid =~ s/\Apid=// or die;
+ 	ok(CORE::kill(0, $wpid), 'worker PID retrieved');
+ 
+-	$c = tcp_start($srv, $req);
+-	($status, $hdr) = slurp_hdr($c);
++	($status, $hdr) = do_req($srv, $req);
+ 	like($status, qr!\AHTTP/1\.[01] 200\b!, 'minimal request succeeds');
+ 
+-	$c = tcp_start($srv, 'GET /xxxxxx HTTP/1.0');
+-	($status, $hdr) = slurp_hdr($c);
++	($status, $hdr) = do_req($srv, 'GET /xxxxxx HTTP/1.0');
+ 	like($status, qr!\AHTTP/1\.[01] 413\b!, 'big request fails');
+ }
+ 
+diff --git a/t/lib.perl b/t/lib.perl
+index 7de9e426..13e390d6 100644
+--- a/t/lib.perl
++++ b/t/lib.perl
+@@ -12,7 +12,8 @@ use File::Temp 0.19 (); # 0.19 for ->newdir
+ our ($tmpdir, $errfh, $err_log);
+ our @EXPORT = qw(unicorn slurp tcp_server tcp_start unicorn
+ 	$tmpdir $errfh $err_log
+-	SEEK_SET tcp_host_port which spawn check_stderr unix_start slurp_hdr);
++	SEEK_SET tcp_host_port which spawn check_stderr unix_start slurp_hdr
++	do_req);
+ 
+ my ($base) = ($0 =~ m!\b([^/]+)\.[^\.]+\z!);
+ $tmpdir = File::Temp->newdir("unicorn-$base-XXXX", TMPDIR => 1);
+@@ -182,6 +183,19 @@ sub unicorn {
+ 	UnicornTest::AutoReap->new($pid);
+ }
+ 
++sub do_req ($@) {
++	my ($dst, @req) = @_;
++	my $c = ref($dst) ? tcp_start($dst, @req) : unix_start($dst, @req);
++	return $c if !wantarray;
++	my ($status, $hdr);
++	# read headers iff HTTP/1.x request, HTTP/0.9 remains supported
++	my ($first) = (join('', @req) =~ m!\A([^\r\n]+)!);
++	($status, $hdr) = slurp_hdr($c) if $first =~ m{\s*HTTP/\S+$};
++	my $bdy = do { local $/; <$c> };
++	close $c;
++	($status, $hdr, $bdy);
++}
++
+ # automatically kill + reap children when this goes out-of-scope
+ package UnicornTest::AutoReap;
+ use v5.14;
+diff --git a/t/reload-bad-config.t b/t/reload-bad-config.t
+index c7055c7e..543421da 100644
+--- a/t/reload-bad-config.t
++++ b/t/reload-bad-config.t
+@@ -25,9 +25,7 @@ EOM
+ close $fh;
+ 
+ my $ar = unicorn(qw(-E none -c), $u_conf, $ru, { 3 => $srv });
+-my $c = tcp_start($srv, 'GET / HTTP/1.0');
+-my ($status, $hdr) = slurp_hdr($c);
+-my $bdy = do { local $/; <$c> };
++my ($status, $hdr, $bdy) = do_req($srv, 'GET / HTTP/1.0');
+ like($status, qr!\AHTTP/1\.[01] 200\b!, 'status line valid at start');
+ is($bdy, "hello world\n", 'body matches expected');
+ 
+@@ -47,9 +45,7 @@ ok(grep(/error reloading/, @l), 'got error reloading');
+ open $fh, '>', $err_log;
+ close $fh;
+ 
+-$c = tcp_start($srv, 'GET / HTTP/1.0');
+-($status, $hdr) = slurp_hdr($c);
+-$bdy = do { local $/; <$c> };
++($status, $hdr, $bdy) = do_req($srv, 'GET / HTTP/1.0');
+ like($status, qr!\AHTTP/1\.[01] 200\b!, 'status line valid afte reload');
+ is($bdy, "hello world\n", 'body matches expected after reload');
+ 
+diff --git a/t/reopen-logs.t b/t/reopen-logs.t
+index e1bf524c..8a58c1b9 100644
+--- a/t/reopen-logs.t
++++ b/t/reopen-logs.t
+@@ -14,9 +14,7 @@ EOM
+ close $fh;
+ 
+ my $auto_reap = unicorn('-c', $u_conf, 't/reopen-logs.ru', { 3 => $srv } );
+-my $c = tcp_start($srv, 'GET / HTTP/1.0');
+-my ($status, $hdr) = slurp_hdr($c);
+-my $bdy = do { local $/; <$c> };
++my ($status, $hdr, $bdy) = do_req($srv, 'GET / HTTP/1.0');
+ is($bdy, "true\n", 'logs opened');
+ 
+ rename($err_log, "$err_log.rot");
+@@ -31,9 +29,7 @@ while (!-f $out_log && --$tries) { select undef, undef, undef, 0.01 };
+ ok(-f $out_log, 'stdout_path recreated after USR1');
+ ok(-f $err_log, 'stderr_path recreated after USR1');
+ 
+-$c = tcp_start($srv, 'GET / HTTP/1.0');
+-($status, $hdr) = slurp_hdr($c);
+-$bdy = do { local $/; <$c> };
++($status, $hdr, $bdy) = do_req($srv, 'GET / HTTP/1.0');
+ is($bdy, "true\n", 'logs reopened with sync==true');
+ 
+ $auto_reap->join('QUIT');
+diff --git a/t/winch_ttin.t b/t/winch_ttin.t
+index 1a198778..509b118f 100644
+--- a/t/winch_ttin.t
++++ b/t/winch_ttin.t
+@@ -34,10 +34,8 @@ my $worker_nr = <$fh>;
+ close $fh;
+ is($worker_nr, '0', 'initial worker spawned');
+ 
+-my $c = unix_start($u_sock, 'GET /pid HTTP/1.0');
+-my ($status, $hdr) = slurp_hdr($c);
++my ($status, $hdr, $worker_pid) = do_req($u_sock, 'GET /pid HTTP/1.0');
+ like($status, qr/ 200\b/, 'got 200 response');
+-my $worker_pid = do { local $/; <$c> };
+ like($worker_pid, qr/\A[0-9]+\n\z/s, 'PID in response');
+ chomp $worker_pid;
+ ok(kill(0, $worker_pid), 'worker_pid is valid');
+@@ -57,11 +55,10 @@ $worker_nr = <$fh>;
+ close $fh;
+ is($worker_nr, '0', 'worker restarted');
+ 
+-$c = unix_start($u_sock, 'GET /pid HTTP/1.0');
+-($status, $hdr) = slurp_hdr($c);
++($status, $hdr, my $new_worker_pid) = do_req($u_sock, 'GET /pid HTTP/1.0');
+ like($status, qr/ 200\b/, 'got 200 response');
+-chomp(my $new_worker_pid = do { local $/; <$c> });
+-like($new_worker_pid, qr/\A[0-9]+\z/, 'got new worker PID');
++like($new_worker_pid, qr/\A[0-9]+\n\z/, 'got new worker PID');
++chomp $new_worker_pid;
+ ok(kill(0, $new_worker_pid), 'got a valid worker PID');
+ isnt($worker_pid, $new_worker_pid, 'worker PID changed');
+ 
+diff --git a/t/working_directory.t b/t/working_directory.t
+index e7ff43a5..6c974720 100644
+--- a/t/working_directory.t
++++ b/t/working_directory.t
+@@ -52,10 +52,8 @@ END { $stop_daemon->(1) if defined $pid };
+ unicorn('-c', $u_conf)->join; # will daemonize
+ chomp($pid = slurp("$tmpdir/pid"));
+ 
+-my $c = unix_start($u_sock, 'GET / HTTP/1.0');
+-my ($status, $hdr) = slurp_hdr($c);
+-chomp(my $bdy = do { local $/; <$c> });
+-is($bdy, 1, 'got expected $master_ppid');
++my ($status, $hdr, $bdy) = do_req($u_sock, 'GET / HTTP/1.0');
++is($bdy, "1\n", 'got expected $master_ppid');
+ 
+ $stop_daemon->();
+ check_stderr;
+@@ -69,10 +67,8 @@ if ('test without CLI switches in config.ru') {
+ 	unicorn('-D', '-l', $u_sock, '-c', $u_conf)->join; # will daemonize
+ 	chomp($pid = slurp("$tmpdir/pid"));
+ 
+-	$c = unix_start($u_sock, 'GET / HTTP/1.0');
+-	($status, $hdr) = slurp_hdr($c);
+-	chomp($bdy = do { local $/; <$c> });
+-	is($bdy, 1, 'got expected $master_ppid');
++	($status, $hdr, $bdy) = do_req($u_sock, 'GET / HTTP/1.0');
++	is($bdy, "1\n", 'got expected $master_ppid');
+ 
+ 	$stop_daemon->();
+ 	check_stderr;
+@@ -107,12 +103,9 @@ EOM
+ 	my $srv = tcp_server;
+ 	my $auto_reap = unicorn(qw(-c), $u_conf, qw(-I. fooapp.rb),
+ 				{ -C => '/', 3 => $srv });
+-	$c = tcp_start($srv, 'GET / HTTP/1.0');
+-	($status, $hdr) = slurp_hdr($c);
+-	chomp($bdy = do { local $/; <$c> });
++	($status, $hdr, $bdy) = do_req($srv, 'GET / HTTP/1.0');
+ 	is($bdy, "dir=$tmpdir/alt",
+ 		'fooapp.rb (w/o config.ru) w/ working_directory');
+-	close $c;
+ 	$auto_reap->join('TERM');
+ 	is($?, 0, 'fooapp.rb process exited');
+ 	check_stderr;
+
+--+zf1CENaCnVfmhrU
+Content-Type: text/x-diff; charset=utf-8
+Content-Disposition: attachment;
+	filename="0007-tests-use-more-common-variable-names-between-tests.patch"
+
+From 948f78403172657590d690b9255467b9ccb968cd Mon Sep 17 00:00:00 2001
+From: Eric Wong <BOFH@YHBT.net>
+Date: Sun, 10 Sep 2023 09:31:44 +0000
+Subject: [PATCH 07/11] tests: use more common variable names between tests
+
+Stuff like $u_conf, $daemon_pid, $pid_file, etc. will
+reduce cognitive overhead.
+---
+ t/active-unix-socket.t      |  2 +-
+ t/client_body_buffer_size.t |  6 ++----
+ t/heartbeat-timeout.t       |  3 +--
+ t/integration.t             |  5 ++---
+ t/lib.perl                  | 31 +++++++++++++++++++++++++++----
+ t/working_directory.t       | 31 +++++--------------------------
+ 6 files changed, 38 insertions(+), 40 deletions(-)
+
+diff --git a/t/active-unix-socket.t b/t/active-unix-socket.t
+index 4dcc8dc6..32cb0c2e 100644
+--- a/t/active-unix-socket.t
++++ b/t/active-unix-socket.t
+@@ -15,7 +15,7 @@ my $u2 = "$tmpdir/u2.sock";
+ 	print $fh <<EOM;
+ pid "$tmpdir/u.pid"
+ listen "$u1"
+-stderr_path "$tmpdir/err.log"
++stderr_path "$err_log"
+ EOM
+ 	close $fh;
+ 
+diff --git a/t/client_body_buffer_size.t b/t/client_body_buffer_size.t
+index 3067f284..d4799012 100644
+--- a/t/client_body_buffer_size.t
++++ b/t/client_body_buffer_size.t
+@@ -4,16 +4,14 @@
+ 
+ use v5.14; BEGIN { require './t/lib.perl' };
+ use autodie;
+-my $uconf = "$tmpdir/u.conf.rb";
+-
+-open my $conf_fh, '>', $uconf;
++open my $conf_fh, '>', $u_conf;
+ $conf_fh->autoflush(1);
+ print $conf_fh <<EOM;
+ client_body_buffer_size 0
+ EOM
+ my $srv = tcp_server();
+ my $host_port = tcp_host_port($srv);
+-my @uarg = (qw(-E none t/client_body_buffer_size.ru -c), $uconf);
++my @uarg = (qw(-E none t/client_body_buffer_size.ru -c), $u_conf);
+ my $ar = unicorn(@uarg, { 3 => $srv });
+ my ($c, $status, $hdr);
+ my $mem_class = 'StringIO';
+diff --git a/t/heartbeat-timeout.t b/t/heartbeat-timeout.t
+index ce1f7e16..694867a4 100644
+--- a/t/heartbeat-timeout.t
++++ b/t/heartbeat-timeout.t
+@@ -6,7 +6,6 @@ use autodie;
+ use Time::HiRes qw(clock_gettime CLOCK_MONOTONIC);
+ mkdir "$tmpdir/alt";
+ my $srv = tcp_server();
+-my $u_conf = "$tmpdir/u.conf.rb";
+ open my $fh, '>', $u_conf;
+ print $fh <<EOM;
+ pid "$tmpdir/pid"
+@@ -23,7 +22,7 @@ like($status, qr!\AHTTP/1\.[01] 200\b!, 'PID request succeeds');
+ like($wpid, qr/\A[0-9]+\z/, 'worker is running');
+ 
+ my $t0 = clock_gettime(CLOCK_MONOTONIC);
+-$c = tcp_start($srv, 'GET /block-forever HTTP/1.0');
++my $c = tcp_start($srv, 'GET /block-forever HTTP/1.0');
+ vec(my $rvec = '', fileno($c), 1) = 1;
+ is(select($rvec, undef, undef, 6), 1, 'got readiness');
+ $c->blocking(0);
+diff --git a/t/integration.t b/t/integration.t
+index 13b07467..eb40ffc7 100644
+--- a/t/integration.t
++++ b/t/integration.t
+@@ -10,15 +10,14 @@ use autodie;
+ our $srv = tcp_server();
+ our $host_port = tcp_host_port($srv);
+ my $t0 = time;
+-my $conf = "$tmpdir/u.conf.rb";
+-open my $conf_fh, '>', $conf;
++open my $conf_fh, '>', $u_conf;
+ $conf_fh->autoflush(1);
+ my $u1 = "$tmpdir/u1";
+ print $conf_fh <<EOM;
+ early_hints true
+ listen "$u1"
+ EOM
+-my $ar = unicorn(qw(-E none t/integration.ru -c), $conf, { 3 => $srv });
++my $ar = unicorn(qw(-E none t/integration.ru -c), $u_conf, { 3 => $srv });
+ my $curl = which('curl');
+ my $fifo = "$tmpdir/fifo";
+ POSIX::mkfifo($fifo, 0600) or die "mkfifo: $!";
+diff --git a/t/lib.perl b/t/lib.perl
+index 13e390d6..244972bc 100644
+--- a/t/lib.perl
++++ b/t/lib.perl
+@@ -6,20 +6,43 @@ use v5.14;
+ use parent qw(Exporter);
+ use autodie;
+ use Test::More;
++use Time::HiRes qw(sleep);
+ use IO::Socket::INET;
+ use POSIX qw(dup2 _exit setpgid :signal_h SEEK_SET F_SETFD);
+ use File::Temp 0.19 (); # 0.19 for ->newdir
+-our ($tmpdir, $errfh, $err_log);
++our ($tmpdir, $errfh, $err_log, $u_sock, $u_conf, $daemon_pid,
++	$pid_file);
+ our @EXPORT = qw(unicorn slurp tcp_server tcp_start unicorn
+-	$tmpdir $errfh $err_log
++	$tmpdir $errfh $err_log $u_sock $u_conf $daemon_pid $pid_file
+ 	SEEK_SET tcp_host_port which spawn check_stderr unix_start slurp_hdr
+-	do_req);
++	do_req stop_daemon);
+ 
+ my ($base) = ($0 =~ m!\b([^/]+)\.[^\.]+\z!);
+ $tmpdir = File::Temp->newdir("unicorn-$base-XXXX", TMPDIR => 1);
+ $err_log = "$tmpdir/err.log";
++$pid_file = "$tmpdir/pid";
++$u_sock = "$tmpdir/u.sock";
++$u_conf = "$tmpdir/u.conf.rb";
+ open($errfh, '>>', $err_log);
+-END { diag slurp($err_log) if $tmpdir };
++
++sub stop_daemon (;$) {
++	my ($is_END) = @_;
++	kill('TERM', $daemon_pid);
++	my $tries = 1000;
++	while (CORE::kill(0, $daemon_pid) && --$tries) { sleep(0.01) }
++	if ($is_END && CORE::kill(0, $daemon_pid)) { # after done_testing
++		CORE::kill('KILL', $daemon_pid);
++		die "daemon_pid=$daemon_pid did not die";
++	} else {
++		ok(!CORE::kill(0, $daemon_pid), 'daemonized unicorn gone');
++		undef $daemon_pid;
++	}
++};
++
++END {
++	diag slurp($err_log) if $tmpdir;
++	stop_daemon(1) if defined $daemon_pid;
++};
+ 
+ sub check_stderr () {
+ 	my @log = slurp($err_log);
+diff --git a/t/working_directory.t b/t/working_directory.t
+index 6c974720..f9254eb8 100644
+--- a/t/working_directory.t
++++ b/t/working_directory.t
+@@ -4,12 +4,10 @@
+ use v5.14; BEGIN { require './t/lib.perl' };
+ use autodie;
+ mkdir "$tmpdir/alt";
+-my $u_sock = "$tmpdir/u.sock";
+ my $ru = "$tmpdir/alt/config.ru";
+-my $u_conf = "$tmpdir/u.conf.rb";
+ open my $fh, '>', $u_conf;
+ print $fh <<EOM;
+-pid "$tmpdir/pid"
++pid "$pid_file"
+ preload_app true
+ stderr_path "$err_log"
+ working_directory "$tmpdir/alt" # the whole point of this test
+@@ -30,32 +28,13 @@ $common_ru
+ EOM
+ close $fh;
+ 
+-my $pid;
+-my $stop_daemon = sub {
+-	my ($is_END) = @_;
+-	kill('TERM', $pid);
+-	my $tries = 1000;
+-	while (CORE::kill(0, $pid) && --$tries) {
+-		select undef, undef, undef, 0.01;
+-	}
+-	if ($is_END && CORE::kill(0, $pid)) {
+-		CORE::kill('KILL', $pid);
+-		die "daemonized PID=$pid did not die";
+-	} else {
+-		ok(!CORE::kill(0, $pid), 'daemonized unicorn gone');
+-		undef $pid;
+-	}
+-};
+-
+-END { $stop_daemon->(1) if defined $pid };
+-
+ unicorn('-c', $u_conf)->join; # will daemonize
+-chomp($pid = slurp("$tmpdir/pid"));
++chomp($daemon_pid = slurp($pid_file));
+ 
+ my ($status, $hdr, $bdy) = do_req($u_sock, 'GET / HTTP/1.0');
+ is($bdy, "1\n", 'got expected $master_ppid');
+ 
+-$stop_daemon->();
++stop_daemon;
+ check_stderr;
+ 
+ if ('test without CLI switches in config.ru') {
+@@ -65,12 +44,12 @@ if ('test without CLI switches in config.ru') {
+ 	close $fh;
+ 
+ 	unicorn('-D', '-l', $u_sock, '-c', $u_conf)->join; # will daemonize
+-	chomp($pid = slurp("$tmpdir/pid"));
++	chomp($daemon_pid = slurp($pid_file));
+ 
+ 	($status, $hdr, $bdy) = do_req($u_sock, 'GET / HTTP/1.0');
+ 	is($bdy, "1\n", 'got expected $master_ppid');
+ 
+-	$stop_daemon->();
++	stop_daemon;
+ 	check_stderr;
+ }
+ 
+
+--+zf1CENaCnVfmhrU
+Content-Type: text/x-diff; charset=utf-8
+Content-Disposition: attachment;
+	filename="0008-tests-use-Time-HiRes-sleep-and-time-everywhere.patch"
+
+From dd9f2efeebf20cfa1def0ce92cb4e35a8b5c1580 Mon Sep 17 00:00:00 2001
+From: Eric Wong <BOFH@YHBT.net>
+Date: Sun, 10 Sep 2023 09:35:09 +0000
+Subject: [PATCH 08/11] tests: use Time::HiRes `sleep' and `time' everywhere
+
+The time(2) syscall use by CORE::time is inaccurate[1].
+It's also easier to read `sleep 0.01' rather than the
+longer `select' equivalent.
+
+[1] a6463151bd1db5b9 (httpdate: favor gettimeofday(2) over time(2) for correctness, 2023-06-01)
+---
+ t/active-unix-socket.t | 2 +-
+ t/integration.t        | 5 +++--
+ t/lib.perl             | 4 ++--
+ t/reload-bad-config.t  | 2 +-
+ t/reopen-logs.t        | 4 ++--
+ t/winch_ttin.t         | 4 +---
+ 6 files changed, 10 insertions(+), 11 deletions(-)
+
+diff --git a/t/active-unix-socket.t b/t/active-unix-socket.t
+index 32cb0c2e..ff731b5f 100644
+--- a/t/active-unix-socket.t
++++ b/t/active-unix-socket.t
+@@ -86,7 +86,7 @@ is($pidf, $to_kill{u1}, 'pid file contents unchanged after 2nd start failure');
+ 		'fail to connect to u1');
+ 	for (1..50) { # wait for init process to reap worker
+ 		kill(0, $worker_pid) or last;
+-		select(undef, undef, undef, 0.011);
++		sleep 0.011;
+ 	}
+ 	ok(!kill(0, $worker_pid), 'worker gone after parent dies');
+ }
+diff --git a/t/integration.t b/t/integration.t
+index eb40ffc7..80485e44 100644
+--- a/t/integration.t
++++ b/t/integration.t
+@@ -77,8 +77,9 @@ SKIP: { # Date header check
+ 	eval { require HTTP::Date } or skip "HTTP::Date missing: $@", 1;
+ 	$d[0] =~ s/^Date: //i or die 'BUG: did not strip date: prefix';
+ 	my $t = HTTP::Date::str2time($d[0]);
+-	ok($t >= $t0 && $t > 0 && $t <= time, 'valid date') or
+-		diag(explain([$t, $!, \@d]));
++	my $now = time;
++	ok($t >= ($t0 - 1) && $t > 0 && $t <= ($now + 1), 'valid date') or
++		diag(explain(["t=$t t0=$t0 now=$now", $!, \@d]));
+ };
+ 
+ 
+diff --git a/t/lib.perl b/t/lib.perl
+index 244972bc..9254b23b 100644
+--- a/t/lib.perl
++++ b/t/lib.perl
+@@ -6,7 +6,7 @@ use v5.14;
+ use parent qw(Exporter);
+ use autodie;
+ use Test::More;
+-use Time::HiRes qw(sleep);
++use Time::HiRes qw(sleep time);
+ use IO::Socket::INET;
+ use POSIX qw(dup2 _exit setpgid :signal_h SEEK_SET F_SETFD);
+ use File::Temp 0.19 (); # 0.19 for ->newdir
+@@ -15,7 +15,7 @@ our ($tmpdir, $errfh, $err_log, $u_sock, $u_conf, $daemon_pid,
+ our @EXPORT = qw(unicorn slurp tcp_server tcp_start unicorn
+ 	$tmpdir $errfh $err_log $u_sock $u_conf $daemon_pid $pid_file
+ 	SEEK_SET tcp_host_port which spawn check_stderr unix_start slurp_hdr
+-	do_req stop_daemon);
++	do_req stop_daemon sleep time);
+ 
+ my ($base) = ($0 =~ m!\b([^/]+)\.[^\.]+\z!);
+ $tmpdir = File::Temp->newdir("unicorn-$base-XXXX", TMPDIR => 1);
+diff --git a/t/reload-bad-config.t b/t/reload-bad-config.t
+index 543421da..c023b88c 100644
+--- a/t/reload-bad-config.t
++++ b/t/reload-bad-config.t
+@@ -38,7 +38,7 @@ my @l;
+ for (1..1000) {
+ 	@l = grep(/(?:done|error) reloading/, slurp($err_log)) and
+ 		last;
+-	select undef, undef, undef, 0.011;
++	sleep 0.011;
+ }
+ diag slurp($err_log) if $ENV{V};
+ ok(grep(/error reloading/, @l), 'got error reloading');
+diff --git a/t/reopen-logs.t b/t/reopen-logs.t
+index 8a58c1b9..76a4dbdf 100644
+--- a/t/reopen-logs.t
++++ b/t/reopen-logs.t
+@@ -23,8 +23,8 @@ rename($out_log, "$out_log.rot");
+ $auto_reap->do_kill('USR1');
+ 
+ my $tries = 1000;
+-while (!-f $err_log && --$tries) { select undef, undef, undef, 0.01 };
+-while (!-f $out_log && --$tries) { select undef, undef, undef, 0.01 };
++while (!-f $err_log && --$tries) { sleep 0.01 };
++while (!-f $out_log && --$tries) { sleep 0.01 };
+ 
+ ok(-f $out_log, 'stdout_path recreated after USR1');
+ ok(-f $err_log, 'stderr_path recreated after USR1');
+diff --git a/t/winch_ttin.t b/t/winch_ttin.t
+index 509b118f..c5079599 100644
+--- a/t/winch_ttin.t
++++ b/t/winch_ttin.t
+@@ -43,9 +43,7 @@ ok(kill(0, $worker_pid), 'worker_pid is valid');
+ ok(kill('WINCH', $pid), 'SIGWINCH can be sent');
+ 
+ my $tries = 1000;
+-while (CORE::kill(0, $worker_pid) && --$tries) {
+-	select undef, undef, undef, 0.01;
+-}
++while (CORE::kill(0, $worker_pid) && --$tries) { sleep 0.01 }
+ ok(!CORE::kill(0, $worker_pid), 'worker not running');
+ 
+ ok(kill('TTIN', $pid), 'SIGTTIN to restart worker');
+
+--+zf1CENaCnVfmhrU
+Content-Type: text/x-diff; charset=utf-8
+Content-Disposition: attachment;
+	filename="0009-tests-fold-SO_KEEPALIVE-check-to-Perl-5-integration.patch"
+
+From b588ccbbf73547487f54fd1a9d5396d6848e8661 Mon Sep 17 00:00:00 2001
+From: Eric Wong <BOFH@YHBT.net>
+Date: Sun, 10 Sep 2023 19:21:05 +0000
+Subject: [PATCH 09/11] tests: fold SO_KEEPALIVE check to Perl 5 integration
+
+No need to startup more processes than necessary.
+---
+ t/integration.t        | 13 +++++++++++++
+ test/exec/test_exec.rb | 23 +----------------------
+ 2 files changed, 14 insertions(+), 22 deletions(-)
+
+diff --git a/t/integration.t b/t/integration.t
+index 80485e44..bea221ce 100644
+--- a/t/integration.t
++++ b/t/integration.t
+@@ -7,8 +7,16 @@
+ 
+ use v5.14; BEGIN { require './t/lib.perl' };
+ use autodie;
++use Socket qw(SOL_SOCKET SO_KEEPALIVE);
+ our $srv = tcp_server();
+ our $host_port = tcp_host_port($srv);
++
++if ('ensure Perl does not set SO_KEEPALIVE by default') {
++	my $val = getsockopt($srv, SOL_SOCKET, SO_KEEPALIVE);
++	unpack('i', $val) == 0 or
++		setsockopt($srv, SOL_SOCKET, SO_KEEPALIVE, pack('i', 0));
++	$val = getsockopt($srv, SOL_SOCKET, SO_KEEPALIVE);
++}
+ my $t0 = time;
+ open my $conf_fh, '>', $u_conf;
+ $conf_fh->autoflush(1);
+@@ -71,6 +79,11 @@ is_deeply([ grep(/^X-R2: /, @$hdr) ],
+ 	[ 'X-R2: a', 'X-R2: b', 'X-R2: c' ],
+ 	'rack 2 LF-delimited headers supported') or diag(explain($hdr));
+ 
++{
++	my $val = getsockopt($srv, SOL_SOCKET, SO_KEEPALIVE);
++	is(unpack('i', $val), 1, 'SO_KEEPALIVE set on inherited socket');
++}
++
+ SKIP: { # Date header check
+ 	my @d = grep(/^Date: /i, @$hdr);
+ 	is(scalar(@d), 1, 'got one date header') or diag(explain(\@d));
+diff --git a/test/exec/test_exec.rb b/test/exec/test_exec.rb
+index 55f828e7..84944520 100644
+--- a/test/exec/test_exec.rb
++++ b/test/exec/test_exec.rb
+@@ -1,6 +1,5 @@
+ # -*- encoding: binary -*-
+-
+-# Copyright (c) 2009 Eric Wong
++# Don't add to this file, new tests are in Perl 5. See t/README
+ FLOCK_PATH = File.expand_path(__FILE__)
+ require './test/test_helper'
+ 
+@@ -97,26 +96,6 @@ def teardown
+     end
+   end
+ 
+-  def test_inherit_listener_unspecified
+-    File.open("config.ru", "wb") { |fp| fp.write(HI) }
+-    sock = TCPServer.new(@addr, @port)
+-    sock.setsockopt(:SOL_SOCKET, :SO_KEEPALIVE, 0)
+-
+-    pid = xfork do
+-      redirect_test_io do
+-        ENV['UNICORN_FD'] = sock.fileno.to_s
+-        exec($unicorn_bin, sock.fileno => sock.fileno)
+-      end
+-    end
+-    res = hit(["http://#@addr:#@port/"])
+-    assert_equal [ "HI\n" ], res
+-    assert_shutdown(pid)
+-    assert sock.getsockopt(:SOL_SOCKET, :SO_KEEPALIVE).bool,
+-                'unicorn should always set SO_KEEPALIVE on inherited sockets'
+-  ensure
+-    sock.close if sock
+-  end
+-
+   def test_working_directory_rel_path_config_file
+     other = Tempfile.new('unicorn.wd')
+     File.unlink(other.path)
+
+--+zf1CENaCnVfmhrU
+Content-Type: text/x-diff; charset=utf-8
+Content-Disposition: attachment;
+	filename="0010-tests-move-broken-app-test-to-Perl-5-integration-tes.patch"
+
+From 7160f1b519aece0fe645d22a7d8fb954a43ad6fb Mon Sep 17 00:00:00 2001
+From: Eric Wong <BOFH@YHBT.net>
+Date: Sun, 10 Sep 2023 19:37:32 +0000
+Subject: [PATCH 10/11] tests: move broken app test to Perl 5 integration test
+
+Less Ruby means fewer incompatibilities to worry about with
+every new version.
+---
+ t/integration.ru         |  1 +
+ t/integration.t          |  6 ++++++
+ test/unit/test_server.rb | 14 --------------
+ 3 files changed, 7 insertions(+), 14 deletions(-)
+
+diff --git a/t/integration.ru b/t/integration.ru
+index 086126ab..888833a9 100644
+--- a/t/integration.ru
++++ b/t/integration.ru
+@@ -98,6 +98,7 @@ def rack_input_tests(env)
+     when '/pid'; [ 200, {}, [ "#$$\n" ] ]
+     when '/early_hints_rack2'; early_hints(env, "r\n2")
+     when '/early_hints_rack3'; early_hints(env, %w(r 3))
++    when '/broken_app'; raise RuntimeError, 'hello'
+     else '/'; [ 200, {}, [ env_dump(env) ] ]
+     end # case PATH_INFO (GET)
+   when 'POST'
+diff --git a/t/integration.t b/t/integration.t
+index bea221ce..ba17dd9e 100644
+--- a/t/integration.t
++++ b/t/integration.t
+@@ -118,6 +118,12 @@ SKIP: {
+ is_deeply([grep(/^X-Nil:/, @$hdr)], ['X-Nil: '],
+ 	'nil header value accepted for broken apps') or diag(explain($hdr));
+ 
++check_stderr;
++($status, $hdr, $bdy) = do_req($srv, 'GET /broken_app HTTP/1.0');
++like($status, qr!\AHTTP/1\.[0-1] 500\b!, 'got 500 error on broken endpoint');
++is($bdy, undef, 'no response body after exception');
++truncate($errfh, 0);
++
+ my $ck_early_hints = sub {
+ 	my ($note) = @_;
+ 	$c = unix_start($u1, 'GET /early_hints_rack2 HTTP/1.0');
+diff --git a/test/unit/test_server.rb b/test/unit/test_server.rb
+index 0a710d12..2af12eac 100644
+--- a/test/unit/test_server.rb
++++ b/test/unit/test_server.rb
+@@ -127,20 +127,6 @@ def test_after_reply
+     sock.close
+   end
+ 
+-  def test_broken_app
+-    teardown
+-    app = lambda { |env| raise RuntimeError, "hello" }
+-    # [200, {}, []] }
+-    redirect_test_io do
+-      @server = HttpServer.new(app, :listeners => [ "127.0.0.1:#@port"] )
+-      @server.start
+-    end
+-    sock = tcp_socket('127.0.0.1', @port)
+-    sock.syswrite("GET / HTTP/1.0\r\n\r\n")
+-    assert_match %r{\AHTTP/1.[01] 500\b}, sock.sysread(4096)
+-    assert_nil sock.close
+-  end
+-
+   def test_simple_server
+     results = hit(["http://localhost:#{@port}/test"])
+     assert_equal 'hello!\n', results[0], "Handler didn't really run"
+
+--+zf1CENaCnVfmhrU
+Content-Type: text/x-diff; charset=utf-8
+Content-Disposition: attachment;
+	filename="0011-tests-fold-early-shutdown-tests-into-t-integration.t.patch"
+
+From 05028146b5e69c566663fdab9f8b92c6145a791a Mon Sep 17 00:00:00 2001
+From: Eric Wong <BOFH@YHBT.net>
+Date: Sun, 10 Sep 2023 19:52:03 +0000
+Subject: [PATCH 11/11] tests: fold early shutdown() tests into t/integration.t
+
+This means fewer redundant tests and more chances to notice
+Ruby incompatibilities.
+---
+ t/integration.t          | 22 +++++++++++++++--
+ test/unit/test_server.rb | 53 ----------------------------------------
+ 2 files changed, 20 insertions(+), 55 deletions(-)
+
+diff --git a/t/integration.t b/t/integration.t
+index ba17dd9e..7310ff29 100644
+--- a/t/integration.t
++++ b/t/integration.t
+@@ -7,7 +7,7 @@
+ 
+ use v5.14; BEGIN { require './t/lib.perl' };
+ use autodie;
+-use Socket qw(SOL_SOCKET SO_KEEPALIVE);
++use Socket qw(SOL_SOCKET SO_KEEPALIVE SHUT_WR);
+ our $srv = tcp_server();
+ our $host_port = tcp_host_port($srv);
+ 
+@@ -209,6 +209,7 @@ SKIP: {
+ 		defined($opt{overwrite}) and
+ 			print { $c } ('x' x $opt{overwrite});
+ 		$c->flush or die $!;
++		shutdown($c, SHUT_WR);
+ 		($status, $hdr) = slurp_hdr($c);
+ 		is(readline($c), $blob_hash, "$sub $path");
+ 	};
+@@ -225,6 +226,8 @@ SKIP: {
+ 	# ensure small overwrites don't get checksummed
+ 	$ck_hash->('identity', '/rack_input', -s => $blob_size,
+ 			overwrite => 1); # one extra byte
++	unlike(slurp($err_log), qr/ClientShutdown/,
++		'no overreads after client SHUT_WR');
+ 
+ 	# excessive overwrite truncated
+ 	$c = tcp_start($srv);
+@@ -238,8 +241,23 @@ SKIP: {
+ 		$! = 0;
+ 		while (print $c $buf and time < $end) { ++$n }
+ 		ok($!, 'overwrite truncated') or diag "n=$n err=$! ".time;
++		undef $c;
++	}
++
++	# client shutdown early
++	$c = tcp_start($srv);
++	$c->autoflush(0);
++	print $c "PUT /rack_input HTTP/1.0\r\nContent-Length: 16384\r\n\r\n";
++	if (1) {
++		local $SIG{PIPE} = 'IGNORE';
++		print $c 'too short body';
++		shutdown($c, SHUT_WR);
++		vec(my $rvec = '', fileno($c), 1) = 1;
++		select($rvec, undef, undef, 10) or BAIL_OUT "timed out";
++		my $buf = <$c>;
++		is($buf, undef, 'server aborted after client SHUT_WR');
++		undef $c;
+ 	}
+-	undef $c;
+ 
+ 	$curl // skip 'no curl found in PATH', 1;
+ 
+diff --git a/test/unit/test_server.rb b/test/unit/test_server.rb
+index 2af12eac..7ffa48f0 100644
+--- a/test/unit/test_server.rb
++++ b/test/unit/test_server.rb
+@@ -132,59 +132,6 @@ def test_simple_server
+     assert_equal 'hello!\n', results[0], "Handler didn't really run"
+   end
+ 
+-  def test_client_shutdown_writes
+-    bs = 15609315 * rand
+-    sock = tcp_socket('127.0.0.1', @port)
+-    sock.syswrite("PUT /hello HTTP/1.1\r\n")
+-    sock.syswrite("Host: example.com\r\n")
+-    sock.syswrite("Transfer-Encoding: chunked\r\n")
+-    sock.syswrite("Trailer: X-Foo\r\n")
+-    sock.syswrite("\r\n")
+-    sock.syswrite("%x\r\n" % [ bs ])
+-    sock.syswrite("F" * bs)
+-    sock.syswrite("\r\n0\r\nX-")
+-    "Foo: bar\r\n\r\n".each_byte do |x|
+-      sock.syswrite x.chr
+-      sleep 0.05
+-    end
+-    # we wrote the entire request before shutting down, server should
+-    # continue to process our request and never hit EOFError on our sock
+-    sock.shutdown(Socket::SHUT_WR)
+-    buf = sock.read
+-    assert_match %r{\bhello!\\n\b}, buf.split(/\r\n\r\n/, 2).last
+-    next_client = Net::HTTP.get(URI.parse("http://127.0.0.1:#@port/"))
+-    assert_equal 'hello!\n', next_client
+-    lines = File.readlines("test_stderr.#$$.log")
+-    assert lines.grep(/^Unicorn::ClientShutdown: /).empty?
+-    assert_nil sock.close
+-  end
+-
+-  def test_client_shutdown_write_truncates
+-    bs = 15609315 * rand
+-    sock = tcp_socket('127.0.0.1', @port)
+-    sock.syswrite("PUT /hello HTTP/1.1\r\n")
+-    sock.syswrite("Host: example.com\r\n")
+-    sock.syswrite("Transfer-Encoding: chunked\r\n")
+-    sock.syswrite("Trailer: X-Foo\r\n")
+-    sock.syswrite("\r\n")
+-    sock.syswrite("%x\r\n" % [ bs ])
+-    sock.syswrite("F" * (bs / 2.0))
+-
+-    # shutdown prematurely, this will force the server to abort
+-    # processing on us even during app dispatch
+-    sock.shutdown(Socket::SHUT_WR)
+-    IO.select([sock], nil, nil, 60) or raise "Timed out"
+-    buf = sock.read
+-    assert_equal "", buf
+-    next_client = Net::HTTP.get(URI.parse("http://127.0.0.1:#@port/"))
+-    assert_equal 'hello!\n', next_client
+-    lines = File.readlines("test_stderr.#$$.log")
+-    lines = lines.grep(/^Unicorn::ClientShutdown: bytes_read=\d+/)
+-    assert_equal 1, lines.size
+-    assert_match %r{\AUnicorn::ClientShutdown: bytes_read=\d+ true$}, lines[0]
+-    assert_nil sock.close
+-  end
+-
+   def test_client_malformed_body
+     bs = 15653984
+     sock = tcp_socket('127.0.0.1', @port)
+
+--+zf1CENaCnVfmhrU--
