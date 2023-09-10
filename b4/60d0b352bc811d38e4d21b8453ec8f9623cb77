@@ -1,0 +1,179 @@
+Return-Path: <bofh@yhbt.net>
+X-Spam-Checker-Version: SpamAssassin 3.4.6 (2021-04-09) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.1 required=3.0 tests=ALL_TRUSTED,AWL,BAYES_00,
+	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,DKIM_VALID_EF shortcircuit=no
+	autolearn=ham autolearn_force=no version=3.4.6
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id 424A31F55F
+	for <unicorn-public@yhbt.net>; Sun, 10 Sep 2023 20:14:16 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=yhbt.net;
+	s=selector1; t=1694376856;
+	bh=koPCg9Wu8w+/zyy7cXIugQAnTciaFgebDzB5i0qhxsQ=;
+	h=From:To:Subject:Date:From;
+	b=Hf0At0GZKxs+SNzJU2C3KA1L41AxKSCG/Jsnc87NLvpAOOEj6jL8MZg69QBtiVbYq
+	 6j2ezO70tfCUwiJ5gJLi7Rd28TGt9yiuZYUkoJ/CHrgzSN4HH7mCVBIiRpU8k7Akmc
+	 7M1YiE+HqbDlJ4CX+oeekHvbL/nrFbsuhI1p0JAM=
+From: Eric Wong <bofh@yhbt.net>
+To: unicorn-public@yhbt.net
+Subject: [PATCH] doc: various updates ahead of the release
+Date: Sun, 10 Sep 2023 20:14:15 +0000
+Message-ID: <20230910201416.3971328-1-bofh@yhbt.net>
+MIME-Version: 1.0
+Content-Transfer-Encoding: 8bit
+List-Id: <unicorn-public.yhbt.net>
+
+The damage unicorn has done to the entire Ruby, Rack and Rails
+ecosystems with its ability to tolerate buggy code is
+unforgivable.  Update the documentation to further discourage
+its use and clarify a few wordings noticed along the way.
+---
+ DESIGN                      |  4 ++++
+ ISSUES                      |  6 +++++-
+ README                      | 38 ++++++++++++++++++++-----------------
+ lib/unicorn/configurator.rb |  7 ++++++-
+ 4 files changed, 36 insertions(+), 19 deletions(-)
+
+diff --git a/DESIGN b/DESIGN
+index 46d7923..0bac24f 100644
+--- a/DESIGN
++++ b/DESIGN
+@@ -1,5 +1,9 @@
+ == Design
+ 
++Unicorn was designed to support poorly-written codebases back in 2008.
++Its unfortunate popularity has only proliferated the existence of
++poorly-written code ever since...
++
+ * Simplicity: Unicorn is a traditional UNIX prefork web server.
+   No threads are used at all, this makes applications easier to debug
+   and fix.  When your application goes awry, a BOFH can just
+diff --git a/ISSUES b/ISSUES
+index 083b1c8..d6c2a7a 100644
+--- a/ISSUES
++++ b/ISSUES
+@@ -32,6 +32,10 @@ and such.
+ If you don't get a response within a few days, we may have forgotten
+ about it so feel free to ask again.
+ 
++The project does not and will never endorse nor promote commercial
++services (including support).  The author of unicorn must never be
++allowed to profit off the damage it's done to the entire Ruby world.
++
+ == Bugs in related projects
+ 
+ unicorn is sometimes affected by bugs in its dependencies.  Bugs
+@@ -65,7 +69,7 @@ There is a kernel.org Bugzilla instance, but it is ignored by most.
+ 
+ Likewise for any rare glibc bugs we might encounter, we should Cc:
+ mailto:libc-alpha@sourceware.org
+-Unofficial archives are available at: https://public-inbox.org/libc-alpha/
++Archives are available at: https://inbox.sourceware.org/libc-alpha/
+ Keep in mind glibc upstream does use Bugzilla for tracking bugs:
+ https://sourceware.org/bugzilla/
+ 
+diff --git a/README b/README
+index 5411003..c5c5222 100644
+--- a/README
++++ b/README
+@@ -1,10 +1,13 @@
+ = unicorn: Rack HTTP server for fast clients and Unix
+ 
+-unicorn is an HTTP server for Rack applications designed to only serve
+-fast clients on low-latency, high-bandwidth connections and take
+-advantage of features in Unix/Unix-like kernels.  Slow clients should
+-only be served by placing a reverse proxy capable of fully buffering
+-both the the request and response in between unicorn and slow clients.
++unicorn is an HTTP server for Rack applications that has done
++decades of damage to the entire Ruby ecosystem due to its ability
++to tolerate (and thus encourage) bad code.  It is only designed
++to only handle fast clients on low-latency, high-bandwidth connections
++and take advantage of features in Unix/Unix-like kernels.
++Slow clients must only be served by placing a reverse proxy capable of
++fully buffering both the the request and response in between unicorn
++and slow clients.
+ 
+ == Features
+ 
+@@ -14,8 +17,8 @@ both the the request and response in between unicorn and slow clients.
+ 
+ * Compatible with Ruby 2.0.0 and later.
+ 
+-* Process management: unicorn will reap and restart workers that
+-  die from broken apps.  There is no need to manage multiple processes
++* Process management: unicorn reaps and restarts workers that die
++  from broken code.  There is no need to manage multiple processes
+   or ports yourself.  unicorn can spawn and manage any number of
+   worker processes you choose to scale to your backend.
+ 
+@@ -57,7 +60,7 @@ both the the request and response in between unicorn and slow clients.
+ 
+ == License
+ 
+-unicorn is copyright 2009-2018 by all contributors (see logs in git).
++unicorn is copyright all contributors (see logs in git).
+ It is based on Mongrel 1.1.5.
+ Mongrel is copyright 2007 Zed A. Shaw and contributors.
+ 
+@@ -79,8 +82,8 @@ You may install it via RubyGems on RubyGems.org:
+ You can get the latest source via git from the following locations
+ (these versions may not be stable):
+ 
+-  https://yhbt.net/unicorn.git
+-  https://repo.or.cz/unicorn.git (mirror)
++  git clone https://yhbt.net/unicorn.git
++  git clone https://repo.or.cz/unicorn.git # mirror
+ 
+ You may browse the code from the web:
+ 
+@@ -118,23 +121,24 @@ supported.  Run `unicorn -h` to see command-line options.
+ == Disclaimer
+ 
+ There is NO WARRANTY whatsoever if anything goes wrong, but
+-{let us know}[link:ISSUES.html] and we'll try our best to fix it.
++{let us know}[link:ISSUES.html] and maybe someone can fix it.
+ 
+ unicorn is designed to only serve fast clients either on the local host
+ or a fast LAN.  See the PHILOSOPHY and DESIGN documents for more details
+ regarding this.
+ 
+-Due to its ability to tolerate crashes and isolate clients, unicorn
+-is unfortunately known to prolong the existence of bugs in applications
+-and libraries which run on top of it.
++The use of unicorn in new deployments is STRONGLY DISCOURAGED due to the
++damage done to the entire Ruby ecosystem.  Its unintentional popularity
++set Ruby back decades in parallelism, concurrency and robustness since
++it prolongs and proliferates the existence of poorly-written code.
+ 
+ == Contact
+ 
+ All feedback (bug reports, user/development dicussion, patches, pull
+-requests) go to the mailing list/newsgroup.  See the ISSUES document for
+-information on the {mailing list}[mailto:unicorn-public@yhbt.net].
++requests) go to the public mailbox.  See the ISSUES document for
++information on posting to mailto:unicorn-public@yhbt.net
+ 
+-The mailing list is archived at https://yhbt.net/unicorn-public/
++Mirror-able mail archives are at https://yhbt.net/unicorn-public/
+ 
+ Read-only NNTP access is available at:
+ nntps://news.public-inbox.org/inbox.comp.lang.ruby.unicorn and
+diff --git a/lib/unicorn/configurator.rb b/lib/unicorn/configurator.rb
+index ecdf03e..b21a01d 100644
+--- a/lib/unicorn/configurator.rb
++++ b/lib/unicorn/configurator.rb
+@@ -216,7 +216,12 @@ def before_exec(*args, &block)
+     set_hook(:before_exec, block_given? ? block : args[0], 1)
+   end
+ 
+-  # sets the timeout of worker processes to +seconds+.  Workers
++  # Strongly consider using link:/Application_Timeouts.html instead
++  # of this misfeature.  This misfeature has done decades of damage
++  # to Ruby since it demotivates the use of fine-grained timeout
++  # mechanisms.
++  #
++  # Sets the timeout of worker processes to +seconds+.  Workers
+   # handling the request/app.call/response cycle taking longer than
+   # this time period will be forcibly killed (via SIGKILL).  This
+   # timeout is enforced by the master process itself and not subject
