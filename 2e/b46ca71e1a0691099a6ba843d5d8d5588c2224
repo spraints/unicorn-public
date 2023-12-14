@@ -1,0 +1,52 @@
+Return-Path: <e@80x24.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.6 (2021-04-09) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.2 required=3.0 tests=ALL_TRUSTED,AWL,BAYES_00,
+	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,DKIM_VALID_EF,
+	T_SCC_BODY_TEXT_LINE shortcircuit=no autolearn=ham autolearn_force=no
+	version=3.4.6
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id 5E4891F406;
+	Thu, 14 Dec 2023 23:09:33 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=80x24.org;
+	s=selector1; t=1702595373;
+	bh=Od/wPJPq+I0by39mcgqxwo8gB4b0axrfclquui7FHgw=;
+	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
+	b=WElxpYInH5EX1M0H4IlzqNcToPpBSKansLHBmJeESPEcfSh9nacx2lAMkKiaOQfEm
+	 gBDBh5oetuSnUu0C0Ru8oPPz8nUY2GuenIZ7OCTJDZaC99d4eTkHuZYRoHRarxt8RJ
+	 h1hLPstabIB+ERiKkCptiwIcTbnKfPKrSsZ3e8z8=
+Date: Thu, 14 Dec 2023 23:09:33 +0000
+From: Eric Wong <e@80x24.org>
+To: Luca Berruti <nadirio@gmail.com>
+Cc: unicorn-public@yhbt.net
+Subject: Re: Exception with rails and devise
+Message-ID: <20231214230933.M299458@dcvr>
+References: <994985A1-3F47-4006-B2EB-636DE3865C2B@gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <994985A1-3F47-4006-B2EB-636DE3865C2B@gmail.com>
+List-Id: <unicorn-public.yhbt.net>
+
+Luca Berruti <nadirio@gmail.com> wrote:
+> Hello,
+> 
+> Unicorn 6.1.0 raises this exception when running on Rails 7.1.2 and Devise 4.9.3 within the production environment:
+> 
+> E, [2023-12-13T13:38:12.560072 #20] ERROR -- : app error: undefined method `=~' for ["_app_session=KbIfGKW%2FGniK%2B7V6boKx8Gh4VYYlk45gI14J5%2F4pSmJQkl890zAknDviSCWCBY4Jx%2FIa86Et1h%2Bad1laCN8sVf%2B9IgtgvN%2BhVLrHBYb9zqmX43LyNqKTEOaEfbU0H6EMEDS6TVJqmtP%2FVzGTf08uP8wgQFMCM6t5jWahl4h9dc47jC96h8BTF8%2FQDXHWPpcj6yzCC3aXjZqm7k2LEPQfXdmXJPwXS57sEYNk518vYWg%2BVOop16o7Lwqh3enXJVd1w%2F6CRFt5cFFlzsDHB7%2FA4%2BPWNLU%3D--v8qFRntrlxCgtLDy--7bldsiyqYyL2eow3kk348A%3D%3D; path=/; secure; httponly; SameSite=Lax"]:Array (NoMethodError)
+
+That looks like a Rack 3 response with an array and 6.1.0
+doesn't support Rack 3.  This patch ought to work:
+
+https://yhbt.net/unicorn-public/ZHlX3HkxP6mK16If@jeremyevans.local/raw
+
+(commit 9d7bab0bc2211b20806d4d0289a7ea992e49a8a1 in unicorn.git)
+
+I'll try to get a unicorn 7.x release soon but tests take
+forever to run on ancient HW and I need to ration releases to
+keep download counts low in order to stay under the MFA
+threshold on Rubygems.org
+
+I don't ever want users viewing me as trustworthy nor liable for
+anything I do, so no MFA nor sigs from me; just source + docs :>
