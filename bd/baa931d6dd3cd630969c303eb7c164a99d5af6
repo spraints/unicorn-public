@@ -1,0 +1,1306 @@
+Return-Path: <bofh@yhbt.net>
+X-Spam-Checker-Version: SpamAssassin 3.4.6 (2021-04-09) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.0 required=3.0 tests=ALL_TRUSTED,AWL,BAYES_00,
+	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,DKIM_VALID_EF,URIBL_CSS_A
+	shortcircuit=no autolearn=ham autolearn_force=no version=3.4.6
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id 788791F44D
+	for <unicorn-public@yhbt.net>; Sat, 23 Mar 2024 19:45:25 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=yhbt.net;
+	s=selector1; t=1711223125;
+	bh=K30g/MSalMmATuUwtUDuxBcHp17fgPWyi/Fjjiq/J/Y=;
+	h=Date:From:To:Subject:From;
+	b=r11rMCIiIj3+yDJKwBmWSeL+q/B8iEO2qD5lFkAmKIUI1ubJ5oGXOtqdjcx6zHesk
+	 akMcP150vV7Yuss8AZy8zIa1vgIg9CXjlKiyPT/Ajy/7sEPN/UWh7YMAYDQVLIKKsx
+	 bzPp30+6StgFbvENQjua7pbDPI1brMkOxahA2rlY=
+Date: Sat, 23 Mar 2024 19:45:25 +0000
+From: Eric Wong <bofh@yhbt.net>
+To: unicorn-public@yhbt.net
+Subject: [PATCH 0/4] a small pile of patches
+Message-ID: <20240323194525.M363256@dcvr>
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="r5NeA5Mm2TYQnjRr"
+Content-Disposition: inline
+List-Id: <unicorn-public.yhbt.net>
+
+
+--r5NeA5Mm2TYQnjRr
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+
+Some stuff to future-proof against future Ruby incompatibilities.
+More coming....
+
+I've also pushed out preliminary work (started in 2021) to the
+`pico' branch to switch the HTTP parser from Ragel to
+picohttpparser.  It will simplify the build + maintenance,
+especially when distros carry different Ragel versions (or don't
+package it all, as some hackers can't afford bandwidth and disk
+for a C++ toolchain).
+
+Other notes: New releases will probably be hosted on yhbt.net if
+the Rubygems.org MFA threshold is reached.  Caring about the
+identity of hackers is totally misguided when we already show
+our code (and even document it!).  If you can't audit the code
+yourself, get an actual professional to do it and don't bother
+amateurs like me.
+
+Eric Wong (4):
+  t/integration: disable proxies when running curl(1)
+  tests: port back-out-of-upgrade to Perl 5
+  doc: various updates and disclaimers
+  treewide: future-proof frozen_string_literal changes
+
+ HACKING                             |  13 +++-
+ README                              |   9 +++
+ Rakefile                            |   1 +
+ TODO                                |   4 +-
+ bin/unicorn                         |   1 +
+ bin/unicorn_rails                   |   1 +
+ examples/big_app_gc.rb              |   1 +
+ examples/echo.ru                    |   1 +
+ examples/logger_mp_safe.rb          |   1 +
+ examples/unicorn.conf.minimal.rb    |   1 +
+ examples/unicorn.conf.rb            |   1 +
+ ext/unicorn_http/extconf.rb         |   1 +
+ lib/unicorn.rb                      |   1 +
+ lib/unicorn/app/old_rails.rb        |   1 +
+ lib/unicorn/app/old_rails/static.rb |   1 +
+ lib/unicorn/cgi_wrapper.rb          |   1 +
+ lib/unicorn/configurator.rb         |   1 +
+ lib/unicorn/const.rb                |   1 +
+ lib/unicorn/http_request.rb         |   1 +
+ lib/unicorn/http_response.rb        |   1 +
+ lib/unicorn/http_server.rb          |   1 +
+ lib/unicorn/launcher.rb             |   1 +
+ lib/unicorn/oob_gc.rb               |   1 +
+ lib/unicorn/preread_input.rb        |   1 +
+ lib/unicorn/select_waiter.rb        |   1 +
+ lib/unicorn/socket_helper.rb        |   1 +
+ lib/unicorn/stream_input.rb         |   1 +
+ lib/unicorn/tee_input.rb            |   1 +
+ lib/unicorn/tmpio.rb                |   1 +
+ lib/unicorn/util.rb                 |   1 +
+ lib/unicorn/worker.rb               |   1 +
+ setup.rb                            |   1 +
+ t/back-out-of-upgrade.t             |  44 +++++++++++
+ t/broken-app.ru                     |   1 +
+ t/client_body_buffer_size.ru        |   1 +
+ t/detach.ru                         |   1 +
+ t/env.ru                            |   1 +
+ t/fails-rack-lint.ru                |   1 +
+ t/heartbeat-timeout.ru              |   1 +
+ t/integration.ru                    |   1 +
+ t/integration.t                     |   1 +
+ t/lib.perl                          |  67 ++++++++++++++---
+ t/listener_names.ru                 |   1 +
+ t/oob_gc.ru                         |   1 +
+ t/oob_gc_path.ru                    |   1 +
+ t/pid.ru                            |   1 +
+ t/preread_input.ru                  |   1 +
+ t/reopen-logs.ru                    |   1 +
+ t/t0008-back_out_of_upgrade.sh      | 110 ----------------------------
+ t/t0013.ru                          |   1 +
+ t/t0014.ru                          |   1 +
+ t/t0301.ru                          |   1 +
+ test/aggregate.rb                   |   1 +
+ test/benchmark/dd.ru                |   1 +
+ test/benchmark/ddstream.ru          |   1 +
+ test/benchmark/readinput.ru         |   1 +
+ test/benchmark/stack.ru             |   1 +
+ test/exec/test_exec.rb              |   1 +
+ test/test_helper.rb                 |   1 +
+ test/unit/test_ccc.rb               |   1 +
+ test/unit/test_configurator.rb      |   1 +
+ test/unit/test_droplet.rb           |   1 +
+ test/unit/test_http_parser.rb       |   1 +
+ test/unit/test_http_parser_ng.rb    |   1 +
+ test/unit/test_request.rb           |   1 +
+ test/unit/test_server.rb            |   1 +
+ test/unit/test_signals.rb           |   1 +
+ test/unit/test_socket_helper.rb     |   1 +
+ test/unit/test_stream_input.rb      |   1 +
+ test/unit/test_tee_input.rb         |   1 +
+ test/unit/test_util.rb              |   1 +
+ test/unit/test_waiter.rb            |   1 +
+ unicorn.gemspec                     |   1 +
+ 73 files changed, 188 insertions(+), 126 deletions(-)
+ create mode 100644 t/back-out-of-upgrade.t
+ delete mode 100755 t/t0008-back_out_of_upgrade.sh
+
+--r5NeA5Mm2TYQnjRr
+Content-Type: text/x-diff; charset=utf-8
+Content-Disposition: attachment;
+	filename="0001-t-integration-disable-proxies-when-running-curl-1.patch"
+
+From f3acce5dce62ac4b0288d3c0ddf0a6db2cbd9e7f Mon Sep 17 00:00:00 2001
+From: Eric Wong <BOFH@YHBT.net>
+Date: Tue, 9 Jan 2024 21:35:08 +0000
+Subject: [PATCH 1/4] t/integration: disable proxies when running curl(1)
+
+This was also done in t/test-lib.sh, but using '*' is more
+encompassing.
+---
+ t/integration.t | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/t/integration.t b/t/integration.t
+index 7310ff2..d17ace0 100644
+--- a/t/integration.t
++++ b/t/integration.t
+@@ -27,6 +27,7 @@ listen "$u1"
+ EOM
+ my $ar = unicorn(qw(-E none t/integration.ru -c), $u_conf, { 3 => $srv });
+ my $curl = which('curl');
++local $ENV{NO_PROXY} = '*'; # for curl
+ my $fifo = "$tmpdir/fifo";
+ POSIX::mkfifo($fifo, 0600) or die "mkfifo: $!";
+ my %PUT = (
+
+--r5NeA5Mm2TYQnjRr
+Content-Type: text/x-diff; charset=utf-8
+Content-Disposition: attachment;
+	filename="0002-tests-port-back-out-of-upgrade-to-Perl-5.patch"
+
+From 724fb631c76f09964ec289ee8e144886ba15d380 Mon Sep 17 00:00:00 2001
+From: Eric Wong <BOFH@YHBT.net>
+Date: Mon, 6 Nov 2023 05:45:29 +0000
+Subject: [PATCH 2/4] tests: port back-out-of-upgrade to Perl 5
+
+Another place where we can be faster without adding more
+dependencies on Ruby maintaining stable behavior.
+---
+ t/back-out-of-upgrade.t        |  44 +++++++++++++
+ t/lib.perl                     |  67 +++++++++++++++++---
+ t/t0008-back_out_of_upgrade.sh | 110 ---------------------------------
+ 3 files changed, 102 insertions(+), 119 deletions(-)
+ create mode 100644 t/back-out-of-upgrade.t
+ delete mode 100755 t/t0008-back_out_of_upgrade.sh
+
+diff --git a/t/back-out-of-upgrade.t b/t/back-out-of-upgrade.t
+new file mode 100644
+index 0000000..cf3b09f
+--- /dev/null
++++ b/t/back-out-of-upgrade.t
+@@ -0,0 +1,44 @@
++#!perl -w
++# Copyright (C) unicorn hackers <unicorn-public@yhbt.net>
++# License: GPL-3.0+ <https://www.gnu.org/licenses/gpl-3.0.txt>
++# test backing out of USR2 upgrade
++use v5.14; BEGIN { require './t/lib.perl' };
++use autodie;
++my $srv = tcp_server();
++mkfifo_die $fifo;
++write_file '>', $u_conf, <<EOM;
++preload_app true
++stderr_path "$err_log"
++pid "$pid_file"
++after_fork { |s,w| File.open('$fifo', 'w') { |fp| fp.write "pid=#\$\$" } }
++EOM
++my $ar = unicorn(qw(-E none t/pid.ru -c), $u_conf, { 3 => $srv });
++
++like(my $wpid_orig_1 = slurp($fifo), qr/\Apid=\d+\z/a, 'got worker pid');
++
++ok $ar->do_kill('USR2'), 'USR2 to start upgrade';
++ok $ar->do_kill('WINCH'), 'drop old worker';
++
++like(my $wpid_new = slurp($fifo), qr/\Apid=\d+\z/a, 'got pid from new master');
++chomp(my $new_pid = slurp($pid_file));
++isnt $new_pid, $ar->{pid}, 'PID file changed';
++chomp(my $pid_oldbin = slurp("$pid_file.oldbin"));
++is $pid_oldbin, $ar->{pid}, '.oldbin PID valid';
++
++ok $ar->do_kill('HUP'), 'HUP old master';
++like(my $wpid_orig_2 = slurp($fifo), qr/\Apid=\d+\z/a, 'got worker new pid');
++ok kill('QUIT', $new_pid), 'abort old master';
++kill_until_dead $new_pid;
++
++my ($st, $hdr, $req_pid) = do_req $srv, 'GET /';
++chomp $req_pid;
++is $wpid_orig_2, "pid=$req_pid", 'new worker on old worker serves';
++
++ok !-f "$pid_file.oldbin", '.oldbin PID file gone';
++chomp(my $old_pid = slurp($pid_file));
++is $old_pid, $ar->{pid}, 'PID file restored';
++
++my @log = grep !/ERROR -- : reaped .*? exec\(\)-ed/, slurp($err_log);
++check_stderr @log;
++undef $tmpdir;
++done_testing;
+diff --git a/t/lib.perl b/t/lib.perl
+index 9254b23..b20a2c6 100644
+--- a/t/lib.perl
++++ b/t/lib.perl
+@@ -6,30 +6,58 @@ use v5.14;
+ use parent qw(Exporter);
+ use autodie;
+ use Test::More;
++use Socket qw(SOMAXCONN);
+ use Time::HiRes qw(sleep time);
+ use IO::Socket::INET;
++use IO::Socket::UNIX;
++use Carp qw(croak);
+ use POSIX qw(dup2 _exit setpgid :signal_h SEEK_SET F_SETFD);
+ use File::Temp 0.19 (); # 0.19 for ->newdir
+ our ($tmpdir, $errfh, $err_log, $u_sock, $u_conf, $daemon_pid,
+-	$pid_file);
++	$pid_file, $wtest_sock, $fifo);
+ our @EXPORT = qw(unicorn slurp tcp_server tcp_start unicorn
+ 	$tmpdir $errfh $err_log $u_sock $u_conf $daemon_pid $pid_file
++	$wtest_sock $fifo
+ 	SEEK_SET tcp_host_port which spawn check_stderr unix_start slurp_hdr
+-	do_req stop_daemon sleep time);
++	do_req stop_daemon sleep time mkfifo_die kill_until_dead write_file);
+ 
+ my ($base) = ($0 =~ m!\b([^/]+)\.[^\.]+\z!);
+ $tmpdir = File::Temp->newdir("unicorn-$base-XXXX", TMPDIR => 1);
++
++$wtest_sock = "$tmpdir/wtest.sock";
+ $err_log = "$tmpdir/err.log";
+ $pid_file = "$tmpdir/pid";
++$fifo = "$tmpdir/fifo";
+ $u_sock = "$tmpdir/u.sock";
+ $u_conf = "$tmpdir/u.conf.rb";
+ open($errfh, '>>', $err_log);
+ 
++if (my $t = $ENV{TAIL}) {
++	my @tail = $t =~ /tail/ ? split(/\s+/, $t) : (qw(tail -F));
++	push @tail, $err_log;
++	my $pid = fork;
++	if ($pid == 0) {
++		open STDOUT, '>&', \*STDERR;
++		exec @tail;
++		die "exec(@tail): $!";
++	}
++	say "# @tail";
++	sleep 0.2;
++	UnicornTest::AutoReap->new($pid);
++}
++
++sub kill_until_dead ($;%) {
++	my ($pid, %opt) = @_;
++	my $tries = $opt{tries} // 1000;
++	my $sig = $opt{sig} // 0;
++	while (CORE::kill($sig, $pid) && --$tries) { sleep(0.01) }
++	$tries or croak "PID: $pid died after signal ($sig)";
++}
++
+ sub stop_daemon (;$) {
+ 	my ($is_END) = @_;
+ 	kill('TERM', $daemon_pid);
+-	my $tries = 1000;
+-	while (CORE::kill(0, $daemon_pid) && --$tries) { sleep(0.01) }
++	kill_until_dead $daemon_pid;
+ 	if ($is_END && CORE::kill(0, $daemon_pid)) { # after done_testing
+ 		CORE::kill('KILL', $daemon_pid);
+ 		die "daemon_pid=$daemon_pid did not die";
+@@ -44,8 +72,9 @@ END {
+ 	stop_daemon(1) if defined $daemon_pid;
+ };
+ 
+-sub check_stderr () {
+-	my @log = slurp($err_log);
++sub check_stderr (@) {
++	my @log = @_;
++	slurp($err_log) if !@log;
+ 	diag("@log") if $ENV{V};
+ 	my @err = grep(!/NameError.*Unicorn::Waiter/, grep(/error/i, @log));
+ 	@err = grep(!/failed to set accept_filter=/, @err);
+@@ -63,6 +92,16 @@ sub slurp_hdr {
+ 	($status, \@hdr);
+ }
+ 
++sub unix_server (;$@) {
++	my $l = shift // $u_sock;
++	IO::Socket::UNIX->new(Listen => SOMAXCONN, Local => $l, Blocking => 0,
++				Type => SOCK_STREAM, @_);
++}
++
++sub unix_connect ($) {
++	IO::Socket::UNIX->new(Peer => $_[0], Type => SOCK_STREAM);
++}
++
+ sub tcp_server {
+ 	my %opt = (
+ 		ReuseAddr => 1,
+@@ -95,8 +134,7 @@ sub tcp_host_port {
+ 
+ sub unix_start ($@) {
+ 	my ($dst, @req) = @_;
+-	my $s = IO::Socket::UNIX->new(Peer => $dst, Type => SOCK_STREAM) or
+-		BAIL_OUT "unix connect $dst: $!";
++	my $s = unix_connect($dst) or BAIL_OUT "unix connect $dst: $!";
+ 	$s->autoflush(1);
+ 	print $s @req, "\r\n\r\n" if @req;
+ 	$s;
+@@ -201,7 +239,7 @@ sub unicorn {
+ 	state $ver = $ENV{TEST_RUBY_VERSION} // `$ruby -e 'print RUBY_VERSION'`;
+ 	state $eng = $ENV{TEST_RUBY_ENGINE} // `$ruby -e 'print RUBY_ENGINE'`;
+ 	state $ext = File::Spec->rel2abs("test/$eng-$ver/ext/unicorn_http");
+-	state $exe = File::Spec->rel2abs('bin/unicorn');
++	state $exe = File::Spec->rel2abs("test/$eng-$ver/bin/unicorn");
+ 	my $pid = spawn(\%env, $ruby, '-I', $lib, '-I', $ext, $exe, @args);
+ 	UnicornTest::AutoReap->new($pid);
+ }
+@@ -219,6 +257,17 @@ sub do_req ($@) {
+ 	($status, $hdr, $bdy);
+ }
+ 
++sub mkfifo_die ($;$) {
++	POSIX::mkfifo($_[0], $_[1] // 0600) or croak "mkfifo: $!";
++}
++
++sub write_file ($$@) { # mode, filename, LIST (for print)
++	open(my $fh, shift, shift);
++	print $fh @_;
++	# return $fh for futher writes if user wants it:
++	defined(wantarray) && !wantarray ? $fh : close $fh;
++}
++
+ # automatically kill + reap children when this goes out-of-scope
+ package UnicornTest::AutoReap;
+ use v5.14;
+diff --git a/t/t0008-back_out_of_upgrade.sh b/t/t0008-back_out_of_upgrade.sh
+deleted file mode 100755
+index 96d4057..0000000
+--- a/t/t0008-back_out_of_upgrade.sh
++++ /dev/null
+@@ -1,110 +0,0 @@
+-#!/bin/sh
+-. ./test-lib.sh
+-t_plan 13 "backout of USR2 upgrade"
+-
+-worker_wait_start () {
+-	test xSTART = x"$(cat $fifo)"
+-	unicorn_pid=$(cat $pid)
+-}
+-
+-t_begin "setup and start" && {
+-	unicorn_setup
+-	rm -f $pid.oldbin
+-
+-cat >> $unicorn_config <<EOF
+-after_fork do |server, worker|
+-  # test script will block while reading from $fifo,
+-  # so notify the script on the first worker we spawn
+-  # by opening the FIFO
+-  if worker.nr == 0
+-    File.open("$fifo", "wb") { |fp| fp.syswrite "START" }
+-  end
+-end
+-EOF
+-	unicorn -D -c $unicorn_config pid.ru
+-	worker_wait_start
+-	orig_master_pid=$unicorn_pid
+-}
+-
+-t_begin "read original worker pid" && {
+-	orig_worker_pid=$(curl -sSf http://$listen/)
+-	test -n "$orig_worker_pid" && kill -0 $orig_worker_pid
+-}
+-
+-t_begin "upgrade to new master" && {
+-	kill -USR2 $orig_master_pid
+-}
+-
+-t_begin "kill old worker" && {
+-	kill -WINCH $orig_master_pid
+-}
+-
+-t_begin "wait for new worker to start" && {
+-	worker_wait_start
+-	test $unicorn_pid -ne $orig_master_pid
+-	new_master_pid=$unicorn_pid
+-}
+-
+-t_begin "old master pid is stashed in $pid.oldbin" && {
+-	test -s "$pid.oldbin"
+-	test $orig_master_pid -eq $(cat $pid.oldbin)
+-}
+-
+-t_begin "ensure old worker is no longer running" && {
+-	i=0
+-	while kill -0 $orig_worker_pid 2>/dev/null
+-	do
+-		i=$(( $i + 1 ))
+-		test $i -lt 600 || die "timed out"
+-		sleep 1
+-	done
+-}
+-
+-t_begin "capture pid of new worker" && {
+-	new_worker_pid=$(curl -sSf http://$listen/)
+-}
+-
+-t_begin "reload old master process" && {
+-	kill -HUP $orig_master_pid
+-	worker_wait_start
+-}
+-
+-t_begin "gracefully kill new master and ensure it dies" && {
+-	kill -QUIT $new_master_pid
+-	i=0
+-	while kill -0 $new_worker_pid 2>/dev/null
+-	do
+-		i=$(( $i + 1 ))
+-		test $i -lt 600 || die "timed out"
+-		sleep 1
+-	done
+-}
+-
+-t_begin "ensure $pid.oldbin does not exist" && {
+-	i=0
+-	while test -s $pid.oldbin
+-	do
+-		i=$(( $i + 1 ))
+-		test $i -lt 600 || die "timed out"
+-		sleep 1
+-	done
+-	while ! test -s $pid
+-	do
+-		i=$(( $i + 1 ))
+-		test $i -lt 600 || die "timed out"
+-		sleep 1
+-	done
+-}
+-
+-t_begin "ensure $pid is correct" && {
+-	cur_master_pid=$(cat $pid)
+-	test $orig_master_pid -eq $cur_master_pid
+-}
+-
+-t_begin "killing succeeds" && {
+-	kill $orig_master_pid
+-}
+-
+-dbgcat r_err
+-
+-t_done
+
+--r5NeA5Mm2TYQnjRr
+Content-Type: text/x-diff; charset=utf-8
+Content-Disposition: attachment;
+	filename="0003-doc-various-updates-and-disclaimers.patch"
+
+From 69d15a7a51a096b6acf00ccf23e1b988076d3b5f Mon Sep 17 00:00:00 2001
+From: Eric Wong <bofh@yhbt.net>
+Date: Mon, 1 Jan 2024 10:43:13 +0000
+Subject: [PATCH 3/4] doc: various updates and disclaimers
+
+Covering my ass from draconian legislation.
+---
+ HACKING | 13 +++++++++----
+ README  |  9 +++++++++
+ TODO    |  4 +---
+ 3 files changed, 19 insertions(+), 7 deletions(-)
+
+diff --git a/HACKING b/HACKING
+index 5aca83e..777e75e 100644
+--- a/HACKING
++++ b/HACKING
+@@ -6,6 +6,8 @@ Like Mongrel, we use Ruby where it makes sense, and Ragel with C where
+ it helps performance.  All of the code that actually runs your Rack
+ application is written Ruby, Ragel or C.
+ 
++Ragel may be dropped in favor of a picohttpparser-based one in the future.
++
+ As far as tests and documentation goes, we're not afraid to embrace Unix
+ and use traditional Unix tools where they make sense and get the job
+ done.
+@@ -16,6 +18,9 @@ Tests are good, but slow tests make development slow, so we make tests
+ faster (in parallel) with GNU make (instead of Rake) and avoiding
+ RubyGems.
+ 
++New tests are written in Perl 5 and use TAP <https://testanything.org/>
++to ensure stability and immunity from Ruby incompatibilities.
++
+ Users of GNU-based systems (such as GNU/Linux) usually have GNU make
+ installed as "make" instead of "gmake".
+ 
+@@ -69,10 +74,10 @@ supported by the versions of Ruby we target.
+ 
+ === Ragel Compatibility
+ 
+-We target the latest released version of Ragel and will update our code
+-to keep up with new releases.  Packaged tarballs and gems include the
+-generated source code so they will remain usable if compatibility is
+-broken.
++We target the latest released version of Ragel in Debian and will update
++our code to keep up with new releases.  Packaged tarballs and gems
++include the generated source code so they will remain usable if
++compatibility is broken.
+ 
+ == Contributing
+ 
+diff --git a/README b/README
+index 84c0fdf..b60ed00 100644
+--- a/README
++++ b/README
+@@ -122,6 +122,7 @@ supported.  Run `unicorn -h` to see command-line options.
+ 
+ There is NO WARRANTY whatsoever if anything goes wrong, but
+ {let us know}[link:ISSUES.html] and maybe someone can fix it.
++No commercial support will ever be provided by the amateur maintainer.
+ 
+ unicorn is designed to only serve fast clients either on the local host
+ or a fast LAN.  See the PHILOSOPHY and DESIGN documents for more details
+@@ -132,6 +133,14 @@ damage done to the entire Ruby ecosystem.  Its unintentional popularity
+ set Ruby back decades in parallelism, concurrency and robustness since
+ it prolongs and proliferates the existence of poorly-written code.
+ 
++unicorn hackers are NOT responsible for your supply chain security:
++read and understand it yourself or get someone you trust to audit it.
++Malicious commits and releases will be made if under duress.  The only
++defense you'll ever have is from reviewing the source code.
++
++No user or contributor will ever be expected to sacrifice their own
++security by running JavaScript or revealing any personal information.
++
+ == Contact
+ 
+ All feedback (bug reports, user/development dicussion, patches, pull
+diff --git a/TODO b/TODO
+index ebbccdc..a3b18fd 100644
+--- a/TODO
++++ b/TODO
+@@ -1,3 +1 @@
+-* Documentation improvements
+-
+-* improve test suite
++* improve test suite (port to Perl 5 for stability and maintainability)
+
+--r5NeA5Mm2TYQnjRr
+Content-Type: text/x-diff; charset=utf-8
+Content-Disposition: attachment;
+	filename="0004-treewide-future-proof-frozen_string_literal-changes.patch"
+
+From ccf2443901c18ffb26b2785f52d921005e862167 Mon Sep 17 00:00:00 2001
+From: Eric Wong <bofh@yhbt.net>
+Date: Thu, 8 Feb 2024 12:16:31 +0000
+Subject: [PATCH 4/4] treewide: future-proof frozen_string_literal changes
+
+Once again Ruby seems ready to introduce more incompatibilities
+and force busywork upon maintainers[1].  In order to avoid
+incompatibilities in the future, I used a Perl script[2] to
+prepend `frozen_string_literal: false' to every Ruby file.
+
+Somebody interested will have to go through every Ruby source
+file and enable frozen_string_literal once they've thoroughly
+verified it's safe to do so.
+
+[1] https://bugs.ruby-lang.org/issues/20205
+[2] https://yhbt.net/add-fsl.git/74d7689/s/?b=add-fsl.perl
+---
+ Rakefile                            | 1 +
+ bin/unicorn                         | 1 +
+ bin/unicorn_rails                   | 1 +
+ examples/big_app_gc.rb              | 1 +
+ examples/echo.ru                    | 1 +
+ examples/logger_mp_safe.rb          | 1 +
+ examples/unicorn.conf.minimal.rb    | 1 +
+ examples/unicorn.conf.rb            | 1 +
+ ext/unicorn_http/extconf.rb         | 1 +
+ lib/unicorn.rb                      | 1 +
+ lib/unicorn/app/old_rails.rb        | 1 +
+ lib/unicorn/app/old_rails/static.rb | 1 +
+ lib/unicorn/cgi_wrapper.rb          | 1 +
+ lib/unicorn/configurator.rb         | 1 +
+ lib/unicorn/const.rb                | 1 +
+ lib/unicorn/http_request.rb         | 1 +
+ lib/unicorn/http_response.rb        | 1 +
+ lib/unicorn/http_server.rb          | 1 +
+ lib/unicorn/launcher.rb             | 1 +
+ lib/unicorn/oob_gc.rb               | 1 +
+ lib/unicorn/preread_input.rb        | 1 +
+ lib/unicorn/select_waiter.rb        | 1 +
+ lib/unicorn/socket_helper.rb        | 1 +
+ lib/unicorn/stream_input.rb         | 1 +
+ lib/unicorn/tee_input.rb            | 1 +
+ lib/unicorn/tmpio.rb                | 1 +
+ lib/unicorn/util.rb                 | 1 +
+ lib/unicorn/worker.rb               | 1 +
+ setup.rb                            | 1 +
+ t/broken-app.ru                     | 1 +
+ t/client_body_buffer_size.ru        | 1 +
+ t/detach.ru                         | 1 +
+ t/env.ru                            | 1 +
+ t/fails-rack-lint.ru                | 1 +
+ t/heartbeat-timeout.ru              | 1 +
+ t/integration.ru                    | 1 +
+ t/listener_names.ru                 | 1 +
+ t/oob_gc.ru                         | 1 +
+ t/oob_gc_path.ru                    | 1 +
+ t/pid.ru                            | 1 +
+ t/preread_input.ru                  | 1 +
+ t/reopen-logs.ru                    | 1 +
+ t/t0013.ru                          | 1 +
+ t/t0014.ru                          | 1 +
+ t/t0301.ru                          | 1 +
+ test/aggregate.rb                   | 1 +
+ test/benchmark/dd.ru                | 1 +
+ test/benchmark/ddstream.ru          | 1 +
+ test/benchmark/readinput.ru         | 1 +
+ test/benchmark/stack.ru             | 1 +
+ test/exec/test_exec.rb              | 1 +
+ test/test_helper.rb                 | 1 +
+ test/unit/test_ccc.rb               | 1 +
+ test/unit/test_configurator.rb      | 1 +
+ test/unit/test_droplet.rb           | 1 +
+ test/unit/test_http_parser.rb       | 1 +
+ test/unit/test_http_parser_ng.rb    | 1 +
+ test/unit/test_request.rb           | 1 +
+ test/unit/test_server.rb            | 1 +
+ test/unit/test_signals.rb           | 1 +
+ test/unit/test_socket_helper.rb     | 1 +
+ test/unit/test_stream_input.rb      | 1 +
+ test/unit/test_tee_input.rb         | 1 +
+ test/unit/test_util.rb              | 1 +
+ test/unit/test_waiter.rb            | 1 +
+ unicorn.gemspec                     | 1 +
+ 66 files changed, 66 insertions(+)
+
+diff --git a/Rakefile b/Rakefile
+index 37569ce..fe1588b 100644
+--- a/Rakefile
++++ b/Rakefile
+@@ -1,3 +1,4 @@
++# frozen_string_literal: false
+ # optional rake-compiler support in case somebody needs to cross compile
+ begin
+   mk = "ext/unicorn_http/Makefile"
+diff --git a/bin/unicorn b/bin/unicorn
+index 00c8464..af8353c 100755
+--- a/bin/unicorn
++++ b/bin/unicorn
+@@ -1,5 +1,6 @@
+ #!/this/will/be/overwritten/or/wrapped/anyways/do/not/worry/ruby
+ # -*- encoding: binary -*-
++# frozen_string_literal: false
+ require 'unicorn/launcher'
+ require 'optparse'
+ 
+diff --git a/bin/unicorn_rails b/bin/unicorn_rails
+index 354c1df..374fd8e 100755
+--- a/bin/unicorn_rails
++++ b/bin/unicorn_rails
+@@ -1,5 +1,6 @@
+ #!/this/will/be/overwritten/or/wrapped/anyways/do/not/worry/ruby
+ # -*- encoding: binary -*-
++# frozen_string_literal: false
+ require 'unicorn/launcher'
+ require 'optparse'
+ require 'fileutils'
+diff --git a/examples/big_app_gc.rb b/examples/big_app_gc.rb
+index c1bae10..0baea26 100644
+--- a/examples/big_app_gc.rb
++++ b/examples/big_app_gc.rb
+@@ -1,2 +1,3 @@
++# frozen_string_literal: false
+ # see {Unicorn::OobGC}[https://yhbt.net/unicorn/Unicorn/OobGC.html]
+ # Unicorn::OobGC was broken in Unicorn v3.3.1 - v3.6.1 and fixed in v3.6.2
+diff --git a/examples/echo.ru b/examples/echo.ru
+index e982180..453a5e6 100644
+--- a/examples/echo.ru
++++ b/examples/echo.ru
+@@ -1,4 +1,5 @@
+ #\-E none
++# frozen_string_literal: false
+ #
+ # Example application that echoes read data back to the HTTP client.
+ # This emulates the old echo protocol people used to run.
+diff --git a/examples/logger_mp_safe.rb b/examples/logger_mp_safe.rb
+index 05ad3fa..f2c0500 100644
+--- a/examples/logger_mp_safe.rb
++++ b/examples/logger_mp_safe.rb
+@@ -1,3 +1,4 @@
++# frozen_string_literal: false
+ # Multi-Processing-safe monkey patch for Logger
+ #
+ # This monkey patch fixes the case where "preload_app true" is used and
+diff --git a/examples/unicorn.conf.minimal.rb b/examples/unicorn.conf.minimal.rb
+index 46fd634..4f96ede 100644
+--- a/examples/unicorn.conf.minimal.rb
++++ b/examples/unicorn.conf.minimal.rb
+@@ -1,3 +1,4 @@
++# frozen_string_literal: false
+ # Minimal sample configuration file for Unicorn (not Rack) when used
+ # with daemonization (unicorn -D) started in your working directory.
+ #
+diff --git a/examples/unicorn.conf.rb b/examples/unicorn.conf.rb
+index d90bdc4..5bae830 100644
+--- a/examples/unicorn.conf.rb
++++ b/examples/unicorn.conf.rb
+@@ -1,3 +1,4 @@
++# frozen_string_literal: false
+ # Sample verbose configuration file for Unicorn (not Rack)
+ #
+ # This configuration file documents many features of Unicorn
+diff --git a/ext/unicorn_http/extconf.rb b/ext/unicorn_http/extconf.rb
+index 11099cd..de896fe 100644
+--- a/ext/unicorn_http/extconf.rb
++++ b/ext/unicorn_http/extconf.rb
+@@ -1,4 +1,5 @@
+ # -*- encoding: binary -*-
++# frozen_string_literal: false
+ require 'mkmf'
+ 
+ have_func("rb_hash_clear", "ruby.h") or abort 'Ruby 2.0+ required'
+diff --git a/lib/unicorn.rb b/lib/unicorn.rb
+index 564cb30..fb91679 100644
+--- a/lib/unicorn.rb
++++ b/lib/unicorn.rb
+@@ -1,4 +1,5 @@
+ # -*- encoding: binary -*-
++# frozen_string_literal: false
+ require 'etc'
+ require 'stringio'
+ require 'raindrops'
+diff --git a/lib/unicorn/app/old_rails.rb b/lib/unicorn/app/old_rails.rb
+index 1e8c41a..54b3e69 100644
+--- a/lib/unicorn/app/old_rails.rb
++++ b/lib/unicorn/app/old_rails.rb
+@@ -1,4 +1,5 @@
+ # -*- encoding: binary -*-
++# frozen_string_literal: false
+ 
+ # :enddoc:
+ # This code is based on the original Rails handler in Mongrel
+diff --git a/lib/unicorn/app/old_rails/static.rb b/lib/unicorn/app/old_rails/static.rb
+index 2257270..cf34e02 100644
+--- a/lib/unicorn/app/old_rails/static.rb
++++ b/lib/unicorn/app/old_rails/static.rb
+@@ -1,4 +1,5 @@
+ # -*- encoding: binary -*-
++# frozen_string_literal: false
+ # :enddoc:
+ # This code is based on the original Rails handler in Mongrel
+ # Copyright (c) 2005 Zed A. Shaw
+diff --git a/lib/unicorn/cgi_wrapper.rb b/lib/unicorn/cgi_wrapper.rb
+index d9b7fe5..fb43605 100644
+--- a/lib/unicorn/cgi_wrapper.rb
++++ b/lib/unicorn/cgi_wrapper.rb
+@@ -1,4 +1,5 @@
+ # -*- encoding: binary -*-
++# frozen_string_literal: false
+ 
+ # :enddoc:
+ # This code is based on the original CGIWrapper from Mongrel
+diff --git a/lib/unicorn/configurator.rb b/lib/unicorn/configurator.rb
+index b21a01d..3c81596 100644
+--- a/lib/unicorn/configurator.rb
++++ b/lib/unicorn/configurator.rb
+@@ -1,4 +1,5 @@
+ # -*- encoding: binary -*-
++# frozen_string_literal: false
+ require 'logger'
+ 
+ # Implements a simple DSL for configuring a unicorn server.
+diff --git a/lib/unicorn/const.rb b/lib/unicorn/const.rb
+index 33ab4ac..8032863 100644
+--- a/lib/unicorn/const.rb
++++ b/lib/unicorn/const.rb
+@@ -1,4 +1,5 @@
+ # -*- encoding: binary -*-
++# frozen_string_literal: false
+ 
+ module Unicorn::Const # :nodoc:
+   # default TCP listen host address (0.0.0.0, all interfaces)
+diff --git a/lib/unicorn/http_request.rb b/lib/unicorn/http_request.rb
+index ab3bd6e..a48dab7 100644
+--- a/lib/unicorn/http_request.rb
++++ b/lib/unicorn/http_request.rb
+@@ -1,4 +1,5 @@
+ # -*- encoding: binary -*-
++# frozen_string_literal: false
+ # :enddoc:
+ # no stable API here
+ require 'unicorn_http'
+diff --git a/lib/unicorn/http_response.rb b/lib/unicorn/http_response.rb
+index 0ed0ae3..3634165 100644
+--- a/lib/unicorn/http_response.rb
++++ b/lib/unicorn/http_response.rb
+@@ -1,4 +1,5 @@
+ # -*- encoding: binary -*-
++# frozen_string_literal: false
+ # :enddoc:
+ # Writes a Rack response to your client using the HTTP/1.1 specification.
+ # You use it by simply doing:
+diff --git a/lib/unicorn/http_server.rb b/lib/unicorn/http_server.rb
+index ed5bbf1..08fbe40 100644
+--- a/lib/unicorn/http_server.rb
++++ b/lib/unicorn/http_server.rb
+@@ -1,4 +1,5 @@
+ # -*- encoding: binary -*-
++# frozen_string_literal: false
+ 
+ # This is the process manager of Unicorn. This manages worker
+ # processes which in turn handle the I/O and application process.
+diff --git a/lib/unicorn/launcher.rb b/lib/unicorn/launcher.rb
+index 78e8f39..bd3324e 100644
+--- a/lib/unicorn/launcher.rb
++++ b/lib/unicorn/launcher.rb
+@@ -1,4 +1,5 @@
+ # -*- encoding: binary -*-
++# frozen_string_literal: false
+ 
+ # :enddoc:
+ $stdout.sync = $stderr.sync = true
+diff --git a/lib/unicorn/oob_gc.rb b/lib/unicorn/oob_gc.rb
+index db9f2cb..efd9177 100644
+--- a/lib/unicorn/oob_gc.rb
++++ b/lib/unicorn/oob_gc.rb
+@@ -1,4 +1,5 @@
+ # -*- encoding: binary -*-
++# frozen_string_literal: false
+ 
+ # Strongly consider https://github.com/tmm1/gctools if using Ruby 2.1+
+ # It is built on new APIs in Ruby 2.1, so it is more intelligent than
+diff --git a/lib/unicorn/preread_input.rb b/lib/unicorn/preread_input.rb
+index 12eb3e8..c62cc09 100644
+--- a/lib/unicorn/preread_input.rb
++++ b/lib/unicorn/preread_input.rb
+@@ -1,4 +1,5 @@
+ # -*- encoding: binary -*-
++# frozen_string_literal: false
+ 
+ module Unicorn
+ # This middleware is used to ensure input is buffered to memory
+diff --git a/lib/unicorn/select_waiter.rb b/lib/unicorn/select_waiter.rb
+index cb84aab..d11ea57 100644
+--- a/lib/unicorn/select_waiter.rb
++++ b/lib/unicorn/select_waiter.rb
+@@ -1,3 +1,4 @@
++# frozen_string_literal: false
+ # fallback for non-Linux and Linux <4.5 systems w/o EPOLLEXCLUSIVE
+ class Unicorn::SelectWaiter # :nodoc:
+   def get_readers(ready, readers, timeout) # :nodoc:
+diff --git a/lib/unicorn/socket_helper.rb b/lib/unicorn/socket_helper.rb
+index 06ec2b2..986932f 100644
+--- a/lib/unicorn/socket_helper.rb
++++ b/lib/unicorn/socket_helper.rb
+@@ -1,4 +1,5 @@
+ # -*- encoding: binary -*-
++# frozen_string_literal: false
+ # :enddoc:
+ require 'socket'
+ 
+diff --git a/lib/unicorn/stream_input.rb b/lib/unicorn/stream_input.rb
+index 9246f73..23a9976 100644
+--- a/lib/unicorn/stream_input.rb
++++ b/lib/unicorn/stream_input.rb
+@@ -1,4 +1,5 @@
+ # -*- encoding: binary -*-
++# frozen_string_literal: false
+ 
+ # When processing uploads, unicorn may expose a StreamInput object under
+ # "rack.input" of the Rack environment when
+diff --git a/lib/unicorn/tee_input.rb b/lib/unicorn/tee_input.rb
+index 2ccc2d9..b3c6535 100644
+--- a/lib/unicorn/tee_input.rb
++++ b/lib/unicorn/tee_input.rb
+@@ -1,4 +1,5 @@
+ # -*- encoding: binary -*-
++# frozen_string_literal: false
+ 
+ # Acts like tee(1) on an input input to provide a input-like stream
+ # while providing rewindable semantics through a File/StringIO backing
+diff --git a/lib/unicorn/tmpio.rb b/lib/unicorn/tmpio.rb
+index 0bbf6ec..deecd80 100644
+--- a/lib/unicorn/tmpio.rb
++++ b/lib/unicorn/tmpio.rb
+@@ -1,4 +1,5 @@
+ # -*- encoding: binary -*-
++# frozen_string_literal: false
+ # :stopdoc:
+ require 'tmpdir'
+ 
+diff --git a/lib/unicorn/util.rb b/lib/unicorn/util.rb
+index b826de4..f28d929 100644
+--- a/lib/unicorn/util.rb
++++ b/lib/unicorn/util.rb
+@@ -1,4 +1,5 @@
+ # -*- encoding: binary -*-
++# frozen_string_literal: false
+ 
+ require 'fcntl'
+ module Unicorn::Util # :nodoc:
+diff --git a/lib/unicorn/worker.rb b/lib/unicorn/worker.rb
+index 4af31be..d2445d5 100644
+--- a/lib/unicorn/worker.rb
++++ b/lib/unicorn/worker.rb
+@@ -1,4 +1,5 @@
+ # -*- encoding: binary -*-
++# frozen_string_literal: false
+ require "raindrops"
+ 
+ # This class and its members can be considered a stable interface
+diff --git a/setup.rb b/setup.rb
+index cf1abd9..96cf75a 100644
+--- a/setup.rb
++++ b/setup.rb
+@@ -1,4 +1,5 @@
+ # -*- encoding: binary -*-
++# frozen_string_literal: false
+ #
+ # setup.rb
+ #
+diff --git a/t/broken-app.ru b/t/broken-app.ru
+index d05d7ab..5966bff 100644
+--- a/t/broken-app.ru
++++ b/t/broken-app.ru
+@@ -1,3 +1,4 @@
++# frozen_string_literal: false
+ # we do not want Rack::Lint or anything to protect us
+ use Rack::ContentLength
+ use Rack::ContentType, "text/plain"
+diff --git a/t/client_body_buffer_size.ru b/t/client_body_buffer_size.ru
+index 44161a5..1a0fb16 100644
+--- a/t/client_body_buffer_size.ru
++++ b/t/client_body_buffer_size.ru
+@@ -1,4 +1,5 @@
+ #\ -E none
++# frozen_string_literal: false
+ app = lambda do |env|
+   input = env['rack.input']
+   case env["PATH_INFO"]
+diff --git a/t/detach.ru b/t/detach.ru
+index bbd998e..8d35951 100644
+--- a/t/detach.ru
++++ b/t/detach.ru
+@@ -1,3 +1,4 @@
++# frozen_string_literal: false
+ use Rack::ContentType, "text/plain"
+ fifo_path = ENV["TEST_FIFO"] or abort "TEST_FIFO not set"
+ run lambda { |env|
+diff --git a/t/env.ru b/t/env.ru
+index 388412e..86c3cfa 100644
+--- a/t/env.ru
++++ b/t/env.ru
+@@ -1,3 +1,4 @@
++# frozen_string_literal: false
+ use Rack::ContentLength
+ use Rack::ContentType, "text/plain"
+ run lambda { |env| [ 200, {}, [ env.inspect << "\n" ] ] }
+diff --git a/t/fails-rack-lint.ru b/t/fails-rack-lint.ru
+index 82bfb5f..8b8b5ec 100644
+--- a/t/fails-rack-lint.ru
++++ b/t/fails-rack-lint.ru
+@@ -1,3 +1,4 @@
++# frozen_string_literal: false
+ # This rack app returns an invalid status code, which will cause
+ # Rack::Lint to throw an exception if it is present.  This
+ # is used to check whether Rack::Lint is in the stack or not.
+diff --git a/t/heartbeat-timeout.ru b/t/heartbeat-timeout.ru
+index 3eeb5d6..ccc6a8e 100644
+--- a/t/heartbeat-timeout.ru
++++ b/t/heartbeat-timeout.ru
+@@ -1,3 +1,4 @@
++# frozen_string_literal: false
+ use Rack::ContentLength
+ headers = { 'content-type' => 'text/plain' }
+ run lambda { |env|
+diff --git a/t/integration.ru b/t/integration.ru
+index 888833a..6df481c 100644
+--- a/t/integration.ru
++++ b/t/integration.ru
+@@ -1,4 +1,5 @@
+ #!ruby
++# frozen_string_literal: false
+ # Copyright (C) unicorn hackers <unicorn-public@80x24.org>
+ # License: GPL-3.0+ <https://www.gnu.org/licenses/gpl-3.0.txt>
+ 
+diff --git a/t/listener_names.ru b/t/listener_names.ru
+index edb4e6a..f52c59b 100644
+--- a/t/listener_names.ru
++++ b/t/listener_names.ru
+@@ -1,3 +1,4 @@
++# frozen_string_literal: false
+ use Rack::ContentLength
+ use Rack::ContentType, "text/plain"
+ names = Unicorn.listener_names.inspect # rely on preload_app=true
+diff --git a/t/oob_gc.ru b/t/oob_gc.ru
+index 224cb06..2ae58a8 100644
+--- a/t/oob_gc.ru
++++ b/t/oob_gc.ru
+@@ -1,4 +1,5 @@
+ #\-E none
++# frozen_string_literal: false
+ require 'unicorn/oob_gc'
+ use Rack::ContentLength
+ use Rack::ContentType, "text/plain"
+diff --git a/t/oob_gc_path.ru b/t/oob_gc_path.ru
+index 7f40601..5358222 100644
+--- a/t/oob_gc_path.ru
++++ b/t/oob_gc_path.ru
+@@ -1,4 +1,5 @@
+ #\-E none
++# frozen_string_literal: false
+ require 'unicorn/oob_gc'
+ use Rack::ContentLength
+ use Rack::ContentType, "text/plain"
+diff --git a/t/pid.ru b/t/pid.ru
+index f5fd31f..b49b137 100644
+--- a/t/pid.ru
++++ b/t/pid.ru
+@@ -1,3 +1,4 @@
++# frozen_string_literal: false
+ use Rack::ContentLength
+ use Rack::ContentType, "text/plain"
+ run lambda { |env| [ 200, {}, [ "#$$\n" ] ] }
+diff --git a/t/preread_input.ru b/t/preread_input.ru
+index 18af221..5f68fe9 100644
+--- a/t/preread_input.ru
++++ b/t/preread_input.ru
+@@ -1,4 +1,5 @@
+ #\-E none
++# frozen_string_literal: false
+ require 'digest/md5'
+ require 'unicorn/preread_input'
+ use Unicorn::PrereadInput
+diff --git a/t/reopen-logs.ru b/t/reopen-logs.ru
+index c39e8f6..488da85 100644
+--- a/t/reopen-logs.ru
++++ b/t/reopen-logs.ru
+@@ -1,3 +1,4 @@
++# frozen_string_literal: false
+ use Rack::ContentLength
+ use Rack::ContentType, "text/plain"
+ run lambda { |env|
+diff --git a/t/t0013.ru b/t/t0013.ru
+index 48a3a34..e425093 100644
+--- a/t/t0013.ru
++++ b/t/t0013.ru
+@@ -1,4 +1,5 @@
+ #\ -E none
++# frozen_string_literal: false
+ use Rack::ContentLength
+ use Rack::ContentType, 'text/plain'
+ app = lambda do |env|
+diff --git a/t/t0014.ru b/t/t0014.ru
+index b0bd2b7..686d214 100644
+--- a/t/t0014.ru
++++ b/t/t0014.ru
+@@ -1,4 +1,5 @@
+ #\ -E none
++# frozen_string_literal: false
+ use Rack::ContentLength
+ use Rack::ContentType, 'text/plain'
+ app = lambda do |env|
+diff --git a/t/t0301.ru b/t/t0301.ru
+index ce68213..54929b1 100644
+--- a/t/t0301.ru
++++ b/t/t0301.ru
+@@ -1,4 +1,5 @@
+ #\-N --debug
++# frozen_string_literal: false
+ run(lambda do |env|
+   case env['PATH_INFO']
+   when '/vars'
+diff --git a/test/aggregate.rb b/test/aggregate.rb
+index 5eebbe5..0f32b2f 100755
+--- a/test/aggregate.rb
++++ b/test/aggregate.rb
+@@ -1,5 +1,6 @@
+ #!/usr/bin/ruby -n
+ # -*- encoding: binary -*-
++# frozen_string_literal: false
+ 
+ BEGIN { $tests = $assertions = $failures = $errors = 0 }
+ 
+diff --git a/test/benchmark/dd.ru b/test/benchmark/dd.ru
+index 111fa2e..5bd2739 100644
+--- a/test/benchmark/dd.ru
++++ b/test/benchmark/dd.ru
+@@ -1,3 +1,4 @@
++# frozen_string_literal: false
+ # This benchmark is the simplest test of the I/O facilities in
+ # unicorn.  It is meant to return a fixed-sized blob to test
+ # the performance of things in Unicorn, _NOT_ the app.
+diff --git a/test/benchmark/ddstream.ru b/test/benchmark/ddstream.ru
+index b14c973..fd40ced 100644
+--- a/test/benchmark/ddstream.ru
++++ b/test/benchmark/ddstream.ru
+@@ -1,3 +1,4 @@
++# frozen_string_literal: false
+ # This app is intended to test large HTTP responses with or without
+ # a fully-buffering reverse proxy such as nginx. Without a fully-buffering
+ # reverse proxy, unicorn will be unresponsive when client count exceeds
+diff --git a/test/benchmark/readinput.ru b/test/benchmark/readinput.ru
+index c91bec3..95c0226 100644
+--- a/test/benchmark/readinput.ru
++++ b/test/benchmark/readinput.ru
+@@ -1,3 +1,4 @@
++# frozen_string_literal: false
+ # This app is intended to test large HTTP requests with or without
+ # a fully-buffering reverse proxy such as nginx. Without a fully-buffering
+ # reverse proxy, unicorn will be unresponsive when client count exceeds
+diff --git a/test/benchmark/stack.ru b/test/benchmark/stack.ru
+index fc9193f..17a565b 100644
+--- a/test/benchmark/stack.ru
++++ b/test/benchmark/stack.ru
+@@ -1,3 +1,4 @@
++# frozen_string_literal: false
+ run(lambda { |env|
+   body = "#{caller.size}\n"
+   h = {
+diff --git a/test/exec/test_exec.rb b/test/exec/test_exec.rb
+index 8494452..807f724 100644
+--- a/test/exec/test_exec.rb
++++ b/test/exec/test_exec.rb
+@@ -1,4 +1,5 @@
+ # -*- encoding: binary -*-
++# frozen_string_literal: false
+ # Don't add to this file, new tests are in Perl 5. See t/README
+ FLOCK_PATH = File.expand_path(__FILE__)
+ require './test/test_helper'
+diff --git a/test/test_helper.rb b/test/test_helper.rb
+index d86f83b..0bf3c90 100644
+--- a/test/test_helper.rb
++++ b/test/test_helper.rb
+@@ -1,4 +1,5 @@
+ # -*- encoding: binary -*-
++# frozen_string_literal: false
+ 
+ # Copyright (c) 2005 Zed A. Shaw
+ # You can redistribute it and/or modify it under the same terms as Ruby 1.8 or
+diff --git a/test/unit/test_ccc.rb b/test/unit/test_ccc.rb
+index f518230..a0a2bff 100644
+--- a/test/unit/test_ccc.rb
++++ b/test/unit/test_ccc.rb
+@@ -1,3 +1,4 @@
++# frozen_string_literal: false
+ require 'socket'
+ require 'unicorn'
+ require 'io/wait'
+diff --git a/test/unit/test_configurator.rb b/test/unit/test_configurator.rb
+index 1298f0e..1a89aca 100644
+--- a/test/unit/test_configurator.rb
++++ b/test/unit/test_configurator.rb
+@@ -1,4 +1,5 @@
+ # -*- encoding: binary -*-
++# frozen_string_literal: false
+ 
+ require 'test/unit'
+ require 'tempfile'
+diff --git a/test/unit/test_droplet.rb b/test/unit/test_droplet.rb
+index 81ad82b..4b2d2d0 100644
+--- a/test/unit/test_droplet.rb
++++ b/test/unit/test_droplet.rb
+@@ -1,3 +1,4 @@
++# frozen_string_literal: false
+ require 'test/unit'
+ require 'unicorn'
+ 
+diff --git a/test/unit/test_http_parser.rb b/test/unit/test_http_parser.rb
+index 697af44..adcc84f 100644
+--- a/test/unit/test_http_parser.rb
++++ b/test/unit/test_http_parser.rb
+@@ -1,4 +1,5 @@
+ # -*- encoding: binary -*-
++# frozen_string_literal: false
+ 
+ # Copyright (c) 2005 Zed A. Shaw
+ # You can redistribute it and/or modify it under the same terms as Ruby 1.8 or
+diff --git a/test/unit/test_http_parser_ng.rb b/test/unit/test_http_parser_ng.rb
+index 425d5ad..fd47246 100644
+--- a/test/unit/test_http_parser_ng.rb
++++ b/test/unit/test_http_parser_ng.rb
+@@ -1,4 +1,5 @@
+ # -*- encoding: binary -*-
++# frozen_string_literal: false
+ 
+ require './test/test_helper'
+ require 'digest/md5'
+diff --git a/test/unit/test_request.rb b/test/unit/test_request.rb
+index 53ae944..9d1b350 100644
+--- a/test/unit/test_request.rb
++++ b/test/unit/test_request.rb
+@@ -1,4 +1,5 @@
+ # -*- encoding: binary -*-
++# frozen_string_literal: false
+ 
+ # Copyright (c) 2009 Eric Wong
+ # You can redistribute it and/or modify it under the same terms as Ruby 1.8 or
+diff --git a/test/unit/test_server.rb b/test/unit/test_server.rb
+index 7ffa48f..5a2252f 100644
+--- a/test/unit/test_server.rb
++++ b/test/unit/test_server.rb
+@@ -1,4 +1,5 @@
+ # -*- encoding: binary -*-
++# frozen_string_literal: false
+ 
+ # Copyright (c) 2005 Zed A. Shaw
+ # You can redistribute it and/or modify it under the same terms as Ruby 1.8 or
+diff --git a/test/unit/test_signals.rb b/test/unit/test_signals.rb
+index 6c48754..49ff3c7 100644
+--- a/test/unit/test_signals.rb
++++ b/test/unit/test_signals.rb
+@@ -1,4 +1,5 @@
+ # -*- encoding: binary -*-
++# frozen_string_literal: false
+ 
+ # Copyright (c) 2009 Eric Wong
+ # You can redistribute it and/or modify it under the same terms as Ruby 1.8 or
+diff --git a/test/unit/test_socket_helper.rb b/test/unit/test_socket_helper.rb
+index a446f06..4363474 100644
+--- a/test/unit/test_socket_helper.rb
++++ b/test/unit/test_socket_helper.rb
+@@ -1,4 +1,5 @@
+ # -*- encoding: binary -*-
++# frozen_string_literal: false
+ 
+ require './test/test_helper'
+ require 'tempfile'
+diff --git a/test/unit/test_stream_input.rb b/test/unit/test_stream_input.rb
+index 7986ca7..7ee98e4 100644
+--- a/test/unit/test_stream_input.rb
++++ b/test/unit/test_stream_input.rb
+@@ -1,4 +1,5 @@
+ # -*- encoding: binary -*-
++# frozen_string_literal: false
+ 
+ require 'test/unit'
+ require 'digest/sha1'
+diff --git a/test/unit/test_tee_input.rb b/test/unit/test_tee_input.rb
+index 607ce87..8f05c77 100644
+--- a/test/unit/test_tee_input.rb
++++ b/test/unit/test_tee_input.rb
+@@ -1,4 +1,5 @@
+ # -*- encoding: binary -*-
++# frozen_string_literal: false
+ 
+ require 'test/unit'
+ require 'digest/sha1'
+diff --git a/test/unit/test_util.rb b/test/unit/test_util.rb
+index bc7b233..ce53b86 100644
+--- a/test/unit/test_util.rb
++++ b/test/unit/test_util.rb
+@@ -1,4 +1,5 @@
+ # -*- encoding: binary -*-
++# frozen_string_literal: false
+ 
+ require './test/test_helper'
+ require 'tempfile'
+diff --git a/test/unit/test_waiter.rb b/test/unit/test_waiter.rb
+index 0995de2..a20994b 100644
+--- a/test/unit/test_waiter.rb
++++ b/test/unit/test_waiter.rb
+@@ -1,3 +1,4 @@
++# frozen_string_literal: false
+ require 'test/unit'
+ require 'unicorn'
+ require 'unicorn/select_waiter'
+diff --git a/unicorn.gemspec b/unicorn.gemspec
+index e7e3ef7..36700a8 100644
+--- a/unicorn.gemspec
++++ b/unicorn.gemspec
+@@ -1,4 +1,5 @@
+ # -*- encoding: binary -*-
++# frozen_string_literal: false
+ manifest = File.exist?('.manifest') ?
+   IO.readlines('.manifest').map!(&:chomp!) : `git ls-files`.split("\n")
+ 
+
+--r5NeA5Mm2TYQnjRr--
