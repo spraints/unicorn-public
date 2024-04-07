@@ -1,0 +1,47 @@
+Return-Path: <bofh@yhbt.net>
+X-Spam-Checker-Version: SpamAssassin 3.4.6 (2021-04-09) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.1 required=3.0 tests=ALL_TRUSTED,AWL,BAYES_00,
+	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,DKIM_VALID_EF shortcircuit=no
+	autolearn=ham autolearn_force=no version=3.4.6
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id 737A81F44D
+	for <unicorn-public@yhbt.net>; Sun,  7 Apr 2024 10:52:38 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=yhbt.net;
+	s=selector1; t=1712487158;
+	bh=6CMJdfq8B2FMQEaDanmiWWi8OILXKBTMehklE3zCAqo=;
+	h=From:To:Subject:Date:From;
+	b=dORohRgYFrrMjXOIzVZJWOSwFLkOGGuRW/qSJfBcuYPE0/06CYdtSsC60jqYfmeJH
+	 jHmSMEfffWDopLDz3T2Uzix1L8bg2TQs7vOXN4U55UQATyK9Y0UbtCQ+hXOl4NqOY+
+	 vl/n7znM9Qll+HtKk8eknvId/4yEM6hUsxNE3hE4=
+From: Eric Wong <bofh@yhbt.net>
+To: unicorn-public@yhbt.net
+Subject: [PATCH] t/lib.perl: fix Perl integration tests w/o installation
+Date: Sun,  7 Apr 2024 10:52:38 +0000
+Message-ID: <20240407105238.3778578-1-bofh@yhbt.net>
+MIME-Version: 1.0
+Content-Transfer-Encoding: 8bit
+List-Id: <unicorn-public.yhbt.net>
+
+We can't rely on `ruby -I $PATH' args being passed to
+subprocesses, so rely on the RUBYLIB environment instead.
+---
+ t/lib.perl | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
+
+diff --git a/t/lib.perl b/t/lib.perl
+index b20a2c6..8c842b1 100644
+--- a/t/lib.perl
++++ b/t/lib.perl
+@@ -240,7 +240,9 @@ sub unicorn {
+ 	state $eng = $ENV{TEST_RUBY_ENGINE} // `$ruby -e 'print RUBY_ENGINE'`;
+ 	state $ext = File::Spec->rel2abs("test/$eng-$ver/ext/unicorn_http");
+ 	state $exe = File::Spec->rel2abs("test/$eng-$ver/bin/unicorn");
+-	my $pid = spawn(\%env, $ruby, '-I', $lib, '-I', $ext, $exe, @args);
++	state $rl = $ENV{RUBYLIB} ? "$lib:$ext:$ENV{RUBYLIB}" : "$lib:$ext";
++	$env{RUBYLIB} = $rl;
++	my $pid = spawn(\%env, $ruby, $exe, @args);
+ 	UnicornTest::AutoReap->new($pid);
+ }
+ 
