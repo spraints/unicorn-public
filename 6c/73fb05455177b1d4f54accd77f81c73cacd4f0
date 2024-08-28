@@ -1,0 +1,50 @@
+Return-Path: <bofh@yhbt.net>
+X-Spam-Checker-Version: SpamAssassin 3.4.6 (2021-04-09) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-2.6 required=3.0 tests=ALL_TRUSTED,AWL,BAYES_40,
+	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,DKIM_VALID_EF,
+	T_SCC_BODY_TEXT_LINE shortcircuit=no autolearn=ham autolearn_force=no
+	version=3.4.6
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id 55C6F1F47A
+	for <unicorn-public@yhbt.net>; Wed, 28 Aug 2024 18:49:42 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=yhbt.net;
+	s=selector1; t=1724870982;
+	bh=jd5dL+w2CebkfRZ8Ea06dwHITFOrzb/616Iz8CJDpoA=;
+	h=From:To:Subject:Date:From;
+	b=vT8eeuovz8mc/qPRnofszOBJn/a7xc6nAlqBdMC+NPfW58yAaZ6Ke6z4I1GU5+LFt
+	 OngqbdESMOuZw8Sz1HYGwdNvsl/WPV1vMiptuL2Q4hfYVnuXhyJo8eiCWwSgJwBPqB
+	 4IAsNkXxPvjR7HLdRuFrZV8z+2fQC/tR7Vy7pVEo=
+From: Eric Wong <bofh@yhbt.net>
+To: unicorn-public@yhbt.net
+Subject: [PATCH] http_response: free response header buffer ASAP
+Date: Wed, 28 Aug 2024 18:49:42 +0000
+Message-ID: <20240828184942.3530778-1-bofh@yhbt.net>
+MIME-Version: 1.0
+Content-Transfer-Encoding: 8bit
+List-Id: <unicorn-public.yhbt.net>
+
+String#clear calls free(3) in C Ruby (as of 3.4 previews) for
+non-embedded strings, so release the memory ASAP to reduce
+memory pressure during the subsequent body.each iteration.
+
+If the C Ruby GC ever gets escape analysis, this call should
+no longer be necessary.  But that may never happen, so provide
+a benefit for users today.
+---
+ lib/unicorn/http_response.rb | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/lib/unicorn/http_response.rb b/lib/unicorn/http_response.rb
+index 3634165..cafac5d 100644
+--- a/lib/unicorn/http_response.rb
++++ b/lib/unicorn/http_response.rb
+@@ -74,6 +74,7 @@ def http_response_write(socket, status, headers, body,
+         buf << "Transfer-Encoding: chunked\r\n".freeze
+       end
+       socket.write(buf << "\r\n".freeze)
++      buf.clear # remove this line if C Ruby gets escape analysis
+     end
+ 
+     if hijack
