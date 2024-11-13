@@ -1,0 +1,103 @@
+Return-Path: <benjamin.p.kallus.gr@dartmouth.edu>
+X-Spam-Checker-Version: SpamAssassin 3.4.6 (2021-04-09) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN: AS15169 209.85.128.0/17
+X-Spam-Status: No, score=-0.0 required=3.0 tests=BAYES_50,DKIM_SIGNED,
+	DKIM_VALID,DKIM_VALID_AU,DKIM_VALID_EF,RCVD_IN_DNSWL_BLOCKED,
+	RCVD_IN_MSPIKE_H2,SPF_HELO_NONE,SPF_PASS,URIBL_SBL_A shortcircuit=no
+	autolearn=ham autolearn_force=no version=3.4.6
+Received: from mail-ej1-f44.google.com (mail-ej1-f44.google.com [209.85.218.44])
+	(using TLSv1.3 with cipher TLS_AES_128_GCM_SHA256 (128/128 bits)
+	 key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
+	(No client certificate requested)
+	by dcvr.yhbt.net (Postfix) with ESMTPS id E1FBE1F4C1
+	for <unicorn-public@yhbt.net>; Wed, 13 Nov 2024 16:22:50 +0000 (UTC)
+Authentication-Results: dcvr.yhbt.net;
+	dkim=pass (2048-bit key; unprotected) header.d=dartmouth.edu header.i=@dartmouth.edu header.a=rsa-sha256 header.s=google1 header.b=X4nNDf6g;
+	dkim-atps=neutral
+Received: by mail-ej1-f44.google.com with SMTP id a640c23a62f3a-a9a977d6cc7so558145166b.3
+        for <unicorn-public@yhbt.net>; Wed, 13 Nov 2024 08:22:50 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=dartmouth.edu; s=google1; t=1731514969; x=1732119769; darn=yhbt.net;
+        h=to:subject:message-id:date:from:mime-version:from:to:cc:subject
+         :date:message-id:reply-to;
+        bh=qZeEsGnamARmeUKExIKKc+h69khejQevf6efLimEbJk=;
+        b=X4nNDf6gq0wY2KW66jokPmsQWHj59IjyDwkVcDyynyGJCuSW7AlYxXHocZPBLMlVFN
+         blJLHiWQCdcxYRNoDASweutnUGNyZb3wqoeFtpzDS8u9QqRbP4nllGt70KMkN2xV+6c5
+         Nwl5QM5tnkYHPFPpOz7woUN9b/VcKlNdf/F8GsnWzoLTTfTwJdIBy9wRr5/oQqIpOULx
+         09flvKfVbso/pgpPnXwhSj/PWzfz1yqf+UQuCu+MWTbt/tO5LxZH0cSMtmLVYlzd1x9b
+         J8sC4c8WWXbbuSb32SPIB5SMc6Fv8NMEbwkYbD6k88Rjk56rfURV+NvikiNHmCeC73P7
+         DArw==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20230601; t=1731514969; x=1732119769;
+        h=to:subject:message-id:date:from:mime-version:x-gm-message-state
+         :from:to:cc:subject:date:message-id:reply-to;
+        bh=qZeEsGnamARmeUKExIKKc+h69khejQevf6efLimEbJk=;
+        b=cPwr+uy+zo2kS4CmJqT3oDz/RuUcGKflV7zI0/giPYhVSaoj0pVx0q7V0mYTKiKIzV
+         FCUL3j8PYPELKzA5FEzV8bjRcYXFnBMAuTvM/9ueQJnvYWrEUhuGL4EfQPhbGGZobTbI
+         avLSkQZqe4MKDsd6rqEvIQ4Z9GJi0Dw1fxAf2X1A6z4Ur71CsL8Vy45SXU6nhUwbpgdP
+         cDdcdS8IfF0KC+fpfxHaU/NVK3SsZBU9X6W0p9tGBXV9qgfhrAqDmW96HCutWasftxmD
+         LYYW7gd5+3SYkSfxVDsmYE7TX+aa5ZhM1WDfz8drMqhZJwcXV0T758pQgOIpsP5eja8h
+         w4ww==
+X-Gm-Message-State: AOJu0YxE6m4j663AL6kWYY0i9GrLrTGEd81Hlr8RCuu/uw+f4iXJjsHM
+	151TARLJ4aJktb8nbiR5MMgE0GZv3KzHxQykDu9K4QkviFuMmDTw8hod9KVhqCMx6eXFAfMB3c+
+	jF9gcF01rWmKS1xOPflcwACH2biKohus1PImMrOtsCZXsVwI4Oy8=
+X-Google-Smtp-Source: AGHT+IHU+Tugbhj2dj7P1IwCCgMfGtGqlS3PM8zVuksRcPEaU/z8XqtIbaZOOPXXjDfrOLlu05P2VjNrX39C7IxDhPc=
+X-Received: by 2002:a05:6402:2803:b0:5cb:adc5:de15 with SMTP id
+ 4fb4d7f45d1cf-5cf0a44658dmr24978406a12.31.1731514968993; Wed, 13 Nov 2024
+ 08:22:48 -0800 (PST)
+MIME-Version: 1.0
+From: Ben Kallus <benjamin.p.kallus.gr@dartmouth.edu>
+Date: Wed, 13 Nov 2024 11:22:38 -0500
+Message-ID: <CAB6pCSb=vE1My6pHcwO672JNeeDaOYNJ4ykkB_vq9LCqR7pYFw@mail.gmail.com>
+Subject: Transfer-Encoding and Content-Length header injection in Unicorn
+To: unicorn-public@yhbt.net
+Content-Type: text/plain; charset="UTF-8"
+List-Id: <unicorn-public.yhbt.net>
+
+Hello everyone!
+
+A little bug:
+Unicorn treats "transfer_encoding" and "content_length" headers as
+equivalent to "transfer-encoding" and "content-length" headers.
+
+For example, if you send the following request:
+```
+POST / HTTP/1.1\r\n
+Host: whatever\r\n
+transfer_encoding: chunked\r\n
+Content-Length: 11\r\n
+1\r\n
+Z\r\n
+0\r\n
+\r\n
+```
+
+Unicorn will see this as having a message body of "Z", but other HTTP
+servers (correctly) see this as having a message body of
+"1\r\nZ\r\n0\r\n\r\n".
+
+You can reproduce this for yourself by installing from source at the
+latest commit (e2b2f325fb9cc877496bbd4273fd4bf4fc84ec59), then running
+the following config.ru on port 80:
+https://raw.githubusercontent.com/narfindustries/http-garden/refs/heads/main/images/unicorn/config.ru
+
+Send the request above and observe that the message body is
+interpreted as chunked:
+```
+printf 'GET / HTTP/1.1\r\nHost: whatever\r\ntransfer_encoding:
+chunked\r\n\r\n1\r\nZ\r\n0\r\n\r\n' | ncat --no-shutdown localhost 80
+| grep 'body' | jq '.["body"]' | xargs echo | base64 -d
+```
+```
+Z
+```
+
+The fix here would be to interpret framing-related headers before
+translating dashes to underscores in header names.
+
+In another server, this bug might be usable for request smuggling, but
+since Unicorn doesn't support keep-alive, I think the worst this could
+do would be WAF bypass or something else boring like that.
+
+-Ben
