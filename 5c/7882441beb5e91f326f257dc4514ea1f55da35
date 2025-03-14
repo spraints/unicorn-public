@@ -1,0 +1,48 @@
+Return-Path: <BOFH@YHBT.net>
+X-Spam-Checker-Version: SpamAssassin 3.4.6 (2021-04-09) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.1 required=3.0 tests=ALL_TRUSTED,AWL,BAYES_00,
+	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,DKIM_VALID_EF shortcircuit=no
+	autolearn=ham autolearn_force=no version=3.4.6
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id B117F1F5D2
+	for <unicorn-public@yhbt.net>; Fri, 14 Mar 2025 23:02:22 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=yhbt.net;
+	s=selector1; t=1741993342;
+	bh=gr2QR5pVt+jxmTlDIvx24VZbvyXHVDM1iiN1ocHxQeE=;
+	h=From:To:Subject:Date:From;
+	b=5Q7yMtUiq0TaAYwnBKpict4QGuB2SZhyb5Cfbb+nzAzbMSJN0cxqMPJFnnxfu1bxz
+	 JWuYAqTk0O8e0bmZZ09pDZyGxTIiOy+NaX8p5k/ELKwxrZFbPGjxcM6fmwnrqFZkz0
+	 liCFVOejX5piD48MiItF1zRUgJT20Rylon7jkRnA=
+From: Eric Wong <BOFH@YHBT.net>
+To: unicorn-public@yhbt.net
+Subject: [PATCH] t/integration: drop needless select() for Unix CCC test
+Date: Fri, 14 Mar 2025 23:02:22 +0000
+Message-ID: <20250314230222.1033079-1-BOFH@YHBT.net>
+MIME-Version: 1.0
+Content-Transfer-Encoding: 8bit
+List-Id: <unicorn-public.yhbt.net>
+
+Having a select() to check for readability is unnecessary and
+tests an implementation detail of the check_client_connection
+implementation for Unix sockets.  Since the implementation of
+check_client_connection may change in the future, drop the
+select() call so it's closer to the existing TCP test since
+TCP connections may use TCP_INFO on Linux and FreeBSD.
+---
+ t/integration.t | 1 -
+ 1 file changed, 1 deletion(-)
+
+diff --git a/t/integration.t b/t/integration.t
+index 31f7f189..76067d6b 100644
+--- a/t/integration.t
++++ b/t/integration.t
+@@ -466,7 +466,6 @@ EOM
+ 	# slow Unix socket request
+ 	$c = unix_start $u1, "GET /read_fifo HTTP/1.0\r\nRead-FIFO: $rfifo";
+ 	vec($rvec = '', fileno($c), 1) = 1;
+-	select($rvec, undef, undef, 10) or BAIL_OUT 'timed out Unix CCC';
+ 	unix_start $u1, 'GET /aborted HTTP/1.0' for (1..100);
+ 	write_file '>', $rfifo, 'UFIN';
+ 	($status, $hdr) = slurp_hdr($c);
