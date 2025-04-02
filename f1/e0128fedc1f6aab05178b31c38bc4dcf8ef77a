@@ -1,0 +1,86 @@
+Return-Path: <BOFH@YHBT.net>
+X-Spam-Checker-Version: SpamAssassin 3.4.6 (2021-04-09) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-ASN:  
+X-Spam-Status: No, score=-4.1 required=3.0 tests=ALL_TRUSTED,AWL,BAYES_00,
+	DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,DKIM_VALID_EF shortcircuit=no
+	autolearn=ham autolearn_force=no version=3.4.6
+Received: from localhost (dcvr.yhbt.net [127.0.0.1])
+	by dcvr.yhbt.net (Postfix) with ESMTP id 0060A1F5E0
+	for <unicorn-public@yhbt.net>; Wed,  2 Apr 2025 19:47:29 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=yhbt.net;
+	s=selector1; t=1743623250;
+	bh=1I/oxq2eKABEhoTGmnGx1201w4ltEkJ6wRVqdtwzoII=;
+	h=From:To:Subject:Date:From;
+	b=JeAK1nd9GUw79A9x6u/FI0Sp3462lxH876RXSxQEqn4rZrf2O5eybDBus+E2EAo3i
+	 XmisdxoRXtjAmyuTHzLR0KyEEiffDdNaKykRgb+nhGF/Ver16MJlnvt613czTnW4YU
+	 DFyFI2rQ/9VoGSMUn3+5jclw5WKbsPbSjDqKoabw=
+From: Eric Wong <BOFH@YHBT.net>
+To: unicorn-public@yhbt.net
+Subject: [PATCH] http_request: TCP_ESTABLISHED is the only valid client state
+Date: Wed,  2 Apr 2025 19:47:29 +0000
+Message-ID: <20250402194729.2373067-1-BOFH@YHBT.net>
+MIME-Version: 1.0
+Content-Transfer-Encoding: 8bit
+List-Id: <unicorn-public.yhbt.net>
+
+TCP_ESTABLISHED is the only TCP state after we've read a request
+where we can feasibly write a response to; so simplify the check
+to reduce the amount of code we have.
+---
+ lib/unicorn/http_request.rb | 30 ++++--------------------------
+ 1 file changed, 4 insertions(+), 26 deletions(-)
+
+diff --git a/lib/unicorn/http_request.rb b/lib/unicorn/http_request.rb
+index a48dab7d..efc98b9f 100644
+--- a/lib/unicorn/http_request.rb
++++ b/lib/unicorn/http_request.rb
+@@ -124,28 +124,14 @@ def check_client_connection(socket, ai) # :nodoc:
+       # generate an opt_case_dispatch instruction
+       eval <<-EOS
+       def closed_state?(state) # :nodoc:
+-        case state
+-        when #{Raindrops::TCP[:ESTABLISHED]}
+-          false
+-        when #{Raindrops::TCP.values_at(
+-              :CLOSE_WAIT, :TIME_WAIT, :CLOSE, :LAST_ACK, :CLOSING).join(',')}
+-          true
+-        else
+-          false
+-        end
++        state == #{Raindrops::TCP[:ESTABLISHED]} ? false : true
+       end
+       EOS
+     else
+       # raindrops before 0.18 only supported TCP_INFO under Linux
+       def closed_state?(state) # :nodoc:
+-        case state
+-        when 1 # ESTABLISHED
+-          false
+-        when 8, 6, 7, 9, 11 # CLOSE_WAIT, TIME_WAIT, CLOSE, LAST_ACK, CLOSING
+-          true
+-        else
+-          false
+-        end
++        # TCP_ESTABLISHED == 1 on Linux
++        state == 1 ? false : true
+       end
+     end
+   else
+@@ -170,15 +156,7 @@ def check_client_connection(socket, ai) # :nodoc:
+     end
+ 
+     def closed_state_str?(state)
+-      case state
+-      when 'ESTABLISHED'
+-        false
+-      # not a typo, ruby maps TCP_CLOSE (no 'D') to state=CLOSED (w/ 'D')
+-      when 'CLOSE_WAIT', 'TIME_WAIT', 'CLOSED', 'LAST_ACK', 'CLOSING'
+-        true
+-      else
+-        false
+-      end
++      state == 'ESTABLISHED' ? false : true
+     end
+   end
+ 
