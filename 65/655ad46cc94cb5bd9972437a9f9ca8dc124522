@@ -1,0 +1,77 @@
+Return-Path: <jcuello@fu.do>
+X-Spam-Checker-Version: SpamAssassin 4.0.1 (2024-03-25) on dcvr.yhbt.net
+X-Spam-Level: 
+X-Spam-Status: No, score=0.6 required=3.0 tests=BAYES_50,DKIM_SIGNED,
+	DKIM_VALID,DKIM_VALID_AU,DKIM_VALID_EF,RCVD_IN_DNSWL_NONE,
+	RCVD_IN_MSPIKE_H3,RCVD_IN_MSPIKE_WL,SPF_HELO_NONE,SPF_PASS
+	shortcircuit=no autolearn=ham autolearn_force=no version=4.0.1
+Authentication-Results: dcvr.yhbt.net;
+	dkim=pass (1024-bit key; unprotected) header.d=fu.do header.i=@fu.do header.a=rsa-sha256 header.s=google header.b=VXlLHvNS;
+	dkim-atps=neutral
+Received: from mail-dy1-f178.google.com (mail-dy1-f178.google.com [74.125.82.178])
+	(using TLSv1.3 with cipher TLS_AES_128_GCM_SHA256 (128/128 bits)
+	 key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
+	(No client certificate requested)
+	by dcvr.yhbt.net (Postfix) with ESMTPS id C219820462
+	for <unicorn-public@yhbt.net>; Sat, 27 Jun 2026 22:24:24 +0000 (UTC)
+Received: by mail-dy1-f178.google.com with SMTP id 5a478bee46e88-30ec1ddd510so66231eec.1
+        for <unicorn-public@yhbt.net>; Sat, 27 Jun 2026 15:24:24 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=fu.do; s=google; t=1782599063; x=1783203863; darn=yhbt.net;
+        h=content-transfer-encoding:mime-version:references:in-reply-to
+         :message-id:date:subject:cc:to:from:from:to:cc:subject:date
+         :message-id:reply-to;
+        bh=CHJFJTkw7Q4d5AVW3b9H82YgJKGEX8qO6MuGJaesdGM=;
+        b=VXlLHvNSthZ8Jluydos4kEomjSWZ+y6QfrQDI6rL7x5rn0uoRZwnI77UXMXLuqKqve
+         FQL0mtq+onHh7ScwD/cs4opJn/OV3wxC58OovptFpCpEfxPRUoVvolges93o5Sm2C+fO
+         NdDB+zJgDrSKwRVQVMufhu2rE25RSrUd++q0I=
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20251104; t=1782599063; x=1783203863;
+        h=content-transfer-encoding:mime-version:references:in-reply-to
+         :message-id:date:subject:cc:to:from:x-gm-gg:x-gm-message-state:from
+         :to:cc:subject:date:message-id:reply-to;
+        bh=CHJFJTkw7Q4d5AVW3b9H82YgJKGEX8qO6MuGJaesdGM=;
+        b=s/lS/G5aEfr2wLoFXlV153TrudI7V3Qr+rF12CLWO+t9TJH45/838eri1CFzFGdhDk
+         CgN4B0L8doQnW/tMn9J2Df5Jp5jJmXYVN3xvF1lQ3pBMVMOAanKHrCWg1vw0vfn70vkx
+         vaVdLxHSvA+a0l16PhxA0CHrZaw8/mJJUzfKgNV6LS5xpjARHc0ouhgrx5jUlDAX9etW
+         OmnaNoZxaqXuEEAUT+0T1L7Szdm/Qj43Z7pbaBj2UtUVd/s7cBl7SReI7KCOYCxovfjy
+         ItT+MRBEI0RZd+t7N2mc9opgFTzSl/ck9LR9YS7FC59d5mxee7DpP1DDCZor/3VUxL5q
+         kIhA==
+X-Forwarded-Encrypted: i=1; AHgh+RpJgWjrWa8OIZIPwl+G691KsPjMYRRu0fyQOMaEY9C27VwAc9cHQr7/m5+/0TbTlmeHFqsd2XmsEmdoINZHCA==@yhbt.net
+X-Gm-Message-State: AOJu0YygXUWgOH/B1zVObCdCTf/UrMRotlvWleyRplcFdfpoRll7vzjf
+	Md7n1Q7ITmmQihZjcTAUkwq/esnVBLidBFB6vMvztoZVlB3lPY3WpG03APkzoFv65RmOMElH9iO
+	c4Fzr
+X-Gm-Gg: AfdE7ckxTQ/cxy7HRGdxfbnmtfmx0L/up8ziMjPc6O+tuY6TX5LdiE3mI4ydR4yXkzr
+	+SK3BG08K/51LBrMYNDCKr6WynHadZuiUOONC3fqFYjHB+1i31+qd3+qwDoWDW1TuQOTvLbQoVb
+	Vy5njwzKgPBxRRC/UzjCIQ46AtQCEg6voivS/PAjAmgL5jzZkBycLRDAlGh3tF0oUrZASR5Jl7o
+	z8BtRnRwBgcO86sHO0ihAzw1enE1ObyE/k93Wx496bhpSDmfo0Lp7NYqZBo9HQ1b3G4S7sKJk97
+	shtAut6b3L3iigewm0Jfy1J7AH4ZnSpFiK628fCBywsWhRGUaRTmGEHu5vZhqz6ZiD8eZSUenwR
+	yduLk7wzqmYJ6fHAXekJrVSZ1wyM+mKPG9mYqmFuc5PL+Xa5pnzDyff/aju4y+gzyN2sau8Y5Vc
+	/UpK4=
+X-Received: by 2002:a05:7301:644c:b0:2ea:e93a:ff9b with SMTP id 5a478bee46e88-30c84bcdacfmr11439213eec.13.1782599062689;
+        Sat, 27 Jun 2026 15:24:22 -0700 (PDT)
+Received: from archlinux ([2800:810:54c:15cc:74bc:31a0:1e2a:fd36])
+        by smtp.gmail.com with ESMTPSA id 5a478bee46e88-30c9d39e7besm22825604eec.26.2026.06.27.15.24.21
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Sat, 27 Jun 2026 15:24:22 -0700 (PDT)
+From: Juan Manuel Cuello <jcuello@fu.do>
+To: e@80x24.org
+Cc: tien.tt@holistics.io,
+	unicorn-public@yhbt.net
+Subject: Re: New version?
+Date: Sat, 27 Jun 2026 19:24:19 -0300
+Message-ID: <20260627222419.264902-1-jcuello@fu.do>
+X-Mailer: git-send-email 2.54.0
+In-Reply-To: <20240820112426.M378006@dcvr>
+References: <20240820112426.M378006@dcvr>
+MIME-Version: 1.0
+Content-Transfer-Encoding: 8bit
+List-Id: <unicorn-public.yhbt.net>
+
+> Maybe in a few months or half a year ...
+
+Hi Eric, 
+
+Any chance to consider a new release? Changes in master should allow us to
+upgrade to Ruby 4.
+
